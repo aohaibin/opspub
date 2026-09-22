@@ -109,6 +109,16 @@ pub fn run() {
             commands::terminal::write_terminal_session,
             commands::terminal::resize_terminal_session,
             commands::terminal::close_terminal_session,
+            // SFTP 文件传输模块
+            commands::sftp::sftp_list,
+            commands::sftp::sftp_upload,
+            commands::sftp::sftp_download,
+            commands::sftp::sftp_mkdir,
+            commands::sftp::sftp_rename,
+            commands::sftp::sftp_copy,
+            commands::sftp::sftp_chmod,
+            commands::sftp::sftp_delete,
+            commands::sftp::sftp_archive,
             // 审核日志模块
             commands::audit::get_audit_logs,
             commands::audit::add_audit_log,

@@ -20,3 +20,4 @@ export {
   TERMINAL_OUTPUT_EVENT,
   TERMINAL_STATUS_EVENT,
 } from "./terminal";
+export { sftpApi } from "./sftp";

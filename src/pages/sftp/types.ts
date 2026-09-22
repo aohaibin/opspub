@@ -18,6 +18,24 @@ export interface RemoteFileItem {
   isSensitive?: boolean;
 }
 
+/** 传给 SFTP Command 的短时认证凭据，不持久化到本地。 */
+export interface SftpCredentials {
+  serverId: number;
+  password?: string;
+  privateKeyPath?: string;
+  passphrase?: string;
+}
+
+/** Rust SFTP Command 返回的远程条目。 */
+export interface SftpRemoteFile {
+  name: string;
+  isDir: boolean;
+  size: number;
+  modified: string;
+  permissions: string;
+  owner: string;
+}
+
 export interface SftpSessionTab {
   id: string;
   /** 关联的主机 ID，null 表示处于「选择服务器...」选机视图 */

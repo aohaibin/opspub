@@ -55,6 +55,84 @@ pub struct Server {
     pub updated_at: String,
 }
 
+/// SFTP 操作的短时认证请求。
+///
+/// 凭据只在当前 IPC 调用中使用，不会写入数据库、日志或会话状态。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpRequest {
+    pub server_id: i64,
+    pub password: Option<String>,
+    pub private_key_path: Option<String>,
+    pub passphrase: Option<String>,
+}
+
+/// SFTP 远程目录条目。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpFileEntry {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub modified: String,
+    pub permissions: String,
+    pub owner: String,
+}
+
+/// SFTP 上传请求。文件内容由前端通过 IPC 传入，避免在 Rust 侧暴露本地路径。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpUploadRequest {
+    pub request: SftpRequest,
+    pub remote_dir: String,
+    pub file_name: String,
+    pub content: Vec<u8>,
+}
+
+/// SFTP 下载请求。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpPathRequest {
+    pub request: SftpRequest,
+    pub path: String,
+}
+
+/// SFTP 重命名请求。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpRenameRequest {
+    pub request: SftpRequest,
+    pub source_path: String,
+    pub target_path: String,
+}
+
+/// SFTP 远程复制请求。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpCopyRequest {
+    pub request: SftpRequest,
+    pub source_path: String,
+    pub target_path: String,
+}
+
+/// SFTP 权限修改请求。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpChmodRequest {
+    pub request: SftpRequest,
+    pub path: String,
+    pub mode: u32,
+}
+
+/// SFTP 远程压缩请求。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpArchiveRequest {
+    pub request: SftpRequest,
+    pub source_path: String,
+    pub archive_path: String,
+}
+
 /// 连通性探测结果
 ///
 /// 探测为纯 TCP 三次握手，不涉及认证：握手成功只代表「网络可达 + 端口有服务监听」，

@@ -55,12 +55,15 @@ import {
   Zap,
 } from "lucide-react";
 import { serverApi } from "@/lib/api/server";
+import { sftpApi } from "@/lib/api/sftp";
+import { getErrorMessage } from "@/lib/api/client";
 import { ServerFormModal } from "@/pages/servers/components/ServerFormModal";
-import type { Server } from "@/types";
+import { SshConnectModal } from "@/components/server/SshConnectModal";
+import type { Server, SshCredentials, SshProbeResult } from "@/types";
 import {
-  DEFAULT_ROOT_FILES,
   type RemoteFileItem,
   type SftpLayoutMode,
+  type SftpCredentials,
   type SftpSessionTab,
   type SftpViewMode,
 } from "./types";
@@ -105,6 +108,15 @@ export default function SftpPage() {
   const [serverSearchKeyword, setServerSearchKeyword] = useState("");
   const [serverViewMode, setServerViewMode] = useState<SftpViewMode>("grid");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [sshServer, setSshServer] = useState<Server | null>(null);
+  const [sshTargetPane, setSshTargetPane] = useState<"left" | "right">("left");
+  const [credentialsByServer, setCredentialsByServer] = useState<Record<number, SftpCredentials>>({});
+  const [remoteClipboard, setRemoteClipboard] = useState<{
+    tabId: string;
+    path: string;
+    name: string;
+    cut: boolean;
+  } | null>(null);
 
   // 多标签页状态
   const [tabs, setTabs] = useState<SftpSessionTab[]>([]);
@@ -119,6 +131,7 @@ export default function SftpPage() {
 
   // 每个标签的远程文件列表（按 tabId 分离存储）
   const [filesByTab, setFilesByTab] = useState<Record<string, RemoteFileItem[]>>({});
+  const [loadingByTab, setLoadingByTab] = useState<Record<string, boolean>>({});
 
   // 左右窗格各自独立的过滤搜索词
   const [leftFilterKeyword, setLeftFilterKeyword] = useState("");
@@ -159,6 +172,16 @@ export default function SftpPage() {
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
   const [permissionTargetItem, setPermissionTargetItem] = useState<{ tabId: string; name: string; mode: string } | null>(null);
   const [permissionValue, setPermissionValue] = useState("0755");
+
+  // 在线编辑器与新建文件都通过 SFTP 上传覆盖，避免只修改前端演示数据。
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorTarget, setEditorTarget] = useState<{ tabId: string; name: string } | null>(null);
+  const [editorContent, setEditorContent] = useState("");
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [editorSaving, setEditorSaving] = useState(false);
+  const [newFileModalOpen, setNewFileModalOpen] = useState(false);
+  const [newFileName, setNewFileName] = useState("untitled.txt");
+  const [newFileTargetTabId, setNewFileTargetTabId] = useState("");
 
   // 加载服务器列表
   const loadServers = useCallback(async () => {
@@ -325,18 +348,39 @@ export default function SftpPage() {
     );
   }, [servers, serverSearchKeyword]);
 
-  // 连接某台服务器进入 SFTP
-  const handleConnectServer = useCallback(
-    (server: Server, targetPane: "left" | "right" = "left") => {
+  const loadRemoteDirectory = useCallback(
+    async (tabId: string, path: string, overrideCredentials?: SftpCredentials) => {
+      const tab = tabs.find((item) => item.id === tabId);
+      const credentials = overrideCredentials ?? (tab?.serverId ? credentialsByServer[tab.serverId] : undefined);
+      if (!credentials) return;
+
+      setLoadingByTab((prev) => ({ ...prev, [tabId]: true }));
+      try {
+        const remoteFiles = await sftpApi.list(credentials, path);
+        setFilesByTab((prev) => ({
+          ...prev,
+          [tabId]: remoteFiles.map((file) => ({
+            ...file,
+            sizeFormatted: formatFileSize(file.size),
+          })),
+        }));
+      } catch (error) {
+        message.error(getErrorMessage(error));
+      } finally {
+        setLoadingByTab((prev) => ({ ...prev, [tabId]: false }));
+      }
+    },
+    [credentialsByServer, tabs],
+  );
+
+  const openSessionForServer = useCallback(
+    (server: Server, targetPane: "left" | "right", credentials: SftpCredentials) => {
       const serverDisplayName = server.alias || server.hostname;
-      // 检查是否已有该服务器标签
-      const existingTab = tabs.find((t) => t.serverId === server.id);
+      const existingTab = tabs.find((tab) => tab.serverId === server.id);
       if (existingTab) {
-        if (targetPane === "left") {
-          setActiveTabId(existingTab.id);
-        } else {
-          setSecondaryTabId(existingTab.id);
-        }
+        if (targetPane === "left") setActiveTabId(existingTab.id);
+        else setSecondaryTabId(existingTab.id);
+        void loadRemoteDirectory(existingTab.id, existingTab.currentPath, credentials);
         message.info(`已切入【${serverDisplayName}】的 SFTP 会话`);
         return;
       }
@@ -353,28 +397,35 @@ export default function SftpPage() {
         historyIndex: 0,
       };
 
-      setFilesByTab((prev) => ({
-        ...prev,
-        [newTabId]: [...DEFAULT_ROOT_FILES],
-      }));
-
+      setFilesByTab((prev) => ({ ...prev, [newTabId]: [] }));
       setTabs((prev) => {
-        const isCurrentPicker = targetPane === "left" && activeLeftTab && activeLeftTab.serverId === null;
-        if (isCurrentPicker) {
-          return prev.map((t) => (t.id === activeLeftTab.id ? newTab : t));
+        const isCurrentPicker = targetPane === "left" && activeLeftTab?.serverId === null;
+        if (isCurrentPicker && activeLeftTab) {
+          return prev.map((tab) => (tab.id === activeLeftTab.id ? newTab : tab));
         }
         return [...prev, newTab];
       });
+      if (targetPane === "left") setActiveTabId(newTabId);
+      else setSecondaryTabId(newTabId);
 
-      if (targetPane === "left") {
-        setActiveTabId(newTabId);
-      } else {
-        setSecondaryTabId(newTabId);
-      }
-
+      void loadRemoteDirectory(newTabId, "/root", credentials);
       message.success(`已建立与【${serverDisplayName}】的 SFTP 连接`);
     },
-    [tabs, activeLeftTab]
+    [activeLeftTab, loadRemoteDirectory, tabs],
+  );
+
+  // 连接某台服务器进入 SFTP
+  const handleConnectServer = useCallback(
+    (server: Server, targetPane: "left" | "right" = "left") => {
+      const credentials = credentialsByServer[server.id];
+      if (!credentials) {
+        setSshTargetPane(targetPane);
+        setSshServer(server);
+        return;
+      }
+      openSessionForServer(server, targetPane, credentials);
+    },
+    [credentialsByServer, openSessionForServer],
   );
 
   // 关闭单个标签
@@ -480,6 +531,7 @@ export default function SftpPage() {
         };
       })
     );
+    void loadRemoteDirectory(tabId, cleanPath);
   };
 
   // 后退
@@ -490,6 +542,7 @@ export default function SftpPage() {
     setTabs((prev) =>
       prev.map((t) => (t.id === tab.id ? { ...t, historyIndex: nextIdx, currentPath: targetPath } : t))
     );
+    void loadRemoteDirectory(tab.id, targetPath);
   };
 
   // 前进
@@ -500,6 +553,7 @@ export default function SftpPage() {
     setTabs((prev) =>
       prev.map((t) => (t.id === tab.id ? { ...t, historyIndex: nextIdx, currentPath: targetPath } : t))
     );
+    void loadRemoteDirectory(tab.id, targetPath);
   };
 
   // 上一级目录
@@ -513,58 +567,142 @@ export default function SftpPage() {
 
   // 刷新当前目录
   const handleRefreshPath = (tab: SftpSessionTab) => {
-    message.loading({ content: `正在读取远程目录【${tab.currentPath}】...`, key: "refreshSftp", duration: 0.6 });
-    setTimeout(() => {
-      message.success({ content: `已刷新远程目录【${tab.currentPath}】`, key: "refreshSftp" });
-    }, 600);
+    void loadRemoteDirectory(tab.id, tab.currentPath);
   };
 
-  // 执行文件流式分块上传（模拟向指定 tab 传输）
-  const executeUploadFiles = (tab: SftpSessionTab, fileList: FileList | File[]) => {
+  const openRemoteEditor = async (tab: SftpSessionTab, item: RemoteFileItem) => {
+    if (item.isDir) {
+      handleNavigateToPath(tab.id, `${tab.currentPath}/${item.name}`.replace(/\/+/g, "/"));
+      return;
+    }
+    const credentials = tab.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!credentials) {
+      message.warning("SFTP 会话凭据已失效，请重新连接服务器");
+      return;
+    }
+    setEditorLoading(true);
+    try {
+      const bytes = await sftpApi.download(
+        credentials,
+        `${tab.currentPath}/${item.name}`.replace(/\/+/g, "/"),
+      );
+      setEditorTarget({ tabId: tab.id, name: item.name });
+      setEditorContent(new TextDecoder().decode(new Uint8Array(bytes)));
+      setEditorOpen(true);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setEditorLoading(false);
+    }
+  };
+
+  const saveRemoteEditor = async () => {
+    if (!editorTarget) return;
+    const tab = tabs.find((item) => item.id === editorTarget.tabId);
+    const credentials = tab?.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!tab || !credentials) {
+      message.warning("SFTP 会话已关闭，请重新连接服务器");
+      return;
+    }
+    setEditorSaving(true);
+    try {
+      await sftpApi.upload({
+        request: credentials,
+        remoteDir: tab.currentPath,
+        fileName: editorTarget.name,
+        content: Array.from(new TextEncoder().encode(editorContent)),
+      });
+      setEditorOpen(false);
+      await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+      message.success(`已保存 ${editorTarget.name}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setEditorSaving(false);
+    }
+  };
+
+  const createRemoteFile = async () => {
+    const name = newFileName.trim();
+    const tab = tabs.find((item) => item.id === newFileTargetTabId);
+    const credentials = tab?.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!name) {
+      message.warning("请输入文件名");
+      return;
+    }
+    if (!tab || !credentials) return;
+    try {
+      await sftpApi.upload({
+        request: credentials,
+        remoteDir: tab.currentPath,
+        fileName: name,
+        content: [],
+      });
+      setNewFileModalOpen(false);
+      setNewFileName("untitled.txt");
+      await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+      message.success(`已创建文件 ${name}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const pasteRemoteItem = async (targetTab: SftpSessionTab) => {
+    if (!remoteClipboard) return;
+    const sourceTab = tabs.find((item) => item.id === remoteClipboard.tabId);
+    const credentials = targetTab.serverId ? credentialsByServer[targetTab.serverId] : undefined;
+    if (!sourceTab || !credentials || sourceTab.serverId !== targetTab.serverId) {
+      message.warning("复制或剪切内容必须来自同一台服务器");
+      return;
+    }
+    const targetPath = `${targetTab.currentPath}/${remoteClipboard.name}`.replace(/\/+/g, "/");
+    try {
+      if (remoteClipboard.cut) {
+        await sftpApi.rename(credentials, remoteClipboard.path, targetPath);
+      } else {
+        await sftpApi.copy(credentials, remoteClipboard.path, targetPath);
+      }
+      await loadRemoteDirectory(targetTab.id, targetTab.currentPath, credentials);
+      if (remoteClipboard.cut && sourceTab.id !== targetTab.id) {
+        await loadRemoteDirectory(sourceTab.id, sourceTab.currentPath, credentials);
+      }
+      setRemoteClipboard(null);
+      message.success("已粘贴到当前目录");
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  // 通过 IPC 上传本地文件内容，凭据只随当前请求传递。
+  const executeUploadFiles = async (tab: SftpSessionTab, fileList: FileList | File[]) => {
     if (!fileList || fileList.length === 0) return;
-
-    const filesArray = Array.from(fileList);
-    const names = filesArray.map((f) => f.name).join(", ");
-    message.loading({
-      content: `正在分块流式上传 [${names}] 到 ${tab.serverName}:${tab.currentPath} (256KiB Block)...`,
-      key: "sftpUploading",
-      duration: 1.0,
-    });
-
-    setTimeout(() => {
-      const now = new Date();
-      const timeStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
-
-      const newUploadedItems: RemoteFileItem[] = filesArray.map((f) => ({
-        name: f.name,
-        isDir: false,
-        size: f.size || 1024,
-        sizeFormatted: formatFileSize(f.size || 1024),
-        modified: timeStr,
-        permissions: "-rw-r--r--",
-        owner: `uid:0 (${tab.serverUser || "root"})`,
-      }));
-
-      setFilesByTab((prev) => {
-        const existing = prev[tab.id] || DEFAULT_ROOT_FILES;
-        const uploadNamesSet = new Set(newUploadedItems.map((n) => n.name));
-        const filtered = existing.filter((item) => !uploadNamesSet.has(item.name));
-        return {
-          ...prev,
-          [tab.id]: [...newUploadedItems, ...filtered],
-        };
-      });
-
-      message.success({
-        content: `🚀 文件 [${names}] 上传成功，已写入 ${tab.currentPath}`,
-        key: "sftpUploading",
-        duration: 2.5,
-      });
-    }, 900);
+    const credentials = tab.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!credentials) {
+      message.warning("SFTP 会话凭据已失效，请重新连接服务器");
+      return;
+    }
+    const files = Array.from(fileList);
+    let uploaded = 0;
+    try {
+      for (const file of files) {
+        const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
+        await sftpApi.upload({
+          request: credentials,
+          remoteDir: tab.currentPath,
+          fileName: file.name,
+          content: bytes,
+        });
+        uploaded += 1;
+      }
+      await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+      message.success(`已上传 ${uploaded} 个文件到 ${tab.currentPath}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
   };
 
   // 创建文件夹确认
-  const handleConfirmCreateFolder = () => {
+  const handleConfirmCreateFolder = async () => {
     const name = newFolderName.trim();
     if (!name) {
       message.warning("请输入目录名称");
@@ -572,31 +710,22 @@ export default function SftpPage() {
     }
     if (!newFolderTargetTabId) return;
 
-    const newFolder: RemoteFileItem = {
-      name,
-      isDir: true,
-      size: 0,
-      sizeFormatted: "—",
-      modified: new Date().toLocaleString("zh-CN"),
-      permissions: "drwxr-xr-x",
-      owner: "uid:0 (root)",
-    };
-
-    setFilesByTab((prev) => {
-      const currentList = prev[newFolderTargetTabId] || DEFAULT_ROOT_FILES;
-      return {
-        ...prev,
-        [newFolderTargetTabId]: [newFolder, ...currentList.filter((i) => i.name !== name)],
-      };
-    });
-
-    setNewFolderModalOpen(false);
-    setNewFolderName("");
-    message.success(`已创建目录: ${name}`);
+    const tab = tabs.find((item) => item.id === newFolderTargetTabId);
+    const credentials = tab?.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!tab || !credentials) return;
+    try {
+      await sftpApi.mkdir(credentials, `${tab.currentPath}/${name}`.replace(/\/+/g, "/"));
+      setNewFolderModalOpen(false);
+      setNewFolderName("");
+      await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+      message.success(`已创建目录: ${name}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
   };
 
   // 重命名确认
-  const handleConfirmRename = () => {
+  const handleConfirmRename = async () => {
     const newName = renameNewName.trim();
     if (!newName) {
       message.warning("请输入新名称");
@@ -604,38 +733,83 @@ export default function SftpPage() {
     }
     if (!renameTargetTabId || !renameOldName) return;
 
-    setFilesByTab((prev) => {
-      const list = prev[renameTargetTabId] || DEFAULT_ROOT_FILES;
-      return {
-        ...prev,
-        [renameTargetTabId]: list.map((item) => (item.name === renameOldName ? { ...item, name: newName } : item)),
-      };
-    });
-
-    setRenameModalOpen(false);
-    message.success(`已成功重命名为: ${newName}`);
+    const tab = tabs.find((item) => item.id === renameTargetTabId);
+    const credentials = tab?.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!tab || !credentials) return;
+    try {
+      await sftpApi.rename(
+        credentials,
+        `${tab.currentPath}/${renameOldName}`.replace(/\/+/g, "/"),
+        `${tab.currentPath}/${newName}`.replace(/\/+/g, "/"),
+      );
+      setRenameModalOpen(false);
+      await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+      message.success(`已成功重命名为: ${newName}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
   };
 
   // 修改权限确认
-  const handleConfirmPermissions = () => {
+  const handleConfirmPermissions = async () => {
     if (!permissionTargetItem) return;
-    const mode = permissionValue.trim() || "0755";
-    setFilesByTab((prev) => {
-      const list = prev[permissionTargetItem.tabId] || DEFAULT_ROOT_FILES;
-      return {
-        ...prev,
-        [permissionTargetItem.tabId]: list.map((item) =>
-          item.name === permissionTargetItem.name ? { ...item, permissions: `rwxr-xr-x (${mode})` } : item
-        ),
-      };
-    });
-    setPermissionModalOpen(false);
-    message.success(`已更新【${permissionTargetItem.name}】权限为 ${mode}`);
+    const modeText = permissionValue.trim() || "0755";
+    if (!/^[0-7]{3,4}$/.test(modeText)) {
+      message.warning("请输入 3 或 4 位八进制权限掩码");
+      return;
+    }
+    const tab = tabs.find((item) => item.id === permissionTargetItem.tabId);
+    const credentials = tab?.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!tab || !credentials) return;
+    try {
+      await sftpApi.chmod(
+        credentials,
+        `${tab.currentPath}/${permissionTargetItem.name}`.replace(/\/+/g, "/"),
+        Number.parseInt(modeText, 8),
+      );
+      setPermissionModalOpen(false);
+      await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+      message.success(`已更新【${permissionTargetItem.name}】权限为 ${modeText}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
   };
 
-  // 1:1 对齐截图 2：构建完整严谨的右侧操作下拉菜单 (11 项操作)
+  const triggerDownload = (fileName: string, bytes: number[]) => {
+    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)]));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownload = async (tab: SftpSessionTab, item: RemoteFileItem) => {
+    const credentials = tab.serverId ? credentialsByServer[tab.serverId] : undefined;
+    if (!credentials) {
+      message.warning("SFTP 会话凭据已失效，请重新连接服务器");
+      return;
+    }
+    const fullPath = `${tab.currentPath}/${item.name}`.replace(/\/+/g, "/");
+    const downloadPath = item.isDir ? `${fullPath}.tar.gz` : fullPath;
+    try {
+      if (item.isDir) {
+        await sftpApi.archive(credentials, fullPath, downloadPath);
+      }
+      const bytes = await sftpApi.download(credentials, downloadPath);
+      triggerDownload(item.isDir ? `${item.name}.tar.gz` : item.name, bytes);
+      message.success(`已下载【${item.name}】`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  // 构建远程文件操作菜单，所有会改变远程状态的操作都通过 SFTP Command 执行。
   const getFileRowMenu = (tab: SftpSessionTab, item: RemoteFileItem): MenuProps => {
     const fullPath = `${tab.currentPath}/${item.name}`.replace(/\/+/g, "/");
+    const credentials = tab.serverId ? credentialsByServer[tab.serverId] : undefined;
 
     return {
       items: [
@@ -648,7 +822,7 @@ export default function SftpPage() {
             if (item.isDir) {
               handleNavigateToPath(tab.id, fullPath);
             } else {
-              message.info(`正在打开【${item.name}】在线编辑器`);
+              void openRemoteEditor(tab, item);
             }
           },
         },
@@ -657,12 +831,7 @@ export default function SftpPage() {
           key: "downloadPack",
           label: item.isDir ? "下载 (打包)" : "下载",
           icon: <Download size={14} className="text-slate-400" />,
-          onClick: () => {
-            message.loading({ content: `正在准备【${item.name}】并下载到本地...`, duration: 1 });
-            setTimeout(() => {
-              message.success(`已下载【${item.name}】至本地 Downloads 目录`);
-            }, 1000);
-          },
+          onClick: () => void handleDownload(tab, item),
         },
         // 3. 在终端 cd 此目录
         {
@@ -670,7 +839,9 @@ export default function SftpPage() {
           label: item.isDir ? "在终端 cd 此目录" : "在终端打开所在目录",
           icon: <Terminal size={14} className="text-slate-400" />,
           onClick: () => {
-            message.success(`⚡ 终端已连接并执行: cd "${item.isDir ? fullPath : tab.currentPath}"`);
+            const command = `cd "${item.isDir ? fullPath : tab.currentPath}"`;
+            void navigator.clipboard.writeText(command);
+            message.info(`已复制终端命令: ${command}`);
           },
         },
         { type: "divider" },
@@ -680,7 +851,7 @@ export default function SftpPage() {
           label: "复制",
           icon: <Copy size={14} className="text-slate-400" />,
           onClick: () => {
-            void navigator.clipboard.writeText(fullPath);
+            setRemoteClipboard({ tabId: tab.id, path: fullPath, name: item.name, cut: false });
             message.info(`已复制【${item.name}】，可前往目标目录粘贴`);
           },
         },
@@ -690,7 +861,8 @@ export default function SftpPage() {
           label: "剪切",
           icon: <Scissors size={14} className="text-slate-400" />,
           onClick: () => {
-            message.info(`已剪切【${item.name}】`);
+            setRemoteClipboard({ tabId: tab.id, path: fullPath, name: item.name, cut: true });
+            message.info(`已剪切【${item.name}】，请在目标目录点击粘贴`);
           },
         },
         { type: "divider" },
@@ -699,22 +871,16 @@ export default function SftpPage() {
           key: "compress",
           label: "压缩",
           icon: <Archive size={14} className="text-slate-400" />,
-          onClick: () => {
-            const archiveName = `${item.name}.tar.gz`;
-            const newItem: RemoteFileItem = {
-              name: archiveName,
-              isDir: false,
-              size: 10240,
-              sizeFormatted: "10.0 KB",
-              modified: new Date().toLocaleString("zh-CN"),
-              permissions: "-rw-r--r--",
-              owner: `uid:0 (${tab.serverUser || "root"})`,
-            };
-            setFilesByTab((prev) => ({
-              ...prev,
-              [tab.id]: [newItem, ...(prev[tab.id] || DEFAULT_ROOT_FILES)],
-            }));
-            message.success(`已生成压缩归档: ${archiveName}`);
+          onClick: async () => {
+            if (!credentials) return message.warning("SFTP 会话凭据已失效，请重新连接服务器");
+            const archivePath = `${fullPath}.tar.gz`;
+            try {
+              await sftpApi.archive(credentials, fullPath, archivePath);
+              await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+              message.success(`已生成压缩归档: ${item.name}.tar.gz`);
+            } catch (error) {
+              message.error(getErrorMessage(error));
+            }
           },
         },
         // 7. 重命名
@@ -774,12 +940,18 @@ export default function SftpPage() {
               okText: "确认删除",
               okButtonProps: { danger: true },
               cancelText: "取消",
-              onOk: () => {
-                setFilesByTab((prev) => ({
-                  ...prev,
-                  [tab.id]: (prev[tab.id] || DEFAULT_ROOT_FILES).filter((i) => i.name !== item.name),
-                }));
-                message.success(`已删除: ${item.name}`);
+              onOk: async () => {
+                if (!credentials) {
+                  message.warning("SFTP 会话凭据已失效，请重新连接服务器");
+                  return;
+                }
+                try {
+                  await sftpApi.delete(credentials, fullPath);
+                  await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+                  message.success(`已删除: ${item.name}`);
+                } catch (error) {
+                  message.error(getErrorMessage(error));
+                }
               },
             });
           },
@@ -930,7 +1102,7 @@ export default function SftpPage() {
     const pathInputVal = isLeft ? leftPathInputVal : rightPathInputVal;
     const setPathInputVal = isLeft ? setLeftPathInputVal : setRightPathInputVal;
 
-    const allFiles = filesByTab[tab.id] || DEFAULT_ROOT_FILES;
+    const allFiles = filesByTab[tab.id] || [];
     const displayFiles = filterKw
       ? allFiles.filter((f) => f.name.toLowerCase().includes(filterKw))
       : allFiles;
@@ -1173,6 +1345,16 @@ export default function SftpPage() {
         {/* 操作工具栏：上传文件大按钮(主题色) + 紧随其后 4 个工具图标按钮 + 搜索过滤 (截图 1 / 截图 2) */}
         <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-surface-950/60 border-b border-slate-800/60 gap-2 text-xs">
           <div className="flex items-center space-x-2">
+            {remoteClipboard && (
+              <button
+                type="button"
+                onClick={() => void pasteRemoteItem(tab)}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer text-[var(--accent-hover,#2dd4bf)] bg-[var(--accent,#0d9488)]/15 hover:bg-[var(--accent,#0d9488)]/25 border border-[var(--accent,#0d9488)]/30"
+              >
+                <FolderSync size={14} />
+                <span>粘贴</span>
+              </button>
+            )}
             {/* 上传文件主按钮：严格按照主题色走 */}
             <button
               type="button"
@@ -1203,23 +1385,9 @@ export default function SftpPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const fName = prompt("请输入新建文件名称:", "untitled.txt");
-                    if (fName) {
-                      const newItem: RemoteFileItem = {
-                        name: fName.trim(),
-                        isDir: false,
-                        size: 0,
-                        sizeFormatted: "0 B",
-                        modified: new Date().toLocaleString("zh-CN"),
-                        permissions: "-rw-r--r--",
-                        owner: `uid:0 (${tab.serverUser || "root"})`,
-                      };
-                      setFilesByTab((prev) => ({
-                        ...prev,
-                        [tab.id]: [newItem, ...(prev[tab.id] || DEFAULT_ROOT_FILES)],
-                      }));
-                      message.success(`已创建文件: ${fName}`);
-                    }
+                    setNewFileTargetTabId(tab.id);
+                    setNewFileName("untitled.txt");
+                    setNewFileModalOpen(true);
                   }}
                   className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"
                 >
@@ -1230,7 +1398,11 @@ export default function SftpPage() {
               <Tooltip title="在终端中打开当前目录">
                 <button
                   type="button"
-                  onClick={() => message.info(`已在远程终端打开目录【${tab.currentPath}】`)}
+                  onClick={() => {
+                    const command = `cd "${tab.currentPath}"`;
+                    void navigator.clipboard.writeText(command);
+                    message.info(`已复制终端命令: ${command}`);
+                  }}
                   className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"
                 >
                   <Terminal size={14} />
@@ -1255,6 +1427,7 @@ export default function SftpPage() {
         </div>
 
         {/* 文件表格核心区 (表头、图标主题色与右侧操作列完全对齐截图 1 / 截图 2) */}
+        <Spin spinning={Boolean(loadingByTab[tab.id])} className="flex-1 min-h-0">
         <div className="flex-1 overflow-auto custom-scrollbar relative">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="sticky top-0 z-10 bg-surface-950/95 backdrop-blur border-b border-slate-800 text-slate-400 select-none">
@@ -1298,7 +1471,7 @@ export default function SftpPage() {
                         if (item.isDir) {
                           handleNavigateToPath(tab.id, fullItemPath);
                         } else {
-                          message.info(`正在打开【${item.name}】在线预览`);
+                          void openRemoteEditor(tab, item);
                         }
                       }}
                       className={`group hover:bg-surface-850/80 transition-colors duration-150 cursor-pointer ${
@@ -1356,7 +1529,7 @@ export default function SftpPage() {
                             <Tooltip title="在线编辑">
                               <button
                                 type="button"
-                                onClick={() => message.info(`正在打开【${item.name}】在线编辑器`)}
+                                onClick={() => void openRemoteEditor(tab, item)}
                                 className="p-1 rounded hover:bg-surface-800 text-slate-400 hover:text-[var(--accent,#0d9488)] transition cursor-pointer"
                               >
                                 <Edit3 size={14} />
@@ -1367,7 +1540,7 @@ export default function SftpPage() {
                           <Tooltip title="下载">
                             <button
                               type="button"
-                              onClick={() => message.info(`正在下载文件【${item.name}】...`)}
+                              onClick={() => void handleDownload(tab, item)}
                               className="p-1 rounded hover:bg-surface-800 text-slate-400 hover:text-[var(--accent,#0d9488)] transition cursor-pointer"
                             >
                               <Download size={14} />
@@ -1394,6 +1567,7 @@ export default function SftpPage() {
             </tbody>
           </table>
         </div>
+        </Spin>
 
         {/* 底部状态信息 */}
         <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-surface-950 border-t border-slate-800 text-[11px] text-slate-500 font-mono">
@@ -1662,6 +1836,69 @@ export default function SftpPage() {
       </Modal>
 
       {/* 新建服务器 Modal */}
+      <Modal
+        title={editorTarget ? `在线编辑 · ${editorTarget.name}` : "在线编辑"}
+        open={editorOpen}
+        width={820}
+        onCancel={() => setEditorOpen(false)}
+        onOk={() => void saveRemoteEditor()}
+        okText="保存到服务器"
+        cancelText="取消"
+        confirmLoading={editorSaving}
+        destroyOnClose
+      >
+        <Input.TextArea
+          value={editorContent}
+          onChange={(event) => setEditorContent(event.target.value)}
+          autoSize={{ minRows: 16, maxRows: 30 }}
+          disabled={editorLoading || editorSaving}
+          className="font-mono text-xs"
+          placeholder="文件内容"
+        />
+      </Modal>
+
+      <Modal
+        title="新建远程文件"
+        open={newFileModalOpen}
+        onCancel={() => setNewFileModalOpen(false)}
+        onOk={() => void createRemoteFile()}
+        okText="创建"
+        cancelText="取消"
+        destroyOnClose
+      >
+        <Input
+          value={newFileName}
+          onChange={(event) => setNewFileName(event.target.value)}
+          onPressEnter={() => void createRemoteFile()}
+          placeholder="例如 .env、deploy.sh"
+          autoFocus
+        />
+      </Modal>
+
+      <SshConnectModal
+        open={sshServer !== null}
+        server={sshServer}
+        initialCredentials={
+          sshServer && credentialsByServer[sshServer.id]
+            ? {
+                password: credentialsByServer[sshServer.id].password,
+                privateKeyPath: credentialsByServer[sshServer.id].privateKeyPath,
+                passphrase: credentialsByServer[sshServer.id].passphrase,
+              }
+            : undefined
+        }
+        onCancel={() => setSshServer(null)}
+        onVerified={async (_result: SshProbeResult, credentials: SshCredentials) => {
+          if (!sshServer) return;
+          const server = sshServer;
+          const sftpCredentials: SftpCredentials = { serverId: server.id, ...credentials };
+          setCredentialsByServer((previous) => ({ ...previous, [server.id]: sftpCredentials }));
+          setSshServer(null);
+          openSessionForServer(server, sshTargetPane, sftpCredentials);
+        }}
+        onStatusChanged={() => loadServers()}
+      />
+
       <ServerFormModal
         open={createModalOpen}
         server={null}

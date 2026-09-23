@@ -8,3 +8,4 @@
 export { useAppStore, SKINS, UNLOCK_DURATIONS } from "./app";
 export type { SkinId, SkinDef, ThemeMode, UnlockDuration } from "./app";
 export { useSettingsStore } from "./settings";
+export { useSshSessionStore } from "./ssh";

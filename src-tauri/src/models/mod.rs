@@ -133,6 +133,26 @@ pub struct SftpArchiveRequest {
     pub archive_path: String,
 }
 
+/// 工作台远程命令请求。凭据仅随本次 IPC 调用传递，不写入数据库或会话状态。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchCommandRequest {
+    pub server_id: i64,
+    pub command: String,
+    pub password: Option<String>,
+    pub private_key_path: Option<String>,
+    pub passphrase: Option<String>,
+}
+
+/// 工作台远程命令结果。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbenchCommandResult {
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: i32,
+}
+
 /// 连通性探测结果
 ///
 /// 探测为纯 TCP 三次握手，不涉及认证：握手成功只代表「网络可达 + 端口有服务监听」，

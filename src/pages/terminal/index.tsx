@@ -43,6 +43,7 @@ import {
   terminalApi,
 } from "@/lib/api/terminal";
 import { useAppStore } from "@/store/app";
+import { useSshSessionStore } from "@/store/ssh";
 import type {
   Server,
   ServerPayload,
@@ -84,7 +85,6 @@ export default function TerminalPage() {
   const [terminalOutputs, setTerminalOutputs] = useState<Record<string, string>>({});
   const [sessionMessages, setSessionMessages] = useState<Record<string, string>>({});
   const [sshServer, setSshServer] = useState<Server | null>(null);
-  const [sshInitialCredentials, setSshInitialCredentials] = useState<SshCredentials>();
   const [createServerOpen, setCreateServerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("ai");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -93,6 +93,9 @@ export default function TerminalPage() {
   const sessionsRef = useRef<TerminalSessionInfo[]>([]);
   const lineBuffersRef = useRef(new Map<string, string>());
   const setActiveServerId = useAppStore((state) => state.setActiveServerId);
+  const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
+  const setSharedCredentials = useSshSessionStore((state) => state.setCredentials);
+  const clearSharedCredentials = useSshSessionStore((state) => state.clearCredentials);
 
   sessionsRef.current = sessions;
 
@@ -189,9 +192,35 @@ export default function TerminalPage() {
     return ordered.slice(0, count);
   }, [activeSessionId, sessions, splitMode]);
 
+  const openTerminalSession = useCallback(async (server: Server, credentials: SshCredentials) => {
+    const session = await terminalApi.open({
+      serverId: server.id,
+      password: credentials.password,
+      privateKeyPath: credentials.privateKeyPath,
+      passphrase: credentials.passphrase,
+    });
+    setSessions((current) => [...current, session]);
+    setSessionMessages((current) => ({
+      ...current,
+      [session.sessionId]: "SSH 终端已连接",
+    }));
+    setActiveSessionId(session.sessionId);
+    setActiveServerId(server.id);
+    await loadServers();
+  }, [loadServers, setActiveServerId]);
+
   const openConnection = (server: Server) => {
     setDropdownOpen(false);
     setActiveServerId(server.id);
+    const cachedCredentials = sharedCredentials[server.id];
+    if (cachedCredentials) {
+      void openTerminalSession(server, cachedCredentials).catch((error) => {
+        message.error(getErrorMessage(error));
+        clearSharedCredentials(server.id);
+        setSshServer(server);
+      });
+      return;
+    }
     setSshServer(server);
   };
 
@@ -207,8 +236,7 @@ export default function TerminalPage() {
       const nextServers = await loadServers();
       const savedServer = nextServers.find((server) => server.id === serverId);
       if (credentials && savedServer) {
-        setSshInitialCredentials(credentials);
-        setSshServer(savedServer);
+        setSharedCredentials(savedServer.id, credentials);
       }
     } catch (error) {
       message.error(getErrorMessage(error));
@@ -221,22 +249,9 @@ export default function TerminalPage() {
   ) => {
     if (!sshServer) return;
     const server = sshServer;
-    const session = await terminalApi.open({
-      serverId: server.id,
-      password: credentials.password,
-      privateKeyPath: credentials.privateKeyPath,
-      passphrase: credentials.passphrase,
-    });
-    setSessions((current) => [...current, session]);
-    setSessionMessages((current) => ({
-      ...current,
-      [session.sessionId]: "SSH 终端已连接",
-    }));
-    setActiveSessionId(session.sessionId);
-    setActiveServerId(server.id);
+    setSharedCredentials(server.id, credentials);
     setSshServer(null);
-    setSshInitialCredentials(undefined);
-    await loadServers();
+    await openTerminalSession(server, credentials);
   };
 
   const closeSession = (sessionId: string) => {
@@ -489,10 +504,9 @@ export default function TerminalPage() {
       <SshConnectModal
         open={sshServer !== null}
         server={sshServer}
-        initialCredentials={sshInitialCredentials}
+        initialCredentials={sshServer ? sharedCredentials[sshServer.id] : undefined}
         onCancel={() => {
           setSshServer(null);
-          setSshInitialCredentials(undefined);
         }}
         onVerified={handleVerified}
         onStatusChanged={() => {

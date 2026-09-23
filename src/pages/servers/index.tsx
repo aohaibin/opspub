@@ -33,6 +33,7 @@ import { serverApi } from "@/lib/api/server";
 import { getErrorMessage } from "@/lib/api/client";
 import { SshConnectModal } from "@/components/server/SshConnectModal";
 import { useAppStore } from "@/store/app";
+import { useSshSessionStore } from "@/store/ssh";
 import { modulePath, requireModule } from "@/navigation/modules";
 import { ServerGroupPanel } from "./components/ServerGroupPanel";
 import {
@@ -177,6 +178,7 @@ export default function ServersPage() {
 
   const navigate = useNavigate();
   const setActiveServerId = useAppStore((s) => s.setActiveServerId);
+  const setSharedCredentials = useSshSessionStore((s) => s.setCredentials);
 
   const loadServers = useCallback(async (): Promise<Server[]> => {
     setLoading(true);
@@ -309,8 +311,9 @@ export default function ServersPage() {
       const nextServers = await loadServers();
       const savedServer = nextServers.find((item) => item.id === savedServerId);
       if (credentials && savedServer) {
-        setSshInitialCredentials(credentials);
-        setSshServer(savedServer);
+        // 服务器表单已经收集了认证信息，直接托管到当前进程会话。
+        // 终端、SFTP 和工作台后续入口会复用它，只有凭证缺失或失效时才要求验证。
+        setSharedCredentials(savedServer.id, credentials);
       }
     } catch (e) {
       message.error(getErrorMessage(e));
@@ -967,7 +970,10 @@ export default function ServersPage() {
           setSshServer(null);
           setSshInitialCredentials(undefined);
         }}
-        onVerified={async () => {
+        onVerified={async (_result, credentials) => {
+          if (sshServer) {
+            setSharedCredentials(sshServer.id, credentials);
+          }
           await loadServers();
         }}
         onStatusChanged={async () => {

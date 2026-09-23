@@ -21,3 +21,4 @@ export {
   TERMINAL_STATUS_EVENT,
 } from "./terminal";
 export { sftpApi } from "./sftp";
+export { workbenchApi } from "./workbench";

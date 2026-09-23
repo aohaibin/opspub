@@ -1,0 +1,23 @@
+import React, { useState } from "react";
+import { Button, Table, Tag, Modal, Form, Select, Input, message } from "antd";
+import { Archive, Plus, Download, RotateCcw, Trash2, Folder } from "lucide-react";
+import { getErrorMessage } from "@/lib/api/client";
+import { useWorkbenchRuntime } from "../context";
+import type { BackupTaskItem } from "../types";
+
+export const BackupView: React.FC = () => {
+  const { runCommand } = useWorkbenchRuntime();
+  const [tasks, setTasks] = useState<BackupTaskItem[]>([]);
+  const [filterType, setFilterType] = useState("all");
+  const [open, setOpen] = useState(false);
+  const [form] = Form.useForm();
+  const create = async (values: { targetType: BackupTaskItem["targetType"]; targetName: string }) => {
+    if (values.targetType !== "directory") { message.warning("数据库和网站备份需要配置对应的数据库/站点凭据，当前请先使用目录备份或终端命令"); return; }
+    const cleanPath = values.targetName.trim(); if (!cleanPath.startsWith("/")) { message.error("目录路径必须是绝对路径"); return; }
+    const fileName = `workbench_${Date.now()}.tar.gz`; const output = `/tmp/${fileName}`;
+    try { const result = await runCommand(`tar -czf ${JSON.stringify(output)} -C / ${JSON.stringify(cleanPath.replace(/^\/+/, ""))}`); if (result.exitCode !== 0) throw new Error(result.stderr || "备份失败"); setTasks((prev) => [{ id: fileName, targetType: "directory", targetName: cleanPath, fileName: output, size: "已生成", completedAt: new Date().toLocaleString(), status: "success" }, ...prev]); setOpen(false); form.resetFields(); message.success("目录备份已生成到远程 /tmp"); } catch (error) { message.error(getErrorMessage(error)); }
+  };
+  const filtered = tasks.filter((task) => filterType === "all" || task.targetType === filterType);
+  const columns = [{ title: "备份对象", dataIndex: "targetName", key: "targetName", render: (name: string, record: BackupTaskItem) => <div className="flex items-center gap-2"><Folder size={15} className="text-teal-400" /><span className="font-semibold text-xs">{name}</span><Tag color="cyan" className="m-0 text-[10px]">{record.targetType}</Tag></div> }, { title: "备份文件", dataIndex: "fileName", key: "fileName", render: (name: string) => <span className="font-mono text-xs text-slate-400">{name}</span> }, { title: "完成时间", dataIndex: "completedAt", key: "completedAt" }, { title: "状态", dataIndex: "status", key: "status", render: (status: string) => <Tag color={status === "success" ? "success" : "error"}>{status}</Tag> }, { title: "操作", key: "actions", render: (_: unknown, record: BackupTaskItem) => <div className="flex justify-end gap-1"><Button size="small" type="text" icon={<Download size={13} />} onClick={() => message.info(`远程文件 ${record.fileName} 请通过 SFTP 下载`)} /><Button size="small" type="text" icon={<RotateCcw size={13} />} onClick={() => message.info("还原前请在终端确认目标目录")}/><Button size="small" type="text" danger icon={<Trash2 size={13} />} onClick={() => setTasks((prev) => prev.filter((task) => task.id !== record.id))} /></div> }];
+  return <div className="space-y-4 pb-12 select-none"><div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}><div className="flex items-center gap-2">{["all", "database", "website", "directory"].map((type) => <button type="button" key={type} onClick={() => setFilterType(type)} className={`px-3 py-1 rounded-lg text-xs ${filterType === type ? "bg-teal-500/20 text-teal-300 border border-teal-500/40" : "text-slate-400"}`}>{type === "all" ? "全部备份" : type === "directory" ? "目录" : type === "database" ? "数据库" : "网站"}</button>)}</div><Button type="primary" size="small" icon={<Plus size={14} />} onClick={() => setOpen(true)}>新建备份</Button></div><div className="p-4 rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}><div className="text-xs font-bold mb-3 flex items-center gap-2"><Archive size={14} className="text-teal-400" />远程备份记录（{filtered.length}）</div><Table rowKey="id" size="small" columns={columns} dataSource={filtered} pagination={false} className="ops-table text-xs" /></div><Modal title="新建远程备份" open={open} onCancel={() => setOpen(false)} onOk={() => form.submit()} okText="开始备份" cancelText="取消"><Form form={form} layout="vertical" onFinish={create}><Form.Item name="targetType" label="备份类型" initialValue="directory"><Select options={[{ label: "指定目录", value: "directory" }, { label: "数据库（需凭据）", value: "database" }, { label: "网站（需配置）", value: "website" }]} /></Form.Item><Form.Item name="targetName" label="目录绝对路径" rules={[{ required: true, message: "请输入目录路径" }]}><Input placeholder="/www/wwwroot" /></Form.Item></Form></Modal></div>;
+};

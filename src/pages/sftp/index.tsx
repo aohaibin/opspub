@@ -57,6 +57,7 @@ import {
 import { serverApi } from "@/lib/api/server";
 import { sftpApi } from "@/lib/api/sftp";
 import { getErrorMessage } from "@/lib/api/client";
+import { useSshSessionStore } from "@/store/ssh";
 import { ServerFormModal } from "@/pages/servers/components/ServerFormModal";
 import { SshConnectModal } from "@/components/server/SshConnectModal";
 import type { Server, SshCredentials, SshProbeResult } from "@/types";
@@ -110,7 +111,17 @@ export default function SftpPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [sshServer, setSshServer] = useState<Server | null>(null);
   const [sshTargetPane, setSshTargetPane] = useState<"left" | "right">("left");
-  const [credentialsByServer, setCredentialsByServer] = useState<Record<number, SftpCredentials>>({});
+  const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
+  const setSharedCredentials = useSshSessionStore((state) => state.setCredentials);
+  const credentialsByServer = useMemo<Record<number, SftpCredentials>>(
+    () => Object.fromEntries(
+      Object.entries(sharedCredentials).map(([id, credentials]) => [
+        Number(id),
+        { serverId: Number(id), ...credentials },
+      ])
+    ),
+    [sharedCredentials],
+  );
   const [remoteClipboard, setRemoteClipboard] = useState<{
     tabId: string;
     path: string;
@@ -1892,7 +1903,7 @@ export default function SftpPage() {
           if (!sshServer) return;
           const server = sshServer;
           const sftpCredentials: SftpCredentials = { serverId: server.id, ...credentials };
-          setCredentialsByServer((previous) => ({ ...previous, [server.id]: sftpCredentials }));
+          setSharedCredentials(server.id, credentials);
           setSshServer(null);
           openSessionForServer(server, sshTargetPane, sftpCredentials);
         }}
@@ -1903,12 +1914,15 @@ export default function SftpPage() {
         open={createModalOpen}
         server={null}
         onCancel={() => setCreateModalOpen(false)}
-        onSubmit={async (payload) => {
+        onSubmit={async (payload, credentials) => {
           try {
-            await serverApi.add(payload);
+            const serverId = await serverApi.add(payload);
             message.success("服务器创建成功");
             setCreateModalOpen(false);
-            void loadServers();
+            await loadServers();
+            if (credentials) {
+              setSharedCredentials(serverId, credentials);
+            }
           } catch (e: any) {
             message.error(e?.message || "创建服务器失败");
           }

@@ -259,7 +259,7 @@ export const MODULES: ModuleDef[] = [
   {
     key: "credentials",
     navLabel: "服务凭据",
-    title: "服务凭据金库",
+    title: "服务凭据",
     subtitle: "AES-256 硬件脱钩加密",
     desc: "本地隔离的凭据金库，云端零知识；云端 AI 仅使用虚拟引用句柄",
     capabilities: [
@@ -270,6 +270,7 @@ export const MODULES: ModuleDef[] = [
     ],
     icon: KeyRound,
     group: "security",
+    implemented: true,
   },
   {
     key: "alerts",

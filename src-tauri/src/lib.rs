@@ -119,6 +119,7 @@ pub fn run() {
             commands::sftp::sftp_chmod,
             commands::sftp::sftp_delete,
             commands::sftp::sftp_archive,
+            commands::workbench::execute_workbench_command,
             // 审核日志模块
             commands::audit::get_audit_logs,
             commands::audit::add_audit_log,

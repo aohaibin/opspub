@@ -283,6 +283,89 @@
       background: #475569;
     }
 
+    /* ========================================================================= */
+    /* 工作台 - 应用商店主题适配 (解决版本选择发白与按钮冲突问题) */
+    /* ========================================================================= */
+    .app-store-select {
+      background-color: var(--surface-950, #090d16) !important;
+      color: #f1f5f9 !important;
+      border: 1px solid rgba(148, 163, 184, 0.28) !important;
+    }
+    .app-store-select:hover {
+      border-color: rgba(20, 184, 166, 0.6) !important;
+    }
+    .app-store-select:focus {
+      border-color: #14b8a6 !important;
+      box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25) !important;
+    }
+    .app-store-select option {
+      background-color: #0b0f19 !important;
+      color: #f1f5f9 !important;
+    }
+    html:not(.dark) .app-store-select {
+      background-color: var(--surface-900, #ffffff) !important;
+      color: #0f172a !important;
+      border-color: rgba(0, 0, 0, 0.2) !important;
+    }
+    html:not(.dark) .app-store-select option {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+    }
+
+    .app-store-port-badge {
+      background-color: var(--surface-950, #090d16) !important;
+      color: #cbd5e1 !important;
+      border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    }
+    html:not(.dark) .app-store-port-badge {
+      background-color: var(--surface-850, #e2e8f0) !important;
+      color: #1e293b !important;
+      border-color: rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* 应用卡片操作按钮与主题色适配 (高对比、防冲突) */
+    .app-btn-reinstall {
+      background-color: var(--surface-800, #1e293b) !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(148, 163, 184, 0.3) !important;
+    }
+    .app-btn-reinstall:hover {
+      background-color: var(--surface-700, #334155) !important;
+      color: #ffffff !important;
+      border-color: rgba(20, 184, 166, 0.6) !important;
+    }
+    html:not(.dark) .app-btn-reinstall {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) .app-btn-reinstall:hover {
+      background-color: #cbd5e1 !important;
+    }
+
+    .app-btn-external {
+      background-color: rgba(15, 23, 42, 0.6) !important;
+      color: #94a3b8 !important;
+      border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    }
+    html:not(.dark) .app-btn-external {
+      background-color: #f1f5f9 !important;
+      color: #64748b !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    .app-btn-install {
+      background-color: #0d9488 !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(45, 212, 191, 0.4) !important;
+      font-weight: 600;
+    }
+    .app-btn-install:hover {
+      background-color: #0f766e !important;
+      border-color: rgba(45, 212, 191, 0.7) !important;
+      box-shadow: 0 0 10px rgba(20, 184, 166, 0.35) !important;
+    }
+
     /* 确保右上角下拉卡片（皮肤调色盘、AI锁等）绝对不透明，防止下方内容透出重叠 */
     #skinDropdown,
     #aiLockDropdown {
@@ -1608,9 +1691,9 @@
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <!-- 一级过滤 -->
                   <div class="flex items-center space-x-1 p-0.5 rounded-lg bg-surface-950 border border-slate-800 text-xs">
-                    <button type="button" onclick="setAppStoreTab('all')" id="appTab-all" class="px-3 py-1 rounded font-medium bg-surface-800 text-white transition">全部</button>
-                    <button type="button" onclick="setAppStoreTab('installed')" id="appTab-installed" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">已安装 (10)</button>
-                    <button type="button" onclick="setAppStoreTab('upgradable')" id="appTab-upgradable" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">可升级</button>
+                    <button type="button" onclick="setAppStoreTab('all')" id="appTab-all" class="px-3 py-1 rounded font-medium bg-surface-800 text-white border border-slate-700/60 shadow-sm transition cursor-pointer">全部</button>
+                    <button type="button" onclick="setAppStoreTab('installed')" id="appTab-installed" class="px-3 py-1 rounded text-slate-400 hover:text-white border border-transparent transition cursor-pointer">已安装 (10)</button>
+                    <button type="button" onclick="setAppStoreTab('upgradable')" id="appTab-upgradable" class="px-3 py-1 rounded text-slate-400 hover:text-white border border-transparent transition cursor-pointer">可升级</button>
                   </div>
 
                   <!-- 搜索与刷新 -->
@@ -1619,7 +1702,7 @@
                       <input type="text" id="appStoreSearchInput" oninput="handleAppStoreSearch(this.value)" placeholder="搜索应用..." class="w-full bg-surface-900 border border-slate-700/80 hover:border-slate-600 focus:border-teal-500 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-200 placeholder:text-slate-500 focus:outline-none transition">
                       <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2 pointer-events-none"></i>
                     </div>
-                    <button type="button" onclick="showToast('已更新应用商店最新包状态');" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-700/80 text-xs transition cursor-pointer">
+                    <button type="button" onclick="showToast('已更新应用商店最新包状态');" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-700/80 text-xs transition cursor-pointer shadow-sm">
                       <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                       <span>刷新状态</span>
                     </button>
@@ -1628,16 +1711,16 @@
 
                 <!-- 二级分类 Pills -->
                 <div class="flex flex-wrap gap-1.5 text-xs select-none">
-                  <button onclick="setAppCategory('all')" id="appCat-all" class="app-cat-btn px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/40 font-medium transition cursor-pointer">全部</button>
-                  <button onclick="setAppCategory('basic')" id="appCat-basic" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">基础</button>
-                  <button onclick="setAppCategory('web')" id="appCat-web" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">Web</button>
-                  <button onclick="setAppCategory('db')" id="appCat-db" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">数据库</button>
-                  <button onclick="setAppCategory('site')" id="appCat-site" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">建站</button>
-                  <button onclick="setAppCategory('dev')" id="appCat-dev" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">开发工具</button>
-                  <button onclick="setAppCategory('monitor')" id="appCat-monitor" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">监控</button>
-                  <button onclick="setAppCategory('ai')" id="appCat-ai" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">AI</button>
-                  <button onclick="setAppCategory('storage')" id="appCat-storage" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">存储</button>
-                  <button onclick="setAppCategory('mq')" id="appCat-mq" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer">消息队列</button>
+                  <button onclick="setAppCategory('all')" id="appCat-all" class="app-cat-btn px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/40 font-medium transition cursor-pointer shadow-sm">全部</button>
+                  <button onclick="setAppCategory('basic')" id="appCat-basic" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">基础</button>
+                  <button onclick="setAppCategory('web')" id="appCat-web" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">Web</button>
+                  <button onclick="setAppCategory('db')" id="appCat-db" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">数据库</button>
+                  <button onclick="setAppCategory('site')" id="appCat-site" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">建站</button>
+                  <button onclick="setAppCategory('dev')" id="appCat-dev" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">开发工具</button>
+                  <button onclick="setAppCategory('monitor')" id="appCat-monitor" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">监控</button>
+                  <button onclick="setAppCategory('ai')" id="appCat-ai" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">AI</button>
+                  <button onclick="setAppCategory('storage')" id="appCat-storage" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">存储</button>
+                  <button onclick="setAppCategory('mq')" id="appCat-mq" class="app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer">消息队列</button>
                 </div>
               </div>
 
@@ -3294,381 +3377,64 @@
       </div>
 
       <!-- =================================================================================== -->
-      <!-- VIEW: 服务凭据金库 (Service Credentials & Vault) - 对应截图 2 media_1789608172435.png -->
+      <!-- VIEW: 服务凭据 (1:1 对齐用户截图 media_1790147186953.png) -->
       <!-- =================================================================================== -->
       <div id="tab-credentials" class="tab-content hidden space-y-4">
-        <!-- 顶栏 -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800">
+        <!-- 顶栏标题与操作区 -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
           <div>
-            <div class="flex items-center space-x-2">
-              <h1 class="text-base font-bold text-white flex items-center space-x-2">
-                <i data-lucide="key-round" class="w-4 h-4 text-emerald-400"></i>
-                <span>服务凭据金库</span>
-              </h1>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold font-mono">4 项本地隔离</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">云端零知识 (Zero-Knowledge)</span>
+            <div class="flex items-center space-x-2.5">
+              <i data-lucide="database" class="w-5 h-5 text-white"></i>
+              <h1 class="text-base font-bold text-white tracking-wide">服务凭据</h1>
+              <span id="credCountBadge" class="text-[11px] px-2 py-0.5 rounded-md bg-purple-950/70 text-purple-300 border border-purple-800/60 font-mono font-medium">2 项</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">
-              凭据永不离开本地端侧：经操作系统底层 <strong class="text-emerald-400">Windows DPAPI / TPM</strong> 与 <strong class="text-slate-200">AES-256-GCM</strong> 硬件信封加密；云端 AI 仅使用虚拟引用句柄（<code class="text-amber-300 font-mono bg-surface-900 px-1 py-0.5 rounded border border-slate-700">vault://ref/*</code>）盲调用；所有认证在本地独立进程及自带加密驱动内闭环执行，网络嗅探 0 明文。
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed max-w-4xl">
+              AI 用 <code class="text-slate-300 font-mono">install_with_secret</code> 工具装好的服务在这里。密码字段在数据库里 AES-256-GCM 加密保存，点字段旁的眼睛图标解密单字段；复制后 10s 自动清剪贴板。
             </p>
           </div>
-          <div class="flex items-center space-x-2 shrink-0">
-            <button onclick="openCredentialIsolationModal('全局服务凭据', 'vault://ref/*')" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-semibold flex items-center space-x-1.5 shadow transition cursor-pointer" title="查看网络抓包 vs 端侧盲执行攻防对比">
-              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span>🛡️ 凭据隔离攻防演练</span>
-            </button>
-            <select class="bg-surface-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:outline-none">
-              <option>全部服务器</option>
-              <option>我的腾讯云0209</option>
-              <option>我的阿里云3045</option>
-            </select>
-            <button onclick="openNewCredentialModal()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium flex items-center space-x-1.5 shadow transition">
+
+          <div class="flex items-center space-x-2.5 shrink-0">
+            <!-- 当前服务器下拉选择器 -->
+            <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-surface-950/90 border border-slate-700/80 hover:border-slate-600 text-xs text-slate-300 transition cursor-pointer" onclick="showToast('当前已聚焦纳管服务器: 我的腾讯云0209 (111.231.165.192)')">
+              <span class="w-1 h-3.5 bg-teal-500 rounded-sm"></span>
+              <span class="font-mono text-slate-200">我... 111.231.165.192:22</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            </div>
+
+            <!-- 新建 DB 凭据按钮 -->
+            <button onclick="openNewCredentialModal()" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold shadow-sm transition cursor-pointer">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>+ 新建 DB 凭据</span>
+              <span>新建 DB 凭据</span>
             </button>
-            <button onclick="refreshCredentials()" class="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700 transition" title="刷新">
-              <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+
+            <!-- 刷新按钮 -->
+            <button onclick="refreshCredentials()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-700/80 text-xs transition cursor-pointer shadow-sm">
+              <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+              <span>刷新</span>
             </button>
           </div>
         </div>
 
-        <!-- 凭据隔离与端侧盲执行架构四卡片 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <!-- 卡片 1: 本地硬件隔离金库 -->
-          <div class="glass-card p-3 rounded-xl border border-emerald-500/30 bg-gradient-to-b from-surface-900 to-emerald-950/20">
-            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span class="font-medium flex items-center space-x-1.5 text-slate-200">
-                <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-emerald-400"></i>
-                <span>本地硬件隔离金库</span>
-              </span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 font-bold">DPAPI + TPM</span>
-            </div>
-            <div class="text-base font-bold text-white font-mono flex items-center space-x-1.5">
-              <span>100% 端侧驻留</span>
-              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-1">凭据在本地 SQLite 加密，主密钥由操作系统 DPAPI 硬件绑定，禁止网络导出</p>
-          </div>
-
-          <!-- 卡片 2: 云端 AI 盲调用 -->
-          <div class="glass-card p-3 rounded-xl border border-indigo-500/30 bg-gradient-to-b from-surface-900 to-indigo-950/20">
-            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span class="font-medium flex items-center space-x-1.5 text-slate-200">
-                <i data-lucide="eye-off" class="w-3.5 h-3.5 text-indigo-400"></i>
-                <span>云端 AI 盲调用</span>
-              </span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-500/20 text-indigo-300 font-bold">Zero-Knowledge</span>
-            </div>
-            <div class="text-base font-bold text-indigo-300 font-mono flex items-center space-x-1.5">
-              <span>0 字节明文出端</span>
-              <i data-lucide="shield" class="w-4 h-4 text-indigo-400"></i>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-1">云端 AI 仅接收虚拟句柄 <code class="text-indigo-200 font-mono">vault://ref/*</code>，Prompt 与上下文无密码</p>
-          </div>
-
-          <!-- 卡片 3: 传输截获免疫保障 -->
-          <div class="glass-card p-3 rounded-xl border border-cyan-500/30 bg-gradient-to-b from-surface-900 to-cyan-950/20">
-            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span class="font-medium flex items-center space-x-1.5 text-slate-200">
-                <i data-lucide="wifi-off" class="w-3.5 h-3.5 text-cyan-400"></i>
-                <span>传输截获免疫保障</span>
-              </span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 font-bold">Anti-Sniffing</span>
-            </div>
-            <div class="text-base font-bold text-cyan-300 font-mono flex items-center space-x-1.5">
-              <span>抓包嗅探完全无效</span>
-              <i data-lucide="lock" class="w-4 h-4 text-cyan-400"></i>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-1">中间人即使截获全部通信，得到的仅是不透明哈希，无本地硬件私钥无法逆向</p>
-          </div>
-
-          <!-- 卡片 4: 端侧自带加密工具 -->
-          <div class="glass-card p-3 rounded-xl border border-amber-500/30 bg-gradient-to-b from-surface-900 to-amber-950/20">
-            <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span class="font-medium flex items-center space-x-1.5 text-slate-200">
-                <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-400"></i>
-                <span>自带加密本地工具</span>
-              </span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 font-bold">Memory Zeroize</span>
-            </div>
-            <div class="text-base font-bold text-amber-300 font-mono flex items-center space-x-1.5">
-              <span>原生加密直连</span>
-              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-1">本地 Rust 驱动在内存解密直连，执行完毕调用 zeroize 强制清零敏感凭据</p>
-          </div>
-        </div>
-
-        <!-- 凭据列表卡片 (包含 AI 暴露句柄与端侧盲执行策略) -->
-        <div class="glass-card rounded-xl border border-slate-800 overflow-hidden">
+        <!-- 凭据表格主体 -->
+        <div class="glass-card rounded-xl border border-slate-800/90 overflow-hidden bg-surface-900/50">
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="bg-surface-900/90 text-slate-400 uppercase text-[11px] border-b border-slate-800">
+              <thead class="bg-surface-950/90 text-slate-400 text-xs border-b border-slate-800">
                 <tr>
-                  <th class="p-3 w-8"><input type="checkbox" class="rounded bg-surface-950 border-slate-700"></th>
-                  <th class="p-3">服务与类型</th>
-                  <th class="p-3">服务器</th>
-                  <th class="p-3">AI 暴露句柄 (Opaque Handle)</th>
-                  <th class="p-3">本地隔离与盲调用策略</th>
-                  <th class="p-3">敏感字段</th>
-                  <th class="p-3 text-right">操作</th>
+                  <th class="py-3 px-3.5 w-10 text-center">
+                    <input type="checkbox" id="chkAllCreds" onchange="toggleSelectAllCreds(this)" class="rounded bg-surface-950 border-slate-700 cursor-pointer">
+                  </th>
+                  <th class="py-3 px-4 text-left font-medium">服务</th>
+                  <th class="py-3 px-4 text-left font-medium">服务器</th>
+                  <th class="py-3 px-4 text-left font-medium">字段</th>
+                  <th class="py-3 px-4 text-left font-medium">安装路径</th>
+                  <th class="py-3 px-4 text-left font-medium">创建时间</th>
+                  <th class="py-3 px-4 text-right font-medium">操作</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-800/60 text-slate-300">
-                <!-- 条目 1: Remote Relay -->
-                <tr class="hover:bg-surface-850/40 transition">
-                  <td class="p-3"><input type="checkbox" class="rounded bg-surface-950 border-slate-700"></td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-2.5">
-                      <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                        <i data-lucide="box" class="w-4 h-4"></i>
-                      </div>
-                      <div>
-                        <div class="font-medium text-slate-200">Remote Relay</div>
-                        <span class="text-[10px] px-1.5 py-0.2 rounded bg-surface-900 text-slate-400 border border-slate-700 font-mono">remote_relay</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="p-3 text-slate-300">
-                    <div class="flex items-center space-x-1.5">
-                      <i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>
-                      <span>我的腾讯云0209</span>
-                    </div>
-                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">/opt/reeve/stacks/remote_relay</div>
-                  </td>
-                  <td class="p-3">
-                    <span class="font-mono text-[11px] text-emerald-400 bg-surface-950 px-2 py-0.5 rounded border border-emerald-500/30 inline-flex items-center space-x-1">
-                      <i data-lucide="fingerprint" class="w-3 h-3 text-emerald-400"></i>
-                      <span>vault://ref/relay-token-0209</span>
-                    </span>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-1.5">
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold inline-flex items-center space-x-1">
-                        <i data-lucide="eye-off" class="w-2.5 h-2.5"></i>
-                        <span>端侧盲执行</span>
-                      </span>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-surface-900 text-slate-300 border border-slate-700 font-mono">DPAPI+Zeroize</span>
-                    </div>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex flex-wrap gap-1 items-center font-mono text-[11px]">
-                      <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center space-x-1">
-                        <i data-lucide="lock" class="w-2.5 h-2.5"></i>
-                        <span>REMOTE_SERVER_HOST_TOKEN</span>
-                      </span>
-                      <span class="text-[10px] text-slate-400">+6 个字段</span>
-                    </div>
-                  </td>
-                  <td class="p-3 text-right space-x-1">
-                    <button onclick="openCredentialModal('Remote Relay', '我的腾讯云0209', '/opt/reeve/stacks/remote_relay', 'remote_relay')" class="px-2 py-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 text-xs inline-flex items-center space-x-1 transition">
-                      <i data-lucide="eye" class="w-3 h-3"></i>
-                      <span>详情</span>
-                    </button>
-                    <button onclick="openCredentialIsolationModal('Remote Relay', 'vault://ref/relay-token-0209')" class="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs inline-flex items-center space-x-1 transition cursor-pointer" title="模拟抓包与端侧盲执行">
-                      <i data-lucide="shield-check" class="w-3 h-3"></i>
-                      <span>攻防验证</span>
-                    </button>
-                    <button onclick="alert('安全保护：删除凭据需主密码确认')" class="p-1 rounded bg-surface-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="删除">
-                      <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- 条目 2: MySQL @ 我的腾讯云0209 -->
-                <tr class="hover:bg-surface-850/40 transition">
-                  <td class="p-3"><input type="checkbox" class="rounded bg-surface-950 border-slate-700"></td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-2.5">
-                      <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                        <i data-lucide="database" class="w-4 h-4"></i>
-                      </div>
-                      <div>
-                        <div class="font-medium text-slate-200">MySQL @ 我的腾讯云0209</div>
-                        <span class="text-[10px] px-1.5 py-0.2 rounded bg-surface-900 text-blue-300 border border-slate-700 font-mono">mysql_conn</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="p-3 text-slate-300">
-                    <div class="flex items-center space-x-1.5">
-                      <i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>
-                      <span>我的腾讯云0209</span>
-                    </div>
-                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">127.0.0.1:3306</div>
-                  </td>
-                  <td class="p-3">
-                    <span class="font-mono text-[11px] text-blue-400 bg-surface-950 px-2 py-0.5 rounded border border-blue-500/30 inline-flex items-center space-x-1">
-                      <i data-lucide="fingerprint" class="w-3 h-3 text-blue-400"></i>
-                      <span>vault://ref/mysql-prod-0209</span>
-                    </span>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-1.5">
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold inline-flex items-center space-x-1">
-                        <i data-lucide="eye-off" class="w-2.5 h-2.5"></i>
-                        <span>端侧盲执行</span>
-                      </span>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-surface-900 text-slate-300 border border-slate-700 font-mono">AES-256-GCM</span>
-                    </div>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex flex-wrap gap-1 items-center font-mono text-[11px]">
-                      <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center space-x-1">
-                        <i data-lucide="lock" class="w-2.5 h-2.5"></i>
-                        <span>password</span>
-                      </span>
-                      <span class="text-[10px] text-slate-400">+5 个字段 (host: localhost)</span>
-                    </div>
-                  </td>
-                  <td class="p-3 text-right space-x-1">
-                    <button onclick="openCredentialModal('MySQL @ 我的腾讯云0209', '我的腾讯云0209', '127.0.0.1:3306', 'mysql_conn')" class="px-2 py-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 text-xs inline-flex items-center space-x-1 transition">
-                      <i data-lucide="eye" class="w-3 h-3"></i>
-                      <span>详情</span>
-                    </button>
-                    <button onclick="openCredentialIsolationModal('MySQL @ 我的腾讯云0209', 'vault://ref/mysql-prod-0209')" class="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs inline-flex items-center space-x-1 transition cursor-pointer" title="模拟抓包与端侧盲执行">
-                      <i data-lucide="shield-check" class="w-3 h-3"></i>
-                      <span>攻防验证</span>
-                    </button>
-                    <button onclick="alert('测试连接成功: MySQL 8.0.32 (端侧原生驱动加密握手, 延迟 12ms)')" class="p-1 rounded bg-surface-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-slate-700 transition" title="测试连接">
-                      <i data-lucide="wifi" class="w-3 h-3"></i>
-                    </button>
-                    <button onclick="switchTab('tab-database')" class="p-1 rounded bg-surface-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-slate-700 transition" title="打开数据库工作台">
-                      <i data-lucide="play" class="w-3 h-3"></i>
-                    </button>
-                    <button class="p-1 rounded bg-surface-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="删除">
-                      <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- 条目 3: Redis @ 我的阿里云3045 -->
-                <tr class="hover:bg-surface-850/40 transition">
-                  <td class="p-3"><input type="checkbox" class="rounded bg-surface-950 border-slate-700"></td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-2.5">
-                      <div class="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                        <i data-lucide="layers" class="w-4 h-4"></i>
-                      </div>
-                      <div>
-                        <div class="font-medium text-slate-200">Redis @ 我的阿里云3045</div>
-                        <span class="text-[10px] px-1.5 py-0.2 rounded bg-surface-900 text-rose-300 border border-slate-700 font-mono">redis_conn</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="p-3 text-slate-300">
-                    <div class="flex items-center space-x-1.5">
-                      <i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>
-                      <span>我的阿里云3045</span>
-                    </div>
-                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">127.0.0.1:6379</div>
-                  </td>
-                  <td class="p-3">
-                    <span class="font-mono text-[11px] text-rose-400 bg-surface-950 px-2 py-0.5 rounded border border-rose-500/30 inline-flex items-center space-x-1">
-                      <i data-lucide="fingerprint" class="w-3 h-3 text-rose-400"></i>
-                      <span>vault://ref/redis-aliyun-3045</span>
-                    </span>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-1.5">
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold inline-flex items-center space-x-1">
-                        <i data-lucide="eye-off" class="w-2.5 h-2.5"></i>
-                        <span>端侧盲执行</span>
-                      </span>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-surface-900 text-slate-300 border border-slate-700 font-mono">DPAPI+Zeroize</span>
-                    </div>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex flex-wrap gap-1 items-center font-mono text-[11px]">
-                      <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center space-x-1">
-                        <i data-lucide="lock" class="w-2.5 h-2.5"></i>
-                        <span>password</span>
-                      </span>
-                      <span class="text-[10px] text-slate-400">+4 个字段 (db: 0)</span>
-                    </div>
-                  </td>
-                  <td class="p-3 text-right space-x-1">
-                    <button onclick="openCredentialModal('Redis @ 我的阿里云3045', '我的阿里云3045', '127.0.0.1:6379', 'redis_conn')" class="px-2 py-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 text-xs inline-flex items-center space-x-1 transition">
-                      <i data-lucide="eye" class="w-3 h-3"></i>
-                      <span>详情</span>
-                    </button>
-                    <button onclick="openCredentialIsolationModal('Redis @ 我的阿里云3045', 'vault://ref/redis-aliyun-3045')" class="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs inline-flex items-center space-x-1 transition cursor-pointer" title="模拟抓包与端侧盲执行">
-                      <i data-lucide="shield-check" class="w-3 h-3"></i>
-                      <span>攻防验证</span>
-                    </button>
-                    <button onclick="alert('测试连接成功: Redis 7.0 PONG (端侧直接连接, 延迟 18ms)')" class="p-1 rounded bg-surface-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-slate-700 transition" title="测试连接">
-                      <i data-lucide="wifi" class="w-3 h-3"></i>
-                    </button>
-                    <button class="p-1 rounded bg-surface-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="删除">
-                      <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- 条目 4: MySQL @ 我的阿里云3045 -->
-                <tr class="hover:bg-surface-850/40 transition">
-                  <td class="p-3"><input type="checkbox" class="rounded bg-surface-950 border-slate-700"></td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-2.5">
-                      <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                        <i data-lucide="database" class="w-4 h-4"></i>
-                      </div>
-                      <div>
-                        <div class="font-medium text-slate-200">MySQL @ 我的阿里云3045</div>
-                        <span class="text-[10px] px-1.5 py-0.2 rounded bg-surface-900 text-blue-300 border border-slate-700 font-mono">mysql_conn</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="p-3 text-slate-300">
-                    <div class="flex items-center space-x-1.5">
-                      <i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>
-                      <span>我的阿里云3045</span>
-                    </div>
-                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">127.0.0.1:3306</div>
-                  </td>
-                  <td class="p-3">
-                    <span class="font-mono text-[11px] text-blue-400 bg-surface-950 px-2 py-0.5 rounded border border-blue-500/30 inline-flex items-center space-x-1">
-                      <i data-lucide="fingerprint" class="w-3 h-3 text-blue-400"></i>
-                      <span>vault://ref/mysql-ali-3045</span>
-                    </span>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex items-center space-x-1.5">
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold inline-flex items-center space-x-1">
-                        <i data-lucide="shield-alert" class="w-2.5 h-2.5"></i>
-                        <span>人机二次确认</span>
-                      </span>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] bg-surface-900 text-slate-300 border border-slate-700 font-mono">硬件隔离</span>
-                    </div>
-                  </td>
-                  <td class="p-3">
-                    <div class="flex flex-wrap gap-1 items-center font-mono text-[11px]">
-                      <span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center space-x-1">
-                        <i data-lucide="lock" class="w-2.5 h-2.5"></i>
-                        <span>password</span>
-                      </span>
-                      <span class="text-[10px] text-slate-400">+5 个字段</span>
-                    </div>
-                  </td>
-                  <td class="p-3 text-right space-x-1">
-                    <button onclick="openCredentialModal('MySQL @ 我的阿里云3045', '我的阿里云3045', '127.0.0.1:3306', 'mysql_conn')" class="px-2 py-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 text-xs inline-flex items-center space-x-1 transition">
-                      <i data-lucide="eye" class="w-3 h-3"></i>
-                      <span>详情</span>
-                    </button>
-                    <button onclick="openCredentialIsolationModal('MySQL @ 我的阿里云3045', 'vault://ref/mysql-ali-3045')" class="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs inline-flex items-center space-x-1 transition cursor-pointer" title="模拟抓包与端侧盲执行">
-                      <i data-lucide="shield-check" class="w-3 h-3"></i>
-                      <span>攻防验证</span>
-                    </button>
-                    <button onclick="alert('测试连接成功: MySQL 5.7 (端侧原生驱动加密握手, 延迟 21ms)')" class="p-1 rounded bg-surface-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-slate-700 transition" title="测试连接">
-                      <i data-lucide="wifi" class="w-3 h-3"></i>
-                    </button>
-                    <button onclick="switchTab('tab-database')" class="p-1 rounded bg-surface-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-slate-700 transition" title="打开数据库工作台">
-                      <i data-lucide="play" class="w-3 h-3"></i>
-                    </button>
-                    <button class="p-1 rounded bg-surface-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="删除">
-                      <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>
-                  </td>
-                </tr>
+              <tbody id="credentialTableBody" class="divide-y divide-slate-800/60 text-slate-300">
+                <!-- 动态渲染凭据条目 -->
               </tbody>
             </table>
           </div>
@@ -7440,45 +7206,146 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
           <span>安全机制生效中：点击复制按钮后，系统将在 10 秒后自动清除剪贴板内容，防止密码留在剪贴板中被其他软件偷取。</span>
         </div>
 
-        <div class="space-y-3">
-          <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 space-y-1.5">
-            <div class="flex items-center justify-between text-slate-400">
-              <span class="font-mono text-slate-300">REMOTE_SERVER_HOST_TOKEN</span>
-              <span class="text-[10px] text-slate-500">主中继通信密钥</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <input type="password" id="credField1" value="rv_host_live_9f83a028c11e74a89d2e1b4c7" readonly class="w-full bg-surface-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono text-xs focus:outline-none">
-              <button onclick="togglePasswordVisibility('credField1', this)" class="p-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700" title="显示/隐藏明文">
-                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-              </button>
-              <button onclick="copyCredentialSecure('rv_host_live_9f83a028c11e74a89d2e1b4c7', 'REMOTE_SERVER_HOST_TOKEN')" class="px-2.5 py-1 rounded bg-brand-600 hover:bg-brand-500 text-white font-medium flex items-center space-x-1">
-                <i data-lucide="copy" class="w-3 h-3"></i>
-                <span>复制</span>
-              </button>
-            </div>
-          </div>
+        <div class="space-y-3" id="credDetailFieldsContainer">
+          <!-- 动态装载该凭据的所有字段与解密按钮 -->
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-800 flex items-center justify-between bg-surface-900/60">
+        <span class="text-[11px] text-slate-400">上次解密复核: 刚刚 · AES-256 硬件脱钩</span>
+        <button onclick="closeCredentialModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs transition">完成</button>
+      </div>
+    </div>
+  </div>
 
-          <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 space-y-1.5">
-            <div class="flex items-center justify-between text-slate-400">
-              <span class="font-mono text-slate-300">TURN_PASSWORD</span>
-              <span class="text-[10px] text-slate-500">STUN/TURN 中继认证密码</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <input type="password" id="credField2" value="Pass_Turn#2026_x89q" readonly class="w-full bg-surface-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono text-xs focus:outline-none">
-              <button onclick="togglePasswordVisibility('credField2', this)" class="p-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700" title="显示/隐藏明文">
-                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-              </button>
-              <button onclick="copyCredentialSecure('Pass_Turn#2026_x89q', 'TURN_PASSWORD')" class="px-2.5 py-1 rounded bg-brand-600 hover:bg-brand-500 text-white font-medium flex items-center space-x-1">
-                <i data-lucide="copy" class="w-3 h-3"></i>
-                <span>复制</span>
+  <!-- 模态框: 新建 DB 凭据 (Database Vault Credential) -->
+  <div id="modalNewCredential" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+    <div class="glass-card bg-surface-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-surface-900/90">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+            <i data-lucide="database" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">新建 DB 凭据</h3>
+            <p class="text-[11px] text-slate-400">创建数据库连接凭据，采用 AES-256-GCM 本地加密保存</p>
+          </div>
+        </div>
+        <button onclick="closeNewCredentialModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleCreateDbCredential(event)" class="p-5 space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">数据库类型</label>
+          <select id="newCredDbType" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-teal-500">
+            <option value="MySQL">MySQL</option>
+            <option value="PostgreSQL">PostgreSQL</option>
+            <option value="Redis">Redis</option>
+            <option value="MongoDB">MongoDB</option>
+            <option value="MariaDB">MariaDB</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">凭据别名 / 服务名称</label>
+          <input type="text" id="newCredName" placeholder="例如: MySQL @ 业务从库" required class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">关联服务器</label>
+            <select id="newCredHost" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-teal-500">
+              <option value="我的腾讯云0209">我的腾讯云0209</option>
+              <option value="核心库 (prod-db-master)">核心库 (prod-db-master)</option>
+              <option value="开发测试网关 (test-gateway-hk)">开发测试网关 (test-gateway-hk)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">主机 / IP</label>
+            <input type="text" id="newCredIp" value="127.0.0.1" required class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">端口</label>
+            <input type="number" id="newCredPort" value="3306" required class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">默认库名 (Database)</label>
+            <input type="text" id="newCredDbName" placeholder="例如: app_db" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">用户名</label>
+            <input type="text" id="newCredUser" value="root" required class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-teal-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-medium mb-1">密码 (AES-256 加密保存)</label>
+            <div class="relative">
+              <input type="password" id="newCredPassword" placeholder="输入密码" required class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 pr-9 text-slate-200 font-mono focus:outline-none focus:border-teal-500">
+              <button type="button" onclick="togglePasswordVisibility('newCredPassword', this)" class="absolute right-2 top-2 text-slate-400 hover:text-slate-200">
+                <i data-lucide="eye" class="w-4 h-4"></i>
               </button>
             </div>
           </div>
         </div>
+
+        <div class="pt-2 flex items-center justify-end space-x-2 border-t border-slate-800">
+          <button type="button" onclick="closeNewCredentialModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs transition">取消</button>
+          <button type="submit" class="px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-semibold text-xs shadow-sm transition">保存并加密封存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 模态框: 单字段解密 (Single Field Decrypt) -->
+  <div id="modalSecretFieldDecrypt" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+    <div class="glass-card bg-surface-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-surface-900/90">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="singleSecretTitle" class="text-sm font-bold text-white font-mono">REMOTE_SERVER_HOST_TOKEN</h3>
+            <p id="singleSecretSub" class="text-[11px] text-slate-400">AES-256-GCM 硬件脱钩单字段解密</p>
+          </div>
+        </div>
+        <button onclick="closeSecretFieldModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
       </div>
-      <div class="px-5 py-3 border-t border-slate-800 flex items-center justify-between bg-surface-900/60">
-        <span class="text-[11px] text-slate-400">上次解密复核: 1 分钟前</span>
-        <button onclick="closeCredentialModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs">完成</button>
+
+      <div class="p-5 space-y-4 text-xs">
+        <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-start space-x-2">
+          <i data-lucide="shield-alert" class="w-4 h-4 shrink-0 mt-0.5"></i>
+          <span>复制成功后剪贴板将在 10 秒后自动清空，防止被第三方读取。</span>
+        </div>
+
+        <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 space-y-2">
+          <div class="text-[11px] text-slate-400 flex items-center justify-between">
+            <span id="singleSecretLabel">主中继通信密钥</span>
+            <span class="text-rose-400 font-mono text-[10px]">AES-256 加密</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input type="password" id="singleSecretInput" readonly class="w-full bg-surface-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:outline-none">
+            <button onclick="togglePasswordVisibility('singleSecretInput', this)" class="p-1.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700" title="显示/隐藏明文">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+          <button onclick="copySingleSecretSecure()" class="px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-sm transition">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>复制明文 (10s 自动清空)</span>
+          </button>
+          <button onclick="closeSecretFieldModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs transition">关闭</button>
+        </div>
       </div>
     </div>
   </div>
@@ -7775,6 +7642,9 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         if (typeof renderWbOverviewTrends === 'function' && (!currentWbNavKey || currentWbNavKey === 'overview')) {
           setTimeout(renderWbOverviewTrends, 50);
         }
+      }
+      if (tabId === 'tab-credentials' && typeof renderCredentialsTable === 'function') {
+        renderCredentialsTable();
       }
       lucide.createIcons();
     }
@@ -11645,9 +11515,13 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (typeof renderWbOverviewTrends === 'function') {
         setTimeout(renderWbOverviewTrends, 100);
       }
+      if (typeof renderCredentialsTable === 'function') {
+        renderCredentialsTable();
+      }
     });
     if (document.readyState !== 'loading') {
       try { renderServerGroupList(); } catch (e) {}
+      try { if (typeof renderCredentialsTable === 'function') renderCredentialsTable(); } catch (e) {}
     }
 
 
@@ -11694,14 +11568,321 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     // ==========================================
     // 凭据与敏感库交互逻辑 (截图 1 & 2)
     // ==========================================
-    function openCredentialModal(title, host, path, type) {
-      document.getElementById('credModalTitle').innerText = title + ' 凭据详情';
-      document.getElementById('credModalSub').innerText = '主机: ' + host + ' · 路径: ' + path + ' · AES-256 本地加密';
+    // ==========================================
+    // 服务凭据 (Service Credentials) 交互逻辑 (1:1 对齐截图 media_1790147186953.png)
+    // ==========================================
+    let wbCredentialsData = [
+      {
+        id: 'remote_relay',
+        name: 'Remote Relay',
+        key: 'remote_relay',
+        server: '我的腾讯云0209',
+        installPath: '/opt/reeve/stacks/remote_relay',
+        createdAt: '2026-08-10 20:28:44',
+        icon: 'package',
+        fields: [
+          { key: 'REMOTE_SERVER_HOST_TOKEN', name: '主中继通信密钥', value: 'rv_host_live_9f83a028c11e74a89d2e1b4c7', secret: true },
+          { key: 'TURN_PASSWORD', name: 'STUN/TURN 中继认证密码', value: 'Pass_Turn#2026_x89q', secret: true },
+          { key: 'TURN_USERNAME', name: 'STUN/TURN 认证用户名', value: 'turn_user_0209', secret: true },
+          { key: 'API_PORT', name: '中继服务 API 端口', value: '8089', secret: false },
+          { key: 'STUN_PORT', name: 'STUN/TURN 监听端口', value: '3478', secret: false },
+          { key: 'TLS_CERT', name: 'TLS 证书存储路径', value: '/opt/reeve/certs/relay.crt', secret: false },
+          { key: 'TLS_KEY', name: 'TLS 证书私钥路径', value: '/opt/reeve/certs/relay.key', secret: false }
+        ]
+      },
+      {
+        id: 'mysql_conn',
+        name: 'MySQL @ 我的腾讯云0209',
+        key: 'mysql_conn',
+        server: '我的腾讯云0209',
+        installPath: '—',
+        createdAt: '2026-07-30 17:12:12',
+        icon: 'mysql',
+        fields: [
+          { key: 'password', name: '数据库密码', value: 'Prod_MySql#2026!Sec', secret: true },
+          { key: 'host', name: '数据库主机地址', value: '127.0.0.1', secret: false },
+          { key: 'port', name: '连接端口', value: '3306', secret: false },
+          { key: 'user', name: '连接账号', value: 'root', secret: false },
+          { key: 'database', name: '默认数据库', value: 'ops_sentry', secret: false },
+          { key: 'charset', name: '连接字符集', value: 'utf8mb4', secret: false }
+        ]
+      }
+    ];
+
+    let currentDecryptedSecretVal = '';
+    let currentDecryptedSecretKey = '';
+
+    function renderCredentialsTable() {
+      const tbody = document.getElementById('credentialTableBody');
+      const badge = document.getElementById('credCountBadge');
+      if (badge) badge.innerText = wbCredentialsData.length + ' 项';
+      if (!tbody) return;
+
+      tbody.innerHTML = wbCredentialsData.map((item) => {
+        // 图标
+        let iconHtml = '';
+        if (item.icon === 'mysql') {
+          iconHtml = `<div class="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0">
+            <svg viewBox="0 0 24 24" class="w-4 h-4 fill-teal-400" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+          </div>`;
+        } else {
+          iconHtml = `<div class="w-8 h-8 rounded-lg bg-surface-800 border border-slate-700/80 flex items-center justify-center text-teal-400 shrink-0">
+            <i data-lucide="package" class="w-4 h-4"></i>
+          </div>`;
+        }
+
+        // 字段红胶囊 + 剩余数量标签
+        const secretFields = item.fields.filter(f => f.secret);
+        const nonSecretCount = item.fields.filter(f => !f.secret).length;
+        const secretPillsHtml = secretFields.map(f => `
+          <button type="button" onclick="openSecretFieldModal('${item.id}', '${f.key}')" title="点击快速解密此字段" class="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-mono bg-[#3f151e] text-[#fca5a5] border border-[#7f1d1d]/80 hover:border-rose-400 transition cursor-pointer">
+            <i data-lucide="lock" class="w-3 h-3 text-rose-400"></i>
+            <span>${f.key}</span>
+          </button>
+        `).join('');
+
+        const extraPillsHtml = nonSecretCount > 0 ? `
+          <button type="button" onclick="openCredentialDetail('${item.id}')" title="点击查看全部 ${item.fields.length} 个字段" class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800/90 text-slate-400 border border-slate-700/60 hover:text-slate-200 hover:border-slate-600 transition cursor-pointer">
+            +${nonSecretCount} 个字段
+          </button>
+        ` : '';
+
+        // 操作区按钮 (MySQL 多出 探活 与 端侧盲执行)
+        let actionsHtml = '';
+        if (item.id === 'mysql_conn') {
+          actionsHtml = `
+            <div class="flex items-center justify-end space-x-1.5">
+              <button onclick="openCredentialDetail('${item.id}')" class="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs transition cursor-pointer" title="查看明细与解密">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span>详情</span>
+              </button>
+              <button onclick="testCredentialConn('${item.id}')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-teal-400 hover:text-teal-300 border border-slate-700/80 text-xs transition cursor-pointer" title="测试连接 (3306 端口探活)">
+                <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="openCredentialIsolationModal('MySQL @ 我的腾讯云0209', 'vault://ref/mysql_pass_3306')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-emerald-400 hover:text-emerald-300 border border-slate-700/80 text-xs transition cursor-pointer" title="端侧盲执行与防嗅探抓包模拟">
+                <i data-lucide="play" class="w-3.5 h-3.5 fill-emerald-400"></i>
+              </button>
+              <button onclick="deleteCredentialMock('${item.id}')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 text-xs transition cursor-pointer" title="删除凭据">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          `;
+        } else {
+          actionsHtml = `
+            <div class="flex items-center justify-end space-x-1.5">
+              <button onclick="openCredentialDetail('${item.id}')" class="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs transition cursor-pointer" title="查看明细与解密">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span>详情</span>
+              </button>
+              <button onclick="deleteCredentialMock('${item.id}')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 text-xs transition cursor-pointer" title="删除凭据">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          `;
+        }
+
+        return `
+          <tr class="hover:bg-surface-800/40 transition group">
+            <td class="py-3 px-3.5 text-center">
+              <input type="checkbox" class="cred-row-chk rounded bg-surface-950 border-slate-700 cursor-pointer" data-id="${item.id}">
+            </td>
+            <td class="py-3 px-4">
+              <div class="flex items-center space-x-2.5">
+                ${iconHtml}
+                <div>
+                  <div class="font-medium text-slate-100 flex items-center space-x-1.5">
+                    <span>${item.name}</span>
+                  </div>
+                  <div class="text-[11px] font-mono text-slate-400">${item.key}</div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-4 text-slate-300">${item.server}</td>
+            <td class="py-3 px-4">
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${secretPillsHtml}
+                ${extraPillsHtml}
+              </div>
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-400">${item.installPath}</td>
+            <td class="py-3 px-4 font-mono text-slate-400">${item.createdAt}</td>
+            <td class="py-3 px-4 text-right">${actionsHtml}</td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function openCredentialDetail(id) {
+      const item = wbCredentialsData.find(c => c.id === id);
+      if (!item) return;
+
+      document.getElementById('credModalTitle').innerText = item.name + ' 凭据安全详情';
+      document.getElementById('credModalSub').innerText = '主机: ' + item.server + (item.installPath !== '—' ? ' · 路径: ' + item.installPath : '') + ' · AES-256-GCM 本地加密存储';
+
+      const container = document.getElementById('credDetailFieldsContainer');
+      if (container) {
+        container.innerHTML = item.fields.map((f, i) => {
+          const fieldInputId = `credDetailFld_${id}_${i}`;
+          if (f.secret) {
+            return `
+              <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 space-y-1.5">
+                <div class="flex items-center justify-between text-slate-400">
+                  <span class="font-mono text-rose-300 font-medium">${f.key}</span>
+                  <span class="text-[10px] text-slate-500">${f.name} (加密字段)</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <input type="password" id="${fieldInputId}" value="${f.value}" readonly class="w-full bg-surface-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono text-xs focus:outline-none">
+                  <button onclick="togglePasswordVisibility('${fieldInputId}', this)" class="p-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700" title="显示/隐藏明文">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button onclick="copyCredentialSecure('${f.value}', '${f.key}')" class="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-medium flex items-center space-x-1 cursor-pointer">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                    <span>复制</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 space-y-1.5">
+                <div class="flex items-center justify-between text-slate-400">
+                  <span class="font-mono text-slate-300">${f.key}</span>
+                  <span class="text-[10px] text-slate-500">${f.name}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <input type="text" id="${fieldInputId}" value="${f.value}" readonly class="w-full bg-surface-900 border border-slate-700 rounded px-2.5 py-1 text-slate-300 font-mono text-xs focus:outline-none">
+                  <button onclick="copyCredentialSecure('${f.value}', '${f.key}')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-200 font-medium flex items-center space-x-1 border border-slate-700 cursor-pointer">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                    <span>复制</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+        }).join('');
+      }
+
       document.getElementById('modalCredentialDetail').classList.remove('hidden');
       lucide.createIcons();
     }
+
+    function openCredentialModal(title, host, path, type) {
+      const matched = wbCredentialsData.find(c => c.name.includes(title) || c.key.includes(title) || title.includes(c.name));
+      if (matched) {
+        openCredentialDetail(matched.id);
+      } else {
+        openCredentialDetail(wbCredentialsData[0].id);
+      }
+    }
+
     function closeCredentialModal() {
       document.getElementById('modalCredentialDetail').classList.add('hidden');
+    }
+
+    function openSecretFieldModal(credId, fieldKey) {
+      const item = wbCredentialsData.find(c => c.id === credId);
+      if (!item) return;
+      const f = item.fields.find(x => x.key === fieldKey);
+      if (!f) return;
+
+      currentDecryptedSecretVal = f.value;
+      currentDecryptedSecretKey = f.key;
+
+      document.getElementById('singleSecretTitle').innerText = f.key;
+      document.getElementById('singleSecretSub').innerText = `${item.name} · AES-256-GCM 硬件脱钩单字段解密`;
+      document.getElementById('singleSecretLabel').innerText = f.name;
+      const inp = document.getElementById('singleSecretInput');
+      inp.value = f.value;
+      inp.type = 'password';
+
+      document.getElementById('modalSecretFieldDecrypt').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeSecretFieldModal() {
+      document.getElementById('modalSecretFieldDecrypt').classList.add('hidden');
+    }
+
+    function copySingleSecretSecure() {
+      copyCredentialSecure(currentDecryptedSecretVal, currentDecryptedSecretKey);
+    }
+
+    function openNewCredentialModal() {
+      document.getElementById('modalNewCredential').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeNewCredentialModal() {
+      document.getElementById('modalNewCredential').classList.add('hidden');
+    }
+
+    function handleCreateDbCredential(e) {
+      e.preventDefault();
+      const dbType = document.getElementById('newCredDbType').value;
+      const name = document.getElementById('newCredName').value;
+      const server = document.getElementById('newCredHost').value;
+      const ip = document.getElementById('newCredIp').value;
+      const port = document.getElementById('newCredPort').value;
+      const dbName = document.getElementById('newCredDbName').value || 'default_db';
+      const user = document.getElementById('newCredUser').value;
+      const pwd = document.getElementById('newCredPassword').value;
+
+      const newId = 'db_' + Date.now();
+      const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+      wbCredentialsData.unshift({
+        id: newId,
+        name: name,
+        key: `${dbType.toLowerCase()}_conn`,
+        server: server,
+        installPath: '—',
+        createdAt: nowStr,
+        icon: dbType.toLowerCase() === 'mysql' ? 'mysql' : 'package',
+        fields: [
+          { key: 'password', name: '数据库密码', value: pwd, secret: true },
+          { key: 'host', name: '数据库主机地址', value: ip, secret: false },
+          { key: 'port', name: '连接端口', value: port, secret: false },
+          { key: 'user', name: '连接账号', value: user, secret: false },
+          { key: 'database', name: '默认数据库', value: dbName, secret: false }
+        ]
+      });
+
+      closeNewCredentialModal();
+      renderCredentialsTable();
+      showToast(`✅ 新建 ${name} 成功！凭据已采用 AES-256-GCM 硬件隔离加密保存。`);
+    }
+
+    function refreshCredentials() {
+      showToast('🔄 已同步最新凭据状态，密钥库完整性校验通过 (SHA-256 Valid)');
+      renderCredentialsTable();
+    }
+
+    function testCredentialConn(id) {
+      const item = wbCredentialsData.find(c => c.id === id);
+      showToast(`📶 [TCP探针] 正在测试 ${item ? item.name : id} 3306 端口连通性...`);
+      setTimeout(() => {
+        showToast(`✅ 数据库连通性测试通过！目标响应时延: 14ms (TLS 1.3 握手正常)`);
+      }, 700);
+    }
+
+    function deleteCredentialMock(id) {
+      const idx = wbCredentialsData.findIndex(c => c.id === id);
+      if (idx !== -1) {
+        const name = wbCredentialsData[idx].name;
+        if (confirm(`确定要从本地安全金库中销毁凭据 "${name}" 吗？此操作不可逆。`)) {
+          wbCredentialsData.splice(idx, 1);
+          renderCredentialsTable();
+          showToast(`🗑️ 凭据 "${name}" 及其 AES 密文已被彻底安全销毁。`);
+        }
+      }
+    }
+
+    function toggleSelectAllCreds(master) {
+      document.querySelectorAll('.cred-row-chk').forEach(c => c.checked = master.checked);
     }
 
     // ==========================================
@@ -13437,6 +13618,25 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     let currentAppCategory = 'all';
     let appStoreSearchKeyword = '';
 
+    // 应用图标高清矢量映射
+    const wbAppLogos = {
+      docker: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path fill="#2496ED" d="M13.98 11.08h2.12c.1 0 .19-.08.19-.19V9.01c0-.1-.08-.19-.19-.19h-2.12a.19.19 0 00-.18.19v1.89c0 .1.08.18.18.18zm-2.95-5.43h2.12c.1 0 .18-.08.18-.19V3.57c0-.1-.08-.18-.18-.18h-2.12a.19.19 0 00-.19.18v1.89c0 .1.09.19.19.19zm0 2.71h2.12c.1 0 .18-.08.18-.18V6.29c0-.1-.08-.19-.18-.19h-2.12a.19.19 0 00-.19.19v1.88c0 .1.09.19.19.19zm-2.93 0h2.12c.1 0 .18-.08.18-.18V6.29c0-.1-.08-.19-.18-.19H8.1a.19.19 0 00-.18.19v1.88c0 .1.08.19.18.19zm-2.96 0h2.12c.1 0 .19-.08.19-.18V6.29c0-.1-.09-.19-.19-.19H5.15c-.1 0-.19.09-.19.19v1.88c0 .1.09.19.19.19zm5.89 2.72h2.12c.1 0 .18-.09.18-.19V9.01c0-.1-.08-.19-.18-.19h-2.12a.19.19 0 00-.19.19v1.89c0 .1.09.18.19.18zm-2.93 0h2.12c.1 0 .18-.09.18-.19V9.01c0-.1-.08-.19-.18-.19h-2.12a.19.19 0 00-.19.19v1.89c0 .1.09.18.19.18zm-2.96 0h2.12c.1 0 .19-.09.19-.19V9.01c0-.1-.09-.19-.19-.19H5.15c-.1 0-.19.09-.19.19v1.89c0 .1.09.18.19.18zm-2.93 0h2.12c.1 0 .19-.09.19-.19V9.01c0-.1-.09-.19-.19-.19H2.22c-.1 0-.19.09-.19.19v1.89c0 .1.09.18.19.18zm18.72 1.44a3.46 3.46 0 00-1.85-.52 3.52 3.52 0 00-.64.06 4.3 4.3 0 00-1.27-.95 4.42 4.42 0 00-1.87-.41c-.16 0-.32 0-.48.03V7.27c0-.1-.09-.19-.19-.19h-2.12a.19.19 0 00-.18.19v3.8c-.76.1-1.49.34-2.12.73H.19c-.1 0-.19.08-.19.19 0 3.23 1.56 5.76 4.07 7.02 1.7.85 3.74 1.07 5.76 1.07 6.16 0 10.74-4.04 11.23-10.15.08-.96-.48-1.57-1.12-2z"/></svg>`,
+      openresty: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M2.5 15.5C4 18 7.5 20.5 12 20.5c6 0 9.5-4 9.5-9 0-3-1.5-6-4.5-8.5-1-.8-2-1.5-3-1.8 1.5 2.5 2 5.5 1.2 8.3-.7 2.4-2.5 4.3-4.7 5-2.2.7-4.5.3-6.5-.8-.7-.4-1.2-.2-1.5.3z" fill="#13B13C"/><path d="M7 11c1.5 1.5 3.5 2.3 5.5 2 2-.3 3.8-1.5 4.8-3.2 1.2-2 1.5-4.5.8-6.8-1 1.5-2.5 2.7-4.2 3.3-2.1.8-4.5.5-6.2-.7-.4-.3-.8-.1-.9.4-.1.4.1.7.2 1z" fill="#00D26A"/><path d="M12.5 5.5c-.8.8-1.8 1.4-2.8 1.6-1.2.2-2.5-.2-3.4-1-.3-.3-.6-.2-.7.2-.1.3 0 .7.3.9 1.2 1 2.8 1.3 4.3 1 1.2-.3 2.3-1 3.1-2 .2-.2.1-.5-.1-.7-.2-.2-.5-.2-.7 0z" fill="#75F94C"/></svg>`,
+      mysql: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M21.7 13.5c-.5-.8-1.3-1.4-2.1-1.7-1.1-.4-2.3-.3-3.4-.1-1.5.3-3 .7-4.5.7-1.6 0-3.2-.3-4.7-.8-.7-.2-1.4-.6-2-.9-.4-.2-.8-.4-1.2-.4-.6 0-1.1.4-1.3 1-.3.8.1 1.7.9 2 1.3.5 2.7.8 4.1.9 1.8.1 3.6-.1 5.3-.5 1.4-.3 2.8-.7 4.2-.7.8 0 1.6.2 2.3.6.8.5 1.4 1.2 1.7 2.1.2.5.7.8 1.2.7.5-.1.9-.6.8-1.1-.1-.7-.3-1.4-.6-1.7z" fill="#00758F"/><path d="M17.8 7.3c-.6-.7-1.4-1.2-2.3-1.4-1-.2-2.1 0-3.1.5-1.7.8-3 2.2-4.1 3.8-.9 1.3-1.6 2.8-2.5 4.1-.4.6-.9 1.2-1.5 1.6-.4.3-.8.5-1.3.5-.3 0-.6-.1-.8-.3-.3-.3-.4-.7-.2-1.1.4-.9 1.1-1.7 1.8-2.4 1.2-1.2 2.6-2.2 4-3.1 1.6-1 3.3-1.7 5.1-1.9 1.2-.1 2.5.1 3.6.7.7.4 1.2 1 1.5 1.7.2.5 0 1-.4 1.3-.4.3-1 .2-1.3-.2-.2-.5-.5-.8-.9-1z" fill="#00618A"/><path d="M6.5 17c.5-.1 1.1-.3 1.5-.7.8-.8 1.2-1.9 1.8-2.9.8-1.4 1.8-2.7 3-3.7 1.1-.9 2.4-1.5 3.8-1.8.5-.1 1 0 1.4.3.4.3.6.8.5 1.3-.1.5-.5.9-1 .9-1.1.1-2.2.5-3.1 1.2-.9.7-1.6 1.7-2.3 2.7-.6 1-1.3 2-2.1 2.8-.6.6-1.4 1-2.3 1.1-.5.1-.9-.2-1.1-.6-.2-.5.1-1 .4-1.2z" fill="#F29111"/><circle cx="16.5" cy="8" r="0.8" fill="#FFFFFF"/></svg>`,
+      redis: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M12 2L2 6.5l10 4.5 10-4.5L12 2z" fill="#EF4444"/><path d="M2 8.5l10 4.5 10-4.5-1.5-.7-8.5 3.8-8.5-3.8L2 8.5z" fill="#DC2626"/><path d="M2 12l10 4.5 10-4.5-1.5-.7-8.5 3.8-8.5-3.8L2 12z" fill="#B91C1C"/><path d="M2 15.5l10 4.5 10-4.5-1.5-.7-8.5 3.8-8.5-3.8-1.5.7z" fill="#991B1B"/><ellipse cx="14" cy="6" rx="1.5" ry="0.8" fill="#FFFFFF" opacity="0.6"/></svg>`,
+      postgresql: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M18.8 6.2c-.8-1.6-2.2-2.8-4-3.4-2.2-.7-4.6-.3-6.4 1-1.5 1-2.5 2.6-3 4.3-.5 1.6-.4 3.4.2 5 .4 1.1 1.1 2 2 2.7.4.3.9.5 1.4.6v2.8c0 .5.3.9.8 1.1.5.2 1.1.1 1.5-.3l2-1.8c.8.2 1.6.3 2.4.2 1.8-.2 3.5-1.1 4.7-2.5 1.5-1.7 2.2-4 2-6.3-.1-1-.4-1.9-.9-2.7z" fill="#336791"/><path d="M8.5 10.5c.3-1.2.9-2.3 1.8-3.1 1.1-1 2.6-1.5 4.1-1.3 1 .1 2 .6 2.7 1.3.8.8 1.2 1.9 1.3 3 .1 1.3-.4 2.6-1.3 3.5-.9.9-2.1 1.4-3.4 1.4-.4 0-.8 0-1.2-.1l-1.8 1.6v-2.3c-.7-.6-1.3-1.4-1.6-2.3-.3-.5-.5-1.1-.6-1.7z" fill="#4B8BBE"/><path d="M7 11.5c-.8.5-1.4 1.3-1.7 2.2-.3 1-.2 2 .3 2.9.4.7 1 1.2 1.7 1.5.6.3 1.3.4 2 .3v-1.5c-.4 0-.8-.1-1.2-.3-.5-.2-.9-.6-1.1-1.1-.3-.6-.3-1.2-.1-1.8.2-.6.6-1.1 1.1-1.4L7 11.5z" fill="#FFFFFF"/><circle cx="14" cy="8.5" r="1" fill="#FFFFFF"/><circle cx="14.3" cy="8.5" r="0.5" fill="#1E293B"/></svg>`,
+      mongodb: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M12 1.5s-.3.3-.7.8C9.8 4.2 6.5 8.7 6.5 13c0 3.6 2.2 6.7 5.2 8.1.1.1.2.1.3.2V1.5z" fill="#13AA52"/><path d="M12 1.5s.3.3.7.8c1.5 1.9 4.8 6.4 4.8 10.7 0 3.6-2.2 6.7-5.2 8.1-.1.1-.2.1-.3.2V1.5z" fill="#116149"/><path d="M12 19.5c-.1 0-.2 0-.2-.1-.8-.4-1.8-1.5-1.8-3.4 0-1.8 1.1-3.6 2-4.8.1-.1.2-.1.3 0 .8 1.2 1.8 3 1.8 4.8 0 1.9-.9 3-1.8 3.4-.1.1-.2.1-.3.1z" fill="#FFEAA5" opacity="0.8"/></svg>`,
+      clickhouse: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><rect x="2" y="7" width="1.8" height="10" rx="0.9" fill="#FFCC01"/><rect x="4.5" y="4" width="1.8" height="16" rx="0.9" fill="#FFCC01"/><rect x="7" y="6" width="1.8" height="12" rx="0.9" fill="#FFCC01"/><rect x="9.5" y="2" width="1.8" height="20" rx="0.9" fill="#FA4D56"/><rect x="12" y="5" width="1.8" height="14" rx="0.9" fill="#FFCC01"/><rect x="14.5" y="8" width="1.8" height="8" rx="0.9" fill="#FFCC01"/><rect x="17" y="3" width="1.8" height="18" rx="0.9" fill="#FFCC01"/><rect x="19.5" y="7" width="1.8" height="10" rx="0.9" fill="#FFCC01"/></svg>`,
+      wordpress: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><circle cx="12" cy="12" r="10" fill="#21759B"/><path d="M12 3.2c4.8 0 8.8 4 8.8 8.8 0 1.8-.6 3.5-1.5 4.9L15.8 8.3c.3-.1.6-.2.8-.2.2 0 .4-.2.4-.4 0-.3-.4-.3-.7-.3l-2.4.1c-.2 0-.5.2-.5.4 0 .3.3.3.6.3.3 0 .6.1.7.2l2.3 6.6-3.3-9.8c.3-.1.5-.2.7-.2.2 0 .4-.2.4-.4 0-.3-.4-.3-.7-.3l-3.3.1c-.2 0-.5.2-.5.4 0 .3.3.3.6.3.3 0 .7.1.8.2L8 16.4l-2.6-7.3c.3 0 .6-.1.8-.2.2 0 .3-.2.3-.4 0-.3-.3-.3-.6-.3l-2.4.1c-.2 0-.5.2-.5.4 0 .3.3.3.5.3.3 0 .6.1.7.3l3.6 10.1C5.3 18.3 3.2 15.4 3.2 12c0-4.8 4-8.8 8.8-8.8zm-4.7 13.9l2.8-8.2 2.2 6.5-5 1.7zm6.7-.4l2-5.7 1.7 4.8c-.9.8-2.2 1.4-3.7.9z" fill="#FFFFFF"/></svg>`,
+      halo: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M5 4h3.5v6.5h7V4H19v16h-3.5v-6.5h-7V20H5V4z" fill="#0284C7"/><path d="M8.5 10.5h7v3h-7v-3z" fill="#38BDF8"/></svg>`,
+      gitea: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M4 8h13c0 4.5-2.5 9-6.5 9S4 12.5 4 8z" fill="#609926"/><path d="M17 9.5c1.8 0 3 1.2 3 2.8s-1.2 2.7-3 2.7v-1.5c1 0 1.5-.5 1.5-1.2s-.5-1.3-1.5-1.3V9.5z" fill="#609926"/><path d="M10 5c-.5 1-1.5 1.5-2 2h4c-.5-.5-1.5-1-2-2z" fill="#87C440"/><path d="M8 8v3l2-1 2 1V8H8z" fill="#FFFFFF" opacity="0.8"/></svg>`,
+      jenkins: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><circle cx="12" cy="12" r="10" fill="#1E293B"/><path d="M7 6c1-2 4-3 6.5-2.5 2.5.5 4.5 2.5 4.5 4.5H7V6z" fill="#334155"/><ellipse cx="12" cy="12" rx="4.5" ry="4" fill="#FCD34D"/><path d="M10 11.5c.5-.2 1-.2 1.5 0M13.5 11.5c.5-.2 1-.2 1.5 0" stroke="#78350F" stroke-width="0.8" stroke-linecap="round"/><circle cx="10.8" cy="12.5" r="0.6" fill="#78350F"/><circle cx="14.2" cy="12.5" r="0.6" fill="#78350F"/><path d="M10 14.5c1 .8 3 .8 4 0" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/><path d="M9.5 17.5l2.5 1.5-2.5 1.5v-3zM14.5 17.5L12 19l2.5 1.5v-3z" fill="#DC2626"/><circle cx="12" cy="19" r="0.7" fill="#B91C1C"/></svg>`,
+      grafana: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M12 2C9.5 5 7 7.5 7 11.5c0 2.8 1.8 5.2 4.2 6.1-.4-.9-.6-2-.3-3 .5-1.8 2.1-3 2.6-4.8.4 1.5 1.2 2.6 2.5 3.3.8.5 1.5 1.3 1.8 2.2.8-1.2 1.2-2.5 1.2-3.8C19 6.5 15.5 4 12 2z" fill="#F46800"/><path d="M12 13.5c-1 0-1.8.8-1.8 1.8 0 1.2 1 2.2 2.2 2.2s2.2-1 2.2-2.2c0-.5-.2-1-.5-1.3-.4.8-1.2 1.3-2.1 1.3-.8 0-1.5-.7-1.5-1.5 0-.5.2-.9.5-1.2-.5.3-1 .5-1.5.5z" fill="#FFB020"/><circle cx="12" cy="19.5" r="1.5" fill="#FA8C16"/></svg>`,
+      uptime_kuma: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><circle cx="12" cy="12" r="9" stroke="#3BD671" stroke-width="3" fill="none"/><circle cx="12" cy="12" r="4.5" fill="#3BD671"/></svg>`,
+      ollama: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><path d="M8 3.5c0-.8.7-1.5 1.5-1.5S11 2.7 11 3.5V6h-3V3.5zM13 3.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5V6h-3V3.5z" fill="#E2E8F0"/><path d="M7 6h10c1.1 0 2 .9 2 2v6c0 1.7-1.3 3-3 3h-1v4c0 .6-.4 1-1 1h-1c-.6 0-1-.4-1-1v-4h-2v4c0 .6-.4 1-1 1H8c-.6 0-1-.4-1-1v-4H6c-1.7 0-3-1.3-3-3V8c0-1.1.9-2 2-2h2z" fill="#FFFFFF"/><circle cx="9.5" cy="9.5" r="1" fill="#0F172A"/><circle cx="14.5" cy="9.5" r="1" fill="#0F172A"/><ellipse cx="12" cy="12" rx="1.5" ry="1" fill="#CBD5E1"/></svg>`,
+      open_webui: `<svg viewBox="0 0 24 24" class="w-7 h-7 shrink-0" fill="none"><circle cx="12" cy="12" r="9" stroke="#10A37F" stroke-width="2.5" fill="none"/><circle cx="12" cy="12" r="4" fill="#10A37F"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="#10A37F" stroke-width="2" stroke-linecap="round"/></svg>`
+    };
+
     function renderAppStoreCards() {
       const grid = document.getElementById('appStoreCardsGrid');
       if (!grid) return;
@@ -13460,34 +13660,36 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       grid.innerHTML = filtered.map(app => {
         let badgeHtml = '';
         if (app.status === 'installed') {
-          badgeHtml = '<span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">已安装</span>';
+          badgeHtml = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">已安装</span>';
         } else if (app.status === 'external') {
-          badgeHtml = '<span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">外部已装</span>';
+          badgeHtml = '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700/80">外部已装</span>';
         }
 
         let btnHtml = '';
         if (app.btnType === 'reinstall') {
-          btnHtml = '<button type="button" onclick="installAppMock(\'' + app.name + '\')" class="flex items-center space-x-1 px-3 py-1 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs border border-slate-700 transition cursor-pointer"><i data-lucide="rotate-cw" class="w-3 h-3"></i><span>重装</span></button>';
+          btnHtml = '<button type="button" onclick="installAppMock(\'' + app.name + '\')" class="app-btn-reinstall flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs transition cursor-pointer shadow-sm"><i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i><span>重装</span></button>';
         } else if (app.btnType === 'external') {
-          btnHtml = '<button type="button" class="px-3 py-1 rounded-lg bg-surface-800/80 text-slate-500 text-xs border border-slate-800 cursor-not-allowed">外部已装</button>';
+          btnHtml = '<button type="button" class="app-btn-external px-3.5 py-1 rounded-lg text-xs cursor-not-allowed">外部已装</button>';
         } else {
-          btnHtml = '<button type="button" onclick="installAppMock(\'' + app.name + '\')" class="flex items-center space-x-1 px-3.5 py-1 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold transition cursor-pointer shadow-sm"><i data-lucide="download" class="w-3 h-3"></i><span>安装</span></button>';
+          btnHtml = '<button type="button" onclick="installAppMock(\'' + app.name + '\')" class="app-btn-install flex items-center space-x-1.5 px-3.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer shadow-sm"><i data-lucide="download" class="w-3.5 h-3.5"></i><span>安装</span></button>';
         }
 
         let versionSelectHtml = '';
         if (app.versions && app.versions.length > 0) {
-          versionSelectHtml = '<div class="flex items-center space-x-1"><span class="text-slate-500">版本</span><select class="bg-surface-950 border border-slate-800 rounded px-1.5 py-0.5 text-[11px] text-slate-300">' + app.versions.map(v => '<option>' + v + '</option>').join('') + '</select></div>';
-        } else if (app.version) {
-          versionSelectHtml = '<div class="text-[11px] text-slate-500"><span class="mr-1">版本</span><span class="text-slate-300">' + app.version + '</span></div>';
+          versionSelectHtml = '<div class="flex items-center space-x-1 text-slate-400 text-xs"><span>版本</span><div class="relative inline-flex items-center"><select class="app-store-select text-[11px] rounded px-2 py-0.5 pr-5 appearance-none cursor-pointer focus:outline-none transition font-sans">' + app.versions.map(v => '<option value="' + v + '">' + v + '</option>').join('') + '</select><i data-lucide="chevron-down" class="w-3 h-3 text-slate-400 absolute right-1 pointer-events-none"></i></div></div>';
+        } else if (app.version && app.id !== 'docker') {
+          versionSelectHtml = '<div class="text-[11px] text-slate-400 flex items-center space-x-1"><span>版本</span><span class="app-store-port-badge font-mono rounded px-1.5 py-0.5">' + app.version + '</span></div>';
         }
+
+        const logoHtml = wbAppLogos[app.id] || `<div class="w-7 h-7 rounded-lg bg-surface-800 border border-slate-700/80 flex items-center justify-center text-teal-400 font-bold shrink-0">${app.name.charAt(0)}</div>`;
 
         return `
           <div class="glass-card p-3.5 rounded-xl border border-slate-800/90 bg-surface-900/60 flex flex-col justify-between space-y-3 hover:border-slate-700 transition">
             <div class="space-y-2">
               <div class="flex items-start justify-between">
                 <div class="flex items-center space-x-2.5">
-                  <div class="w-8 h-8 rounded-lg bg-surface-800 border border-slate-700/80 flex items-center justify-center text-teal-400 font-bold shrink-0">
-                    ${app.name.charAt(0)}
+                  <div class="w-7 h-7 flex items-center justify-center shrink-0">
+                    ${logoHtml}
                   </div>
                   <div>
                     <div class="flex items-center space-x-1.5">
@@ -13503,7 +13705,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
             <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
               <div class="flex items-center space-x-2">
                 ${versionSelectHtml}
-                ${app.port !== '—' ? '<span class="text-slate-500 text-[11px]">端口 <strong class="text-slate-300 font-mono">' + app.port + '</strong></span>' : ''}
+                ${app.port && app.port !== '—' ? '<div class="flex items-center space-x-1 text-slate-400 text-xs"><span>端口</span><span class="app-store-port-badge rounded px-1.5 py-0.5 text-[11px] font-mono">' + app.port + '</span></div>' : ''}
               </div>
               ${btnHtml}
             </div>
@@ -13519,8 +13721,8 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       ['all', 'installed', 'upgradable'].forEach(k => {
         const btn = document.getElementById('appTab-' + k);
         if (btn) {
-          if (k === tabKey) btn.className = 'px-3 py-1 rounded font-medium bg-surface-800 text-white transition';
-          else btn.className = 'px-3 py-1 rounded text-slate-400 hover:text-white transition';
+          if (k === tabKey) btn.className = 'px-3 py-1 rounded font-medium bg-surface-800 text-white border border-slate-700/60 shadow-sm transition cursor-pointer';
+          else btn.className = 'px-3 py-1 rounded text-slate-400 hover:text-slate-200 border border-transparent transition cursor-pointer';
         }
       });
       renderAppStoreCards();
@@ -13529,11 +13731,11 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     function setAppCategory(catKey) {
       currentAppCategory = catKey;
       document.querySelectorAll('.app-cat-btn').forEach(btn => {
-        btn.className = 'app-cat-btn px-2.5 py-1 rounded-md bg-surface-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer';
+        btn.className = 'app-cat-btn px-2.5 py-1 rounded-md bg-surface-900 text-slate-400 hover:text-slate-200 hover:border-slate-700 border border-slate-800 transition cursor-pointer';
       });
       const activeBtn = document.getElementById('appCat-' + catKey);
       if (activeBtn) {
-        activeBtn.className = 'app-cat-btn px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/40 font-medium transition cursor-pointer';
+        activeBtn.className = 'app-cat-btn px-2.5 py-1 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/40 font-medium transition cursor-pointer shadow-sm';
       }
       renderAppStoreCards();
     }

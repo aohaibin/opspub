@@ -33,6 +33,7 @@ import WorkbenchPage from "@/pages/workbench";
 import TerminalPage from "@/pages/terminal";
 import SftpPage from "@/pages/sftp";
 import SettingsPage from "@/pages/settings";
+import ServerCredentialsPage from "@/pages/credentials/ServerCredentialsPage";
 import { ModulePlaceholder } from "@/pages/module";
 
 /** 已实现模块的 key → 页面组件 */
@@ -42,6 +43,7 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   terminal: TerminalPage,
   sftp: SftpPage,
   settings: SettingsPage,
+  credentials: ServerCredentialsPage,
 };
 
 /** 路由路径按模块注册表的顺序生成，与左侧导航轨严格同序 */

@@ -170,7 +170,7 @@ pub struct ConnectivityResult {
 /// SSH 认证测试请求。
 ///
 /// 凭据只通过当前 IPC 调用短暂进入 Rust，绝不写入数据库或审计日志。
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SshProbeRequest {
     pub server_id: i64,
@@ -179,6 +179,17 @@ pub struct SshProbeRequest {
     pub passphrase: Option<String>,
     #[serde(default)]
     pub trust_host_key: bool,
+}
+
+/// 系统凭据库中的 SSH 登录信息。
+///
+/// 该结构只在 Rust 进程和操作系统凭据管理器之间序列化，不作为查询结果返回前端。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoredSshCredential {
+    pub password: Option<String>,
+    pub private_key_path: Option<String>,
+    pub passphrase: Option<String>,
 }
 
 /// SSH 认证及只读系统摘要探测结果

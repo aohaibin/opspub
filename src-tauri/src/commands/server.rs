@@ -1,7 +1,11 @@
 use tauri::Manager;
 
 use crate::error::CommandError;
-use crate::models::{ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult};
+use crate::models::{
+    ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult,
+    StoredSshCredential,
+};
+use crate::services::credential::CredentialService;
 use crate::services::server::ServerService;
 use crate::state::AppState;
 
@@ -9,6 +13,46 @@ use crate::state::AppState;
 #[tauri::command]
 pub fn list_servers(state: tauri::State<'_, AppState>) -> Result<Vec<Server>, CommandError> {
     ServerService::get_all(&state.db).map_err(|e| e.into())
+}
+
+/// 返回已有系统凭据的服务器 ID 和凭据内容；凭据只从系统凭据库读取，不落 SQLite。
+#[tauri::command]
+pub fn list_saved_ssh_credentials(
+    state: tauri::State<'_, AppState>,
+) -> Result<std::collections::HashMap<i64, StoredSshCredential>, CommandError> {
+    let servers = ServerService::get_all(&state.db).map_err(CommandError::from)?;
+    let mut result = std::collections::HashMap::new();
+    for server in servers {
+        if let Some(credentials) = CredentialService::get(server.id).map_err(CommandError::from)? {
+            result.insert(server.id, credentials);
+        }
+    }
+    Ok(result)
+}
+
+/// 保存 SSH 凭据到当前用户的系统凭据管理器。
+#[tauri::command]
+pub fn save_ssh_credentials(
+    server_id: i64,
+    password: Option<String>,
+    private_key_path: Option<String>,
+    passphrase: Option<String>,
+) -> Result<(), CommandError> {
+    CredentialService::save(
+        server_id,
+        &StoredSshCredential {
+            password,
+            private_key_path,
+            passphrase,
+        },
+    )
+    .map_err(|e| e.into())
+}
+
+/// 从当前用户的系统凭据管理器中删除 SSH 凭据。
+#[tauri::command]
+pub fn delete_ssh_credentials(server_id: i64) -> Result<(), CommandError> {
+    CredentialService::delete(server_id).map_err(|e| e.into())
 }
 
 /// 添加服务器

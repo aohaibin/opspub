@@ -7,6 +7,7 @@ use ssh2::{HashType, HostKeyType, Session};
 
 use crate::database::Database;
 use crate::error::AppError;
+use crate::services::credential::CredentialService;
 use crate::models::{
     ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult, TerminalOpenRequest,
 };
@@ -132,7 +133,13 @@ impl ServerService {
 
     /// 删除服务器
     pub fn delete(db: &Database, id: i64) -> Result<bool, AppError> {
-        db.delete_server(id)
+        let deleted = db.delete_server(id)?;
+        if deleted {
+            if let Err(error) = CredentialService::delete(id) {
+                log::warn!("删除服务器凭据失败 (id={}): {}", id, error);
+            }
+        }
+        Ok(deleted)
     }
 
     /// 批量删除服务器
@@ -140,7 +147,13 @@ impl ServerService {
         if ids.is_empty() {
             return Err(AppError::InvalidInput("请先选择要移除的服务器".into()));
         }
-        db.batch_delete_servers(ids)
+        let deleted = db.batch_delete_servers(ids)?;
+        for id in ids {
+            if let Err(error) = CredentialService::delete(*id) {
+                log::warn!("删除服务器凭据失败 (id={}): {}", id, error);
+            }
+        }
+        Ok(deleted)
     }
 
     /// 批量设置 AI 策略档位
@@ -355,11 +368,12 @@ impl ServerService {
             )));
         }
 
+        let stored = CredentialService::get(request.server_id)?.unwrap_or_default();
         let probe_request = SshProbeRequest {
             server_id: request.server_id,
-            password: request.password.clone(),
-            private_key_path: request.private_key_path.clone(),
-            passphrase: request.passphrase.clone(),
+            password: request.password.clone().or(stored.password),
+            private_key_path: request.private_key_path.clone().or(stored.private_key_path),
+            passphrase: request.passphrase.clone().or(stored.passphrase),
             trust_host_key: false,
         };
         authenticate(&session, &server, &probe_request)

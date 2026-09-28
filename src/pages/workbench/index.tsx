@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Spin, message } from "antd";
+import { useLocation } from "react-router-dom";
 import { getErrorMessage } from "@/lib/api/client";
 import { serverApi } from "@/lib/api/server";
 import { workbenchApi } from "@/lib/api/workbench";
@@ -26,6 +27,9 @@ import { SettingsView } from "./views/SettingsView";
 import { WorkbenchRuntimeContext } from "./context";
 
 export default function WorkbenchPage() {
+  const location = useLocation();
+  const routeServerId =
+    (location.state as { serverId?: number } | null)?.serverId ?? null;
   const [servers, setServers] = useState<Server[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,6 +59,9 @@ export default function WorkbenchPage() {
       const data = await serverApi.list();
       setServers(data);
       setSelectedId((current) => {
+        if (routeServerId !== null && data.some((server) => server.id === routeServerId)) {
+          return routeServerId;
+        }
         if (current !== null && data.some((server) => server.id === current)) {
           return current;
         }
@@ -69,7 +76,7 @@ export default function WorkbenchPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [routeServerId]);
 
   const selectServer = useCallback(
     (id: number) => {
@@ -99,6 +106,26 @@ export default function WorkbenchPage() {
     }
     setSshServer(selectedServer);
   }, [credentialsByServer, selectedServer]);
+
+  // 服务器资产页明确点击工作台时，进入后立即使用目标服务器；没有凭证才弹验证框。
+  const autoConnectedServerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      routeServerId === null ||
+      loading ||
+      !selectedServer ||
+      selectedServer.id !== routeServerId ||
+      sshServer !== null ||
+      autoConnectedServerRef.current === routeServerId
+    ) {
+      return;
+    }
+
+    autoConnectedServerRef.current = routeServerId;
+    if (!credentialsByServer[routeServerId]) {
+      setSshServer(selectedServer);
+    }
+  }, [credentialsByServer, loading, routeServerId, selectedServer, sshServer]);
 
   const executeCommand = useCallback(
     async (server: Server, credentials: SshCredentials, command: string) => {

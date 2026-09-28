@@ -289,7 +289,12 @@ export default function ServersPage() {
   const goModule = useCallback(
     (moduleKey: string, server: Server) => {
       setActiveServerId(server.id);
-      navigate(modulePath(moduleKey));
+      // 将列表中明确点击的主机带入目标模块，目标页可以直接建立该主机的会话，
+      // 不再跳转后让用户从服务器列表重新选择一次。
+      navigate(
+        modulePath(moduleKey),
+        { state: { serverId: server.id } },
+      );
     },
     [navigate, setActiveServerId]
   );

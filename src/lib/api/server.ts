@@ -8,6 +8,7 @@ import type {
   ServerPayload,
   SshConfigHost,
 } from "@/types";
+import type { SshCredentials } from "@/types";
 
 /**
  * 把表单载荷转成 IPC 参数
@@ -44,6 +45,23 @@ function toIpcPayload(payload: ServerPayload) {
 export const serverApi = {
   /** 获取所有服务器 */
   list: () => invoke<Server[]>("list_servers"),
+
+  /** 从系统凭据管理器恢复当前用户已保存的 SSH 凭据。 */
+  listSavedSshCredentials: () =>
+    invoke<Record<number, SshCredentials>>("list_saved_ssh_credentials"),
+
+  /** 将 SSH 凭据保存到系统凭据管理器，而不是 SQLite/localStorage。 */
+  saveSshCredentials: (serverId: number, credentials: SshCredentials) =>
+    invoke<void>("save_ssh_credentials", {
+      serverId,
+      password: credentials.password,
+      privateKeyPath: credentials.privateKeyPath,
+      passphrase: credentials.passphrase,
+    }),
+
+  /** 删除指定服务器的系统 SSH 凭据。 */
+  deleteSshCredentials: (serverId: number) =>
+    invoke<void>("delete_ssh_credentials", { serverId }),
 
   /** 添加服务器，返回新记录 id */
   add: (params: ServerPayload) => invoke<number>("add_server", toIpcPayload(params)),

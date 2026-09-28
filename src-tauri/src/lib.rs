@@ -94,6 +94,9 @@ pub fn run() {
             commands::config::delete_config,
             // 服务器模块
             commands::server::list_servers,
+            commands::server::list_saved_ssh_credentials,
+            commands::server::save_ssh_credentials,
+            commands::server::delete_ssh_credentials,
             commands::server::add_server,
             commands::server::update_server,
             commands::server::delete_server,

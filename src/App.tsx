@@ -5,17 +5,23 @@ import GlobalNativeTooltip from "@/components/GlobalNativeTooltip";
 import zhCN from "antd/locale/zh_CN";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useAppStore } from "@/store";
+import { useSshSessionStore } from "@/store/ssh";
 import { getAntdTheme } from "@/theme/antdTheme";
 import { AppRouter } from "@/Router";
 
 function App() {
   const appTheme = useAppStore((s) => s.theme);
   const skin = useAppStore((s) => s.skin);
+  const hydrateCredentials = useSshSessionStore((s) => s.hydrateCredentials);
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light"
   );
+
+  useEffect(() => {
+    void hydrateCredentials();
+  }, [hydrateCredentials]);
 
   useEffect(() => {
     if (appTheme !== "system") return;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Empty, Input, Slider, Spin, message } from "antd";
 import { listen } from "@tauri-apps/api/event";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
   ChevronDown,
@@ -73,6 +73,9 @@ function splitPaneCount(mode: SplitMode): 1 | 2 | 4 {
 
 export default function TerminalPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeServerId =
+    (location.state as { serverId?: number } | null)?.serverId ?? null;
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -223,6 +226,32 @@ export default function TerminalPage() {
     }
     setSshServer(server);
   };
+
+  // 服务器资产页的“连接”动作会携带目标主机，进入终端后立即复用会话或打开验证框。
+  // 用 ref 保证加载服务器列表、凭证状态变化时不会重复创建同一条终端会话。
+  const autoConnectedServerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      routeServerId === null ||
+      loading ||
+      sshServer !== null ||
+      autoConnectedServerRef.current === routeServerId
+    ) {
+      return;
+    }
+
+    const server = servers.find((item) => item.id === routeServerId);
+    if (!server) return;
+
+    autoConnectedServerRef.current = routeServerId;
+    const existingSession = sessions.find((session) => session.serverId === server.id);
+    if (existingSession) {
+      setActiveSessionId(existingSession.sessionId);
+      setActiveServerId(existingSession.serverId);
+      return;
+    }
+    openConnection(server);
+  }, [loading, openConnection, routeServerId, servers, sessions, setActiveServerId, sshServer]);
 
   const handleCreateServer = async (
     payload: ServerPayload,

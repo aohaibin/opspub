@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox, Dropdown, Input, Modal, Spin, Tooltip, message } from "antd";
+import { useLocation } from "react-router-dom";
 import type { MenuProps } from "antd";
 import {
   AlertTriangle,
@@ -102,7 +103,20 @@ function getFileIcon(item: RemoteFileItem) {
   return <File size={15} className="text-slate-400 shrink-0" />;
 }
 
+/** 统一远程路径格式，确保根目录始终显示为 `/`，并避免重复或尾部斜杠。 */
+function normalizeRemotePath(path: string): string {
+  const trimmed = path.trim();
+  if (!trimmed || trimmed === "/") return "/";
+
+  const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  const normalized = withLeadingSlash.replace(/\/+/g, "/");
+  return normalized.length > 1 ? normalized.replace(/\/+$/, "") : "/";
+}
+
 export default function SftpPage() {
+  const location = useLocation();
+  const routeServerId =
+    (location.state as { serverId?: number } | null)?.serverId ?? null;
   // 服务器资产列表
   const [servers, setServers] = useState<Server[]>([]);
   const [loadingServers, setLoadingServers] = useState(false);
@@ -439,6 +453,25 @@ export default function SftpPage() {
     [credentialsByServer, openSessionForServer],
   );
 
+  // 服务器资产页明确点击 SFTP 时，直接打开该服务器的会话或验证框。
+  const autoConnectedServerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      routeServerId === null ||
+      loadingServers ||
+      sshServer !== null ||
+      autoConnectedServerRef.current === routeServerId
+    ) {
+      return;
+    }
+
+    const server = servers.find((item) => item.id === routeServerId);
+    if (!server) return;
+
+    autoConnectedServerRef.current = routeServerId;
+    handleConnectServer(server);
+  }, [handleConnectServer, loadingServers, routeServerId, servers, sshServer]);
+
   // 关闭单个标签
   const handleCloseTab = (tabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -526,8 +559,7 @@ export default function SftpPage() {
 
   // 路径跳转
   const handleNavigateToPath = (tabId: string, newPath: string) => {
-    let cleanPath = newPath.trim().replace(/\/+/g, "/");
-    if (!cleanPath.startsWith("/")) cleanPath = "/" + cleanPath;
+    const cleanPath = normalizeRemotePath(newPath);
 
     setTabs((prev) =>
       prev.map((t) => {
@@ -542,6 +574,8 @@ export default function SftpPage() {
         };
       })
     );
+    if (tabId === activeTabId) setLeftPathInputVal(cleanPath);
+    if (tabId === activeRightTab?.id) setRightPathInputVal(cleanPath);
     void loadRemoteDirectory(tabId, cleanPath);
   };
 
@@ -549,10 +583,12 @@ export default function SftpPage() {
   const handleHistoryBack = (tab: SftpSessionTab) => {
     if (tab.historyIndex <= 0) return;
     const nextIdx = tab.historyIndex - 1;
-    const targetPath = tab.history[nextIdx];
+    const targetPath = normalizeRemotePath(tab.history[nextIdx]);
     setTabs((prev) =>
       prev.map((t) => (t.id === tab.id ? { ...t, historyIndex: nextIdx, currentPath: targetPath } : t))
     );
+    if (tab.id === activeTabId) setLeftPathInputVal(targetPath);
+    if (tab.id === activeRightTab?.id) setRightPathInputVal(targetPath);
     void loadRemoteDirectory(tab.id, targetPath);
   };
 
@@ -560,20 +596,22 @@ export default function SftpPage() {
   const handleHistoryForward = (tab: SftpSessionTab) => {
     if (tab.historyIndex >= tab.history.length - 1) return;
     const nextIdx = tab.historyIndex + 1;
-    const targetPath = tab.history[nextIdx];
+    const targetPath = normalizeRemotePath(tab.history[nextIdx]);
     setTabs((prev) =>
       prev.map((t) => (t.id === tab.id ? { ...t, historyIndex: nextIdx, currentPath: targetPath } : t))
     );
+    if (tab.id === activeTabId) setLeftPathInputVal(targetPath);
+    if (tab.id === activeRightTab?.id) setRightPathInputVal(targetPath);
     void loadRemoteDirectory(tab.id, targetPath);
   };
 
   // 上一级目录
   const handleNavigateUp = (tab: SftpSessionTab) => {
-    if (tab.currentPath === "/" || !tab.currentPath) return;
-    const segments = tab.currentPath.split("/").filter(Boolean);
+    const currentPath = normalizeRemotePath(tab.currentPath);
+    if (currentPath === "/") return;
+    const segments = currentPath.split("/").filter(Boolean);
     segments.pop();
-    const parent = "/" + segments.join("/");
-    handleNavigateToPath(tab.id, parent || "/");
+    handleNavigateToPath(tab.id, segments.length > 0 ? `/${segments.join("/")}` : "/");
   };
 
   // 刷新当前目录
@@ -1317,8 +1355,7 @@ export default function SftpPage() {
                   className="px-2.5 py-1 rounded bg-surface-900/90 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700 font-mono text-xs text-slate-200 cursor-text truncate transition flex items-center space-x-1.5"
                   title="点击编辑路径或按回车跳转"
                 >
-                  <span className="text-slate-500">/</span>
-                  <span>{tab.currentPath.replace(/^\//, "") || "root"}</span>
+                  <span>{normalizeRemotePath(tab.currentPath)}</span>
                 </div>
               )}
             </div>
@@ -1438,8 +1475,12 @@ export default function SftpPage() {
         </div>
 
         {/* 文件表格核心区 (表头、图标主题色与右侧操作列完全对齐截图 1 / 截图 2) */}
-        <Spin spinning={Boolean(loadingByTab[tab.id])} className="flex-1 min-h-0">
-        <div className="flex-1 overflow-auto custom-scrollbar relative">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <Spin
+            spinning={Boolean(loadingByTab[tab.id])}
+            className="block h-full [&>.ant-spin-container]:h-full"
+          >
+        <div className="h-full min-h-0 overflow-auto custom-scrollbar relative">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="sticky top-0 z-10 bg-surface-950/95 backdrop-blur border-b border-slate-800 text-slate-400 select-none">
               <tr>
@@ -1578,7 +1619,8 @@ export default function SftpPage() {
             </tbody>
           </table>
         </div>
-        </Spin>
+          </Spin>
+        </div>
 
         {/* 底部状态信息 */}
         <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-surface-950 border-t border-slate-800 text-[11px] text-slate-500 font-mono">

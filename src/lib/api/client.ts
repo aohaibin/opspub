@@ -11,6 +11,18 @@ export interface CommandError {
  * 如果是 JSON 格式则解析为 CommandError，否则返回纯文本错误
  */
 export function parseCommandError(error: unknown): CommandError {
+  // Tauri 运行时可能直接返回已反序列化的 { code, message } 对象；
+  // 先处理对象再转字符串，避免连接错误被显示成无意义的 `[object Object]`。
+  if (typeof error === "object" && error !== null) {
+    const value = error as { code?: unknown; message?: unknown };
+    if (typeof value.code === "string" && typeof value.message === "string") {
+      return { code: value.code, message: value.message };
+    }
+    if (error instanceof Error && error.message) {
+      return { code: "UNKNOWN", message: error.message };
+    }
+  }
+
   const raw = typeof error === "string" ? error : String(error);
   try {
     const parsed = JSON.parse(raw);

@@ -15,16 +15,22 @@ pub fn list_servers(state: tauri::State<'_, AppState>) -> Result<Vec<Server>, Co
     ServerService::get_all(&state.db).map_err(|e| e.into())
 }
 
-/// 返回已有系统凭据的服务器 ID 和凭据内容；凭据只从系统凭据库读取，不落 SQLite。
+/// 返回已有系统凭据的服务器 ID。
+///
+/// 不把密码、私钥路径或口令返回给 WebView；真正建立 SSH/SFTP/工作台连接时，
+/// 由 Rust 侧直接从当前用户的系统凭据管理器读取。
 #[tauri::command]
 pub fn list_saved_ssh_credentials(
     state: tauri::State<'_, AppState>,
-) -> Result<std::collections::HashMap<i64, StoredSshCredential>, CommandError> {
+) -> Result<Vec<i64>, CommandError> {
     let servers = ServerService::get_all(&state.db).map_err(CommandError::from)?;
-    let mut result = std::collections::HashMap::new();
+    let mut result = Vec::new();
     for server in servers {
-        if let Some(credentials) = CredentialService::get(server.id).map_err(CommandError::from)? {
-            result.insert(server.id, credentials);
+        if CredentialService::get(server.id)
+            .map_err(CommandError::from)?
+            .is_some()
+        {
+            result.push(server.id);
         }
     }
     Ok(result)

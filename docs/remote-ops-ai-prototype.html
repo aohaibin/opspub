@@ -457,45 +457,157 @@
       background: rgba(15, 23, 42, 0.95) !important;
     }
 
+    /* ========================================================================= */
+    /* 桌面应用全真视窗与 DPI 缩放系统 (解决浏览器纯 100% 字体缩小偏小问题) */
+    /* ========================================================================= */
+    :root {
+      --desktop-zoom: 1.18; /* 默认推荐桌面端 118% DPI 放大，对齐桌面原生软件字号 */
+    }
+
+    body, button, input, select, textarea {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* 桌面客户端应用视窗主体 */
+    #desktopAppWindow {
+      zoom: var(--desktop-zoom, 1.18);
+      transform-origin: center center;
+      transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-radius 0.2s ease,
+                  box-shadow 0.2s ease,
+                  transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.2s ease;
+    }
+
+    /* 视窗模式 (Windowed): 1:1 独立桌面客户端视窗质感 */
+    #desktopAppWindow.mode-windowed {
+      width: calc(min(1560px, 94vw) / var(--desktop-zoom, 1.18));
+      height: calc(min(940px, 90vh) / var(--desktop-zoom, 1.18));
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.85),
+                  0 0 0 1px rgba(255, 255, 255, 0.08),
+                  0 0 35px rgba(16, 185, 129, 0.08);
+    }
+
+    /* 全屏最大化桌面客户端模式 (Maximized) */
+    #desktopAppWindow.mode-maximized {
+      width: calc(100vw / var(--desktop-zoom, 1.18));
+      height: calc(100vh / var(--desktop-zoom, 1.18));
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+    }
+
+    /* 窗口最小化状态 */
+    #desktopAppWindow.is-minimized {
+      transform: scale(0.65) translateY(520px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 视窗模式下内部高度自适应修正 */
+    #desktopAppWindow.mode-windowed .tab-content,
+    #desktopAppWindow.mode-windowed .wb-view {
+      height: 100% !important;
+      max-height: 100% !important;
+    }
+
+    /* 弹窗与抽屉同步桌面 DPI 缩放，保证弹窗内字号与控件舒适放大 */
+    div[id^="modal"] > div,
+    div[id^="drawer"] > div,
+    #screenAppExited > div {
+      zoom: var(--desktop-zoom, 1.18);
+    }
+
+    .window-drag-region {
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+    .window-no-drag {
+      -webkit-app-region: no-drag;
+    }
+
   </style>
 </head>
-<body class="bg-surface-950 text-slate-100 h-full max-h-screen overflow-hidden flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+<body class="bg-[#050811] text-slate-100 h-full max-h-screen overflow-hidden font-sans select-none">
 
   <!-- =================================================================================== -->
-  <!-- 顶部状态栏 -->
+  <!-- 桌面操作系统全真模拟环境 (Desktop OS Environment) -->
   <!-- =================================================================================== -->
-    <header class="h-14 shrink-0 glass-nav px-4 flex items-center justify-between sticky top-0 z-40 select-none">
+  <div id="desktopOSBackdrop" class="fixed inset-0 w-full h-full bg-[#050811] flex items-center justify-center overflow-hidden select-none">
+    <!-- 桌面环境壁纸与微光层 -->
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.12),rgba(99,102,241,0.06),transparent_70%)] pointer-events-none"></div>
+    <div class="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.35),rgba(5,8,17,0.92))] pointer-events-none"></div>
+
+    <!-- ================================================================================= -->
+    <!-- 桌面客户端应用视窗 (Desktop Application Window) -->
+    <!-- ================================================================================= -->
+    <div id="desktopAppWindow" class="mode-windowed relative flex flex-col bg-surface-950 text-slate-100 overflow-hidden font-sans">
+      <!-- 操作系统级桌面窗口标题栏 (Native Window Titlebar Chrome) -->
+      <div id="desktopTitlebarChrome" class="h-8 shrink-0 bg-surface-950/95 border-b border-slate-800/80 px-3 flex items-center justify-between select-none text-xs window-drag-region z-50">
+        <!-- 左侧：macOS 交通灯按钮 + 客户端标题 -->
+        <div class="flex items-center space-x-3 window-no-drag">
+          <!-- macOS 红黄绿小圆点 -->
+          <div class="flex items-center space-x-2 pr-1">
+            <button type="button" onclick="closeWindow()" class="w-3 h-3 rounded-full bg-[#ff5f57] border border-[#e0443e] hover:brightness-110 flex items-center justify-center transition cursor-pointer group" title="关闭窗口">
+              <i data-lucide="x" class="w-2 h-2 text-[#4c0000] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </button>
+            <button type="button" onclick="minimizeWindow()" class="w-3 h-3 rounded-full bg-[#febc2e] border border-[#d89e24] hover:brightness-110 flex items-center justify-center transition cursor-pointer group" title="最小化到底栏">
+              <i data-lucide="minus" class="w-2 h-2 text-[#5c3c00] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </button>
+            <button type="button" onclick="toggleDesktopWindowMode()" class="w-3 h-3 rounded-full bg-[#28c840] border border-[#1aab29] hover:brightness-110 flex items-center justify-center transition cursor-pointer group" title="最大化 / 视窗切换">
+              <i data-lucide="maximize-2" class="w-2 h-2 text-[#004d11] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </button>
+          </div>
+          <div class="h-3.5 w-px bg-slate-800"></div>
+          <!-- 图标与应用标题 -->
+          <div class="flex items-center space-x-1.5 text-slate-300 font-medium">
+            <img src="./logo.png" alt="Logo" class="w-4 h-4 object-contain filter drop-shadow">
+            <span class="text-[11px] font-semibold text-slate-200">OpsSentry Desktop</span>
+            <span class="text-[10px] text-teal-400 font-mono px-1 rounded bg-teal-500/10 border border-teal-500/20">Client v2.5.0</span>
+          </div>
+        </div>
+
+        <!-- 中间：模拟窗口拖拽把手说明 -->
+        <div class="hidden sm:flex items-center space-x-1.5 text-[10px] text-slate-500 font-mono select-none pointer-events-none">
+          <i data-lucide="grip-horizontal" class="w-3.5 h-3.5 text-slate-600"></i>
+          <span>OpsSentry AI · 桌面运维安全控制台</span>
+        </div>
+
+        <!-- 右侧：Windows 11 风格窗口控制按钮组 -->
+        <div class="flex items-center space-x-1 window-no-drag">
+          <!-- 当前模式徽章 -->
+          <span id="windowModeBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-surface-900 border border-slate-700/60 text-slate-400 font-sans mr-1">
+            视窗模式
+          </span>
+          <!-- 快捷最小化 -->
+          <button type="button" onclick="minimizeWindow()" class="h-6 w-8 rounded hover:bg-surface-800 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer" title="最小化窗口">
+            <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+          </button>
+          <!-- 快捷最大化 / 还原 -->
+          <button type="button" onclick="toggleDesktopWindowMode()" id="btnWindowMaximize" class="h-6 w-8 rounded hover:bg-surface-800 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer" title="最大化 / 还原窗口">
+            <i data-lucide="square" class="w-3 h-3"></i>
+          </button>
+          <!-- 快捷关闭 -->
+          <button type="button" onclick="closeWindow()" class="h-6 w-8 rounded hover:bg-rose-500 hover:text-white text-slate-400 flex items-center justify-center transition cursor-pointer" title="关闭客户端">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 顶部状态栏 -->
+      <header class="h-14 shrink-0 glass-nav px-4 flex items-center justify-between sticky top-0 z-40 select-none">
     <!-- 左侧：Logo 与品牌区 -->
     <div class="flex items-center space-x-2">
       <img src="./logo.png" alt="OpsSentry Logo" class="w-7 h-7 object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]">
       <span class="font-bold text-sm text-white tracking-wide">OpsSentry</span>
       <span class="text-slate-600 text-xs select-none">|</span>
       <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">本地安全模式 · MCP 仅监听 127.0.0.1</span>
-    </div>
-
-    <!-- 中部：当前会话与全局搜索 -->
-    <div class="hidden md:flex items-center space-x-2.5">
-      <!-- 会话选择器 -->
-      <div class="flex items-center space-x-2 bg-surface-900/90 border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs">
-        <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <span class="text-slate-400">当前会话:</span>
-        <select id="headerHostSelector" onchange="switchHost(this.value)" class="bg-transparent font-medium text-slate-200 focus:outline-none cursor-pointer">
-          <option value="prod-api-01" class="bg-surface-900 text-slate-200">prod-api-01 (192.168.1.102) [我的腾讯云0209]</option>
-          <option value="prod-db-master" class="bg-surface-900 text-slate-200">prod-db-master (10.0.0.88) [核心库-PostgreSQL]</option>
-          <option value="test-gateway-hk" class="bg-surface-900 text-slate-200">test-gateway-hk (47.242.8.19) [测试边缘-Kong]</option>
-          <option value="win-build-01" class="bg-surface-900 text-slate-200">win-build-01 (10.0.2.15) [Windows构建机]</option>
-        </select>
-      </div>
-
-      <!-- 全局快捷指令搜索栏 (Ctrl + K) -->
-      <button onclick="openCommandPalette()" class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-surface-900/90 hover:bg-surface-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 text-xs transition cursor-pointer shadow-inner">
-        <i data-lucide="search" class="w-3.5 h-3.5 text-brand-400"></i>
-        <span>搜索 / 问AI...</span>
-        <kbd class="px-1.5 py-0.5 rounded bg-surface-950 text-[10px] font-mono text-slate-400 border border-slate-700 font-semibold">Ctrl K</kbd>
-      </button>
     </div>
 
     <!-- 右侧工具栏：完全匹配截图 1789613652724 的布局 -->
@@ -636,7 +748,7 @@
   <!-- =================================================================================== -->
   <!-- 主体容器：侧边栏 + 内容区 -->
   <!-- =================================================================================== -->
-  <div class="flex-1 flex overflow-hidden min-h-0 h-[calc(100vh-3.5rem)]">
+  <div id="mainAppBodyLayout" class="flex-1 flex overflow-hidden min-h-0">
 
     <!-- 左侧主导航侧栏 (桌面端固定紧凑 Dock 模式，宽 68px，上图标下文字，最大化右侧工作区空间) -->
     <aside id="appSidebar" class="w-[68px] h-full bg-surface-900/95 border-r border-slate-800/80 flex flex-col shrink-0 select-none overflow-hidden">
@@ -3436,7 +3548,7 @@
             <!-- 文件表格 (完全 1:1 对齐截图 2) -->
             <div class="flex-1 overflow-y-auto custom-scrollbar">
               <table class="w-full text-left text-xs border-collapse">
-                <thead class="sticky top-0 z-10 bg-surface-950 text-slate-400 border-b border-slate-800 text-[11px] select-none">
+                <thead class="sticky top-0 z-10 bg-surface-950 text-slate-400 border-b border-slate-800 text-xs select-none">
                   <tr>
                     <th class="py-2.5 px-3 w-8"><input type="checkbox" id="sftpSelectAllChk" onchange="toggleSftpSelectAll(this.checked)" class="rounded bg-surface-800 border-slate-700 cursor-pointer"></th>
                     <th class="py-2.5 px-3 font-medium">名称</th>
@@ -3540,7 +3652,7 @@
             <!-- 右窗格文件表格 -->
             <div class="flex-1 overflow-y-auto custom-scrollbar">
               <table class="w-full text-left text-xs border-collapse">
-                <thead class="sticky top-0 z-10 bg-surface-950 text-slate-400 border-b border-slate-800 text-[11px] select-none">
+                <thead class="sticky top-0 z-10 bg-surface-950 text-slate-400 border-b border-slate-800 text-xs select-none">
                   <tr>
                     <th class="py-2.5 px-3 font-medium">名称</th>
                     <th class="py-2.5 px-3 font-medium w-24">大小</th>
@@ -6553,6 +6665,61 @@ Filesystem      Size  Used Avail Use% Mounted on
 
     </main>
   </div>
+</div> <!-- 结束 #desktopAppWindow -->
+
+<!-- 底部系统托盘 / 桌面 Dock (视窗模式下可见，最小化后可点击还原) -->
+<div id="desktopOSDock" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-3 px-4 py-1.5 bg-surface-900/80 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl transition duration-200">
+  <button type="button" onclick="restoreWindow()" class="relative flex items-center space-x-2 px-3 py-1 rounded-xl bg-surface-800/90 hover:bg-surface-700 text-slate-200 border border-slate-600/60 transition cursor-pointer group" title="OpsSentry 桌面客户端 · 点击还原视窗">
+    <img src="./logo.png" alt="Logo" class="w-5 h-5 object-contain">
+    <span class="text-xs font-semibold">OpsSentry</span>
+    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+  </button>
+  <div class="h-3.5 w-px bg-slate-700"></div>
+  <div class="text-[11px] text-slate-400 flex items-center space-x-1.5 font-mono">
+    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+    <span>MCP 127.0.0.1 在线</span>
+  </div>
+  <div class="h-3.5 w-px bg-slate-700"></div>
+  <div id="desktopOSTime" class="text-[11px] text-slate-300 font-mono">10:30</div>
+</div>
+
+<!-- 桌面端显示模式与 DPI 缩放浮动控制器 (支持收起/展开，自动持久化选择) -->
+<div id="desktopScaleController" class="fixed bottom-3 right-4 z-50 flex items-center space-x-2 p-1.5 bg-surface-900/95 backdrop-blur-md border border-slate-700/90 rounded-2xl shadow-2xl text-xs select-none transition-all duration-200">
+  <div class="flex items-center space-x-1.5 px-2 text-slate-400 font-medium">
+    <i data-lucide="monitor" class="w-3.5 h-3.5 text-teal-400"></i>
+    <span class="text-[11px] font-semibold text-slate-200">桌面端显示</span>
+  </div>
+
+  <!-- 视窗 / 全屏 切换 -->
+  <div class="flex items-center space-x-1 p-0.5 bg-surface-950 rounded-xl border border-slate-800 text-[11px]">
+    <button type="button" onclick="setDesktopWindowMode('windowed')" id="modeBtnWindowed" class="px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300">
+      <i data-lucide="app-window" class="w-3 h-3"></i>
+      <span>视窗</span>
+    </button>
+    <button type="button" onclick="setDesktopWindowMode('maximized')" id="modeBtnMaximized" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1">
+      <i data-lucide="maximize" class="w-3 h-3"></i>
+      <span>全屏</span>
+    </button>
+  </div>
+
+  <div class="h-4 w-px bg-slate-800"></div>
+
+  <!-- DPI 缩放比例切换 -->
+  <div class="flex items-center space-x-1 p-0.5 bg-surface-950 rounded-xl border border-slate-800 text-[11px] font-mono">
+    <span class="text-[10px] text-slate-500 pl-1 font-sans">DPI缩放:</span>
+    <button type="button" onclick="setDesktopZoom(1.0)" id="zoomBtn-100" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">100%</button>
+    <button type="button" onclick="setDesktopZoom(1.10)" id="zoomBtn-110" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">110%</button>
+    <button type="button" onclick="setDesktopZoom(1.18)" id="zoomBtn-118" class="px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 font-bold transition cursor-pointer" title="推荐桌面比例：字体清晰放大，解决网页纯100%字体偏小问题">118% 推荐</button>
+    <button type="button" onclick="setDesktopZoom(1.25)" id="zoomBtn-125" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">125%</button>
+    <button type="button" onclick="setDesktopZoom(1.35)" id="zoomBtn-135" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">135%</button>
+  </div>
+
+  <!-- 折叠小按钮 -->
+  <button type="button" onclick="toggleScaleControllerCollapse()" class="p-1 rounded-lg hover:bg-surface-800 text-slate-400 hover:text-white transition cursor-pointer" title="收起/展开控制器">
+    <i id="iconScaleCollapse" data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+  </button>
+</div>
+</div> <!-- 结束 #desktopOSBackdrop -->
 
   <!-- =================================================================================== -->
   <!-- 弹窗组件群 (新增服务器、Windows向导、审批弹窗、编辑器、传输浮窗) -->
@@ -8740,7 +8907,8 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     }
 
     function switchHost(hostName) {
-      document.getElementById('headerHostSelector').value = hostName;
+      const hostSelector = document.getElementById('headerHostSelector');
+      if (hostSelector) hostSelector.value = hostName;
       const wbTitle = document.getElementById('wbHostTitle');
       if (wbTitle) {
         if (hostName === 'prod-api-01') wbTitle.innerText = '我的腾讯云0209 (prod-api-01)';
@@ -9363,22 +9531,22 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
 
         return `
           <tr class="hover:bg-surface-850/80 transition group">
-            <td class="py-2 px-3">
-              <div class="flex items-center space-x-2">
-                <i data-lucide="${iconName}" class="w-3.5 h-3.5 shrink-0 ${iconColor}"></i>
-                <span class="truncate font-mono text-xs cursor-pointer ${isDir ? 'text-slate-200 group-hover:text-brand-400 font-medium' : 'text-slate-200 hover:text-white'}"
+            <td class="py-2.5 px-3">
+              <div class="flex items-center space-x-2.5">
+                <i data-lucide="${iconName}" class="w-4.5 h-4.5 shrink-0 ${iconColor}"></i>
+                <span class="truncate font-mono text-[13.5px] cursor-pointer ${isDir ? 'text-slate-100 group-hover:text-brand-400 font-semibold' : 'text-slate-200 hover:text-white font-medium'}"
                       onclick="showToast('右栏: 正在打开 [${item.name}]')">
                   ${item.name}
                 </span>
               </div>
             </td>
-            <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${formatSftpFileSize(item.size, item.type, item.displaySize)}</td>
-            <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${item.mtime}</td>
-            <td class="py-2 px-3 text-slate-400 font-mono text-[11px] leading-tight">
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${formatSftpFileSize(item.size, item.type, item.displaySize)}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${item.mtime}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs leading-tight">
               <div>${item.mode} · ${item.owner || 'uid:0'}</div>
-              <div class="text-[10px] text-slate-500">${item.group || 'gid:0'}</div>
+              <div class="text-[11px] text-slate-500">${item.group || 'gid:0'}</div>
             </td>
-            <td class="py-2 px-3 text-right">
+            <td class="py-2.5 px-3 text-right">
               <div class="flex items-center justify-end space-x-1">
                 ${isDir ? `
                   <button type="button" onclick="showToast('右栏: 进入目录 [${item.name}]')" class="p-1 rounded hover:bg-surface-800 text-slate-400 hover:text-brand-400 transition" title="打开目录">
@@ -9567,22 +9735,22 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
 
         return `
           <tr class="hover:bg-surface-850/80 transition group ${isSelected ? 'bg-brand-500/10' : ''}">
-            <td class="py-2 px-3">
+            <td class="py-2.5 px-3">
               <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectSftpFile('${item.name}', this.checked)" class="rounded border-slate-700 bg-surface-900 text-brand-500 focus:ring-0">
             </td>
-            <td class="py-2 px-3">
+            <td class="py-2.5 px-3">
               <div class="flex items-center space-x-2.5">
-                <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 ${iconColor}"></i>
-                <span class="truncate font-mono text-xs cursor-pointer ${isDir ? 'text-slate-200 group-hover:text-brand-400 font-medium' : 'text-slate-200 hover:text-white'}"
+                <i data-lucide="${iconName}" class="w-4.5 h-4.5 shrink-0 ${iconColor}"></i>
+                <span class="truncate font-mono text-[13.5px] cursor-pointer ${isDir ? 'text-slate-100 group-hover:text-brand-400 font-semibold' : 'text-slate-200 hover:text-white font-medium'}"
                       onclick="${isDir && item.name !== '.' ? `sftpNavigateInto('${item.name}')` : `openFileEditor('${item.name}')`}">
                   ${item.name}
                 </span>
               </div>
             </td>
-            <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${formatSftpFileSize(item.size, item.type, item.displaySize)}</td>
-            <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${item.mtime}</td>
-            <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${item.mode} (${item.owner})</td>
-            <td class="py-2 px-3 text-right">
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${formatSftpFileSize(item.size, item.type, item.displaySize)}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${item.mtime}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${item.mode} (${item.owner})</td>
+            <td class="py-2.5 px-3 text-right">
               <!-- 1:1 对齐截图 2：目录为【打开+下载+更多】，文件为【编辑+下载+更多】 -->
               <div class="flex items-center justify-end space-x-1">
                 ${isDir ? `
@@ -13682,14 +13850,173 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     }
 
     // ==========================================
-    // 窗口控制三联按钮与关闭退出交互逻辑
+    // 桌面端全真视窗管理与 DPI 缩放系统 (解决浏览器纯 100% 字体缩小偏小问题)
     // ==========================================
-    function minimizeWindow() {
-      showToast('🗕 已最小化至系统托盘，后台持续保持 MCP 服务与监控。可在桌面右下角找到 OpsSentry 图标。');
+    let currentDesktopZoom = 1.18;
+    let currentDesktopWindowMode = 'windowed';
+    let isScaleControllerCollapsed = false;
+
+    function setDesktopZoom(scale) {
+      currentDesktopZoom = parseFloat(scale);
+      document.documentElement.style.setProperty('--desktop-zoom', currentDesktopZoom);
+      localStorage.setItem('ops_desktop_zoom', currentDesktopZoom);
+
+      // 更新按钮高亮
+      const zoomLevels = [1.0, 1.10, 1.18, 1.25, 1.35];
+      zoomLevels.forEach(z => {
+        const idKey = Math.round(z * 100);
+        const btn = document.getElementById(`zoomBtn-${idKey}`);
+        if (btn) {
+          if (Math.abs(z - currentDesktopZoom) < 0.02) {
+            btn.className = 'px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 font-bold transition cursor-pointer';
+          } else {
+            btn.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer';
+          }
+        }
+      });
+
+      showToast(`🔍 桌面 DPI 缩放已调整为 ${Math.round(currentDesktopZoom * 100)}% (字号与控件自适应放大)`);
     }
+
+    function setDesktopWindowMode(mode) {
+      currentDesktopWindowMode = mode;
+      const win = document.getElementById('desktopAppWindow');
+      const badge = document.getElementById('windowModeBadge');
+      const dock = document.getElementById('desktopOSDock');
+      const btnWin = document.getElementById('modeBtnWindowed');
+      const btnMax = document.getElementById('modeBtnMaximized');
+      const maxIcon = document.getElementById('btnWindowMaximize');
+      if (!win) return;
+
+      if (mode === 'maximized') {
+        win.classList.remove('mode-windowed');
+        win.classList.add('mode-maximized');
+        if (badge) badge.textContent = '全屏最大化';
+        if (dock) dock.classList.add('hidden');
+        if (btnWin) btnWin.className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1';
+        if (btnMax) btnMax.className = 'px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300';
+        if (maxIcon) maxIcon.innerHTML = '<i data-lucide="minimize-2" class="w-3 h-3"></i>';
+        localStorage.setItem('ops_desktop_window_mode', 'maximized');
+        showToast('⛶ 已切换为最大化沉浸桌面客户端视图');
+      } else {
+        win.classList.remove('mode-maximized');
+        win.classList.add('mode-windowed');
+        if (badge) badge.textContent = '视窗模式';
+        if (dock) dock.classList.remove('hidden');
+        if (btnWin) btnWin.className = 'px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300';
+        if (btnMax) btnMax.className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1';
+        if (maxIcon) maxIcon.innerHTML = '<i data-lucide="square" class="w-3 h-3"></i>';
+        localStorage.setItem('ops_desktop_window_mode', 'windowed');
+        showToast('🖥 已切换为桌面视窗模式 (带独立原生窗口边框与阴影)');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleDesktopWindowMode() {
+      if (currentDesktopWindowMode === 'maximized') {
+        setDesktopWindowMode('windowed');
+      } else {
+        setDesktopWindowMode('maximized');
+      }
+    }
+
     function maximizeWindow() {
-      showToast('🗖 窗口已自适应最大化 / 还原。');
+      toggleDesktopWindowMode();
     }
+
+    function minimizeWindow() {
+      const win = document.getElementById('desktopAppWindow');
+      const dock = document.getElementById('desktopOSDock');
+      if (win) {
+        win.classList.add('is-minimized');
+      }
+      if (dock) {
+        dock.classList.remove('hidden');
+      }
+      showToast('🗕 窗口已最小化至底栏，点击下方 Dock 图标即可快速还原窗口');
+    }
+
+    function restoreWindow() {
+      const win = document.getElementById('desktopAppWindow');
+      if (win) {
+        win.classList.remove('is-minimized');
+      }
+      showToast('🗗 窗口已还原');
+    }
+
+    function toggleScaleControllerCollapse() {
+      isScaleControllerCollapsed = !isScaleControllerCollapsed;
+      const ctrl = document.getElementById('desktopScaleController');
+      const icon = document.getElementById('iconScaleCollapse');
+      if (!ctrl || !icon) return;
+      const childDivs = ctrl.querySelectorAll('div');
+      childDivs.forEach(el => {
+        if (isScaleControllerCollapsed) {
+          el.classList.add('hidden');
+        } else {
+          el.classList.remove('hidden');
+        }
+      });
+      if (isScaleControllerCollapsed) {
+        ctrl.classList.add('px-2', 'py-1');
+        icon.setAttribute('data-lucide', 'chevron-up');
+      } else {
+        ctrl.classList.remove('px-2', 'py-1');
+        icon.setAttribute('data-lucide', 'chevron-down');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateDesktopClock() {
+      const el = document.getElementById('desktopOSTime');
+      if (!el) return;
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      el.textContent = `${h}:${m}`;
+    }
+
+    // 页面初始化时恢复桌面偏好与绑定全局缩放快捷键
+    (function initDesktopEnvironment() {
+      // 恢复缩放
+      const savedZoom = localStorage.getItem('ops_desktop_zoom');
+      if (savedZoom) {
+        currentDesktopZoom = parseFloat(savedZoom);
+        document.documentElement.style.setProperty('--desktop-zoom', currentDesktopZoom);
+      } else {
+        document.documentElement.style.setProperty('--desktop-zoom', 1.18);
+      }
+      // 恢复模式
+      const savedMode = localStorage.getItem('ops_desktop_window_mode');
+      if (savedMode === 'maximized') {
+        setTimeout(() => setDesktopWindowMode('maximized'), 50);
+      } else {
+        setTimeout(() => setDesktopWindowMode('windowed'), 50);
+      }
+      // 启动时钟
+      setTimeout(() => {
+        updateDesktopClock();
+        setInterval(updateDesktopClock, 1000);
+      }, 100);
+
+      // 全局缩放快捷键监听
+      window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          if (e.key === '=' || e.key === '+') {
+            e.preventDefault();
+            const next = Math.min(1.35, +(currentDesktopZoom + 0.05).toFixed(2));
+            setDesktopZoom(next);
+          } else if (e.key === '-' || e.key === '_') {
+            e.preventDefault();
+            const next = Math.max(1.0, +(currentDesktopZoom - 0.05).toFixed(2));
+            setDesktopZoom(next);
+          } else if (e.key === '0') {
+            e.preventDefault();
+            setDesktopZoom(1.18);
+          }
+        }
+      });
+    })();
     function closeWindow() {
       // 检查是否已勾选“记住选择”且配置了特定行为
       const savedChoice = localStorage.getItem('ops_close_action_choice');
@@ -16324,22 +16651,22 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
               <input type="checkbox" onchange="toggleWbFileSelect('${item.name}', this.checked)" ${isSelected ? 'checked' : ''} class="rounded bg-surface-800 border-slate-700 cursor-pointer">
             </td>
             <td class="py-2.5 px-3 font-medium text-slate-200">
-              <div class="flex items-center space-x-2">
-                <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 ${iconColor}"></i>
+              <div class="flex items-center space-x-2.5">
+                <i data-lucide="${iconName}" class="w-4.5 h-4.5 shrink-0 ${iconColor}"></i>
                 ${isDir ? `
-                  <span onclick="wbFileNavigateInto('${item.name}')" class="cursor-pointer hover:text-teal-300 font-semibold transition truncate max-w-xs" title="点击进入文件夹">
+                  <span onclick="wbFileNavigateInto('${item.name}')" class="cursor-pointer text-[13.5px] hover:text-teal-300 font-semibold text-slate-100 transition truncate max-w-xs" title="点击进入文件夹">
                     ${item.name}
                   </span>
                 ` : `
-                  <span onclick="openFileEditor('${item.name}')" class="cursor-pointer hover:text-white transition truncate max-w-xs" title="点击查看/编辑">
+                  <span onclick="openFileEditor('${item.name}')" class="cursor-pointer text-[13.5px] font-medium text-slate-200 hover:text-white transition truncate max-w-xs" title="点击查看/编辑">
                     ${item.name}
                   </span>
                 `}
               </div>
             </td>
-            <td class="py-2.5 px-3 text-slate-400 font-mono text-[11px]">${formatWbFileSize(item.size, item.type)}</td>
-            <td class="py-2.5 px-3 text-slate-400 font-mono text-[11px]">${item.mtime}</td>
-            <td class="py-2.5 px-3 text-slate-400 font-mono text-[11px]">${item.mode} / ${item.owner}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${formatWbFileSize(item.size, item.type)}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${item.mtime}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono text-xs">${item.mode} / ${item.owner}</td>
             <td class="py-2.5 px-3 text-right">
               <!-- 1:1 严格对齐 SFTP 操作列：目录为【打开+下载+更多】，文件为【编辑+下载+更多】 -->
               <div class="flex items-center justify-end space-x-1">

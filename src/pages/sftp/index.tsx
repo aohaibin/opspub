@@ -85,22 +85,22 @@ function getFileIcon(item: RemoteFileItem) {
     // 目录图标：完全遵循主题强调色（青绿/Accent），带柔和微填充，完全对齐截图
     return (
       <Folder
-        size={15}
+        size={17}
         className="text-[var(--accent,#0d9488)] fill-[var(--accent,#0d9488)]/15 shrink-0"
       />
     );
   }
   const name = item.name.toLowerCase();
   if (name.includes("key") || name.includes("id_rsa") || name.endsWith(".pem")) {
-    return <FileKey size={15} className="text-rose-400 shrink-0" />;
+    return <FileKey size={17} className="text-rose-400 shrink-0" />;
   }
   if (name.endsWith(".js") || name.endsWith(".ts") || name.endsWith(".py") || name.endsWith(".sh")) {
-    return <FileCode size={15} className="text-[var(--accent,#0d9488)] shrink-0" />;
+    return <FileCode size={17} className="text-[var(--accent,#0d9488)] shrink-0" />;
   }
   if (name.endsWith(".json") || name.endsWith(".yml") || name.endsWith(".yaml") || name.endsWith(".cfg") || name.startsWith(".")) {
-    return <FileText size={15} className="text-slate-400 shrink-0" />;
+    return <FileText size={17} className="text-slate-400 shrink-0" />;
   }
-  return <File size={15} className="text-slate-400 shrink-0" />;
+  return <File size={17} className="text-slate-400 shrink-0" />;
 }
 
 /** 统一远程路径格式，确保根目录始终显示为 `/`，并避免重复或尾部斜杠。 */
@@ -443,7 +443,9 @@ export default function SftpPage() {
   const handleConnectServer = useCallback(
     (server: Server, targetPane: "left" | "right" = "left") => {
       const credentials = credentialsByServer[server.id];
-      if (!credentials) {
+      // 表单保存的密码不等于 SSH 已完成主机指纹确认；首次进入 SFTP 必须先走验证弹窗。
+      // 否则后端会拒绝未确认指纹的会话，页面只能显示一条无法继续操作的错误。
+      if (!credentials || !server.host_key_fingerprint) {
         setSshTargetPane(targetPane);
         setSshServer(server);
         return;
@@ -1504,7 +1506,7 @@ export default function SftpPage() {
                 <th className="py-2 px-3 font-medium w-28 text-right">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/40 font-mono text-[11px]">
+            <tbody className="divide-y divide-slate-800/40 font-mono text-xs">
               {displayFiles.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-500 font-sans">
@@ -1530,7 +1532,7 @@ export default function SftpPage() {
                         isSelected ? "bg-[var(--accent,#0d9488)]/10" : ""
                       }`}
                     >
-                      <td className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={isSelected}
                           onChange={(e) => {
@@ -1542,30 +1544,30 @@ export default function SftpPage() {
                           }}
                         />
                       </td>
-                      <td className="py-2 px-3">
-                        <div className="flex items-center space-x-2 min-w-0">
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center space-x-2.5 min-w-0">
                           {getFileIcon(item)}
                           <span
-                            className={`truncate font-mono ${
+                            className={`truncate font-mono text-sm ${
                               item.isDir
-                                ? "text-slate-200 group-hover:text-[var(--accent,#0d9488)] font-medium"
-                                : "text-slate-300"
+                                ? "text-slate-100 group-hover:text-[var(--accent,#0d9488)] font-semibold"
+                                : "text-slate-200 hover:text-white font-medium"
                             }`}
                           >
                             {item.name}
                           </span>
                         </div>
                       </td>
-                      <td className="py-2 px-3 text-slate-400">{item.sizeFormatted}</td>
-                      <td className="py-2 px-3 text-slate-400">{item.modified}</td>
-                      <td className="py-2 px-3 text-slate-400">
+                      <td className="py-2.5 px-3 text-slate-400">{item.sizeFormatted}</td>
+                      <td className="py-2.5 px-3 text-slate-400">{item.modified}</td>
+                      <td className="py-2.5 px-3 text-slate-400">
                         <span>{item.permissions}</span>
                         <span className="text-slate-600 mx-1.5">·</span>
                         <span>{item.owner}</span>
                       </td>
 
                       {/* 1:1 对齐截图 2 右侧操作列：目录为【打开+下载+更多...】，文件为【编辑+下载+更多...】 */}
-                      <td className="py-2 px-3 text-right font-sans" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-2.5 px-3 text-right font-sans" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end space-x-1">
                           {item.isDir ? (
                             <Tooltip title="打开目录">

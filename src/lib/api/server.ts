@@ -46,9 +46,9 @@ export const serverApi = {
   /** 获取所有服务器 */
   list: () => invoke<Server[]>("list_servers"),
 
-  /** 从系统凭据管理器恢复当前用户已保存的 SSH 凭据。 */
+  /** 从系统凭据管理器读取已有凭据的服务器 ID，不返回任何凭据内容。 */
   listSavedSshCredentials: () =>
-    invoke<Record<number, SshCredentials>>("list_saved_ssh_credentials"),
+    invoke<number[]>("list_saved_ssh_credentials"),
 
   /** 将 SSH 凭据保存到系统凭据管理器，而不是 SQLite/localStorage。 */
   saveSshCredentials: (serverId: number, credentials: SshCredentials) =>

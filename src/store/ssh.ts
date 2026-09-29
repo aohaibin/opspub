@@ -3,10 +3,10 @@ import { serverApi } from "@/lib/api/server";
 import type { SshCredentials } from "@/types";
 
 /**
- * SSH 会话凭据缓存。
+ * SSH 会话凭据状态。
  *
- * 明文只短暂存在当前 WebView 内存，持久化由 Rust 写入当前用户的系统凭据管理器；
- * 不使用 localStorage 或 SQLite 保存密码、私钥口令等敏感值。
+ * 凭据明文只在用户刚完成验证的当前调用链中短暂存在，随后由 Rust 写入当前用户的
+ * 系统凭据管理器。这里的值只表示“该服务器已有托管凭据”，不保存密码、私钥口令等敏感值。
  */
 interface SshSessionStore {
   credentialsByServer: Record<number, SshCredentials>;
@@ -19,14 +19,15 @@ interface SshSessionStore {
 export const useSshSessionStore = create<SshSessionStore>((set, get) => ({
   credentialsByServer: {},
   setCredentials: async (serverId, credentials) => {
+    // 先落到系统凭据管理器，成功后只在前端保留一个空对象作为“已托管”标记。
+    // 后续连接请求可以不携带凭据，由 Rust 在本机凭据库中回读，避免密码进入长期内存。
+    await serverApi.saveSshCredentials(serverId, credentials);
     set((state) => ({
       credentialsByServer: {
         ...state.credentialsByServer,
-        [serverId]: credentials,
+        [serverId]: {},
       },
     }));
-    // 等系统凭据库写入完成后再结束验证流程，避免用户立即关闭应用导致保存请求丢失。
-    await serverApi.saveSshCredentials(serverId, credentials);
   },
   getCredentials: (serverId) => get().credentialsByServer[serverId],
   clearCredentials: (serverId) => {
@@ -47,8 +48,10 @@ export const useSshSessionStore = create<SshSessionStore>((set, get) => ({
     let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        const saved = await serverApi.listSavedSshCredentials();
-        set({ credentialsByServer: saved });
+        const savedIds = await serverApi.listSavedSshCredentials();
+        set({
+          credentialsByServer: Object.fromEntries(savedIds.map((id) => [id, {}])),
+        });
         return;
       } catch (error) {
         lastError = error;

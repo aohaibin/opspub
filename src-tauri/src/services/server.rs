@@ -297,7 +297,8 @@ impl ServerService {
 
     /// 建立真实 SSH 会话并读取远端系统摘要。
     ///
-    /// 密码、私钥路径和口令只存在于当前调用栈；持久化层只接收验证状态、主机指纹和系统摘要。
+    /// 密码、私钥路径和口令只存在于当前调用栈；验证成功后由命令层显式写入系统凭据管理器，
+    /// 服务器数据库只保存验证状态、主机指纹和系统摘要。
     pub fn test_ssh(db: &Database, request: SshProbeRequest) -> Result<SshProbeResult, AppError> {
         let server = db
             .get_server_by_id(request.server_id)?

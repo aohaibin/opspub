@@ -316,8 +316,8 @@ export default function ServersPage() {
       const nextServers = await loadServers();
       const savedServer = nextServers.find((item) => item.id === savedServerId);
       if (credentials && savedServer) {
-        // 服务器表单已经收集了认证信息，直接托管到当前进程会话。
-        // 终端、SFTP 和工作台后续入口会复用它，只有凭证缺失或失效时才要求验证。
+        // 服务器表单已经收集了认证信息，验证后交给系统凭据管理器托管。
+        // 终端、SFTP 和工作台后续入口会在 Rust 侧复用它，只有凭证缺失或失效时才要求验证。
         await setSharedCredentials(savedServer.id, credentials);
       }
     } catch (e) {

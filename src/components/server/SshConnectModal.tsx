@@ -191,7 +191,7 @@ export function SshConnectModal({
             showIcon
             className="mb-4"
             message={`${server?.username ?? ""}@${server?.hostname ?? ""}:${server?.port ?? ""}`}
-            description="凭据仅用于本次 SSH 认证，不会保存到资产库或审计日志。"
+            description="凭据仅用于本次 SSH 认证；验证成功后由本地系统凭据管理器安全托管，不写入资产库或审计日志。"
           />
 
           {server?.auth_type === "key" ? (

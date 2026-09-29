@@ -38,8 +38,9 @@ tauri-plugin-single-instance = "2"
 ssh2 = "0.9"
 # AES-GCM 加密（凭据 vault）
 ring = "0.17"
-# 凭据持久化使用系统凭据管理器，不把明文写入 SQLite/localStorage
-keyring = "3"
+# 凭据持久化使用 Windows Credential Manager，不把明文写入 SQLite/localStorage。
+# keyring 3 默认使用内存 mock；必须显式启用 windows-native，否则退出进程后凭据会丢失。
+keyring = { version = "3", features = ["windows-native"] }
 # HMAC-SHA256（审计日志防篡改）
 hmac = "0.12"
 sha2 = "0.10"

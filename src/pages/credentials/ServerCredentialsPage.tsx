@@ -91,7 +91,7 @@ export default function ServerCredentialsPage() {
             <span className="ops-page-subtitle">（服务器 SSH 凭证金库）</span>
           </h1>
           <p className="ops-page-desc">
-            凭证只保存在当前应用进程内存中，页面和 AI 只看到状态与引用，不显示真实密码；应用退出后自动清除。
+            凭证由当前用户的系统凭据管理器持久化托管，页面和 AI 只看到状态与引用，不显示真实密码；重启应用后仍可复用。
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -109,14 +109,14 @@ export default function ServerCredentialsPage() {
         icon={<ShieldCheck size={16} />}
         type="info"
         message="端侧凭证隔离已启用"
-        description="SSH 密码、私钥口令只在连接时传给本地 Rust 驱动，并按服务器保存在内存会话中。AI 操作使用服务器引用，不会读取或回传凭证内容。"
+        description="SSH 密码、私钥口令只在验证时传给本地 Rust 驱动，并按服务器保存在当前用户的系统凭据管理器中。AI 操作使用服务器引用，不会读取或回传凭证内容。"
       />
 
       <div className="ops-panel min-h-0 overflow-hidden rounded-xl">
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border)" }}>
           <div>
             <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>服务器凭证</h2>
-            <p className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>验证一次后，终端、SFTP、工作台会话共享同一份内存凭证。</p>
+            <p className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>验证一次后，终端、SFTP、工作台会话从系统凭据管理器复用，无需每次重启重新输入。</p>
           </div>
           <LockKeyhole size={17} style={{ color: "var(--text-muted)" }} />
         </div>

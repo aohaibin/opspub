@@ -71,6 +71,18 @@ function splitPaneCount(mode: SplitMode): 1 | 2 | 4 {
   return 2;
 }
 
+function needsSshCredentials(error: unknown): boolean {
+  const message = getErrorMessage(error);
+  return [
+    "请输入 SSH 登录密码",
+    "请选择或填写 SSH 私钥路径",
+    "SSH 密码认证失败",
+    "SSH 私钥认证失败",
+    "请先完成 SSH 验证并确认主机公钥指纹",
+  ]
+    .some((hint) => message.includes(hint));
+}
+
 export default function TerminalPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -98,7 +110,6 @@ export default function TerminalPage() {
   const setActiveServerId = useAppStore((state) => state.setActiveServerId);
   const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
   const setSharedCredentials = useSshSessionStore((state) => state.setCredentials);
-  const clearSharedCredentials = useSshSessionStore((state) => state.clearCredentials);
 
   sessionsRef.current = sessions;
 
@@ -216,15 +227,15 @@ export default function TerminalPage() {
     setDropdownOpen(false);
     setActiveServerId(server.id);
     const cachedCredentials = sharedCredentials[server.id];
-    if (cachedCredentials) {
-      void openTerminalSession(server, cachedCredentials).catch((error) => {
-        message.error(getErrorMessage(error));
-        clearSharedCredentials(server.id);
+    // 即使前端启动恢复没有拿到状态，也先让 Rust 从系统凭据管理器尝试连接；
+    // 只有确认缺少或失效凭据时才弹窗，避免重启后因 WebView 内存为空重复验证。
+    void openTerminalSession(server, cachedCredentials ?? {}).catch((error) => {
+      if (needsSshCredentials(error)) {
         setSshServer(server);
-      });
-      return;
-    }
-    setSshServer(server);
+      } else {
+        message.error(getErrorMessage(error));
+      }
+    });
   };
 
   // 服务器资产页的“连接”动作会携带目标主机，进入终端后立即复用会话或打开验证框。

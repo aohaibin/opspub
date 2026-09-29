@@ -76,14 +76,14 @@ export interface ConnectivityResult {
   message: string;
 }
 
-/** SSH 认证凭据；只允许在当前前端流程和 IPC 调用栈中短暂存在 */
+/** SSH 认证凭据；前端只在当前验证调用链短暂使用，持久化由 Rust 系统凭据管理器负责 */
 export interface SshCredentials {
   password?: string;
   privateKeyPath?: string;
   passphrase?: string;
 }
 
-/** SSH 认证测试请求；凭据仅用于当前 IPC 调用，不会持久化 */
+/** SSH 认证测试请求；凭据仅用于当前 IPC 调用，验证成功后由 Rust 写入系统凭据管理器 */
 export interface SshProbeRequest extends SshCredentials {
   serverId: number;
   trustHostKey?: boolean;

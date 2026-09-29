@@ -263,7 +263,7 @@ export default function WorkbenchPage() {
         onVerified={async (_result: SshProbeResult, credentials: SshCredentials) => {
           if (!sshServer) return;
           const server = sshServer;
-          setCredentials(server.id, credentials);
+          await setCredentials(server.id, credentials);
           setSshServer(null);
           if (pendingCommand) {
             try {

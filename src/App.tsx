@@ -13,6 +13,7 @@ function App() {
   const appTheme = useAppStore((s) => s.theme);
   const skin = useAppStore((s) => s.skin);
   const hydrateCredentials = useSshSessionStore((s) => s.hydrateCredentials);
+  const [credentialsReady, setCredentialsReady] = useState(false);
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
       ? "dark"
@@ -20,7 +21,20 @@ function App() {
   );
 
   useEffect(() => {
-    void hydrateCredentials();
+    let active = true;
+    const restoreCredentials = async () => {
+      try {
+        await hydrateCredentials();
+      } finally {
+        // 页面必须等系统凭据恢复完成后再挂载，否则终端/SFTP 会把空缓存误判为未验证。
+        if (active) setCredentialsReady(true);
+      }
+    };
+
+    void restoreCredentials();
+    return () => {
+      active = false;
+    };
   }, [hydrateCredentials]);
 
   useEffect(() => {
@@ -54,7 +68,16 @@ function App() {
     <StyleProvider layer>
       <ConfigProvider locale={zhCN} theme={antdTheme}>
         <ErrorBoundary>
-          <AppRouter />
+          {credentialsReady ? (
+            <AppRouter />
+          ) : (
+            <div
+              className="flex h-full items-center justify-center"
+              style={{ color: "var(--text-secondary)", fontSize: 13 }}
+            >
+              正在恢复 SSH 凭据…
+            </div>
+          )}
         </ErrorBoundary>
         <GlobalNativeTooltip />
       </ConfigProvider>

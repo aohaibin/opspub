@@ -265,7 +265,7 @@ export default function TerminalPage() {
       const nextServers = await loadServers();
       const savedServer = nextServers.find((server) => server.id === serverId);
       if (credentials && savedServer) {
-        setSharedCredentials(savedServer.id, credentials);
+        await setSharedCredentials(savedServer.id, credentials);
       }
     } catch (error) {
       message.error(getErrorMessage(error));
@@ -278,7 +278,7 @@ export default function TerminalPage() {
   ) => {
     if (!sshServer) return;
     const server = sshServer;
-    setSharedCredentials(server.id, credentials);
+    await setSharedCredentials(server.id, credentials);
     setSshServer(null);
     await openTerminalSession(server, credentials);
   };

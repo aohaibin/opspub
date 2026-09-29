@@ -1945,7 +1945,7 @@ export default function SftpPage() {
           if (!sshServer) return;
           const server = sshServer;
           const sftpCredentials: SftpCredentials = { serverId: server.id, ...credentials };
-          setSharedCredentials(server.id, credentials);
+          await setSharedCredentials(server.id, credentials);
           setSshServer(null);
           openSessionForServer(server, sshTargetPane, sftpCredentials);
         }}
@@ -1963,7 +1963,7 @@ export default function SftpPage() {
             setCreateModalOpen(false);
             await loadServers();
             if (credentials) {
-              setSharedCredentials(serverId, credentials);
+              await setSharedCredentials(serverId, credentials);
             }
           } catch (e: any) {
             message.error(e?.message || "创建服务器失败");

@@ -318,7 +318,7 @@ export default function ServersPage() {
       if (credentials && savedServer) {
         // 服务器表单已经收集了认证信息，直接托管到当前进程会话。
         // 终端、SFTP 和工作台后续入口会复用它，只有凭证缺失或失效时才要求验证。
-        setSharedCredentials(savedServer.id, credentials);
+        await setSharedCredentials(savedServer.id, credentials);
       }
     } catch (e) {
       message.error(getErrorMessage(e));
@@ -977,7 +977,7 @@ export default function ServersPage() {
         }}
         onVerified={async (_result, credentials) => {
           if (sshServer) {
-            setSharedCredentials(sshServer.id, credentials);
+            await setSharedCredentials(sshServer.id, credentials);
           }
           await loadServers();
         }}

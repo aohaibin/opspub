@@ -69,7 +69,7 @@ export default function ServerCredentialsPage() {
 
   const handleVerified = async (result: SshProbeResult, credentials: SshCredentials) => {
     if (!activeServer) return;
-    setCredentials(activeServer.id, credentials);
+    await setCredentials(activeServer.id, credentials);
     setActiveServer(null);
     await loadServers(false);
     message.success(`${activeServer.alias} 已验证，终端和 SFTP 将复用本次会话`);
@@ -202,4 +202,3 @@ export default function ServerCredentialsPage() {
     </div>
   );
 }
-

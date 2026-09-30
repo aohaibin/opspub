@@ -547,58 +547,7 @@
     <!-- ================================================================================= -->
     <!-- 桌面客户端应用视窗 (Desktop Application Window) -->
     <!-- ================================================================================= -->
-    <div id="desktopAppWindow" class="mode-windowed relative flex flex-col bg-surface-950 text-slate-100 overflow-hidden font-sans">
-      <!-- 操作系统级桌面窗口标题栏 (Native Window Titlebar Chrome) -->
-      <div id="desktopTitlebarChrome" class="h-8 shrink-0 bg-surface-950/95 border-b border-slate-800/80 px-3 flex items-center justify-between select-none text-xs window-drag-region z-50">
-        <!-- 左侧：macOS 交通灯按钮 + 客户端标题 -->
-        <div class="flex items-center space-x-3 window-no-drag">
-          <!-- macOS 红黄绿小圆点 -->
-          <div class="flex items-center space-x-2 pr-1">
-            <button type="button" onclick="closeWindow()" class="w-3 h-3 rounded-full bg-[#ff5f57] border border-[#e0443e] hover:brightness-110 flex items-center justify-center transition cursor-pointer group" title="关闭窗口">
-              <i data-lucide="x" class="w-2 h-2 text-[#4c0000] opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </button>
-            <button type="button" onclick="minimizeWindow()" class="w-3 h-3 rounded-full bg-[#febc2e] border border-[#d89e24] hover:brightness-110 flex items-center justify-center transition cursor-pointer group" title="最小化到底栏">
-              <i data-lucide="minus" class="w-2 h-2 text-[#5c3c00] opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </button>
-            <button type="button" onclick="toggleDesktopWindowMode()" class="w-3 h-3 rounded-full bg-[#28c840] border border-[#1aab29] hover:brightness-110 flex items-center justify-center transition cursor-pointer group" title="最大化 / 视窗切换">
-              <i data-lucide="maximize-2" class="w-2 h-2 text-[#004d11] opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </button>
-          </div>
-          <div class="h-3.5 w-px bg-slate-800"></div>
-          <!-- 图标与应用标题 -->
-          <div class="flex items-center space-x-1.5 text-slate-300 font-medium">
-            <img src="./logo.png" alt="Logo" class="w-4 h-4 object-contain filter drop-shadow">
-            <span class="text-[11px] font-semibold text-slate-200">OpsSentry Desktop</span>
-            <span class="text-[10px] text-teal-400 font-mono px-1 rounded bg-teal-500/10 border border-teal-500/20">Client v2.5.0</span>
-          </div>
-        </div>
-
-        <!-- 中间：模拟窗口拖拽把手说明 -->
-        <div class="hidden sm:flex items-center space-x-1.5 text-[10px] text-slate-500 font-mono select-none pointer-events-none">
-          <i data-lucide="grip-horizontal" class="w-3.5 h-3.5 text-slate-600"></i>
-          <span>OpsSentry AI · 桌面运维安全控制台</span>
-        </div>
-
-        <!-- 右侧：Windows 11 风格窗口控制按钮组 -->
-        <div class="flex items-center space-x-1 window-no-drag">
-          <!-- 当前模式徽章 -->
-          <span id="windowModeBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-surface-900 border border-slate-700/60 text-slate-400 font-sans mr-1">
-            视窗模式
-          </span>
-          <!-- 快捷最小化 -->
-          <button type="button" onclick="minimizeWindow()" class="h-6 w-8 rounded hover:bg-surface-800 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer" title="最小化窗口">
-            <i data-lucide="minus" class="w-3.5 h-3.5"></i>
-          </button>
-          <!-- 快捷最大化 / 还原 -->
-          <button type="button" onclick="toggleDesktopWindowMode()" id="btnWindowMaximize" class="h-6 w-8 rounded hover:bg-surface-800 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer" title="最大化 / 还原窗口">
-            <i data-lucide="square" class="w-3 h-3"></i>
-          </button>
-          <!-- 快捷关闭 -->
-          <button type="button" onclick="closeWindow()" class="h-6 w-8 rounded hover:bg-rose-500 hover:text-white text-slate-400 flex items-center justify-center transition cursor-pointer" title="关闭客户端">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
+    <div id="desktopAppWindow" class="mode-maximized relative flex flex-col bg-surface-950 text-slate-100 overflow-hidden font-sans">
 
       <!-- 顶部状态栏 -->
       <header class="h-14 shrink-0 glass-nav px-4 flex items-center justify-between sticky top-0 z-40 select-none">
@@ -2687,19 +2636,19 @@
               <!-- 顶部横条 -->
               <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800">
                 <div class="flex items-center space-x-2">
-                  <span class="p-1 rounded bg-teal-500/15 text-teal-400">
+                  <span class="p-1 rounded bg-brand-500/15 text-brand-400">
                     <i data-lucide="archive" class="w-4 h-4"></i>
                   </span>
                   <div class="flex items-center space-x-2">
                     <h2 class="text-sm font-bold text-white">数据备份</h2>
                     <span class="text-xs text-slate-400">
-                      备份这台服务器上的数据，产物存放在该机 <code class="text-teal-300 font-mono bg-surface-900 px-1.5 py-0.5 rounded border border-slate-800">~/.reeve/backups/</code>
+                      备份这台服务器上的数据，产物存放在该机 <code class="text-brand-300 font-mono bg-surface-900 px-1.5 py-0.5 rounded border border-slate-800">~/.opssentry/backups/</code>
                     </span>
                   </div>
                 </div>
 
                 <div class="flex items-center space-x-2">
-                  <button type="button" onclick="openCreateBackupModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-semibold text-xs transition cursor-pointer shadow-sm active:scale-95">
+                  <button type="button" onclick="openCreateBackupModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs transition cursor-pointer shadow-sm active:scale-95">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span>新建备份任务</span>
                   </button>
@@ -2712,11 +2661,10 @@
               <!-- 备份任务表格与内容区 (完全对齐截图1) -->
               <div class="glass-card rounded-xl border border-slate-800 overflow-hidden flex flex-col min-h-[460px]">
                 <table class="w-full text-left text-xs border-collapse">
-                  <thead class="bg-surface-950/90 text-slate-400 border-b border-slate-800 text-[11px] select-none">
+                  <thead class="bg-surface-950/90 text-slate-400 border-b border-slate-800 text-xs select-none">
                     <tr>
                       <th class="py-2.5 px-4 font-medium">任务名</th>
                       <th class="py-2.5 px-3 font-medium w-28">类型</th>
-                      <th class="py-2.5 px-3 font-medium">备份来源</th>
                       <th class="py-2.5 px-3 font-medium w-28">保留份数</th>
                       <th class="py-2.5 px-3 font-medium w-36">定时</th>
                       <th class="py-2.5 px-4 font-medium text-right w-36">操作</th>
@@ -3699,80 +3647,301 @@
       </div>
 
       <!-- =================================================================================== -->
-      <!-- VIEW 4: 数据库工作台 (Database Workbench) -->
+      <!-- VIEW 4: 数据库工作台 (1:1 严格对齐截图 media_1790697641201.png) -->
       <!-- =================================================================================== -->
-      <div id="tab-database" class="tab-content hidden space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800">
-          <div>
-            <h1 class="text-lg font-bold text-white flex items-center space-x-2">
-              <i data-lucide="database" class="w-5 h-5 text-cyan-400"></i>
-              <span>数据库统一工作台</span>
-              <span class="text-xs font-normal text-slate-400">（SQL / Redis / MongoDB 多引擎与 AI NL2SQL 自然语言查询）</span>
-            </h1>
+      <div id="tab-database" class="tab-content hidden flex flex-col space-y-3 min-h-[calc(100vh-80px)] select-none">
+        <!-- 顶栏 1: 引擎切换器与全部服务器下拉 -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800">
+          <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-1 p-0.5 rounded-lg bg-surface-950 border border-slate-800 text-xs">
+              <button id="mainDbEngineTab-sql" type="button" onclick="switchMainDbEngine('sql')" class="px-3.5 py-1 rounded font-medium bg-surface-800 text-white flex items-center space-x-1.5 cursor-pointer transition">
+                <i data-lucide="database" class="w-3.5 h-3.5 text-brand-400"></i>
+                <span>SQL 数据库</span>
+              </button>
+              <button id="mainDbEngineTab-redis" type="button" onclick="switchMainDbEngine('redis')" class="px-3.5 py-1 rounded text-slate-400 hover:text-white flex items-center space-x-1.5 cursor-pointer transition">
+                <i data-lucide="key" class="w-3.5 h-3.5"></i>
+                <span>Redis</span>
+              </button>
+              <button id="mainDbEngineTab-mongodb" type="button" onclick="switchMainDbEngine('mongodb')" class="px-3.5 py-1 rounded text-slate-400 hover:text-white flex items-center space-x-1.5 cursor-pointer transition">
+                <i data-lucide="box" class="w-3.5 h-3.5"></i>
+                <span>MongoDB</span>
+              </button>
+            </div>
           </div>
-          <div class="flex items-center space-x-1 bg-surface-900 p-1 rounded-xl border border-slate-800 text-xs font-medium">
-            <button onclick="switchDbEngine('sql')" id="btnDbEngineSql" class="px-3 py-1 rounded-lg bg-cyan-600 text-white shadow">SQL (MySQL / PG)</button>
-            <button onclick="switchDbEngine('redis')" id="btnDbEngineRedis" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white">Redis (键值缓存)</button>
-            <button onclick="switchDbEngine('mongo')" id="btnDbEngineMongo" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white">MongoDB (文档)</button>
+
+          <div class="flex items-center space-x-2">
+            <div class="relative">
+              <select id="mainDbServerFilter" onchange="filterMainDbByServer(this.value)" class="bg-surface-900 border border-slate-800 rounded-lg px-3 py-1.5 pr-8 text-xs text-slate-300 focus:outline-none focus:border-brand-500 appearance-none cursor-pointer">
+                <option value="all">全部服务器</option>
+                <option value="tencent">我的腾讯云0209 (111.231.165.192)</option>
+                <option value="aliyun">我的阿里云3045 (47.98.134.201)</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+            </div>
           </div>
         </div>
 
-        <div id="dbSqlView" class="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <div class="glass-card p-3 rounded-xl lg:col-span-1 space-y-3 select-none">
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-300 pb-2 border-b border-slate-800">
-              <div class="flex items-center space-x-1.5 text-cyan-300">
-                <i data-lucide="database" class="w-3.5 h-3.5"></i>
-                <span class="truncate">MySQL @ 我的腾讯云0209</span>
+        <!-- 顶栏 2: 当前激活连接指示与历史/片段快捷按钮 -->
+        <div class="flex items-center justify-between px-1 text-xs">
+          <div id="mainDbActiveConnBar" class="flex items-center space-x-2">
+            <span id="mainDbConnIndicator" class="flex items-center space-x-1.5 text-slate-400 font-medium">
+              <span>← 在左侧连接树选择连接</span>
+            </span>
+            <div id="mainDbConnectedActions" class="hidden flex items-center space-x-2">
+              <button type="button" onclick="showMainDbStructure()" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="table" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>结构</span>
+              </button>
+              <button type="button" onclick="exportMainDbDump()" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>导出</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-1.5 text-xs">
+            <button type="button" onclick="showMainDbHistoryModal()" class="px-2.5 py-1 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1.5 transition cursor-pointer">
+              <i data-lucide="history" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span>历史</span>
+            </button>
+            <button type="button" onclick="showMainDbSnippetModal()" class="px-2.5 py-1 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1.5 transition cursor-pointer">
+              <i data-lucide="file-code" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span>片段</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 主体区域：左右双栏布局 (完全对齐截图 1) -->
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3 min-h-[560px]">
+          <!-- 左栏：连接树与管理面板 -->
+          <div class="md:col-span-1 glass-card p-3 rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col space-y-3">
+            <button type="button" onclick="openCurrentEngineAddModal()" class="w-full flex items-center justify-center space-x-1.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-200 text-xs border border-slate-700/80 transition cursor-pointer shadow-sm active:scale-98">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>新建连接</span>
+            </button>
+            <div class="relative">
+              <input type="text" id="mainDbFilterInput" oninput="filterMainDbTree(this.value)" placeholder="过滤库 / 表 / 对象" class="w-full bg-surface-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2 pointer-events-none"></i>
+            </div>
+
+            <!-- 连接树列表 (SQL 数据库) -->
+            <div id="mainDbTreeList-sql" class="flex-1 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar">
+              <!-- 连接 1: MySQL @ 我的腾讯云0209 -->
+              <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div onclick="toggleMainDbConnExpand('conn-tencent')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-tencent" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                    <span class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的腾讯云0209</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-slate-500 shrink-0">mysql</span>
+                </div>
+                <div id="connChildren-tencent" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div onclick="selectMainDbDatabase('tencent', 'app_production')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-brand-400"></i><span>app_production</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">18 表</span>
+                  </div>
+                  <div onclick="selectMainDbDatabase('tencent', 'sys_auth')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>sys_auth</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">6 表</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 连接 2: MySQL @ 我的阿里云3045 -->
+              <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div onclick="toggleMainDbConnExpand('conn-aliyun')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-aliyun" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                    <span class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的阿里云3045</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-slate-500 shrink-0">mysql</span>
+                </div>
+                <div id="connChildren-aliyun" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div onclick="selectMainDbDatabase('aliyun', 'core_db')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-brand-400"></i><span>core_db</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">32 表</span>
+                  </div>
+                  <div onclick="selectMainDbDatabase('aliyun', 'nacos_config')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>nacos_config</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">14 表</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="space-y-1">
-              <div class="text-[10px] text-slate-400 uppercase font-semibold">库: app_production (当前)</div>
-              <div class="space-y-0.5 text-xs font-mono">
-                <div class="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 font-medium flex items-center justify-between cursor-pointer">
-                  <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i><span>sys_user</span></span>
-                  <span class="text-[10px] text-slate-500">85条</span>
+
+            <!-- 连接树列表 (Redis) -->
+            <div id="mainDbTreeList-redis" class="hidden flex-1 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar">
+              <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div onclick="selectMainDbRedisInstance('redis-tencent')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i data-lucide="key" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
+                    <span class="font-medium text-slate-200 truncate text-xs">Redis @ 我的腾讯云0209</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-slate-500 shrink-0">:6379</span>
                 </div>
-                <div class="p-1.5 rounded-lg hover:bg-surface-800 text-slate-300 flex items-center justify-between cursor-pointer">
-                  <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i><span>sys_role</span></span>
-                  <span class="text-[10px] text-slate-500">12条</span>
+              </div>
+              <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div onclick="selectMainDbRedisInstance('redis-aliyun')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i data-lucide="key" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
+                    <span class="font-medium text-slate-200 truncate text-xs">Redis @ 我的阿里云3045 - 缓存集群</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-slate-500 shrink-0">:6379</span>
                 </div>
-                <div class="p-1.5 rounded-lg hover:bg-surface-800 text-slate-300 flex items-center justify-between cursor-pointer">
-                  <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i><span>sys_oper_log</span></span>
-                  <span class="text-[10px] text-slate-500">15.4k条</span>
+              </div>
+            </div>
+
+            <!-- 连接树列表 (MongoDB) -->
+            <div id="mainDbTreeList-mongodb" class="hidden flex-1 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar">
+              <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div onclick="selectMainDbMongoInstance('mongo-cluster')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i data-lucide="box" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                    <span class="font-medium text-slate-200 truncate text-xs">MongoDB @ 生产环境集群</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-slate-500 shrink-0">:27017</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="glass-card rounded-xl lg:col-span-4 p-4 border border-slate-800 space-y-4">
-            <div class="p-3.5 rounded-xl bg-gradient-to-r from-surface-900 via-surface-900 to-indigo-950/40 border border-brand-500/30 space-y-2.5">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
-                  <span class="font-bold text-xs text-white">用一句话说你要查什么，AI 帮你写 SQL</span>
+          <!-- 右栏：SQL 查询工作台与 AI 辅助 (完全还原截图 1) -->
+          <div class="md:col-span-3 glass-card rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col overflow-hidden">
+            <!-- SQL 标签栏 -->
+            <div class="flex items-center justify-between px-3 py-1.5 bg-surface-900/90 border-b border-slate-800 text-xs">
+              <div id="mainSqlTabsContainer" class="flex items-center space-x-1.5">
+                <button type="button" onclick="addMainSqlTab()" class="px-2.5 py-1 rounded text-slate-400 hover:text-white flex items-center space-x-1 transition cursor-pointer">
+                  <i data-lucide="plus" class="w-3 h-3"></i>
+                  <span>新 SQL</span>
+                </button>
+                <div class="px-2.5 py-1 rounded bg-teal-500/10 text-teal-300 border border-teal-500/30 flex items-center space-x-1.5 font-medium">
+                  <span>查询 1</span>
+                  <i data-lucide="x" onclick="showToast('至少保留一个查询标签')" class="w-3 h-3 text-slate-400 hover:text-rose-400 cursor-pointer"></i>
                 </div>
-                <span class="text-[10px] text-brand-300 font-mono">DeepSeek NL2SQL 增强</span>
               </div>
+            </div>
+
+            <!-- AI 智能输入区 (完全对齐截图 1) -->
+            <div class="p-3 border-b border-slate-800/80 bg-surface-900/40 space-y-2">
               <div class="flex items-center space-x-2">
-                <input id="nl2sqlInput" type="text" placeholder="例如：查询昨天登录过的管理员用户，或按角色统计启用状态的用户数..." class="w-full bg-surface-950 border border-slate-700/80 rounded-lg pl-3 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
-                <button onclick="generateSqlFromNL()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold shadow flex items-center space-x-1.5 transition shrink-0 cursor-pointer">
-                  <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
-                  <span>✨ AI 生成 SQL</span>
+                <div class="relative flex-1 flex items-center bg-surface-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1.5 focus-within:border-brand-500 transition">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-brand-400 mr-2 shrink-0"></i>
+                  <input id="mainAiSqlPromptInput" type="text" placeholder="用一句话描述要查什么，AI 帮你写 SQL（例：统计每个状态的用户数）"
+                         onkeydown="if(event.key==='Enter') generateMainAiSql()"
+                         class="w-full bg-transparent text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none">
+                </div>
+                <button type="button" onclick="generateMainAiSql()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-brand-300 border border-slate-700 text-xs font-medium transition cursor-pointer shrink-0">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                  <span>AI 生成</span>
                 </button>
               </div>
+
+              <!-- 试词气泡与方言 -->
+              <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-400">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-slate-500">试试：</span>
+                  <button type="button" onclick="setMainAiSqlSample('SELECT * FROM sys_user ORDER BY user_id DESC LIMIT 100;')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 transition cursor-pointer">查最近 100 条</button>
+                  <button type="button" onclick="setMainAiSqlSample('SELECT DATE(create_time) as day, count(*) as count FROM sys_oper_log GROUP BY day;')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 transition cursor-pointer">按天统计量</button>
+                  <button type="button" onclick="setMainAiSqlSample('SELECT u.user_id, u.user_name, r.role_name FROM sys_user u LEFT JOIN sys_role r ON u.role_id = r.role_id;')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 transition cursor-pointer">联表查询</button>
+                  <button type="button" onclick="setMainAiSqlSample('DESCRIBE sys_user;')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 transition cursor-pointer">看表结构</button>
+                </div>
+                <span class="font-mono text-slate-500">方言: any</span>
+              </div>
             </div>
 
-            <div class="relative rounded-xl border border-slate-800 bg-surface-950 overflow-hidden">
-              <textarea id="sqlQueryText" rows="4" class="w-full bg-transparent p-3 font-mono text-xs text-emerald-400 focus:outline-none resize-y leading-relaxed">SELECT user_id, user_name, nick_name, email, phonenumber, status, login_ip, create_time FROM sys_user WHERE del_flag = '0' ORDER BY user_id ASC LIMIT 10;</textarea>
+            <!-- 当前库选择与警告提示 (截图 1) -->
+            <div class="px-3 py-2 bg-surface-950/60 border-b border-slate-800/60 flex items-center space-x-3 text-xs">
+              <div class="flex items-center space-x-1.5 text-slate-300">
+                <span class="text-slate-400">当前库</span>
+                <select id="mainCurrentDbSelect" onchange="onMainDbSelected(this.value)" class="bg-surface-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 cursor-pointer">
+                  <option value="">选择要执行的库</option>
+                  <option value="app_production">app_production</option>
+                  <option value="sys_auth">sys_auth</option>
+                  <option value="core_db">core_db</option>
+                  <option value="nacos_config">nacos_config</option>
+                </select>
+              </div>
+              <span id="mainDbUnselectedWarn" class="text-amber-400 text-[11px] flex items-center space-x-1 font-normal">
+                <span>未选库，SQL 可能执行失败</span>
+              </span>
             </div>
 
-            <div class="flex items-center justify-between pt-1">
-              <span class="text-xs text-slate-400 font-mono">库: app_production · 耗时 18ms</span>
-              <button onclick="runSqlQuery()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow transition cursor-pointer">
-                <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
-                <span>运行查询 (Ctrl+Enter)</span>
+            <!-- SQL 编辑器模拟区域 -->
+            <div class="flex-1 bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[160px] flex space-x-3">
+              <div class="text-slate-600 select-none text-right w-5 pt-0.5 font-mono">1</div>
+              <textarea id="mainSqlEditorArea" class="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed" placeholder="选凭据后再写 SQL"></textarea>
+            </div>
+
+            <!-- 底部操作条 (执行 / 解释 / 清空) -->
+            <div class="p-2.5 bg-surface-900/90 border-t border-slate-800 flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-2">
+                <button type="button" onclick="executeMainSql()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 hover:bg-teal-500/30 font-medium transition cursor-pointer shadow-sm active:scale-95">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                  <span>执行</span>
+                </button>
+                <button type="button" onclick="explainMainSql()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                  <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
+                  <span>解释</span>
+                </button>
+              </div>
+              <button type="button" onclick="clearMainSqlEditor()" class="px-2.5 py-1 rounded hover:bg-surface-800 text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1">
+                <i data-lucide="eraser" class="w-3.5 h-3.5"></i>
+                <span>清空</span>
               </button>
             </div>
+
+            <!-- 执行结果展示区域 (执行后展示) -->
+            <div id="mainSqlResultContainer" class="hidden border-t border-slate-800 bg-surface-950 flex flex-col min-h-[180px]">
+              <div class="px-3 py-2 bg-surface-900/80 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                <div class="flex items-center space-x-2">
+                  <span class="text-emerald-400 font-medium flex items-center space-x-1">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                    <span>执行成功</span>
+                  </span>
+                  <span>共 <span id="mainSqlResultRows" class="text-slate-200 font-mono">5</span> 行</span>
+                  <span>耗时: <span class="text-slate-200 font-mono">14ms</span></span>
+                </div>
+                <button type="button" onclick="showToast('已导出 CSV 结果集')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 text-[11px] border border-slate-700 transition cursor-pointer">导出 CSV</button>
+              </div>
+              <div class="overflow-x-auto flex-1 custom-scrollbar">
+                <table class="w-full text-left font-mono text-[11px] border-collapse">
+                  <thead class="bg-surface-950 text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th class="py-1.5 px-3">user_id</th>
+                      <th class="py-1.5 px-3">user_name</th>
+                      <th class="py-1.5 px-3">nick_name</th>
+                      <th class="py-1.5 px-3">email</th>
+                      <th class="py-1.5 px-3">phonenumber</th>
+                      <th class="py-1.5 px-3">status</th>
+                      <th class="py-1.5 px-3">create_time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mainSqlResultTbody" class="divide-y divide-slate-800/40 text-slate-300">
+                    <!-- 动态记录 -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部全局状态栏 (对齐截图 1 底部) -->
+        <div class="px-3 py-1.5 rounded-lg bg-surface-950/80 border border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+          <div class="flex items-center space-x-3 font-mono">
+            <span class="flex items-center space-x-1.5 text-slate-300">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span id="mainDbStatusConnName">MySQL @ 我的腾讯云0209</span>
+            </span>
+            <span>·</span>
+            <span class="text-slate-400">mysql</span>
+            <span class="text-brand-400 bg-brand-500/10 px-1.5 py-0.2 rounded border border-brand-500/20 font-sans">支持 写操作记审计</span>
+            <span class="text-slate-500 font-sans">SSH 隧道</span>
+          </div>
+          <div class="flex items-center space-x-2 text-slate-400 font-sans">
+            <span>自动提交</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
           </div>
         </div>
       </div>
@@ -6668,7 +6837,7 @@ Filesystem      Size  Used Avail Use% Mounted on
 </div> <!-- 结束 #desktopAppWindow -->
 
 <!-- 底部系统托盘 / 桌面 Dock (视窗模式下可见，最小化后可点击还原) -->
-<div id="desktopOSDock" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-3 px-4 py-1.5 bg-surface-900/80 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl transition duration-200">
+<div id="desktopOSDock" class="hidden fixed bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-3 px-4 py-1.5 bg-surface-900/80 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl transition duration-200">
   <button type="button" onclick="restoreWindow()" class="relative flex items-center space-x-2 px-3 py-1 rounded-xl bg-surface-800/90 hover:bg-surface-700 text-slate-200 border border-slate-600/60 transition cursor-pointer group" title="OpsSentry 桌面客户端 · 点击还原视窗">
     <img src="./logo.png" alt="Logo" class="w-5 h-5 object-contain">
     <span class="text-xs font-semibold">OpsSentry</span>
@@ -8513,15 +8682,165 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 模态框: 新建 DB 凭据 (1:1 严格对齐截图 2 & 3 media_1790640307974.png / media_1790640317116.png) -->
+  <!-- 模态框: 新建备份任务 (1:1 严格对齐截图 media_1790693266412.png / media_1790693274357.png) -->
+  <!-- ========================================================================= -->
+  <div id="modalCreateBackup" onclick="if(event.target === this) closeCreateBackupModal()" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+    <div class="glass-card bg-surface-900 border border-slate-700/80 w-full max-w-[460px] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+      <!-- 标题栏 -->
+      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-950/60 shrink-0 select-none">
+        <h3 class="text-sm font-semibold text-slate-100 tracking-wide">新建备份任务</h3>
+        <button type="button" onclick="closeCreateBackupModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 表单主体 (可滚动) -->
+      <div class="p-5 space-y-4 overflow-y-auto custom-scrollbar text-xs flex-1">
+        <!-- 1. 任务名称 -->
+        <div>
+          <label class="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+            <span class="text-rose-500 mr-1 font-bold">*</span>
+            <span>任务名称</span>
+          </label>
+          <input type="text" id="backupTaskNameInput" placeholder="如：网站目录每日备份"
+                 class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition">
+        </div>
+
+        <!-- 2. 备份类型 -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">备份类型</label>
+          <div class="relative">
+            <select id="backupTaskTypeSelect" onchange="handleBackupTypeChange(this.value)"
+                    class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-xs text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition appearance-none cursor-pointer">
+              <option value="dir">目录打包</option>
+              <option value="mysql">MySQL 数据库</option>
+              <option value="postgres">PostgreSQL 数据库</option>
+              <option value="redis">Redis 内存持久化</option>
+              <option value="site">整站完整打包 (Web + DB)</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 目录路径 (带问号提示) -->
+        <div id="backupSourcePathField">
+          <label class="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+            <span class="text-rose-500 mr-1 font-bold">*</span>
+            <span id="backupSourcePathLabel">目录路径</span>
+            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-600/70 text-[10px] text-slate-400 hover:text-brand-300 hover:border-brand-400/60 cursor-pointer ml-1 select-none transition" title="服务器上需要打包归档的源目录绝对路径">?</span>
+          </label>
+          <input type="text" id="backupSourcePathInput" placeholder="/var/www/site" value="/var/www/site"
+                 class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition">
+        </div>
+
+        <!-- 4. 排除规则 (带问号提示与说明) -->
+        <div>
+          <label class="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+            <span>排除规则</span>
+            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-600/70 text-[10px] text-slate-400 hover:text-brand-300 hover:border-brand-400/60 cursor-pointer ml-1 select-none transition" title="排除匹配的文件或目录，支持相对路径与通配符，每行一条">?</span>
+          </label>
+          <textarea id="backupExcludeRulesInput" rows="3" placeholder="node_modules&#10;.git&#10;*.log"
+                    class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition resize-y"></textarea>
+          <p class="text-[11px] text-slate-400/80 mt-1 leading-relaxed">
+            备份网站目录时 node_modules / .git / 缓存常占体积九成，排除后备份能小一个数量级
+          </p>
+        </div>
+
+        <!-- 5. 定时 (crontab) (带问号提示) -->
+        <div>
+          <label class="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+            <span>定时 (crontab)</span>
+            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-600/70 text-[10px] text-slate-400 hover:text-brand-300 hover:border-brand-400/60 cursor-pointer ml-1 select-none transition" title="标准 Linux crontab 5位表达式，留空表示仅手动运行">?</span>
+          </label>
+          <input type="text" id="backupCronInput" value="0 3 * * *" placeholder="0 3 * * *"
+                 class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition">
+        </div>
+
+        <!-- 6. 异地存储端 (带问号提示与跳转链接) -->
+        <div>
+          <label class="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+            <span>异地存储端</span>
+            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-600/70 text-[10px] text-slate-400 hover:text-brand-300 hover:border-brand-400/60 cursor-pointer ml-1 select-none transition" title="备份完成后自动分块推送至已配置的对象存储桶">?</span>
+          </label>
+          <div class="relative">
+            <select id="backupRemoteStorageSelect" onchange="handleBackupRemoteStorageChange(this.value)"
+                    class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-xs text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition appearance-none cursor-pointer">
+              <option value="none">不推异地</option>
+              <option value="cos">腾讯云 COS (cos-main-backup)</option>
+              <option value="oss">阿里云 OSS (oss-prod-hk)</option>
+              <option value="s3">AWS S3 (s3-glacier-vault)</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+          <div class="mt-1.5">
+            <a href="javascript:void(0)" onclick="closeCreateBackupModal(); switchTab('tab-settings'); showToast('前往设置中心配置云端同步存储端');" class="text-brand-400 hover:text-brand-300 hover:underline text-[11px] inline-flex items-center space-x-1 transition">
+              <span>去「设置 > 备份与还原 > 云端同步」新增存储端</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- 7. 异地推送 (rclone) (带问号提示与警示提示) -->
+        <div>
+          <label class="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+            <span>异地推送 (rclone)</span>
+            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-600/70 text-[10px] text-slate-400 hover:text-brand-300 hover:border-brand-400/60 cursor-pointer ml-1 select-none transition" title="rclone 格式的目标路径，如 s3:my-bucket/path">?</span>
+          </label>
+          <input type="text" id="backupRcloneRemoteInput" placeholder="s3:my-bucket/opssentry-backups"
+                 class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition">
+          <div class="text-[11px] text-slate-400/90 mt-1.5 flex flex-wrap items-center gap-1.5 leading-relaxed">
+            <span>留空 = 只存本机。</span>
+            <span class="text-amber-400/90 font-medium">⚠️ 不推异地的话，这台机器整机挂掉时备份会跟着一起没</span>
+          </div>
+        </div>
+
+        <!-- 8. 保留份数 & 启用 (并排对齐，完全对齐截图 2) -->
+        <div class="flex items-center justify-between pt-1">
+          <div>
+            <label class="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+              <span>保留份数</span>
+              <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-600/70 text-[10px] text-slate-400 hover:text-brand-300 hover:border-brand-400/60 cursor-pointer ml-1 select-none transition" title="超过此数量的旧备份将按创建时间由旧至新自动轮转清理">?</span>
+            </label>
+            <input type="number" id="backupKeepCountInput" value="7" min="1" max="99"
+                   class="w-20 bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-slate-100 text-center font-mono focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition">
+          </div>
+
+          <div class="flex flex-col items-end space-y-1.5">
+            <span class="text-xs font-medium text-slate-300">启用</span>
+            <button type="button" onclick="toggleBackupEnableSwitch()" id="backupTaskEnabledSwitch"
+                    class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-brand-500 transition-colors duration-200 ease-in-out focus:outline-none"
+                    title="是否立即激活该备份任务">
+              <span id="backupTaskEnabledDot" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部操作按钮 -->
+      <div class="px-5 py-3.5 border-t border-slate-800 flex items-center justify-end space-x-2.5 bg-surface-950/70 shrink-0 select-none">
+        <button type="button" onclick="closeCreateBackupModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs font-medium border border-slate-700/60 transition cursor-pointer active:scale-95">
+          取消
+        </button>
+        <button type="button" onclick="submitCreateBackupModal()" class="px-4 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-medium text-xs transition cursor-pointer shadow-sm active:scale-95">
+          确定
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 模态框 1: 新建 DB 凭据 (1:1 严格对齐截图 2 & 3 media_1790697716447.png / media_1790697727685.png) -->
   <!-- ========================================================================= -->
   <div id="modalDbCredentialAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-    <div class="glass-card bg-surface-900 border border-slate-700/90 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
       <!-- 标题栏 -->
       <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0">
         <div class="flex items-center space-x-2.5">
-          <div class="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
-            <i data-lucide="database" class="w-4 h-4"></i>
+          <div class="w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i>
           </div>
           <div>
             <h3 class="text-sm font-bold text-white tracking-wide">新建 DB 凭据</h3>
@@ -8533,101 +8852,99 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
       </div>
 
       <!-- 表单主体 (可滚动) -->
-      <div class="p-5 space-y-4 overflow-y-auto text-xs">
+      <div class="p-5 space-y-3.5 overflow-y-auto text-xs custom-scrollbar">
         <!-- 名称 -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-400 mr-1">*</span>名称</label>
-          <input type="text" id="dbCredName" placeholder="如 阿里云 RDS - 主库 / 测试 SQLite" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 transition">
+          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>名称</label>
+          <input type="text" id="dbCredName" placeholder="如 阿里云 RDS - 主库 / 测试 SQLite" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 transition">
         </div>
 
         <!-- 归属 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">归属（本机 / 或选一台服务器做分类，AI 不会自动通过 SSH 连）</label>
-          <select id="dbCredServer" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-            <option value="server-1">💻 我的香草云 · 156.226.177.226:22000</option>
-            <option value="local">💻 本机 / 独立直连</option>
-          </select>
+          <div class="relative">
+            <select id="dbCredServer" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="local">💻 本机 / 本地（无需服务器）</option>
+              <option value="tencent">💻 我的腾讯云0209 · 111.231.165.192</option>
+              <option value="aliyun">💻 我的阿里云3045 · 47.98.134.201</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
         </div>
 
         <!-- 数据库类型 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">数据库类型</label>
-          <select id="dbCredType" onchange="onDbCredTypeChange(this.value)" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-            <option value="MySQL">MySQL</option>
-            <option value="PostgreSQL">PostgreSQL</option>
-            <option value="SQLite">SQLite</option>
-            <option value="Oracle">Oracle</option>
-            <option value="Microsoft SQL Server">Microsoft SQL Server</option>
-            <option value="MariaDB">MariaDB</option>
-            <option value="ClickHouse">ClickHouse</option>
-            <option value="MongoDB">MongoDB</option>
-          </select>
+          <div class="relative">
+            <select id="dbCredType" onchange="onDbCredTypeChange(this.value)" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="MySQL">MySQL</option>
+              <option value="PostgreSQL">PostgreSQL</option>
+              <option value="SQLite">SQLite</option>
+              <option value="Oracle">Oracle</option>
+              <option value="Microsoft SQL Server">Microsoft SQL Server</option>
+              <option value="MariaDB">MariaDB</option>
+              <option value="ClickHouse">ClickHouse</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
         </div>
 
         <!-- AI 策略档位 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">AI 策略档位 <span class="text-slate-500 font-normal text-[11px]">(独立于服务器档位；不选跟随服务器)</span></label>
-          <select id="dbCredAiTier" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-            <option value="default">跟随服务器档位（默认）</option>
-            <option value="readonly">只读分析（仅允许 SELECT / EXPLAIN）</option>
-            <option value="restricted">受限写入（禁止 DROP / TRUNCATE）</option>
-            <option value="full">完全信任（允许所有 DDL / DML）</option>
-          </select>
+          <div class="relative">
+            <select id="dbCredAiTier" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="default">跟随服务器档位（默认）</option>
+              <option value="readonly">只读分析（仅允许 SELECT / EXPLAIN）</option>
+              <option value="restricted">受限写入（禁止 DROP / TRUNCATE）</option>
+              <option value="full">完全信任（允许所有 DDL / DML）</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
         </div>
 
         <!-- 生产库保护 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">生产库保护 <span class="text-slate-500 font-normal text-[11px]">(AI 永久只读 + 人工写操作强制确认)</span></label>
           <div class="flex items-center space-x-3 mb-2">
-            <button type="button" id="dbProdProtectToggle" onclick="toggleDbProdProtect()" class="relative inline-flex h-6 w-16 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-surface-950 transition-colors duration-200">
-              <span id="dbProdProtectIndicator" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-500 translate-x-1 mt-0.5 transition duration-200"></span>
-              <span id="dbProdProtectText" class="ml-2 text-[11px] font-medium text-slate-400 select-none">非生产</span>
+            <button type="button" id="dbProdProtectToggle" onclick="toggleDbProdProtect()" class="relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] transition-colors duration-200">
+              <span id="dbProdProtectIndicator" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 transition duration-200 translate-x-0"></span>
+              <span id="dbProdProtectText" class="ml-1.5 text-[10px] font-medium text-slate-400 select-none">非生产</span>
             </button>
           </div>
-          <input type="text" id="dbProdDbList" placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 mb-1.5">
+          <input type="text" id="dbProdDbList" placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）" class="w-full bg-[#090d16] border border-slate-700/80 focus:border-teal-500 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none transition mb-1.5">
           <p class="text-[11px] text-slate-500 leading-relaxed">
             整条连接不是生产库时，可在此列出该实例上属于生产的库名（逗号分隔），只有目标指向这些库的语句才受保护 —— 适合「一台实例既有 prod 也有 staging」。
           </p>
         </div>
 
-        <!-- 经服务器 SSH 隧道访问 -->
-        <div class="flex items-center space-x-2 pt-1">
-          <div class="flex items-center space-x-1.5 text-xs text-teal-400 font-medium">
-            <i data-lucide="git-fork" class="w-3.5 h-3.5 rotate-90"></i>
-            <span>经服务器 SSH 隧道访问 ?</span>
-          </div>
-          <button type="button" id="dbSshTunnelToggle" onclick="toggleDbSshTunnel()" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-800 transition-colors duration-200">
-            <span id="dbSshTunnelKnob" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 translate-x-0"></span>
-          </button>
-        </div>
-
         <!-- 主机 -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-400 mr-1">*</span>主机</label>
-          <input type="text" id="dbCredHost" placeholder="如 127.0.0.1 或 rm-xxxx.mysql.aliyuncs.com" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
+          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>主机</label>
+          <input type="text" id="dbCredHost" placeholder="如 127.0.0.1 或 rm-xxxx.mysql.aliyuncs.com" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
         </div>
 
         <!-- 端口 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">端口 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
-          <input type="text" id="dbCredPort" value="3306" placeholder="3306" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+          <input type="text" id="dbCredPort" value="3306" placeholder="3306" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
         </div>
 
         <!-- 用户名 -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-400 mr-1">*</span>用户名</label>
-          <input type="text" id="dbCredUser" placeholder="如 root / app" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
+          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>用户名</label>
+          <input type="text" id="dbCredUser" placeholder="如 root / app" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
         </div>
 
         <!-- 密码 -->
         <div>
           <label class="flex items-center space-x-1.5 font-medium text-slate-300 mb-1.5">
             <span>密码</span>
-            <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/20 text-rose-400 font-mono font-medium">加密</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-900/60 border border-rose-700/50 text-rose-300 font-mono font-medium">加密</span>
             <span class="text-slate-500 font-normal text-[11px]">(可选)</span>
           </label>
           <div class="relative flex items-center">
-            <input type="password" id="dbCredPassword" placeholder="DB 密码（落库前 AES-256-GCM 加密）" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+            <input type="password" id="dbCredPassword" placeholder="DB 密码（落库前 AES-256-GCM 加密）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
             <button type="button" onclick="toggleDbPwdVisibility('dbCredPassword', 'dbCredEyeIcon')" class="absolute right-2.5 text-slate-400 hover:text-white cursor-pointer">
               <i id="dbCredEyeIcon" data-lucide="eye-off" class="w-4 h-4"></i>
             </button>
@@ -8637,7 +8954,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
         <!-- 数据库名 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">数据库名 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
-          <input type="text" id="dbCredDatabase" placeholder="如 appdb（root 可省略，连后用 SHOW DATABASES 探索）" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
+          <input type="text" id="dbCredDatabase" placeholder="如 appdb（root 可省略，连后用 SHOW DATABASES 探索）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
         </div>
 
         <!-- 校验错误提示 (截图 3 严格对齐) -->
@@ -8656,7 +8973,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
           <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
           <span id="btnTestDbConnText">测试连接</span>
         </button>
-        <button type="button" onclick="saveDbCredentialMock()" class="px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-medium text-xs transition cursor-pointer shadow-sm">
+        <button type="button" onclick="saveDbCredentialMock()" class="px-4 py-1.5 rounded-lg bg-[#14b8a6] hover:bg-[#0d9488] text-white font-medium text-xs transition cursor-pointer shadow-sm">
           保存
         </button>
       </div>
@@ -8664,15 +8981,15 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 模态框: 新建 Redis 连接 (1:1 严格对齐截图 5 media_1790640361934.png) -->
+  <!-- 模态框 2: 新建 Redis 连接 (1:1 严格对齐截图 4 media_1790697758813.png) -->
   <!-- ========================================================================= -->
   <div id="modalRedisConnAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-    <div class="glass-card bg-surface-900 border border-slate-700/90 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
       <!-- 标题栏 -->
       <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0">
         <div class="flex items-center space-x-2.5">
-          <div class="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
-            <i data-lucide="key" class="w-4 h-4"></i>
+          <div class="w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i>
           </div>
           <div>
             <h3 class="text-sm font-bold text-white tracking-wide">新建 Redis 连接</h3>
@@ -8684,101 +9001,100 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
       </div>
 
       <!-- 表单主体 (可滚动) -->
-      <div class="p-5 space-y-4 overflow-y-auto text-xs">
+      <div class="p-5 space-y-3.5 overflow-y-auto text-xs custom-scrollbar">
         <!-- 名称 -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-400 mr-1">*</span>名称</label>
-          <input type="text" id="redisConnName" placeholder="如 阿里云 RDS - 主库 / 测试 SQLite" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 transition">
+          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>名称</label>
+          <input type="text" id="redisConnName" placeholder="如 阿里云 RDS - 主库 / 测试 SQLite" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 transition">
         </div>
 
         <!-- 归属 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">归属（本机 / 或选一台服务器做分类，AI 不会自动通过 SSH 连）</label>
-          <select id="redisConnServer" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-            <option value="server-1">💻 我的香草云 · 156.226.177.226:22000</option>
-            <option value="local">💻 本机 / 独立直连</option>
-          </select>
+          <div class="relative">
+            <select id="redisConnServer" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="local">💻 本机 / 本地（无需服务器）</option>
+              <option value="tencent">💻 我的腾讯云0209 · 111.231.165.192</option>
+              <option value="aliyun">💻 我的阿里云3045 · 47.98.134.201</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
         </div>
 
         <!-- 数据库类型 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">数据库类型</label>
-          <select id="redisConnType" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-            <option value="Redis">Redis</option>
-          </select>
+          <div class="relative">
+            <select id="redisConnType" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="Redis">Redis</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
         </div>
 
         <!-- AI 策略档位 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">AI 策略档位 <span class="text-slate-500 font-normal text-[11px]">(独立于服务器档位；不选跟随服务器)</span></label>
-          <select id="redisConnAiTier" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-            <option value="default">跟随服务器档位（默认）</option>
-            <option value="readonly">只读分析（仅允许 KEYS / GET / SCAN）</option>
-            <option value="restricted">受限写入（禁止 FLUSHDB / FLUSHALL）</option>
-            <option value="full">完全信任（允许所有命令）</option>
-          </select>
+          <div class="relative">
+            <select id="redisConnAiTier" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="default">跟随服务器档位（默认）</option>
+              <option value="readonly">只读分析（仅允许 KEYS / GET / SCAN）</option>
+              <option value="restricted">受限写入（禁止 FLUSHDB / FLUSHALL）</option>
+              <option value="full">完全信任（允许所有命令）</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
         </div>
 
         <!-- 生产库保护 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">生产库保护 <span class="text-slate-500 font-normal text-[11px]">(AI 永久只读 + 人工写操作强制确认)</span></label>
           <div class="flex items-center space-x-3 mb-2">
-            <button type="button" id="redisProdProtectToggle" onclick="toggleRedisProdProtect()" class="relative inline-flex h-6 w-16 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-surface-950 transition-colors duration-200">
-              <span id="redisProdProtectIndicator" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-500 translate-x-1 mt-0.5 transition duration-200"></span>
-              <span id="redisProdProtectText" class="ml-2 text-[11px] font-medium text-slate-400 select-none">非生产</span>
+            <button type="button" id="redisProdProtectToggle" onclick="toggleRedisProdProtect()" class="relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] transition-colors duration-200">
+              <span id="redisProdProtectIndicator" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 transition duration-200 translate-x-0"></span>
+              <span id="redisProdProtectText" class="ml-1.5 text-[10px] font-medium text-slate-400 select-none">非生产</span>
             </button>
           </div>
-          <input type="text" id="redisProdDbList" placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 mb-1.5">
+          <input type="text" id="redisProdDbList" placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）" class="w-full bg-[#090d16] border border-slate-700/80 focus:border-teal-500 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none transition mb-1.5">
           <p class="text-[11px] text-slate-500 leading-relaxed">
             整条连接不是生产库时，可在此列出该实例上属于生产的库名（逗号分隔），只有目标指向这些库的语句才受保护 —— 适合「一台实例既有 prod 也有 staging」。
           </p>
         </div>
 
-        <!-- 经服务器 SSH 隧道访问 -->
-        <div class="flex items-center space-x-2 pt-1">
-          <div class="flex items-center space-x-1.5 text-xs text-teal-400 font-medium">
-            <i data-lucide="git-fork" class="w-3.5 h-3.5 rotate-90"></i>
-            <span>经服务器 SSH 隧道访问 ?</span>
-          </div>
-          <button type="button" id="redisSshTunnelToggle" onclick="toggleRedisSshTunnel()" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-800 transition-colors duration-200">
-            <span id="redisSshTunnelKnob" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 translate-x-0"></span>
-          </button>
-        </div>
-
         <!-- 主机 -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-400 mr-1">*</span>主机</label>
-          <input type="text" id="redisConnHost" placeholder="如 127.0.0.1 或 r-xxxx.redis.aliyuncs.com" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
+          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>主机</label>
+          <input type="text" id="redisConnHost" placeholder="如 127.0.0.1 或 r-xxxx.redis.aliyuncs.com" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
         </div>
 
         <!-- 端口 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">端口 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
-          <input type="text" id="redisConnPort" value="6379" placeholder="6379" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+          <input type="text" id="redisConnPort" value="6379" placeholder="6379" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
         </div>
 
         <!-- DB 编号 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">DB 编号 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
-          <input type="text" id="redisConnDbIndex" value="0" placeholder="0" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+          <input type="text" id="redisConnDbIndex" value="0" placeholder="0 - 15（默认 0）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
         </div>
 
         <!-- 密码 -->
         <div>
           <label class="flex items-center space-x-1.5 font-medium text-slate-300 mb-1.5">
             <span>密码</span>
-            <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/20 text-rose-400 font-mono font-medium">加密</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-900/60 border border-rose-700/50 text-rose-300 font-mono font-medium">加密</span>
             <span class="text-slate-500 font-normal text-[11px]">(可选)</span>
           </label>
           <div class="relative flex items-center">
-            <input type="password" id="redisConnPassword" placeholder="Redis 密码（落库前 AES-256-GCM 加密）" class="w-full bg-surface-950 border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+            <input type="password" id="redisConnPassword" placeholder="Redis 密码（落库前 AES-256-GCM 加密）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
             <button type="button" onclick="toggleDbPwdVisibility('redisConnPassword', 'redisConnEyeIcon')" class="absolute right-2.5 text-slate-400 hover:text-white cursor-pointer">
               <i id="redisConnEyeIcon" data-lucide="eye-off" class="w-4 h-4"></i>
             </button>
           </div>
         </div>
 
-        <!-- 校验错误提示 -->
+        <!-- 校验错误提示 (截图 4) -->
         <div id="redisConnValidationTip" class="hidden text-amber-400 text-xs font-medium flex items-center space-x-1.5 pt-1">
           <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
           <span>⚠️ 请填名称</span>
@@ -8794,7 +9110,151 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
           <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
           <span id="btnTestRedisConnText">测试连接</span>
         </button>
-        <button type="button" onclick="saveRedisConnectionMock()" class="px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-medium text-xs transition cursor-pointer shadow-sm">
+        <button type="button" onclick="saveRedisConnectionMock()" class="px-4 py-1.5 rounded-lg bg-[#14b8a6] hover:bg-[#0d9488] text-white font-medium text-xs transition cursor-pointer shadow-sm">
+          保存
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 模态框 3: 新建 MongoDB 连接 (1:1 严格对齐截图 5 media_1790697779779.png) -->
+  <!-- ========================================================================= -->
+  <div id="modalMongoConnAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+      <!-- 标题栏 -->
+      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white tracking-wide">新建 MongoDB 连接</h3>
+          </div>
+        </div>
+        <button type="button" onclick="closeMongoConnModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 表单主体 (可滚动) -->
+      <div class="p-5 space-y-3.5 overflow-y-auto text-xs custom-scrollbar">
+        <!-- 名称 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>名称</label>
+          <input type="text" id="mongoConnName" placeholder="如 阿里云 RDS - 主库 / 测试 SQLite" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 transition">
+        </div>
+
+        <!-- 归属 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">归属（本机 / 或选一台服务器做分类，AI 不会自动通过 SSH 连）</label>
+          <div class="relative">
+            <select id="mongoConnServer" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="local">💻 本机 / 本地（无需服务器）</option>
+              <option value="tencent">💻 我的腾讯云0209 · 111.231.165.192</option>
+              <option value="aliyun">💻 我的阿里云3045 · 47.98.134.201</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
+        </div>
+
+        <!-- 数据库类型 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">数据库类型</label>
+          <div class="relative">
+            <select id="mongoConnType" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="MongoDB">MongoDB</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">文档库（独立浏览器，非 SQL）</p>
+        </div>
+
+        <!-- AI 策略档位 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">AI 策略档位 <span class="text-slate-500 font-normal text-[11px]">(独立于服务器档位；不选跟随服务器)</span></label>
+          <div class="relative">
+            <select id="mongoConnAiTier" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+              <option value="default">跟随服务器档位（默认）</option>
+              <option value="readonly">只读分析（仅允许 find / aggregate）</option>
+              <option value="restricted">受限写入（禁止 dropDatabase / drop）</option>
+              <option value="full">完全信任（允许所有命令）</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+          </div>
+        </div>
+
+        <!-- 生产库保护 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">生产库保护 <span class="text-slate-500 font-normal text-[11px]">(AI 永久只读 + 人工写操作强制确认)</span></label>
+          <div class="flex items-center space-x-3 mb-2">
+            <button type="button" id="mongoProdProtectToggle" onclick="toggleMongoProdProtect()" class="relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] transition-colors duration-200">
+              <span id="mongoProdProtectIndicator" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 transition duration-200 translate-x-0"></span>
+              <span id="mongoProdProtectText" class="ml-1.5 text-[10px] font-medium text-slate-400 select-none">非生产</span>
+            </button>
+          </div>
+          <input type="text" id="mongoProdDbList" placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）" class="w-full bg-[#090d16] border border-slate-700/80 focus:border-teal-500 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none transition mb-1.5">
+          <p class="text-[11px] text-slate-500 leading-relaxed">
+            整条连接不是生产库时，可在此列出该实例上属于生产的库名（逗号分隔），只有目标指向这些库的语句才受保护 —— 适合「一台实例既有 prod 也有 staging」。
+          </p>
+        </div>
+
+        <!-- 主机 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>主机</label>
+          <input type="text" id="mongoConnHost" placeholder="如 127.0.0.1 或 mongo-xxxx.mongodb.net" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
+        </div>
+
+        <!-- 端口 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">端口 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
+          <input type="text" id="mongoConnPort" value="27017" placeholder="27017" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+        </div>
+
+        <!-- 用户名 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">用户名 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
+          <input type="text" id="mongoConnUser" placeholder="如未认证可留空" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
+        </div>
+
+        <!-- 密码 -->
+        <div>
+          <label class="flex items-center space-x-1.5 font-medium text-slate-300 mb-1.5">
+            <span>密码</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-900/60 border border-rose-700/50 text-rose-300 font-mono font-medium">加密</span>
+            <span class="text-slate-500 font-normal text-[11px]">(可选)</span>
+          </label>
+          <div class="relative flex items-center">
+            <input type="password" id="mongoConnPassword" placeholder="MongoDB 密码（落库前 AES-256-GCM 加密）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+            <button type="button" onclick="toggleDbPwdVisibility('mongoConnPassword', 'mongoConnEyeIcon')" class="absolute right-2.5 text-slate-400 hover:text-white cursor-pointer">
+              <i id="mongoConnEyeIcon" data-lucide="eye-off" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Auth Source 鉴权库 -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">Auth Source 鉴权库 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
+          <input type="text" id="mongoConnAuthSource" value="admin" placeholder="admin（默认鉴权库）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
+        </div>
+
+        <!-- 校验错误提示 (截图 5) -->
+        <div id="mongoConnValidationTip" class="hidden text-amber-400 text-xs font-medium flex items-center space-x-1.5 pt-1">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+          <span>⚠️ 请填名称</span>
+        </div>
+      </div>
+
+      <!-- 底部操作按钮 -->
+      <div class="px-5 py-3 border-t border-slate-800 flex items-center justify-end space-x-2.5 bg-surface-900/95 shrink-0">
+        <button type="button" onclick="closeMongoConnModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs transition cursor-pointer">
+          取消
+        </button>
+        <button type="button" id="btnTestMongoConn" onclick="testMongoConnectionMock()" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 hover:text-white border border-slate-700 text-xs transition cursor-pointer">
+          <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+          <span id="btnTestMongoConnText">测试连接</span>
+        </button>
+        <button type="button" onclick="saveMongoConnectionMock()" class="px-4 py-1.5 rounded-lg bg-[#14b8a6] hover:bg-[#0d9488] text-white font-medium text-xs transition cursor-pointer shadow-sm">
           保存
         </button>
       </div>
@@ -13986,12 +14446,12 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       } else {
         document.documentElement.style.setProperty('--desktop-zoom', 1.18);
       }
-      // 恢复模式
+      // 恢复模式 (默认全屏沉浸视窗)
       const savedMode = localStorage.getItem('ops_desktop_window_mode');
-      if (savedMode === 'maximized') {
-        setTimeout(() => setDesktopWindowMode('maximized'), 50);
-      } else {
+      if (savedMode === 'windowed') {
         setTimeout(() => setDesktopWindowMode('windowed'), 50);
+      } else {
+        setTimeout(() => setDesktopWindowMode('maximized'), 50);
       }
       // 启动时钟
       setTimeout(() => {
@@ -15171,51 +15631,398 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     }
 
     // =========================================================================
-    // 数据库与 AI SQL 辅助 (1:1 严格对齐用户 5 张截图 media_1790640285131.png 等)
+    // 数据库与 AI SQL 工作台及凭据管理 (1:1 严格对齐截图 media_1790697641201.png 等 5 张图)
     // =========================================================================
+    let currentMainDbEngine = 'sql';
     let currentWbDbTab = 'sql';
     let dbProdProtectEnabled = false;
-    let dbSshTunnelEnabled = false;
     let redisProdProtectEnabled = false;
-    let redisSshTunnelEnabled = false;
+    let mongoProdProtectEnabled = false;
+    let mainSqlTabIndex = 1;
     let sqlTabIndex = 1;
 
-    function switchWbDbSubTab(tab) {
-      currentWbDbTab = tab;
-      const tabs = ['sql', 'redis', 'mongodb'];
-      tabs.forEach(t => {
-        const btn = document.getElementById(`wbDbTabBtn-${t}`);
-        const subview = document.getElementById(`wbDbSubTab-${t}`);
-        if (t === tab) {
+    // 1. 引擎切换器 (SQL 数据库 / Redis / MongoDB)
+    function switchMainDbEngine(engine) {
+      currentMainDbEngine = engine;
+      currentWbDbTab = engine;
+      const engines = ['sql', 'redis', 'mongodb'];
+      engines.forEach(eng => {
+        const btn = document.getElementById(`mainDbEngineTab-${eng}`);
+        const tree = document.getElementById(`mainDbTreeList-${eng}`);
+        if (eng === engine) {
           if (btn) {
-            btn.className = 'px-3 py-1 rounded font-medium bg-surface-800 text-white flex items-center space-x-1.5 cursor-pointer transition';
+            btn.className = 'px-3.5 py-1 rounded font-medium bg-surface-800 text-white flex items-center space-x-1.5 cursor-pointer transition';
             const icon = btn.querySelector('i');
-            if (icon) icon.className = 'w-3.5 h-3.5 text-teal-400';
+            if (icon) {
+              if (eng === 'sql') icon.className = 'w-3.5 h-3.5 text-brand-400';
+              else if (eng === 'redis') icon.className = 'w-3.5 h-3.5 text-rose-400';
+              else if (eng === 'mongodb') icon.className = 'w-3.5 h-3.5 text-emerald-400';
+            }
           }
-          if (subview) subview.classList.remove('hidden');
+          if (tree) tree.classList.remove('hidden');
         } else {
           if (btn) {
-            btn.className = 'px-3 py-1 rounded text-slate-400 hover:text-white flex items-center space-x-1.5 cursor-pointer transition';
+            btn.className = 'px-3.5 py-1 rounded text-slate-400 hover:text-white flex items-center space-x-1.5 cursor-pointer transition';
             const icon = btn.querySelector('i');
             if (icon) icon.className = 'w-3.5 h-3.5';
           }
-          if (subview) subview.classList.add('hidden');
+          if (tree) tree.classList.add('hidden');
         }
       });
+
+      const statusName = document.getElementById('mainDbStatusConnName');
+      const connIndicator = document.getElementById('mainDbConnIndicator');
+      const actions = document.getElementById('mainDbConnectedActions');
+
+      if (engine === 'sql') {
+        if (statusName) statusName.textContent = 'MySQL @ 我的腾讯云0209';
+        if (connIndicator) connIndicator.innerHTML = '<span>← 在左侧连接树选择连接</span>';
+        if (actions) actions.classList.add('hidden');
+      } else if (engine === 'redis') {
+        if (statusName) statusName.textContent = 'Redis @ 我的阿里云3045 - 缓存集群';
+        if (connIndicator) connIndicator.innerHTML = '<span class="text-rose-400 font-medium">Redis @ 我的阿里云3045</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-300">DB0</span>';
+        if (actions) actions.classList.add('hidden');
+        showToast('已切换至 Redis 缓存数据库引擎');
+      } else if (engine === 'mongodb') {
+        if (statusName) statusName.textContent = 'MongoDB @ 生产环境集群';
+        if (connIndicator) connIndicator.innerHTML = '<span class="text-emerald-400 font-medium">MongoDB @ 生产环境集群</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-300">admin</span>';
+        if (actions) actions.classList.add('hidden');
+        showToast('已切换至 MongoDB 文档数据库引擎');
+      }
       if (window.lucide) lucide.createIcons();
     }
 
-    function openCurrentDbAddModal() {
-      if (currentWbDbTab === 'redis') {
+    function switchWbDbSubTab(tab) {
+      switchMainDbEngine(tab);
+    }
+
+    // 2. 顶栏操作
+    function filterMainDbByServer(server) {
+      const serverName = server === 'tencent' ? '我的腾讯云0209 (111.231.165.192)' : server === 'aliyun' ? '我的阿里云3045 (47.98.134.201)' : '全部服务器';
+      showToast(`当前过滤连接服务器: ${serverName}`);
+    }
+
+    function openCurrentEngineAddModal() {
+      if (currentMainDbEngine === 'redis') {
         openRedisConnModal();
-      } else if (currentWbDbTab === 'mongodb') {
-        openDbCredentialModal('MongoDB');
+      } else if (currentMainDbEngine === 'mongodb') {
+        openMongoConnModal();
       } else {
         openDbCredentialModal('MySQL');
       }
     }
 
-    // 新建 DB 凭据弹窗 (截图 2 & 3)
+    function openCurrentDbAddModal() {
+      openCurrentEngineAddModal();
+    }
+
+    function openNewCredentialModal() {
+      openDbCredentialModal('MySQL');
+    }
+
+    function refreshCredentials() {
+      showToast('🔄 凭据列表已刷新');
+    }
+
+    // 3. 结构、导出、历史、片段
+    function showMainDbStructure() {
+      const editor = document.getElementById('mainSqlEditorArea');
+      if (editor) {
+        editor.value = `-- 表结构描述: sys_user
+DESCRIBE sys_user;
+
+-- 建表 DDL
+SHOW CREATE TABLE sys_user;`;
+      }
+      executeMainSql();
+      showToast('📐 已加载并执行表结构查看命令');
+    }
+
+    function exportMainDbDump() {
+      showToast('📦 正在生成数据库 mysqldump 逻辑备份...');
+      setTimeout(() => {
+        showToast('✅ 逻辑备份导出完成: app_production_20260930.sql.gz (18.4MB)');
+      }, 700);
+    }
+
+    function showMainDbHistoryModal() {
+      showToast('📜 历史执行记录: 14:02 SELECT * FROM sys_user; 13:58 SHOW TABLES;');
+    }
+
+    function showMainDbSnippetModal() {
+      showToast('📑 片段库就绪: 常用用户查询、慢 SQL 统计、死锁排查');
+    }
+
+    // 4. 左侧连接树交互
+    function filterMainDbTree(keyword) {
+      const kw = (keyword || '').trim().toLowerCase();
+      document.querySelectorAll('.main-db-item').forEach(item => {
+        const text = item.textContent.toLowerCase();
+        if (!kw || text.includes(kw)) {
+          item.classList.remove('hidden');
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+    }
+
+    function toggleMainDbConnExpand(connId) {
+      const children = document.getElementById(connId === 'conn-tencent' ? 'connChildren-tencent' : 'connChildren-aliyun');
+      const chevron = document.getElementById(connId === 'conn-tencent' ? 'connChevron-tencent' : 'connChevron-aliyun');
+      if (!children) return;
+      const isHidden = children.classList.contains('hidden');
+      if (isHidden) {
+        children.classList.remove('hidden');
+        if (chevron) chevron.classList.add('rotate-90');
+      } else {
+        children.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-90');
+      }
+    }
+
+    function selectMainDbDatabase(server, dbName) {
+      const serverName = server === 'tencent' ? '我的腾讯云0209' : '我的阿里云3045';
+      const indicator = document.getElementById('mainDbConnIndicator');
+      if (indicator) {
+        indicator.innerHTML = `<span class="text-teal-400 font-bold">MySQL @ ${serverName}</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-200 font-medium">${dbName}</span>`;
+      }
+      const actions = document.getElementById('mainDbConnectedActions');
+      if (actions) actions.classList.remove('hidden');
+
+      const select = document.getElementById('mainCurrentDbSelect');
+      if (select) select.value = dbName;
+
+      const warn = document.getElementById('mainDbUnselectedWarn');
+      if (warn) warn.classList.add('hidden');
+
+      const statusName = document.getElementById('mainDbStatusConnName');
+      if (statusName) statusName.textContent = `MySQL @ ${serverName} · ${dbName}`;
+
+      const editor = document.getElementById('mainSqlEditorArea');
+      if (editor && (!editor.value || editor.value.trim() === '')) {
+        editor.value = `SELECT * FROM ${dbName === 'sys_auth' ? 'sys_user' : 'sys_config'} LIMIT 10;`;
+      }
+
+      showToast(`✅ 已连接目标库: [${serverName}] ${dbName}`);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function selectMainDbRedisInstance(instId) {
+      const name = instId === 'redis-tencent' ? 'Redis @ 我的腾讯云0209' : 'Redis @ 我的阿里云3045 - 缓存集群';
+      const indicator = document.getElementById('mainDbConnIndicator');
+      if (indicator) {
+        indicator.innerHTML = `<span class="text-rose-400 font-bold">${name}</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-200 font-mono">DB0</span>`;
+      }
+      const statusName = document.getElementById('mainDbStatusConnName');
+      if (statusName) statusName.textContent = `${name} · :6379`;
+      showToast(`已选定 Redis 实例: ${name}`);
+    }
+
+    function selectMainDbMongoInstance(instId) {
+      const name = 'MongoDB @ 生产环境集群';
+      const indicator = document.getElementById('mainDbConnIndicator');
+      if (indicator) {
+        indicator.innerHTML = `<span class="text-emerald-400 font-bold">${name}</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-200 font-mono">admin</span>`;
+      }
+      const statusName = document.getElementById('mainDbStatusConnName');
+      if (statusName) statusName.textContent = `${name} · :27017`;
+      showToast(`已选定 MongoDB 实例: ${name}`);
+    }
+
+    // 5. SQL 标签栏
+    function addMainSqlTab() {
+      mainSqlTabIndex++;
+      const container = document.getElementById('mainSqlTabsContainer');
+      if (!container) return;
+      const tabDiv = document.createElement('div');
+      tabDiv.className = 'px-2.5 py-1 rounded bg-surface-800 text-teal-300 border border-teal-500/30 flex items-center space-x-1.5 font-medium cursor-pointer';
+      tabDiv.innerHTML = `<span>查询 ${mainSqlTabIndex}</span><i data-lucide="x" onclick="this.parentElement.remove()" class="w-3 h-3 text-slate-400 hover:text-rose-400 cursor-pointer"></i>`;
+      container.appendChild(tabDiv);
+      if (window.lucide) lucide.createIcons();
+      showToast(`已新建查询标签 [查询 ${mainSqlTabIndex}]`);
+    }
+
+    function addWbSqlTab() {
+      addMainSqlTab();
+    }
+
+    // 6. AI NL2SQL 与快速样本
+    function generateMainAiSql() {
+      const promptInput = document.getElementById('mainAiSqlPromptInput');
+      const kw = promptInput ? promptInput.value.trim() : '';
+      const editor = document.getElementById('mainSqlEditorArea');
+      if (!editor) return;
+
+      showToast('🤖 AI 正在基于当前表结构生成优化 SQL...');
+      setTimeout(() => {
+        if (kw.includes('状态') || kw.includes('用户')) {
+          editor.value = `-- AI 生成 (目标: ${kw || '统计每个状态的用户数'})
+SELECT status, COUNT(*) AS user_count, MAX(create_time) AS latest_time
+FROM sys_user
+GROUP BY status
+ORDER BY user_count DESC;`;
+        } else if (kw.includes('天') || kw.includes('日志') || kw.includes('统计')) {
+          editor.value = `-- AI 生成: 按天统计系统操作日志
+SELECT DATE(oper_time) AS log_date, business_type, COUNT(*) AS total_ops
+FROM sys_oper_log
+GROUP BY DATE(oper_time), business_type
+ORDER BY log_date DESC
+LIMIT 100;`;
+        } else if (kw.includes('联表')) {
+          editor.value = `-- AI 生成: 联表查询用户与角色信息
+SELECT u.user_id, u.user_name, u.nick_name, r.role_name, d.dept_name
+FROM sys_user u
+LEFT JOIN sys_user_role ur ON u.user_id = ur.user_id
+LEFT JOIN sys_role r ON ur.role_id = r.role_id
+LEFT JOIN sys_dept d ON u.dept_id = d.dept_id
+LIMIT 50;`;
+        } else {
+          editor.value = `-- AI 自然语言转换生成 SQL
+SELECT u.user_id, u.user_name, u.nick_name, u.email, u.phonenumber, u.status, u.create_time
+FROM sys_user u
+WHERE u.del_flag = '0'
+ORDER BY u.user_id ASC
+LIMIT 100;`;
+        }
+        showToast('✨ AI 已成功生成 SQL 脚本');
+      }, 500);
+    }
+
+    function generateAiSqlDemo() {
+      generateMainAiSql();
+    }
+
+    function setMainAiSqlSample(sql) {
+      const editor = document.getElementById('mainSqlEditorArea');
+      if (editor) editor.value = sql;
+      showToast('已填入常用 SQL 示例');
+    }
+
+    function setAiSqlSample(sql) {
+      setMainAiSqlSample(sql);
+    }
+
+    // 7. 当前库选择与执行
+    function onMainDbSelected(dbName) {
+      const warn = document.getElementById('mainDbUnselectedWarn');
+      if (!warn) return;
+      if (dbName) {
+        warn.classList.add('hidden');
+        const select = document.getElementById('mainCurrentDbSelect');
+        if (select) select.value = dbName;
+        showToast(`当前执行库已设为: ${dbName}`);
+      } else {
+        warn.classList.remove('hidden');
+      }
+    }
+
+    function onWbDbSelected(val) {
+      onMainDbSelected(val);
+    }
+
+    function selectQuickDb(dbName) {
+      selectMainDbDatabase('tencent', dbName);
+    }
+
+    function executeMainSql() {
+      const editor = document.getElementById('mainSqlEditorArea');
+      const val = editor ? editor.value.trim() : '';
+      if (!val) {
+        showToast('⚠️ 请输入或通过 AI 生成要执行的 SQL 语句');
+        return;
+      }
+
+      const resultBox = document.getElementById('mainSqlResultContainer');
+      const tbody = document.getElementById('mainSqlResultTbody');
+      const rowsSpan = document.getElementById('mainSqlResultRows');
+
+      if (resultBox) resultBox.classList.remove('hidden');
+      if (rowsSpan) rowsSpan.textContent = '5';
+
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr class="hover:bg-surface-900/60 transition">
+            <td class="py-1.5 px-3 font-mono text-teal-400">1</td>
+            <td class="py-1.5 px-3 font-mono">admin</td>
+            <td class="py-1.5 px-3">若依超级管理员</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">admin@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono">15888888888</td>
+            <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-01 10:00:00</td>
+          </tr>
+          <tr class="hover:bg-surface-900/60 transition">
+            <td class="py-1.5 px-3 font-mono text-teal-400">2</td>
+            <td class="py-1.5 px-3 font-mono">ry</td>
+            <td class="py-1.5 px-3">若依运维专员</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">ry@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono">15666666666</td>
+            <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-01 10:00:00</td>
+          </tr>
+          <tr class="hover:bg-surface-900/60 transition">
+            <td class="py-1.5 px-3 font-mono text-teal-400">3</td>
+            <td class="py-1.5 px-3 font-mono">test</td>
+            <td class="py-1.5 px-3">测试人员</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">test@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono">13800138000</td>
+            <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-02 14:22:15</td>
+          </tr>
+          <tr class="hover:bg-surface-900/60 transition">
+            <td class="py-1.5 px-3 font-mono text-teal-400">4</td>
+            <td class="py-1.5 px-3 font-mono">dev</td>
+            <td class="py-1.5 px-3">研发工程师</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">dev@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono">13912345678</td>
+            <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-03 09:15:30</td>
+          </tr>
+          <tr class="hover:bg-surface-900/60 transition">
+            <td class="py-1.5 px-3 font-mono text-teal-400">5</td>
+            <td class="py-1.5 px-3 font-mono">guest</td>
+            <td class="py-1.5 px-3">访客账号</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">guest@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono">13700000000</td>
+            <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-500/20 text-slate-400">停用</span></td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-05 18:30:00</td>
+          </tr>
+        `;
+      }
+      if (window.lucide) lucide.createIcons();
+      showToast('⚡ SQL 执行成功：耗时 14ms，返回 5 行记录');
+    }
+
+    function executeWbSqlMock() {
+      executeMainSql();
+    }
+
+    function explainMainSql() {
+      const editor = document.getElementById('mainSqlEditorArea');
+      const val = editor ? editor.value.trim() : '';
+      if (!val) {
+        showToast('⚠️ 请输入要分析解释的 SQL 语句');
+        return;
+      }
+      showToast('🔍 EXPLAIN 分析完成: 命中 idx_status 索引，预估扫描 1 行，type: ref');
+    }
+
+    function explainWbSqlMock() {
+      explainMainSql();
+    }
+
+    function clearMainSqlEditor() {
+      const editor = document.getElementById('mainSqlEditorArea');
+      if (editor) editor.value = '';
+      const res = document.getElementById('mainSqlResultContainer');
+      if (res) res.classList.add('hidden');
+      showToast('SQL 编辑器已清空');
+    }
+
+    function clearWbSqlEditor() {
+      clearMainSqlEditor();
+    }
+
+    // 8. 模态框: 新建 DB 凭据 (截图 2 & 3)
     function openDbCredentialModal(presetType = 'MySQL') {
       const modal = document.getElementById('modalDbCredentialAdd');
       if (!modal) return;
@@ -15251,31 +16058,16 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       const text = document.getElementById('dbProdProtectText');
       if (!toggle || !indicator || !text) return;
       if (dbProdProtectEnabled) {
-        toggle.className = 'relative inline-flex h-6 w-16 shrink-0 cursor-pointer rounded-full border border-rose-500/50 bg-rose-500/20 transition-colors duration-200';
-        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-rose-400 translate-x-1 mt-0.5 transition duration-200';
+        toggle.className = 'relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-rose-500/50 bg-rose-500/20 transition-colors duration-200';
+        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-rose-400 transition duration-200 translate-x-8';
         text.textContent = '生产环境';
         text.className = 'ml-1.5 text-[10px] font-bold text-rose-300 select-none';
         showToast('⚠️ 生产库保护已开启：AI 写入操作将受到严格限制');
       } else {
-        toggle.className = 'relative inline-flex h-6 w-16 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-surface-950 transition-colors duration-200';
-        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-500 translate-x-1 mt-0.5 transition duration-200';
+        toggle.className = 'relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] transition-colors duration-200';
+        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 transition duration-200 translate-x-0';
         text.textContent = '非生产';
-        text.className = 'ml-2 text-[11px] font-medium text-slate-400 select-none';
-      }
-    }
-
-    function toggleDbSshTunnel() {
-      dbSshTunnelEnabled = !dbSshTunnelEnabled;
-      const toggle = document.getElementById('dbSshTunnelToggle');
-      const knob = document.getElementById('dbSshTunnelKnob');
-      if (!toggle || !knob) return;
-      if (dbSshTunnelEnabled) {
-        toggle.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-teal-500 transition-colors duration-200';
-        knob.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 translate-x-4';
-        showToast('已启用 SSH 隧道端口转发代理访问');
-      } else {
-        toggle.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-800 transition-colors duration-200';
-        knob.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 translate-x-0';
+        text.className = 'ml-1.5 text-[10px] font-medium text-slate-400 select-none';
       }
     }
 
@@ -15315,18 +16107,9 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (tip) tip.classList.add('hidden');
       closeDbCredentialModal();
       showToast('✅ 数据库凭据已安全落库 (AES-256-GCM 硬件加密)');
-
-      // 显示连接树并隐藏空状态
-      const empty = document.getElementById('wbDbEmptyState');
-      const tree = document.getElementById('wbDbTreeList');
-      const hostTitle = document.getElementById('wbDbTreeHostTitle');
-      if (empty) empty.classList.add('hidden');
-      if (tree) tree.classList.remove('hidden');
-      if (hostTitle) hostTitle.innerHTML = '<i data-lucide="server" class="w-3.5 h-3.5 text-teal-400 shrink-0"></i><span class="truncate">' + name + '</span>';
-      if (window.lucide) lucide.createIcons();
     }
 
-    // 新建 Redis 连接弹窗 (截图 5)
+    // 9. 模态框: 新建 Redis 连接 (截图 4)
     function openRedisConnModal() {
       const modal = document.getElementById('modalRedisConnAdd');
       if (!modal) return;
@@ -15348,30 +16131,16 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       const text = document.getElementById('redisProdProtectText');
       if (!toggle || !indicator || !text) return;
       if (redisProdProtectEnabled) {
-        toggle.className = 'relative inline-flex h-6 w-16 shrink-0 cursor-pointer rounded-full border border-rose-500/50 bg-rose-500/20 transition-colors duration-200';
-        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-rose-400 translate-x-1 mt-0.5 transition duration-200';
+        toggle.className = 'relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-rose-500/50 bg-rose-500/20 transition-colors duration-200';
+        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-rose-400 transition duration-200 translate-x-8';
         text.textContent = '生产环境';
         text.className = 'ml-1.5 text-[10px] font-bold text-rose-300 select-none';
         showToast('⚠️ Redis 生产保护已开启：禁止 FLUSHALL 等高危命令');
       } else {
-        toggle.className = 'relative inline-flex h-6 w-16 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-surface-950 transition-colors duration-200';
-        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-500 translate-x-1 mt-0.5 transition duration-200';
+        toggle.className = 'relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] transition-colors duration-200';
+        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 transition duration-200 translate-x-0';
         text.textContent = '非生产';
-        text.className = 'ml-2 text-[11px] font-medium text-slate-400 select-none';
-      }
-    }
-
-    function toggleRedisSshTunnel() {
-      redisSshTunnelEnabled = !redisSshTunnelEnabled;
-      const toggle = document.getElementById('redisSshTunnelToggle');
-      const knob = document.getElementById('redisSshTunnelKnob');
-      if (!toggle || !knob) return;
-      if (redisSshTunnelEnabled) {
-        toggle.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-teal-500 transition-colors duration-200';
-        knob.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 translate-x-4';
-      } else {
-        toggle.className = 'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-800 transition-colors duration-200';
-        knob.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 translate-x-0';
+        text.className = 'ml-1.5 text-[10px] font-medium text-slate-400 select-none';
       }
     }
 
@@ -15399,96 +16168,63 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       showToast('✅ Redis 连接 [' + name + '] 保存成功');
     }
 
-    // 快捷选库与标签页管理
-    function addWbSqlTab() {
-      sqlTabIndex++;
-      const container = document.getElementById('wbSqlTabsContainer');
-      if (!container) return;
-      const newTab = document.createElement('div');
-      newTab.className = 'px-2.5 py-1 rounded bg-surface-800 text-teal-300 border border-teal-500/30 flex items-center space-x-1.5 font-medium';
-      newTab.innerHTML = `<span>查询 ${sqlTabIndex}</span><i data-lucide="x" onclick="this.parentElement.remove()" class="w-3 h-3 text-slate-400 hover:text-rose-400 cursor-pointer"></i>`;
-      container.appendChild(newTab);
+    // 10. 模态框: 新建 MongoDB 连接 (截图 5)
+    function openMongoConnModal() {
+      const modal = document.getElementById('modalMongoConnAdd');
+      if (!modal) return;
+      const tip = document.getElementById('mongoConnValidationTip');
+      if (tip) tip.classList.add('hidden');
+      modal.classList.remove('hidden');
       if (window.lucide) lucide.createIcons();
-      showToast(`已新建 [查询 ${sqlTabIndex}] 工作区`);
     }
 
-    function onWbDbSelected(val) {
-      const warn = document.getElementById('wbDbUnselectedWarn');
-      if (!warn) return;
-      if (val) {
-        warn.classList.add('hidden');
-        showToast(`已切换当前执行库: ${val}`);
+    function closeMongoConnModal() {
+      const modal = document.getElementById('modalMongoConnAdd');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function toggleMongoProdProtect() {
+      mongoProdProtectEnabled = !mongoProdProtectEnabled;
+      const toggle = document.getElementById('mongoProdProtectToggle');
+      const indicator = document.getElementById('mongoProdProtectIndicator');
+      const text = document.getElementById('mongoProdProtectText');
+      if (!toggle || !indicator || !text) return;
+      if (mongoProdProtectEnabled) {
+        toggle.className = 'relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-rose-500/50 bg-rose-500/20 transition-colors duration-200';
+        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-rose-400 transition duration-200 translate-x-8';
+        text.textContent = '生产环境';
+        text.className = 'ml-1.5 text-[10px] font-bold text-rose-300 select-none';
+        showToast('⚠️ MongoDB 生产保护已开启：禁止 dropDatabase 等高危操作');
       } else {
-        warn.classList.remove('hidden');
+        toggle.className = 'relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] transition-colors duration-200';
+        indicator.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 transition duration-200 translate-x-0';
+        text.textContent = '非生产';
+        text.className = 'ml-1.5 text-[10px] font-medium text-slate-400 select-none';
       }
     }
 
-    function selectQuickDb(dbName) {
-      const select = document.getElementById('wbCurrentDbSelect');
-      if (select) {
-        select.value = dbName;
-        onWbDbSelected(dbName);
-      }
-    }
-
-    function clearWbSqlEditor() {
-      const editor = document.getElementById('wbSqlEditorArea');
-      if (editor) editor.value = '';
-      const res = document.getElementById('wbSqlResultContainer');
-      if (res) res.classList.add('hidden');
-      showToast('SQL 编辑器已清空');
-    }
-
-    function explainWbSqlMock() {
-      const editor = document.getElementById('wbSqlEditorArea');
-      const val = editor ? editor.value.trim() : '';
-      if (!val) {
-        showToast('⚠️ 请输入要分析解释的 SQL 语句');
-        return;
-      }
-      showToast('🔍 EXPLAIN 分析完成: 命中 idx_status 索引，预估扫描 1 行，类型 ref');
-    }
-
-    function filterWbDbTree(keyword) {
-      // 树形节点搜索过滤逻辑
-    }
-
-    function setAiSqlSample(sql) {
-      const input = document.getElementById('wbSqlEditorArea');
-      if (input) input.value = sql;
-      showToast('已载入快捷 SQL 查询');
-    }
-
-    function generateAiSqlDemo() {
-      const promptInput = document.getElementById('wbAiSqlPromptInput');
-      const kw = promptInput ? promptInput.value.trim() : '';
-      const editor = document.getElementById('wbSqlEditorArea');
-      if (!editor) return;
-
-      showToast('🤖 AI 正在基于数据库 Schema 生成优化 SQL...');
+    function testMongoConnectionMock() {
+      const text = document.getElementById('btnTestMongoConnText');
+      if (text) text.textContent = '探测中...';
+      showToast('📡 正在向 MongoDB 发送 isMaster / ping 探针...');
       setTimeout(() => {
-        if (kw.includes('用户') || kw.includes('状态')) {
-          editor.value = '-- AI 根据提示 [' + (kw || '统计用户状态') + '] 生成:\nSELECT status, COUNT(*) AS user_count, MAX(last_login_time) AS latest_active\nFROM sys_users\nGROUP BY status\nORDER BY user_count DESC;';
-        } else {
-          editor.value = '-- AI 生成:\nSELECT id, name, created_at, status\nFROM sys_orders\nWHERE created_at >= NOW() - INTERVAL 7 DAY\nORDER BY id DESC\nLIMIT 50;';
-        }
-        showToast('✨ AI 已成功生成 SQL 脚本');
-      }, 700);
+        if (text) text.textContent = '测试连接';
+        showToast('✅ MongoDB 连接测试成功：耗时 3.1ms，版本 7.0.5 ReplicaSet');
+      }, 500);
     }
 
-    function executeWbSqlMock() {
-      const editor = document.getElementById('wbSqlEditorArea');
-      const val = editor ? editor.value.trim() : '';
-      if (!val) {
-        showToast('⚠️ 请输入或由 AI 生成要执行的 SQL 语句');
+    function saveMongoConnectionMock() {
+      const nameInput = document.getElementById('mongoConnName');
+      const name = nameInput ? nameInput.value.trim() : '';
+      const tip = document.getElementById('mongoConnValidationTip');
+      if (!name) {
+        if (tip) tip.classList.remove('hidden');
+        if (nameInput) nameInput.focus();
         return;
       }
-      const resultBox = document.getElementById('wbSqlResultContainer');
-      if (resultBox) {
-        resultBox.classList.remove('hidden');
-        if (window.lucide) lucide.createIcons();
-      }
-      showToast('⚡ 执行成功，返回 24 行记录 (耗时 12ms)');
+      if (tip) tip.classList.add('hidden');
+      closeMongoConnModal();
+      showToast('✅ MongoDB 连接 [' + name + '] 保存成功');
     }
 
     // =========================================================================
@@ -17338,9 +18074,10 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
 
 
     // =========================================================================
-    // 视图 7: 数据备份 (Backup) 交互脚本 (对齐截图 1 media_1790127011070.png)
+    // 视图 7: 数据备份 (Backup) 交互脚本 (严格对齐截图 media_1790693266412.png / media_1790693274357.png)
     // =========================================================================
     let wbBackupTasks = [];
+    let isBackupTaskEnabled = true;
 
     function renderWbBackupView() {
       const tbody = document.getElementById('wbBackupTableBody');
@@ -17349,7 +18086,7 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
       if (wbBackupTasks.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="py-20 text-center select-none">
+            <td colspan="5" class="py-24 text-center select-none">
               <div class="flex flex-col items-center justify-center space-y-3">
                 <div class="w-16 h-16 rounded-2xl bg-surface-900 border border-slate-800 flex items-center justify-center text-slate-500 mb-1">
                   <i data-lucide="archive" class="w-8 h-8"></i>
@@ -17357,7 +18094,7 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
                 <p class="text-xs text-slate-400 max-w-md">
                   还没有备份任务，运维不敢用一个不能回滚的工具 —— 先给关键目录/数据库加一条。
                 </p>
-                <button type="button" onclick="openCreateBackupModal()" class="px-3.5 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold transition cursor-pointer">
+                <button type="button" onclick="openCreateBackupModal()" class="px-3.5 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold transition cursor-pointer shadow-sm active:scale-95">
                   + 新建第一条备份任务
                 </button>
               </div>
@@ -17368,22 +18105,33 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
         tbody.innerHTML = wbBackupTasks.map(task => `
           <tr class="hover:bg-surface-850/60 transition group">
             <td class="py-2.5 px-4 font-medium text-slate-200">
-              <div class="flex items-center space-x-2">
-                <i data-lucide="archive" class="w-3.5 h-3.5 text-teal-400"></i>
-                <span>${task.name}</span>
+              <div class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 rounded-lg bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
+                  <i data-lucide="archive" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                  <div class="font-medium text-slate-200 text-[13.5px] hover:text-white transition flex items-center space-x-2">
+                    <span>${task.name}</span>
+                    ${task.enabled ? '<span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-normal">已启用</span>' : '<span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700 font-normal">已暂停</span>'}
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono truncate mt-0.5" title="${task.source}">${task.source}</div>
+                </div>
               </div>
             </td>
             <td class="py-2.5 px-3">
-              <span class="px-2 py-0.5 rounded text-[10px] bg-teal-500/15 text-teal-300 border border-teal-500/30 font-sans">${task.type}</span>
+              <span class="px-2 py-0.5 rounded text-xs bg-brand-500/15 text-brand-300 border border-brand-500/30 font-medium">${task.type}</span>
             </td>
-            <td class="py-2.5 px-3 text-slate-300 font-mono text-[11px]">${task.source}</td>
-            <td class="py-2.5 px-3 text-slate-400">${task.keepCount} 份</td>
-            <td class="py-2.5 px-3 text-slate-300 font-mono text-[11px]">${task.cron}</td>
+            <td class="py-2.5 px-3 text-slate-300 font-mono text-xs">${task.keepCount} 份</td>
+            <td class="py-2.5 px-3 text-slate-300 font-mono text-xs">
+              <div>${task.cron}</div>
+              <div class="text-[10px] text-slate-500 mt-0.5 font-sans">${task.remote || '本机存储'}</div>
+            </td>
             <td class="py-2.5 px-4 text-right">
               <div class="flex items-center justify-end space-x-1.5 text-slate-400">
-                <button type="button" onclick="runBackupTask('${task.name}')" class="p-1 rounded hover:bg-surface-800 hover:text-teal-300 transition" title="立即备份"><i data-lucide="play" class="w-3.5 h-3.5"></i></button>
-                <button type="button" onclick="showToast('正在打开备份历史快照: ${task.name}')" class="p-1 rounded hover:bg-surface-800 hover:text-white transition" title="历史快照"><i data-lucide="history" class="w-3.5 h-3.5"></i></button>
-                <button type="button" onclick="deleteBackupTask('${task.name}')" class="p-1 rounded hover:bg-surface-800 hover:text-rose-400 transition" title="删除"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                <button type="button" onclick="runBackupTask('${task.name}')" class="p-1 rounded hover:bg-surface-800 hover:text-brand-300 transition cursor-pointer" title="立即备份"><i data-lucide="play" class="w-3.5 h-3.5"></i></button>
+                <button type="button" onclick="toggleTaskEnableState('${task.name}')" class="p-1 rounded hover:bg-surface-800 hover:text-white transition cursor-pointer" title="${task.enabled ? '暂停任务' : '启用任务'}"><i data-lucide="${task.enabled ? 'pause' : 'play-circle'}" class="w-3.5 h-3.5"></i></button>
+                <button type="button" onclick="showBackupHistory('${task.name}')" class="p-1 rounded hover:bg-surface-800 hover:text-white transition cursor-pointer" title="历史快照"><i data-lucide="history" class="w-3.5 h-3.5"></i></button>
+                <button type="button" onclick="deleteBackupTask('${task.name}')" class="p-1 rounded hover:bg-surface-800 hover:text-rose-400 transition cursor-pointer" title="删除"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
               </div>
             </td>
           </tr>
@@ -17392,22 +18140,158 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
       lucide.createIcons();
     }
 
+    function toggleBackupEnableSwitch() {
+      isBackupTaskEnabled = !isBackupTaskEnabled;
+      const btn = document.getElementById('backupTaskEnabledSwitch');
+      const dot = document.getElementById('backupTaskEnabledDot');
+      if (!btn || !dot) return;
+      if (isBackupTaskEnabled) {
+        btn.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-brand-500 transition-colors duration-200 ease-in-out focus:outline-none';
+        dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5';
+      } else {
+        btn.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out focus:outline-none';
+        dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0';
+      }
+    }
+
+    function handleBackupTypeChange(val) {
+      const label = document.getElementById('backupSourcePathLabel');
+      const input = document.getElementById('backupSourcePathInput');
+      if (!label || !input) return;
+      if (val === 'dir') {
+        label.innerText = '目录路径';
+        input.placeholder = '/var/www/site';
+        if (!input.value || input.value.startsWith('db:') || input.value === 'app_production' || input.value === 'core_db') input.value = '/var/www/site';
+      } else if (val === 'mysql') {
+        label.innerText = 'MySQL 数据库名';
+        input.placeholder = 'app_production';
+        input.value = 'app_production';
+      } else if (val === 'postgres') {
+        label.innerText = 'PostgreSQL 库名';
+        input.placeholder = 'core_db';
+        input.value = 'core_db';
+      } else if (val === 'redis') {
+        label.innerText = 'Redis 实例';
+        input.placeholder = '127.0.0.1:6379';
+        input.value = '127.0.0.1:6379';
+      } else if (val === 'site') {
+        label.innerText = '整站主目录';
+        input.placeholder = '/var/www/my-app';
+        input.value = '/var/www/my-app';
+      }
+    }
+
+    function handleBackupRemoteStorageChange(val) {
+      const rcloneInput = document.getElementById('backupRcloneRemoteInput');
+      if (!rcloneInput) return;
+      if (val === 'none') {
+        rcloneInput.value = '';
+        rcloneInput.placeholder = 's3:my-bucket/opssentry-backups';
+      } else if (val === 'cos') {
+        rcloneInput.value = 'cos:ops-backup-bucket/daily';
+      } else if (val === 'oss') {
+        rcloneInput.value = 'oss:prod-backup-vault/hk-nodes';
+      } else if (val === 's3') {
+        rcloneInput.value = 's3:glacier-cold-archive/backups';
+      }
+    }
+
     function openCreateBackupModal() {
-      const name = prompt('请输入备份任务名称 (例如: wwwroot_daily):', 'wwwroot_daily');
-      if (!name) return;
+      const nameInput = document.getElementById('backupTaskNameInput');
+      if (nameInput) nameInput.value = '';
+      const typeSelect = document.getElementById('backupTaskTypeSelect');
+      if (typeSelect) typeSelect.value = 'dir';
+      handleBackupTypeChange('dir');
+      const excludeInput = document.getElementById('backupExcludeRulesInput');
+      if (excludeInput) excludeInput.value = 'node_modules\n.git\n*.log';
+      const cronInput = document.getElementById('backupCronInput');
+      if (cronInput) cronInput.value = '0 3 * * *';
+      const storageSelect = document.getElementById('backupRemoteStorageSelect');
+      if (storageSelect) storageSelect.value = 'none';
+      const rcloneInput = document.getElementById('backupRcloneRemoteInput');
+      if (rcloneInput) rcloneInput.value = '';
+      const keepInput = document.getElementById('backupKeepCountInput');
+      if (keepInput) keepInput.value = '7';
+      isBackupTaskEnabled = true;
+      const btn = document.getElementById('backupTaskEnabledSwitch');
+      const dot = document.getElementById('backupTaskEnabledDot');
+      if (btn && dot) {
+        btn.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-brand-500 transition-colors duration-200 ease-in-out focus:outline-none';
+        dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5';
+      }
+
+      const modal = document.getElementById('modalCreateBackup');
+      if (modal) {
+        modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => { if (nameInput) nameInput.focus(); }, 100);
+      }
+    }
+
+    function closeCreateBackupModal() {
+      const modal = document.getElementById('modalCreateBackup');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function submitCreateBackupModal() {
+      const name = (document.getElementById('backupTaskNameInput')?.value || '').trim();
+      if (!name) {
+        showToast('⚠️ 请填写任务名称 (例如：网站目录每日备份)');
+        document.getElementById('backupTaskNameInput')?.focus();
+        return;
+      }
+      const typeVal = document.getElementById('backupTaskTypeSelect')?.value || 'dir';
+      const typeMap = {
+        dir: '目录打包',
+        mysql: 'MySQL数据库',
+        postgres: 'PostgreSQL',
+        redis: 'Redis持久化',
+        site: '整站打包'
+      };
+      const source = (document.getElementById('backupSourcePathInput')?.value || '').trim() || '/var/www/site';
+      const exclude = (document.getElementById('backupExcludeRulesInput')?.value || '').trim();
+      const cron = (document.getElementById('backupCronInput')?.value || '').trim() || '0 3 * * *';
+      const storage = document.getElementById('backupRemoteStorageSelect')?.value || 'none';
+      const rclone = (document.getElementById('backupRcloneRemoteInput')?.value || '').trim();
+      const keepCount = parseInt(document.getElementById('backupKeepCountInput')?.value, 10) || 7;
+
+      let remoteText = '本机存储';
+      if (storage !== 'none' || rclone) {
+        remoteText = rclone || (storage === 'cos' ? '腾讯云 COS' : storage === 'oss' ? '阿里云 OSS' : 'AWS S3');
+      }
+
       wbBackupTasks.push({
-        name: name.trim(),
-        type: '目录备份',
-        source: '/www/wwwroot',
-        keepCount: 7,
-        cron: '每天 02:00 (0 2 * * *)'
+        name,
+        type: typeMap[typeVal] || '目录打包',
+        source,
+        exclude,
+        cron,
+        remote: remoteText,
+        keepCount,
+        enabled: isBackupTaskEnabled,
+        createdAt: new Date().toLocaleDateString()
       });
+
+      closeCreateBackupModal();
       renderWbBackupView();
-      showToast(`✓ 已成功新建备份任务: ${name}`);
+      showToast(`✓ 备份任务 [${name}] 创建成功！产物将定时归档至 ~/.opssentry/backups/`);
+    }
+
+    function toggleTaskEnableState(taskName) {
+      const t = wbBackupTasks.find(x => x.name === taskName);
+      if (t) {
+        t.enabled = !t.enabled;
+        renderWbBackupView();
+        showToast(t.enabled ? `✓ 已启用备份任务 [${taskName}]` : `⏸ 已暂停备份任务 [${taskName}]`);
+      }
+    }
+
+    function showBackupHistory(taskName) {
+      showToast(`📦 正在读取 [${taskName}] 备份快照历史 (当前保留可用归档)`);
     }
 
     function runBackupTask(taskName) {
-      showToast(`🚀 正在执行备份任务 [${taskName}]，产物存放在 ~/.reeve/backups/ ...`);
+      showToast(`🚀 正在执行备份任务 [${taskName}]，产物存放在 ~/.opssentry/backups/ ...`);
     }
 
     function deleteBackupTask(taskName) {

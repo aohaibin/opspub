@@ -26,6 +26,26 @@ import { WorkspaceView } from "./views/WorkspaceView";
 import { SettingsView } from "./views/SettingsView";
 import { WorkbenchRuntimeContext } from "./context";
 
+/** 仅在 Rust 确认是 SSH 凭据问题时弹出验证窗口。 */
+function needsSshCredentials(error: unknown): boolean {
+  const errorMessage = getErrorMessage(error).toLowerCase();
+  if (!errorMessage.includes("ssh")) return false;
+
+  return [
+    "password",
+    "credential",
+    "fingerprint",
+    "host key",
+    "authenticate",
+    "auth",
+    "凭据",
+    "密码",
+    "指纹",
+    "认证",
+    "公钥",
+  ].some((hint) => errorMessage.includes(hint));
+}
+
 export default function WorkbenchPage() {
   const location = useLocation();
   const routeServerId =
@@ -122,10 +142,7 @@ export default function WorkbenchPage() {
     }
 
     autoConnectedServerRef.current = routeServerId;
-    if (!credentialsByServer[routeServerId]) {
-      setSshServer(selectedServer);
-    }
-  }, [credentialsByServer, loading, routeServerId, selectedServer, sshServer]);
+  }, [loading, routeServerId, selectedServer, sshServer]);
 
   const executeCommand = useCallback(
     async (server: Server, credentials: SshCredentials, command: string) => {
@@ -141,18 +158,25 @@ export default function WorkbenchPage() {
   );
 
   const runCommand = useCallback(
-    (command: string) => {
+    async (command: string) => {
       if (!selectedServer) {
         return Promise.reject(new Error("请先选择服务器"));
       }
-      const credentials = credentialsByServer[selectedServer.id];
-      if (credentials) {
-        return executeCommand(selectedServer, credentials, command);
+      // 前端状态只保存“已托管”标记，不包含密码明文。传入空凭据后由 Rust
+      // 从系统凭据管理器读取真实凭据，应用重启后也能复用。
+      const credentials = credentialsByServer[selectedServer.id] ?? {};
+      try {
+        return await executeCommand(selectedServer, credentials, command);
+      } catch (error) {
+        if (!needsSshCredentials(error)) {
+          throw error;
+        }
+
+        setSshServer(selectedServer);
+        return new Promise<Awaited<ReturnType<typeof workbenchApi.execute>>>((resolve, reject) => {
+          setPendingCommand({ command, resolve, reject });
+        });
       }
-      setSshServer(selectedServer);
-      return new Promise<Awaited<ReturnType<typeof workbenchApi.execute>>>((resolve, reject) => {
-        setPendingCommand({ command, resolve, reject });
-      });
     },
     [credentialsByServer, executeCommand, selectedServer],
   );

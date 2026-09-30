@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Badge, Checkbox, Input, Popover } from "antd";
+import { Badge, Checkbox, Dropdown, Input, Popover, type MenuProps } from "antd";
 import { ChevronDown, Filter, Search } from "lucide-react";
 import type { AIPolicy, OsType } from "@/types";
+import { AI_POLICY_ORDER, POLICY_STYLES } from "../lib/serverMeta";
 
 export type OsFilter = "all" | OsType;
 export type StatusFilter = "all" | "online" | "offline";
@@ -35,6 +36,10 @@ export function ServerToolbar({
   onKeywordChange,
   osFilter,
   onOsFilterChange,
+  statusFilter = "all",
+  onStatusFilterChange,
+  policyFilter = "all",
+  onPolicyFilterChange,
   osCounts,
   tagStats,
   selectedTags,
@@ -42,6 +47,33 @@ export function ServerToolbar({
   onResetTags,
 }: ServerToolbarProps) {
   const [tagPanelOpen, setTagPanelOpen] = useState(false);
+
+  const statusItems: MenuProps["items"] = [
+    { key: "all", label: "全部状态", icon: <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />, onClick: () => onStatusFilterChange?.("all") },
+    { key: "online", label: "在线", icon: <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />, onClick: () => onStatusFilterChange?.("online") },
+    { key: "offline", label: "离线", icon: <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />, onClick: () => onStatusFilterChange?.("offline") },
+  ];
+
+  const policyItems: MenuProps["items"] = [
+    { key: "all", label: "全部策略", icon: <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />, onClick: () => onPolicyFilterChange?.("all") },
+    ...AI_POLICY_ORDER.map((policy) => ({
+      key: policy,
+      label: POLICY_STYLES[policy].label,
+      icon: <span className="h-1.5 w-1.5 rounded-full" style={{ background: POLICY_STYLES[policy].dot }} />,
+      onClick: () => onPolicyFilterChange?.(policy),
+    })),
+  ];
+
+  const selectedStatusLabel = statusFilter === "online" ? "在线" : statusFilter === "offline" ? "离线" : "全部状态";
+  const selectedPolicyLabel = policyFilter && policyFilter !== "all"
+    ? POLICY_STYLES[policyFilter]?.label ?? "全部策略"
+    : "全部策略";
+
+  const filterButtonStyle = {
+    background: "var(--surface-900)",
+    border: "1px solid var(--border)",
+    color: "var(--text-secondary)",
+  };
 
   const tagPanel = (
     <div className="w-56 space-y-2">
@@ -93,15 +125,44 @@ export function ServerToolbar({
       className="px-3 py-3 flex flex-wrap items-center justify-between gap-3"
       style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-secondary)" }}
     >
-      <Input
-        allowClear
-        value={keyword}
-        onChange={(event) => onKeywordChange(event.target.value)}
-        placeholder="搜索名称、IP、账号、标签、OS架构..."
-        prefix={<Search size={13} style={{ color: "var(--text-muted)" }} />}
-        className="flex-1 min-w-[260px] max-w-xl"
-        style={{ height: 32 }}
-      />
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <Input
+          allowClear
+          value={keyword}
+          onChange={(event) => onKeywordChange(event.target.value)}
+          placeholder="搜索别名 / 主机 / 标签 / 用户..."
+          prefix={<Search size={13} style={{ color: "var(--text-muted)" }} />}
+          className="min-w-[220px] max-w-xl flex-1"
+          style={{ height: 32 }}
+        />
+
+        <Dropdown menu={{ items: statusItems }} trigger={["click"]}>
+          <button
+            type="button"
+            className="inline-flex h-8 items-center gap-2 rounded-xl px-3 text-xs transition hover:border-slate-500"
+            style={filterButtonStyle}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${statusFilter === "online" ? "bg-emerald-400" : statusFilter === "offline" ? "bg-slate-500" : "bg-slate-400"}`} />
+            <span>{selectedStatusLabel}</span>
+            <ChevronDown size={12} style={{ color: "var(--text-muted)" }} />
+          </button>
+        </Dropdown>
+
+        <Dropdown menu={{ items: policyItems }} trigger={["click"]}>
+          <button
+            type="button"
+            className="inline-flex h-8 items-center gap-2 rounded-xl px-3 text-xs transition hover:border-slate-500"
+            style={filterButtonStyle}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: policyFilter && policyFilter !== "all" ? POLICY_STYLES[policyFilter]?.dot : "#94a3b8" }}
+            />
+            <span>{selectedPolicyLabel}</span>
+            <ChevronDown size={12} style={{ color: "var(--text-muted)" }} />
+          </button>
+        </Dropdown>
+      </div>
 
       <div className="flex items-center gap-1.5">
         {OS_TABS.map(({ key, label }) => {

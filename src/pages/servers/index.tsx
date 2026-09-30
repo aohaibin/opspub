@@ -16,6 +16,7 @@ import {
   Loader2,
   Lock,
   Monitor,
+  CircleDot,
   Plus,
   ShieldCheck,
   Star,
@@ -626,20 +627,21 @@ export default function ServersPage() {
     {
       title: "别名 / 主机",
       key: "alias",
-      width: 235,
+      width: 220,
       sorter: (a, b) => a.alias.localeCompare(b.alias, "zh-CN"),
       render: (_: unknown, server: Server) => {
         const tags = parseTags(server.tags);
-        const state = probeStates[server.id];
-        const tone = state === "testing"
-          ? "var(--warning)"
-          : state
-            ? state.ok ? "var(--success)" : "var(--danger)"
-            : "var(--success)";
+        const isWindows = server.os_type === "windows";
 
         return (
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: tone }} title={state === "testing" ? "正在探测连通性" : "服务器状态"} />
+            <span
+              className="ops-server-os-badge"
+              data-os={server.os_type}
+              title={`${isWindows ? "Windows" : "Linux"} 主机`}
+            >
+              {isWindows ? <Monitor size={15} /> : <CircleDot size={15} />}
+            </span>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 font-bold" style={{ color: "var(--text-primary)" }}>
@@ -683,7 +685,7 @@ export default function ServersPage() {
     {
       title: "分组",
       key: "group",
-      width: 105,
+      width: 120,
       render: (_: unknown, server: Server) => {
         return (
           <select
@@ -704,7 +706,7 @@ export default function ServersPage() {
     {
       title: "AI 策略",
       key: "ai_policy",
-      width: 125,
+      width: 130,
       sorter: (a, b) => (a.ai_policy || "").localeCompare(b.ai_policy || ""),
       render: (_: unknown, server: Server) => (
         <div className="flex items-center gap-1.5">
@@ -719,7 +721,7 @@ export default function ServersPage() {
     {
       title: <ShieldCheck size={14} className="mx-auto" />,
       key: "credentials",
-      width: 44,
+      width: 48,
       align: "center",
       render: (_: unknown, server: Server) => {
         const meta = SSH_STATUS_META[server.last_connection_status] ?? SSH_STATUS_META.unknown;
@@ -740,7 +742,7 @@ export default function ServersPage() {
     {
       title: "状态",
       key: "status",
-      width: 105,
+      width: 112,
       sorter: (a, b) => a.hostname.localeCompare(b.hostname),
       render: (_: unknown, server: Server) => {
         const state = probeStates[server.id];
@@ -771,7 +773,7 @@ export default function ServersPage() {
     {
       title: "操作",
       key: "action",
-      width: 285,
+      width: 280,
       fixed: "right",
       render: (_: unknown, server: Server) => (
         <ServerRowActions
@@ -902,6 +904,7 @@ export default function ServersPage() {
               pagination={false}
               scroll={{ x: "max-content" }}
               rowSelection={{
+                columnWidth: 42,
                 selectedRowKeys: selectedIds,
                 onChange: (keys) => setSelectedIds(keys as number[]),
               }}

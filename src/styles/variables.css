@@ -154,6 +154,7 @@
   --sidebar-collapsed-width: 60px;
   /* 顶栏高度对齐原型的 h-14（56px） */
   --header-height: 56px;
+  --app-chrome-height: var(--header-height);
   --content-max-width: none;  /* 默认无限制，新项目可覆盖为如 1200px */
 }
 
@@ -181,7 +182,7 @@
 .ops-server-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height) - 40px);
+  height: calc(100vh - var(--app-chrome-height) - 40px);
   min-height: 0;
   gap: 12px;
   overflow: hidden;
@@ -520,7 +521,7 @@
 .ops-terminal-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height));
+  height: calc(100vh - var(--app-chrome-height));
   width: 100%;
   min-height: 0;
   gap: 0;

@@ -3,7 +3,6 @@
  *
  * 严格对齐原型 docs/remote-ops-ai-prototype.html 的 header + aside#appSidebar：
  *   顶栏左  —— OpsSentry Logo + 品牌名 + 本地安全模式提示
- *   顶栏中  —— 当前会话选择器 + 全局搜索（Ctrl K）
  *   顶栏右  —— 版本徽标 / AI 操作锁 / 皮肤调色盘 / 告警铃 / 窗口三键
  *   主体    —— 68px 图标导轨 + 右侧内容区
  *
@@ -16,12 +15,11 @@ import { Layout } from "antd";
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
 import { NavRail } from "./NavRail";
 import { WindowControls } from "./WindowControls";
-import { SessionSelector } from "./header/SessionSelector";
 import { AiLockControl } from "./header/AiLockControl";
 import { SkinSwitcher } from "./header/SkinSwitcher";
 import { AlertBell } from "./header/AlertBell";
 import { VersionBadge } from "./header/VersionBadge";
-import { CommandPalette, CommandPaletteButton } from "./CommandPalette";
+import { CommandPalette } from "./CommandPalette";
 
 const { Content } = Layout;
 
@@ -35,10 +33,10 @@ function getAppWindow(): Window | null {
 
 /**
  * 顶栏的空白拖拽区。
- * 窗口开了 decorations: false，没有原生标题栏，拖拽只能自己实现。
- * 放在中部控件两侧各一个，既保住视觉居中，又留出可拖动的空白。
+ * 窗口开了 decorations: false，没有原生标题栏，拖拽只能自己实现；
+ * 顶栏中间的空白区域作为拖拽区，避免把额外标题栏渲染到原型之外。
  */
-function DragRegion() {
+function DragRegion({ className }: { className?: string }) {
   const windowRef = useRef<Window | null>(getAppWindow());
 
   function handleMouseDown(e: React.MouseEvent) {
@@ -54,6 +52,7 @@ function DragRegion() {
 
   return (
     <div
+      className={className}
       onMouseDown={handleMouseDown}
       style={{ flex: 1, height: "100%", minWidth: 24, cursor: "default", userSelect: "none" }}
     />
@@ -70,29 +69,28 @@ export function AppLayout() {
         className="glass-nav shrink-0 flex items-center"
         style={{
           height: "var(--header-height)",
-          padding: "0 12px",
-          gap: 10,
+          padding: "0 16px",
+          gap: 12,
           zIndex: 40,
           userSelect: "none",
         }}
       >
-        {/* 左：Logo + 品牌名 + 模式提示 */}
-        <div className="flex items-center shrink-0" style={{ gap: 10 }}>
-          <div className="flex items-center" style={{ gap: 8 }}>
+        {/* 左侧：Logo、品牌名和本地安全模式提示 */}
+        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
             <div
               className="flex items-center justify-center overflow-hidden"
               style={{
-                width: 24,
-                height: 24,
-                borderRadius: 6,
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
+                width: 28,
+                height: 28,
+                borderRadius: 7,
+                filter: "drop-shadow(0 0 8px rgba(16, 185, 129, 0.35))",
               }}
             >
               <img
                 src="/logo.png"
                 alt="OpsSentry Logo"
-                width={24}
-                height={24}
+                width={28}
+                height={28}
                 style={{ display: "block", objectFit: "contain" }}
               />
             </div>
@@ -117,27 +115,23 @@ export function AppLayout() {
             >
               本地安全模式 · MCP 仅监听 127.0.0.1
             </span>
-          </div>
         </div>
 
+        {/* 中间留白区域同时承担无边框窗口拖拽 */}
         <DragRegion />
 
-        {/* 中：当前会话 + 全局搜索 */}
-        <div className="flex items-center shrink-0" style={{ gap: 10 }}>
-          <SessionSelector />
-          <CommandPaletteButton />
-        </div>
-
-        <DragRegion />
-
-        {/* 右：版本 / AI 锁 / 皮肤 / 告警 / 窗口控制 */}
+        {/* 右侧：版本 / AI 锁 / 皮肤 / 告警 / 窗口控制 */}
         <div className="flex items-center shrink-0" style={{ gap: 8 }}>
           <VersionBadge />
           <AiLockControl />
           <SkinSwitcher />
           <AlertBell />
-          <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 2px" }} />
-          <WindowControls />
+          <div
+            className="flex items-center shrink-0"
+            style={{ gap: 1, paddingLeft: 8, borderLeft: "1px solid var(--border)" }}
+          >
+            <WindowControls />
+          </div>
         </div>
       </header>
 

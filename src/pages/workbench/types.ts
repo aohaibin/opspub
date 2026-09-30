@@ -54,10 +54,15 @@ export interface DatabaseItem {
 
 export interface BackupTaskItem {
   id: string;
-  targetType: "database" | "website" | "directory";
+  name?: string;
+  targetType: "database" | "website" | "directory" | string;
   targetName: string;
   fileName: string;
   size: string;
+  cron?: string;
+  keepCount?: number;
+  remoteStorage?: string;
+  enabled?: boolean;
   completedAt: string;
   status: "success" | "running" | "failed";
 }

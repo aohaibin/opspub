@@ -435,7 +435,7 @@ export function ServerGroupPanel({
   };
 
   return (
-    <div className="glass-card ops-server-group rounded-xl p-3 space-y-3">
+    <div className="glass-card ops-server-group rounded-xl p-3">
       <div
         className="flex items-center justify-between pb-2"
         style={{ borderBottom: "1px solid var(--border)" }}
@@ -449,7 +449,7 @@ export function ServerGroupPanel({
         </span>
       </div>
 
-      <div className="ops-server-group-list custom-scrollbar space-y-1 pr-0.5">
+      <div className="ops-server-group-list custom-scrollbar space-y-1 py-2 pr-0.5">
         {/* 顶部固定分组 (系统预设视图，不可删除/不可重命名) */}
         <div className="space-y-1">
           {/* 预设视图专属标头 */}
@@ -747,7 +747,7 @@ export function ServerGroupPanel({
         </div>
       </Modal>
 
-      <div className="pt-2 space-y-2" style={{ borderTop: "1px solid var(--border)" }}>
+      <div className="mt-auto shrink-0 space-y-2 border-t pt-2" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center justify-between">
           <span
             className="text-[10px] font-medium uppercase tracking-wider"

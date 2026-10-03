@@ -20,3 +20,12 @@ export type {
   TerminalOutputEvent,
   TerminalStatusEvent,
 } from "./terminal";
+export type {
+  DeployTarget,
+  DeployTargetInput,
+  DeployRunRequest,
+  DeploymentHistory,
+  DeployRunResult,
+  DeploymentProgress,
+} from "./deployment";
+export type { AiApproval, AiLockState, CopilotRequest, CopilotToolCall, CopilotResponse, CopilotProgress } from "./copilot";

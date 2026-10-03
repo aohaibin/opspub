@@ -105,13 +105,10 @@ export default function TerminalPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [fontSize, setFontSize] = useState(13);
-  const sessionsRef = useRef<TerminalSessionInfo[]>([]);
   const lineBuffersRef = useRef(new Map<string, string>());
   const setActiveServerId = useAppStore((state) => state.setActiveServerId);
   const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
   const setSharedCredentials = useSshSessionStore((state) => state.setCredentials);
-
-  sessionsRef.current = sessions;
 
   const loadServers = useCallback(async (): Promise<Server[]> => {
     setLoading(true);
@@ -134,6 +131,27 @@ export default function TerminalPage() {
   useEffect(() => {
     void loadServers();
   }, [loadServers]);
+
+  // 终端页面是路由页面，会在切换菜单时卸载；SSH 会话不随页面卸载，
+  // 重新进入时从 Rust 全局会话管理器恢复标签、状态和离线期间的输出。
+  useEffect(() => {
+    let disposed = false;
+    void terminalApi.list().then((restored) => {
+      if (disposed) return;
+      setSessions(restored);
+      setTerminalOutputs(Object.fromEntries(restored.map((session) => [session.sessionId, session.output ?? ""])));
+      setSessionMessages(Object.fromEntries(restored.map((session) => [session.sessionId, session.message ?? ""])));
+      const preferredServerId = routeServerId ?? useAppStore.getState().activeServerId;
+      const preferred = restored.find((session) => session.serverId === preferredServerId) ?? restored[0];
+      if (preferred) {
+        setActiveSessionId(preferred.sessionId);
+        setActiveServerId(preferred.serverId);
+      }
+    }).catch((error) => {
+      if (!disposed) message.error(getErrorMessage(error));
+    });
+    return () => { disposed = true; };
+  }, [routeServerId, setActiveServerId]);
 
   useEffect(() => {
     let disposed = false;
@@ -176,12 +194,6 @@ export default function TerminalPage() {
     };
   }, []);
 
-  useEffect(() => () => {
-    sessionsRef.current.forEach((session) => {
-      void terminalApi.close(session.sessionId);
-    });
-  }, []);
-
   const filteredServers = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return servers;
@@ -213,10 +225,13 @@ export default function TerminalPage() {
       privateKeyPath: credentials.privateKeyPath,
       passphrase: credentials.passphrase,
     });
-    setSessions((current) => [...current, session]);
+    setSessions((current) => current.some((item) => item.sessionId === session.sessionId)
+      ? current.map((item) => item.sessionId === session.sessionId ? session : item)
+      : [...current, session]);
+    setTerminalOutputs((current) => ({ ...current, [session.sessionId]: session.output ?? current[session.sessionId] ?? "" }));
     setSessionMessages((current) => ({
       ...current,
-      [session.sessionId]: "SSH 终端已连接",
+      [session.sessionId]: session.message || "SSH 终端已连接",
     }));
     setActiveSessionId(session.sessionId);
     setActiveServerId(server.id);
@@ -240,13 +255,14 @@ export default function TerminalPage() {
 
   // 服务器资产页的“连接”动作会携带目标主机，进入终端后立即复用会话或打开验证框。
   // 用 ref 保证加载服务器列表、凭证状态变化时不会重复创建同一条终端会话。
-  const autoConnectedServerRef = useRef<number | null>(null);
+  const autoConnectedRouteRef = useRef<string | null>(null);
   useEffect(() => {
+    const routeKey = `${location.key}:${routeServerId}`;
     if (
       routeServerId === null ||
       loading ||
       sshServer !== null ||
-      autoConnectedServerRef.current === routeServerId
+      autoConnectedRouteRef.current === routeKey
     ) {
       return;
     }
@@ -254,7 +270,7 @@ export default function TerminalPage() {
     const server = servers.find((item) => item.id === routeServerId);
     if (!server) return;
 
-    autoConnectedServerRef.current = routeServerId;
+    autoConnectedRouteRef.current = routeKey;
     const existingSession = sessions.find((session) => session.serverId === server.id);
     if (existingSession) {
       setActiveSessionId(existingSession.sessionId);
@@ -262,7 +278,7 @@ export default function TerminalPage() {
       return;
     }
     openConnection(server);
-  }, [loading, openConnection, routeServerId, servers, sessions, setActiveServerId, sshServer]);
+  }, [loading, location.key, openConnection, routeServerId, servers, sessions, setActiveServerId, sshServer]);
 
   const handleCreateServer = async (
     payload: ServerPayload,

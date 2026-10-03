@@ -4,6 +4,8 @@ use tauri::{
     Manager,
 };
 
+use crate::state::AppState;
+
 pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let show = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
@@ -42,6 +44,8 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             "quit" => {
+                app.state::<AppState>().terminals.close_all();
+                app.state::<AppState>().sftps.close_all();
                 app.exit(0);
             }
             _ => {}

@@ -1,7 +1,11 @@
+pub mod audit;
+pub mod batch;
+pub mod copilot;
 pub mod config;
 pub mod credential;
+pub mod database_connection;
+pub mod deployment;
 pub mod server;
-pub mod audit;
-pub mod terminal;
 pub mod sftp;
+pub mod terminal;
 pub mod workbench;

@@ -8,6 +8,10 @@ export const terminalApi = {
   open: (request: TerminalOpenRequest) =>
     invoke<TerminalSessionInfo>("open_terminal_session", { request }),
 
+  list: () => invoke<TerminalSessionInfo[]>("list_terminal_sessions"),
+
+  closeAll: () => invoke<void>("close_all_terminal_sessions"),
+
   write: (sessionId: string, data: string) =>
     invoke<void>("write_terminal_session", { sessionId, data }),
 

@@ -4,6 +4,8 @@ import { Checkbox, Modal, Radio, theme as antdTheme } from "antd";
 import { exit } from "@tauri-apps/plugin-process";
 import { Check, Copy, Minus, Minimize2, Power, Shield, Square, X } from "lucide-react";
 import { configApi } from "@/lib/api";
+import { terminalApi } from "@/lib/api/terminal";
+import { sftpApi } from "@/lib/api/sftp";
 import { useSettingsStore } from "@/store";
 
 type CloseBehavior = "ask" | "minimize" | "exit";
@@ -37,7 +39,13 @@ export function WindowControls() {
       await windowRef.current?.hide();
       return;
     }
-    await exit(0);
+    // 彻底退出前通知 Rust 端关闭所有后台 PTY；切换菜单/最小化不会走这里。
+    try {
+      await terminalApi.closeAll();
+      await sftpApi.closeAll();
+    } finally {
+      await exit(0);
+    }
   }, []);
 
   const requestClose = useCallback(() => {

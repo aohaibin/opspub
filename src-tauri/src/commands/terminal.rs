@@ -25,6 +25,23 @@ pub async fn open_terminal_session(
     })?
 }
 
+/// 列出当前进程仍保持的终端会话，用于切换菜单后恢复标签和屏幕输出。
+#[tauri::command]
+pub fn list_terminal_sessions(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<TerminalSessionInfo>, CommandError> {
+    Ok(state.terminals.list())
+}
+
+/// 应用退出前统一请求关闭所有 SSH PTY 会话。
+#[tauri::command]
+pub fn close_all_terminal_sessions(
+    state: tauri::State<'_, AppState>,
+) -> Result<(), CommandError> {
+    state.terminals.close_all();
+    Ok(())
+}
+
 /// 向远程 PTY 写入原始键盘数据。
 #[tauri::command]
 pub fn write_terminal_session(

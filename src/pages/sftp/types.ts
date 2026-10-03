@@ -36,6 +36,14 @@ export interface SftpRemoteFile {
   owner: string;
 }
 
+export interface SftpSessionInfo {
+  sessionId: string;
+  serverId: number;
+  status: "connected" | "closing" | "error" | string;
+  startedAt: string;
+  message: string;
+}
+
 export interface SftpSessionTab {
   id: string;
   /** 关联的主机 ID，null 表示处于「选择服务器...」选机视图 */

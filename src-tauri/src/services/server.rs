@@ -22,7 +22,7 @@ const CONNECT_TIMEOUT_MS: u64 = 3000;
 const SSH_TIMEOUT_MS: u32 = 10_000;
 
 /// AI 策略允许的档位
-const AI_POLICIES: [&str; 4] = ["trusted", "allowlist", "approval", "denied"];
+const AI_POLICIES: [&str; 8] = ["trusted", "allowlist", "approval", "readonly", "disabled", "denied", "strict", "autonomous"];
 
 /// 服务器管理服务
 pub struct ServerService;

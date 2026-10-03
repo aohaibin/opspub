@@ -12,6 +12,14 @@ impl WorkbenchService {
         db: &Database,
         request: WorkbenchCommandRequest,
     ) -> Result<WorkbenchCommandResult, AppError> {
+        Self::execute_with_timeout(db, request, 30)
+    }
+
+    pub fn execute_with_timeout(
+        db: &Database,
+        request: WorkbenchCommandRequest,
+        timeout_secs: u32,
+    ) -> Result<WorkbenchCommandResult, AppError> {
         let command = request.command.trim();
         if command.is_empty() {
             return Err(AppError::InvalidInput("远程命令不能为空".into()));
@@ -26,6 +34,7 @@ impl WorkbenchService {
                 passphrase: request.passphrase,
             },
         )?;
+        session.set_timeout(timeout_secs.saturating_mul(1000));
         let mut channel = session
             .channel_session()
             .map_err(|error| AppError::Custom(format!("创建工作台命令通道失败: {error}")))?;

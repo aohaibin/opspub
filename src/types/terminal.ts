@@ -11,6 +11,8 @@ export interface TerminalSessionInfo {
   serverId: number;
   status: TerminalSessionStatus;
   startedAt: string;
+  output: string;
+  message: string;
 }
 
 export interface TerminalOutputEvent {

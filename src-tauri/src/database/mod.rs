@@ -1,11 +1,12 @@
 pub mod schema;
+mod copilot_policy;
 
 use std::sync::Mutex;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 
 use crate::error::AppError;
-use crate::models::{AppConfig, AuditLog, Server};
+use crate::models::{AppConfig, AuditLog, DatabaseConnection, Server};
 
 /// 数据库封装，线程安全
 pub struct Database {
@@ -22,6 +23,10 @@ const SERVER_COLUMNS: &str =
      favorite, arch, last_used_at, host_key_fingerprint, last_connection_status, \
      last_connection_message, last_connected_at, allow_sudo, use_local_proxy, bastion_id, \
      ai_username, created_at, updated_at";
+
+const DATABASE_CONNECTION_COLUMNS: &str =
+    "id, name, server_id, engine, host, port, username, database_name, db_index, \
+     is_prod_protect, prod_databases, prod_db_list, ssh_tunnel, ai_tier, created_at, updated_at";
 
 /// 将一行查询结果映射为 Server
 ///
@@ -51,6 +56,27 @@ fn map_server_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Server> {
         ai_username: row.get(20)?,
         created_at: row.get(21)?,
         updated_at: row.get(22)?,
+    })
+}
+
+fn map_database_connection_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DatabaseConnection> {
+    Ok(DatabaseConnection {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        server_id: row.get(2)?,
+        engine: row.get(3)?,
+        host: row.get(4)?,
+        port: row.get(5)?,
+        username: row.get(6)?,
+        database_name: row.get(7)?,
+        db_index: row.get(8)?,
+        is_prod_protect: row.get::<_, i32>(9)? != 0,
+        prod_databases: row.get(10)?,
+        prod_db_list: row.get(11)?,
+        ssh_tunnel: row.get::<_, i32>(12)? != 0,
+        ai_tier: row.get(13)?,
+        created_at: row.get(14)?,
+        updated_at: row.get(15)?,
     })
 }
 
@@ -99,10 +125,12 @@ impl Database {
 
     /// 获取所有配置（排除已软删除的）
     pub fn get_all_config(&self) -> Result<Vec<AppConfig>, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
-        let mut stmt = conn.prepare(
-            "SELECT key, value FROM app_config WHERE deleted_at IS NULL ORDER BY key",
-        )?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let mut stmt = conn
+            .prepare("SELECT key, value FROM app_config WHERE deleted_at IS NULL ORDER BY key")?;
         let configs = stmt
             .query_map([], |row| {
                 Ok(AppConfig {
@@ -116,19 +144,22 @@ impl Database {
 
     /// 获取单个配置（排除已软删除的）
     pub fn get_config(&self, key: &str) -> Result<Option<String>, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
-        let mut stmt = conn.prepare(
-            "SELECT value FROM app_config WHERE key = ?1 AND deleted_at IS NULL",
-        )?;
-        let result = stmt
-            .query_row([key], |row| row.get::<_, String>(0))
-            .ok();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let mut stmt =
+            conn.prepare("SELECT value FROM app_config WHERE key = ?1 AND deleted_at IS NULL")?;
+        let result = stmt.query_row([key], |row| row.get::<_, String>(0)).ok();
         Ok(result)
     }
 
     /// 设置配置（upsert）
     pub fn set_config(&self, key: &str, value: &str) -> Result<(), AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         conn.execute(
             "INSERT INTO app_config (key, value, updated_at)
              VALUES (?1, ?2, datetime('now', 'localtime'))
@@ -142,7 +173,10 @@ impl Database {
 
     /// 软删除配置（设置 deleted_at 而非物理删除）
     pub fn delete_config(&self, key: &str) -> Result<bool, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let affected = conn.execute(
             "UPDATE app_config SET deleted_at = datetime('now', 'localtime') WHERE key = ?1 AND deleted_at IS NULL",
             [key],
@@ -153,7 +187,10 @@ impl Database {
     /// 物理删除配置（永久删除，不可恢复）
     #[allow(dead_code)]
     pub fn hard_delete_config(&self, key: &str) -> Result<bool, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let affected = conn.execute("DELETE FROM app_config WHERE key = ?1", [key])?;
         Ok(affected > 0)
     }
@@ -161,7 +198,10 @@ impl Database {
     /// 恢复已软删除的配置
     #[allow(dead_code)]
     pub fn restore_config(&self, key: &str) -> Result<bool, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let affected = conn.execute(
             "UPDATE app_config SET deleted_at = NULL WHERE key = ?1 AND deleted_at IS NOT NULL",
             [key],
@@ -173,7 +213,10 @@ impl Database {
 
     /// 获取所有服务器
     pub fn get_all_servers(&self) -> Result<Vec<Server>, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let mut stmt = conn.prepare(&format!(
             "SELECT {} FROM servers ORDER BY alias",
             SERVER_COLUMNS
@@ -186,7 +229,10 @@ impl Database {
 
     /// 按 ID 获取单台服务器
     pub fn get_server_by_id(&self, id: i64) -> Result<Option<Server>, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let mut stmt = conn.prepare(&format!(
             "SELECT {} FROM servers WHERE id = ?1",
             SERVER_COLUMNS
@@ -214,7 +260,10 @@ impl Database {
         bastion_id: Option<i64>,
         ai_username: &str,
     ) -> Result<i64, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         conn.execute(
             "INSERT INTO servers (alias, hostname, port, username, auth_type, tags, `group`, ai_policy, os_type, arch, allow_sudo, use_local_proxy, bastion_id, ai_username, created_at, updated_at)
@@ -244,7 +293,10 @@ impl Database {
         bastion_id: Option<i64>,
         ai_username: &str,
     ) -> Result<(), AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         conn.execute(
             "UPDATE servers SET alias=?1, hostname=?2, port=?3, username=?4, auth_type=?5, tags=?6, `group`=?7, ai_policy=?8, os_type=?9, arch=?10, allow_sudo=?11, use_local_proxy=?12, bastion_id=?13, ai_username=?14, updated_at=datetime('now','localtime')
              WHERE id=?15",
@@ -255,7 +307,10 @@ impl Database {
 
     /// 删除服务器
     pub fn delete_server(&self, id: i64) -> Result<bool, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let affected = conn.execute("DELETE FROM servers WHERE id = ?1", [id])?;
         Ok(affected > 0)
     }
@@ -265,7 +320,10 @@ impl Database {
         if ids.is_empty() {
             return Ok(0);
         }
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let sql = format!(
             "DELETE FROM servers WHERE id IN ({})",
             placeholders(ids.len(), 1)
@@ -279,7 +337,10 @@ impl Database {
         if ids.is_empty() {
             return Ok(0);
         }
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         // 新增值固定占 ?1，id 列表从 ?2 开始，避免在参数迭代里混入不同类型
         let sql = format!(
             "UPDATE servers SET ai_policy = ?1, updated_at = datetime('now','localtime') \
@@ -303,7 +364,10 @@ impl Database {
         if ids.is_empty() || new_tags.is_empty() {
             return Ok(0);
         }
-        let mut conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let tx = conn.transaction()?;
         let mut handled = 0usize;
 
@@ -339,7 +403,10 @@ impl Database {
 
     /// 切换收藏状态
     pub fn set_favorite(&self, id: i64, favorite: bool) -> Result<bool, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let affected = conn.execute(
             "UPDATE servers SET favorite = ?1, updated_at = datetime('now','localtime') WHERE id = ?2",
             rusqlite::params![favorite, id],
@@ -349,7 +416,10 @@ impl Database {
 
     /// 刷新「最近探活」时间（成功连通后调用），供「最近用过」分组排序
     pub fn touch_last_used(&self, id: i64) -> Result<(), AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         conn.execute(
             "UPDATE servers SET last_used_at = datetime('now','localtime') WHERE id = ?1",
             [id],
@@ -368,7 +438,10 @@ impl Database {
         fingerprint: &str,
         arch: &str,
     ) -> Result<(), AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         conn.execute(
             "UPDATE servers SET
                 last_connection_status = ?1,
@@ -384,6 +457,83 @@ impl Database {
         Ok(())
     }
 
+    // ─── 数据库连接 DAO ────────────────────────────────────────────────
+
+    pub fn get_all_database_connections(&self) -> Result<Vec<DatabaseConnection>, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {} FROM database_connections ORDER BY name",
+            DATABASE_CONNECTION_COLUMNS
+        ))?;
+        let result = stmt
+            .query_map([], map_database_connection_row)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(AppError::from);
+        result
+    }
+
+    pub fn get_database_connection(&self, id: i64) -> Result<Option<DatabaseConnection>, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {} FROM database_connections WHERE id = ?1",
+            DATABASE_CONNECTION_COLUMNS
+        ))?;
+        stmt.query_row([id], map_database_connection_row)
+            .optional()
+            .map_err(AppError::from)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_database_connection(
+        &self,
+        name: &str,
+        server_id: i64,
+        engine: &str,
+        host: &str,
+        port: i32,
+        username: &str,
+        database_name: &str,
+        db_index: i32,
+        is_prod_protect: bool,
+        prod_databases: &str,
+        prod_db_list: &str,
+        ssh_tunnel: bool,
+        ai_tier: &str,
+    ) -> Result<i64, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        conn.execute(
+            "INSERT INTO database_connections
+             (name, server_id, engine, host, port, username, database_name, db_index,
+              is_prod_protect, prod_databases, prod_db_list, ssh_tunnel, ai_tier, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?14)",
+            rusqlite::params![
+                name, server_id, engine, host, port, username, database_name, db_index,
+                is_prod_protect as i32, prod_databases, prod_db_list, ssh_tunnel as i32,
+                ai_tier, now
+            ],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn delete_database_connection(&self, id: i64) -> Result<bool, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let affected = conn.execute("DELETE FROM database_connections WHERE id = ?1", [id])?;
+        Ok(affected > 0)
+    }
+
     // ─── 审核日志 DAO ────────────────────────────────
 
     /// 添加审核日志
@@ -394,7 +544,10 @@ impl Database {
         user: &str,
         result: &str,
     ) -> Result<i64, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         conn.execute(
             "INSERT INTO audit_logs (server_alias, command, user, result, created_at)
@@ -406,20 +559,25 @@ impl Database {
 
     /// 获取审核日志（最近 N 条）
     pub fn get_audit_logs(&self, limit: i32) -> Result<Vec<AuditLog>, AppError> {
-        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
         let mut stmt = conn.prepare(
             "SELECT id, server_alias, command, user, result, created_at
              FROM audit_logs ORDER BY created_at DESC LIMIT ?1",
         )?;
         let logs = stmt
-            .query_map(rusqlite::params![limit], |row| Ok(AuditLog {
-                id: row.get(0)?,
-                server_alias: row.get(1)?,
-                command: row.get(2)?,
-                user: row.get(3)?,
-                result: row.get(4)?,
-                created_at: row.get(5)?,
-            }))?
+            .query_map(rusqlite::params![limit], |row| {
+                Ok(AuditLog {
+                    id: row.get(0)?,
+                    server_alias: row.get(1)?,
+                    command: row.get(2)?,
+                    user: row.get(3)?,
+                    result: row.get(4)?,
+                    created_at: row.get(5)?,
+                })
+            })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(logs)
     }

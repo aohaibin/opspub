@@ -9,7 +9,10 @@
  */
 
 import { useEffect, useState } from "react";
+import { message } from "antd";
 import { ChevronDown, Power } from "lucide-react";
+import { copilotApi } from "@/lib/api/copilot";
+import { getErrorMessage } from "@/lib/api/client";
 import { useAppStore, UNLOCK_DURATIONS, type UnlockDuration } from "@/store/app";
 import { HeaderDropdown } from "./HeaderDropdown";
 
@@ -27,12 +30,35 @@ export function AiLockControl() {
   const aiLocked = useAppStore((s) => s.aiLocked);
   const aiUnlockUntil = useAppStore((s) => s.aiUnlockUntil);
   const aiUnlockDuration = useAppStore((s) => s.aiUnlockDuration);
-  const setAiLocked = useAppStore((s) => s.setAiLocked);
+  const setAiLockState = useAppStore((s) => s.setAiLockState);
   const setAiUnlockDuration = useAppStore((s) => s.setAiUnlockDuration);
   const syncAiLock = useAppStore((s) => s.syncAiLock);
 
   // 每秒重算一次剩余时间。放行到期由 syncAiLock 负责翻回锁定态。
   const [now, setNow] = useState(() => Date.now());
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => void copilotApi.getLock().then((state) => {
+      if (active) {
+        if (!state.locked && state.unlockUntil === null) setAiUnlockDuration("forever");
+        setAiLockState(state.locked, state.unlockUntil === null ? null : state.unlockUntil * 1000);
+      }
+    }).catch((error) => { if (active) message.error(getErrorMessage(error)); });
+    refresh();
+    const timer = window.setInterval(refresh, 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [setAiLockState, setAiUnlockDuration]);
+
+  const changeLock = async (duration: "locked" | UnlockDuration) => {
+    setSaving(true);
+    try {
+      const state = await copilotApi.setLock(duration);
+      if (duration !== "locked") setAiUnlockDuration(duration);
+      setAiLockState(state.locked, state.unlockUntil === null ? null : state.unlockUntil * 1000);
+    } catch (error) { message.error(getErrorMessage(error)); }
+    finally { setSaving(false); }
+  };
   useEffect(() => {
     if (aiLocked || aiUnlockUntil === null) return;
     const timer = window.setInterval(() => {
@@ -100,7 +126,8 @@ export function AiLockControl() {
           </span>
           <button
             type="button"
-            onClick={() => setAiLocked(!aiLocked)}
+            disabled={saving}
+            onClick={() => void changeLock(aiLocked ? aiUnlockDuration : "locked")}
             title="点击解锁或锁定"
             style={{
               position: "relative",
@@ -166,7 +193,8 @@ export function AiLockControl() {
                 <button
                   key={d.id}
                   type="button"
-                  onClick={() => setAiUnlockDuration(d.id as UnlockDuration)}
+                  disabled={saving}
+                  onClick={() => void changeLock(d.id as UnlockDuration)}
                   style={{
                     padding: "4px 0",
                     borderRadius: 8,

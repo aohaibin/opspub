@@ -79,6 +79,17 @@ pub struct SftpFileEntry {
     pub owner: String,
 }
 
+/// 当前进程中保持的 SFTP 会话摘要。凭据和 SSH 句柄只保留在 Rust 后台线程中。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpSessionInfo {
+    pub session_id: String,
+    pub server_id: i64,
+    pub status: String,
+    pub started_at: String,
+    pub message: String,
+}
+
 /// SFTP 上传请求。文件内容由前端通过 IPC 传入，避免在 Rust 侧暴露本地路径。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -153,6 +164,134 @@ pub struct WorkbenchCommandResult {
     pub exit_code: i32,
 }
 
+/// AI 助手请求。凭据不属于此结构，远端连接由 Rust 从系统凭据管理器读取。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotRequest {
+    pub message: String,
+    pub server_id: Option<i64>,
+    pub provider: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotToolCall {
+    pub tool: String,
+    pub server_alias: Option<String>,
+    pub status: String,
+    pub output: String,
+    pub approval_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotResponse {
+    pub reply: String,
+    pub tool_calls: Vec<CopilotToolCall>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotProgress {
+    pub stage: String,
+    pub message: String,
+    pub server_alias: Option<String>,
+    pub completed: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiLockState {
+    pub locked: bool,
+    pub unlock_until: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiApproval {
+    pub id: i64,
+    pub server_id: i64,
+    pub server_alias: String,
+    pub action: String,
+    pub command: String,
+    pub status: String,
+    pub requested_at: i64,
+    pub expires_at: i64,
+    pub decided_at: Option<i64>,
+    pub finished_at: Option<i64>,
+    pub result: String,
+}
+
+/// 部署目标配置。凭据不属于目标配置，远端执行时由系统凭据管理器读取。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeployTarget {
+    pub id: String,
+    pub name: String,
+    pub server_id: i64,
+    pub recipe: String,
+    pub remote_path: String,
+    pub artifact_path: String,
+    pub health_command: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// 创建或更新部署目标的请求。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeployTargetInput {
+    pub id: Option<String>,
+    pub name: String,
+    pub server_id: i64,
+    pub recipe: String,
+    pub remote_path: String,
+    pub artifact_path: Option<String>,
+    pub health_command: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeployRunRequest {
+    pub target_id: String,
+    pub version: Option<String>,
+    pub timeout_secs: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentHistory {
+    pub id: String,
+    pub target_id: String,
+    pub target_name: String,
+    pub version: String,
+    pub action: String,
+    pub status: String,
+    pub output: String,
+    pub error: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeployRunResult {
+    pub history: DeploymentHistory,
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: i32,
+    pub duration_ms: u128,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentProgress {
+    pub target_id: String,
+    pub stage: String,
+    pub message: String,
+    pub completed: bool,
+}
+
 /// 连通性探测结果
 ///
 /// 探测为纯 TCP 三次握手，不涉及认证：握手成功只代表「网络可达 + 端口有服务监听」，
@@ -192,6 +331,110 @@ pub struct StoredSshCredential {
     pub passphrase: Option<String>,
 }
 
+/// 数据库连接配置。数据库密码只保存在系统凭据管理器中，不会出现在该结构或 SQLite 中。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseConnection {
+    pub id: i64,
+    pub name: String,
+    pub server_id: i64,
+    pub engine: String,
+    pub host: String,
+    pub port: i32,
+    pub username: String,
+    pub database_name: String,
+    pub db_index: i32,
+    pub is_prod_protect: bool,
+    pub prod_databases: String,
+    pub prod_db_list: String,
+    pub ssh_tunnel: bool,
+    pub ai_tier: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// 新建数据库连接请求。password 仅在 IPC 调用期间使用，成功后立即写入系统凭据管理器。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseConnectionInput {
+    pub name: String,
+    pub server_id: i64,
+    pub engine: String,
+    pub host: String,
+    pub port: i32,
+    #[serde(default)]
+    pub username: String,
+    #[serde(default)]
+    pub database_name: String,
+    #[serde(default)]
+    pub db_index: i32,
+    #[serde(default)]
+    pub password: Option<String>,
+    #[serde(default)]
+    pub is_prod_protect: bool,
+    #[serde(default)]
+    pub prod_databases: String,
+    #[serde(default)]
+    pub prod_db_list: String,
+    #[serde(default)]
+    pub ssh_tunnel: bool,
+    #[serde(default = "default_database_ai_tier")]
+    pub ai_tier: String,
+}
+
+fn default_database_ai_tier() -> String {
+    "default".to_string()
+}
+
+/// 数据库查询请求。password 不从前端传递，服务端按连接 ID 从系统凭据管理器读取。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseQueryRequest {
+    pub connection_id: i64,
+    pub sql: String,
+    #[serde(default)]
+    pub database_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseQueryResult {
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+    pub affected_rows: usize,
+    pub time_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseProbeResult {
+    pub ok: bool,
+    pub message: String,
+    pub latency_ms: Option<u64>,
+}
+
+/// SQL 数据库中的表/视图摘要，用于数据库工作台的“结构”浏览器。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseTableItem {
+    pub name: String,
+    pub table_type: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RedisKeyItem {
+    pub key: String,
+    pub key_type: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MongoCollectionItem {
+    pub name: String,
+    pub document_count: Option<u64>,
+}
+
 /// SSH 认证及只读系统摘要探测结果
 #[derive(Debug, Clone, Serialize)]
 pub struct SshProbeResult {
@@ -227,6 +470,10 @@ pub struct TerminalSessionInfo {
     pub server_id: i64,
     pub status: String,
     pub started_at: String,
+    /// 会话离开终端页面期间累积的输出，重新进入时用于恢复显示。
+    pub output: String,
+    /// 最近一次生命周期状态提示。
+    pub message: String,
 }
 
 /// SSH PTY 输出事件。

@@ -66,6 +66,7 @@ import {
   type RemoteFileItem,
   type SftpLayoutMode,
   type SftpCredentials,
+  type SftpSessionInfo,
   type SftpSessionTab,
   type SftpViewMode,
 } from "./types";
@@ -145,6 +146,9 @@ export default function SftpPage() {
 
   // 多标签页状态
   const [tabs, setTabs] = useState<SftpSessionTab[]>([]);
+  const [restoredSessions, setRestoredSessions] = useState<SftpSessionInfo[]>([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const restoredDirectoryIdsRef = useRef(new Set<string>());
   const [activeTabId, setActiveTabId] = useState<string>("picker");
   const [secondaryTabId, setSecondaryTabId] = useState<string | null>(null);
 
@@ -327,9 +331,46 @@ export default function SftpPage() {
     void loadServers();
   }, [loadServers]);
 
+  // SFTP 会话由 Rust 全局管理器持有，页面重新挂载时只恢复标签视图，不重新握手。
+  useEffect(() => {
+    let disposed = false;
+    void sftpApi.listSessions()
+      .then((sessions) => {
+        if (!disposed) setRestoredSessions(sessions);
+      })
+      .catch((error) => {
+        if (!disposed) message.error(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (!disposed) setSessionsLoaded(true);
+      });
+    return () => { disposed = true; };
+  }, []);
+
   // 初始化：默认打开一个「选择服务器...」标签，与截图 1 对应
   useEffect(() => {
-    if (tabs.length === 0) {
+    if (!sessionsLoaded || loadingServers || tabs.length !== 0) return;
+    const restoredTabs: SftpSessionTab[] = [];
+    restoredSessions.forEach((session) => {
+      const server = servers.find((item) => item.id === session.serverId);
+      if (!server) return;
+      restoredTabs.push({
+        id: session.sessionId,
+        serverId: server.id,
+        serverName: server.alias || server.hostname,
+        serverHost: `${server.hostname}:${server.port}`,
+        serverUser: server.username,
+        currentPath: "/root",
+        history: ["/root"],
+        historyIndex: 0,
+      });
+    });
+    if (restoredTabs.length > 0) {
+      setTabs(restoredTabs);
+      setActiveTabId(routeServerId && restoredTabs.some((tab) => tab.serverId === routeServerId)
+        ? restoredTabs.find((tab) => tab.serverId === routeServerId)?.id ?? restoredTabs[0].id
+        : restoredTabs[0].id);
+    } else {
       const defaultTab: SftpSessionTab = {
         id: "picker-tab-default",
         serverId: null,
@@ -343,7 +384,7 @@ export default function SftpPage() {
       setTabs([defaultTab]);
       setActiveTabId(defaultTab.id);
     }
-  }, [tabs.length]);
+  }, [loadingServers, restoredSessions, routeServerId, servers, sessionsLoaded, tabs.length]);
 
   // 左侧（主）激活的标签对象
   const activeLeftTab = useMemo(() => {
@@ -397,6 +438,17 @@ export default function SftpPage() {
     },
     [credentialsByServer, tabs],
   );
+
+  useEffect(() => {
+    if (!sessionsLoaded) return;
+    tabs.forEach((tab) => {
+      if (!tab.serverId || restoredDirectoryIdsRef.current.has(tab.id)) return;
+      const credentials = credentialsByServer[tab.serverId];
+      if (!credentials) return;
+      restoredDirectoryIdsRef.current.add(tab.id);
+      void loadRemoteDirectory(tab.id, tab.currentPath, credentials);
+    });
+  }, [credentialsByServer, loadRemoteDirectory, sessionsLoaded, tabs]);
 
   const openSessionForServer = useCallback(
     (server: Server, targetPane: "left" | "right", credentials: SftpCredentials) => {
@@ -461,6 +513,7 @@ export default function SftpPage() {
     if (
       routeServerId === null ||
       loadingServers ||
+      !sessionsLoaded ||
       sshServer !== null ||
       autoConnectedServerRef.current === routeServerId
     ) {
@@ -472,11 +525,18 @@ export default function SftpPage() {
 
     autoConnectedServerRef.current = routeServerId;
     handleConnectServer(server);
-  }, [handleConnectServer, loadingServers, routeServerId, servers, sshServer]);
+  }, [handleConnectServer, loadingServers, routeServerId, servers, sessionsLoaded, sshServer]);
 
   // 关闭单个标签
   const handleCloseTab = (tabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const closingTab = tabs.find((tab) => tab.id === tabId);
+    if (closingTab?.serverId) {
+      // 关闭标签即用户明确关闭该服务器的 SFTP 会话；页面卸载本身不会触发这里。
+      void sftpApi.close(closingTab.serverId).catch((error) => {
+        message.error(getErrorMessage(error));
+      });
+    }
     if (tabs.length <= 1) {
       const resetTab: SftpSessionTab = {
         id: "picker-tab-default",
@@ -537,6 +597,9 @@ export default function SftpPage() {
     setActiveTabId(defaultTab.id);
     setSecondaryTabId(null);
     setCloseAllModalOpen(false);
+    void sftpApi.closeAll().catch((error) => {
+      message.error(getErrorMessage(error));
+    });
     message.success("已成功关闭全部 SFTP 会话");
   };
 

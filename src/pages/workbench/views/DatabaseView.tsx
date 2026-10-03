@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button, Form, Input, Modal, Select, Switch, Table, message } from "antd";
 import {
   Database,
@@ -16,17 +16,24 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  Server,
   Wifi,
   X,
+  Download,
+  ChevronRight,
+  Folder,
+  Table2,
+  Terminal,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/client";
+import { databaseApi, type DatabaseConnection, type DatabaseTableItem, type MongoCollectionItem, type RedisKeyItem } from "@/lib/api/database";
+import { serverApi } from "@/lib/api/server";
 import { useWorkbenchRuntime } from "../context";
 
 export type DatabaseSubTab = "sql" | "redis" | "mongodb";
 
 interface DbConnectionItem {
   id: string;
+  serverId: number;
   name: string;
   server: string;
   type: string;
@@ -43,6 +50,7 @@ interface DbConnectionItem {
 
 interface RedisConnectionItem {
   id: string;
+  serverId: number;
   name: string;
   server: string;
   type: "Redis";
@@ -62,16 +70,20 @@ interface SqlTabItem {
   sql: string;
 }
 
-interface MockRow {
-  id: number;
-  username: string;
-  role: string;
-  status: string;
-  created_at: string;
+type QueryRow = Record<string, string>;
+
+function displayEngineName(engine: string): string {
+  if (engine.toLowerCase() === "mysql") return "MySQL";
+  if (engine.toLowerCase() === "mariadb") return "MariaDB";
+  if (engine.toLowerCase() === "postgresql") return "PostgreSQL";
+  if (engine.toLowerCase() === "mongodb") return "MongoDB";
+  if (engine.toLowerCase() === "redis") return "Redis";
+  if (engine.toLowerCase() === "clickhouse") return "ClickHouse";
+  return engine;
 }
 
 export const DatabaseView: React.FC = () => {
-  const { runCommand } = useWorkbenchRuntime();
+  const { server } = useWorkbenchRuntime();
 
   // 子标签状态
   const [subTab, setSubTab] = useState<DatabaseSubTab>("sql");
@@ -81,6 +93,19 @@ export const DatabaseView: React.FC = () => {
   const [redisConnections, setRedisConnections] = useState<RedisConnectionItem[]>([]);
   const [mongoConnections, setMongoConnections] = useState<DbConnectionItem[]>([]);
   const [filterText, setFilterText] = useState("");
+  const [serverFilter, setServerFilter] = useState("all");
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
+  const [expandedConnectionIds, setExpandedConnectionIds] = useState<Record<string, boolean>>({});
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [snippetsOpen, setSnippetsOpen] = useState(false);
+  const [queryHistory, setQueryHistory] = useState<Array<{ sql: string; createdAt: string }>>([]);
+  const [serverNames, setServerNames] = useState<Record<number, string>>({});
+  const [availableServers, setAvailableServers] = useState<Array<{ id: number; alias: string; hostname: string; port: number }>>([]);
+  const [databaseOptions, setDatabaseOptions] = useState<Record<string, string[]>>({});
+  const [databaseLoading, setDatabaseLoading] = useState<Record<string, boolean>>({});
+  const [structureOpen, setStructureOpen] = useState(false);
+  const [structureLoading, setStructureLoading] = useState(false);
+  const [structureTables, setStructureTables] = useState<DatabaseTableItem[]>([]);
 
   // 查询标签页
   const [sqlTabs, setSqlTabs] = useState<SqlTabItem[]>([
@@ -93,8 +118,15 @@ export const DatabaseView: React.FC = () => {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [selectedDb, setSelectedDb] = useState<string>("");
   const [executing, setExecuting] = useState(false);
-  const [resultRows, setResultRows] = useState<MockRow[] | null>(null);
+  const [resultRows, setResultRows] = useState<QueryRow[] | null>(null);
+  const [resultColumnNames, setResultColumnNames] = useState<string[]>([]);
   const [execStats, setExecStats] = useState<{ affected: number; timeMs: number } | null>(null);
+
+  const [redisKeys, setRedisKeys] = useState<RedisKeyItem[]>([]);
+  const [redisPattern, setRedisPattern] = useState("*");
+  const [redisValue, setRedisValue] = useState<string | null>(null);
+  const [mongoCollections, setMongoCollections] = useState<MongoCollectionItem[]>([]);
+  const [mongoDocuments, setMongoDocuments] = useState<QueryRow[]>([]);
 
   // 新建 DB 凭据弹窗 (截图 2 & 3)
   const [dbModalOpen, setDbModalOpen] = useState(false);
@@ -113,6 +145,107 @@ export const DatabaseView: React.FC = () => {
   const [redisPasswordVisible, setRedisPasswordVisible] = useState(false);
   const [testRedisLoading, setTestRedisLoading] = useState(false);
   const [redisValidationFailed, setRedisValidationFailed] = useState(false);
+
+  const mapConnection = (connection: DatabaseConnection, aliases = serverNames): DbConnectionItem | RedisConnectionItem => {
+    const base = {
+      id: String(connection.id),
+      serverId: connection.serverId,
+      name: connection.name,
+      server: aliases[connection.serverId] ?? `server-${connection.serverId}`,
+      host: connection.host,
+      port: String(connection.port),
+      isProdProtect: connection.isProdProtect,
+      sshTunnel: connection.sshTunnel,
+      aiTier: connection.aiTier,
+      createdAt: connection.createdAt,
+    };
+    if (connection.engine === "redis") {
+      return {
+        ...base,
+        type: "Redis",
+        dbIndex: String(connection.dbIndex),
+        prodDbList: connection.prodDbList,
+      };
+    }
+    return {
+      ...base,
+      type: connection.engine === "mongodb" ? "MongoDB" : connection.engine,
+      user: connection.username,
+      database: connection.databaseName,
+      prodDatabases: connection.prodDatabases,
+    };
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([databaseApi.list(), serverApi.list()])
+      .then(([connections, servers]) => {
+        if (cancelled) return;
+        const aliases = Object.fromEntries(servers.map((item) => [item.id, item.alias]));
+        setServerNames(aliases);
+        setAvailableServers(servers.map((item) => ({ id: item.id, alias: item.alias, hostname: item.hostname, port: item.port })));
+        const mapped = connections.map((connection) => mapConnection(connection, aliases));
+        setSqlConnections(mapped.filter((connection): connection is DbConnectionItem => connection.type !== "Redis" && connection.type !== "MongoDB"));
+        setRedisConnections(mapped.filter((connection): connection is RedisConnectionItem => connection.type === "Redis"));
+        setMongoConnections(mapped.filter((connection): connection is DbConnectionItem => connection.type === "MongoDB"));
+      })
+      .catch((error) => {
+        if (!cancelled) message.error(getErrorMessage(error));
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeConnections = useMemo(() => {
+    if (subTab === "redis") return redisConnections;
+    if (subTab === "mongodb") return mongoConnections;
+    return sqlConnections;
+  }, [mongoConnections, redisConnections, sqlConnections, subTab]);
+
+  const filteredConnections = useMemo(() => {
+    const query = filterText.trim().toLowerCase();
+    return activeConnections.filter((connection) => {
+      const matchesServer =
+        serverFilter === "all" ||
+        String(connection.serverId) === serverFilter ||
+        connection.server === serverFilter ||
+        connection.server === `server-${serverFilter}` ||
+        (server && connection.server.includes(server.alias) && serverFilter === String(server.id));
+      const matchesQuery = !query || [connection.name, connection.server, connection.host, connection.type]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+      return matchesServer && matchesQuery;
+    });
+  }, [activeConnections, filterText, server, serverFilter]);
+
+  const selectedConnection = useMemo(
+    () => activeConnections.find((connection) => connection.id === selectedConnectionId) ?? null,
+    [activeConnections, selectedConnectionId],
+  );
+
+  const selectConnection = (connection: DbConnectionItem | RedisConnectionItem) => {
+    setSelectedConnectionId(connection.id);
+    setExpandedConnectionIds((current) => ({ ...current, [connection.id]: true }));
+    if ("database" in connection) {
+      setSelectedDb(connection.database ?? "");
+      void handleLoadSqlDatabases(connection.id, true);
+    }
+  };
+
+  const handleLoadSqlDatabases = async (connectionId: string, selectFirst = false) => {
+    setDatabaseLoading((current) => ({ ...current, [connectionId]: true }));
+    try {
+      const names = await databaseApi.listDatabases(Number(connectionId));
+      setDatabaseOptions((current) => ({ ...current, [connectionId]: names }));
+      if (selectFirst && names.length > 0) {
+        setSelectedDb((current) => current && names.includes(current) ? current : names[0]);
+      }
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setDatabaseLoading((current) => ({ ...current, [connectionId]: false }));
+    }
+  };
 
   // 当前活跃标签的 SQL 内容
   const currentTab = sqlTabs.find((t) => t.id === activeTabId) || sqlTabs[0];
@@ -186,72 +319,72 @@ export const DatabaseView: React.FC = () => {
       message.warning("⚠️ 请输入或由 AI 生成要执行的 SQL 语句");
       return;
     }
+    if (!selectedConnection) {
+      message.warning("请先在左侧连接树选择数据库连接");
+      return;
+    }
+    if (!selectedDb) {
+      message.warning("请先选择要执行的数据库");
+      return;
+    }
+    setQueryHistory((current) => [
+      { sql, createdAt: new Date().toLocaleString() },
+      ...current,
+    ].slice(0, 50));
     setExecuting(true);
     try {
-      if (selectedDb && runCommand) {
-        // 尝试通过后台真实命令执行
-        try {
-          const res = await runCommand(`mysql --batch --raw -D ${selectedDb} -e ${JSON.stringify(sql)}`);
-          if (res.exitCode === 0 && res.stdout) {
-            // 解析 TSV 结果
-            const lines = res.stdout.split(/\r?\n/).filter(Boolean);
-            if (lines.length > 1) {
-              const rows: MockRow[] = lines.slice(1).map((line, idx) => {
-                const cols = line.split("\t");
-                return {
-                  id: idx + 1,
-                  username: cols[1] || cols[0] || `user_${idx + 1}`,
-                  role: cols[2] || "user",
-                  status: cols[3] || "normal",
-                  created_at: cols[4] || new Date().toISOString().replace("T", " ").slice(0, 19),
-                };
-              });
-              setResultRows(rows);
-              setExecStats({ affected: rows.length, timeMs: 14 });
-              message.success(`⚡ SQL 执行成功，返回 ${rows.length} 行记录 (耗时 14ms)`);
-              setExecuting(false);
-              return;
-            }
-          }
-        } catch {
-          // fallback to simulated execution if mysql CLI is not connected on remote host
-        }
-      }
-
-      // 模拟标准执行结果
-      setTimeout(() => {
-        const mockData: MockRow[] = [
-          { id: 1, username: "admin", role: "super_admin", status: "正常", created_at: "2026-09-01 10:00:00" },
-          { id: 2, username: "ops_sentry", role: "ops_lead", status: "正常", created_at: "2026-09-02 11:22:31" },
-          { id: 3, username: "dev_guest", role: "developer", status: "受限", created_at: "2026-09-15 14:05:18" },
-          { id: 4, username: "analyst_01", role: "auditor", status: "正常", created_at: "2026-09-18 09:12:44" },
-          { id: 5, username: "ci_robot", role: "service_account", status: "正常", created_at: "2026-09-20 16:30:00" },
-        ];
-        setResultRows(mockData);
-        setExecStats({ affected: 24, timeMs: 12 });
-        setExecuting(false);
-        message.success("⚡ SQL 执行成功，返回 24 行记录 (耗时 12ms)");
-      }, 350);
+      const result = await databaseApi.query(Number(selectedConnection.id), sql, selectedDb);
+      const rows = result.rows.map((row) => Object.fromEntries(
+        result.columns.map((column, index) => [column, row[index] ?? ""]),
+      ));
+      setResultColumnNames(result.columns);
+      setResultRows(rows);
+      setExecStats({ affected: result.affectedRows, timeMs: result.timeMs });
+      message.success(`SQL 执行成功，返回 ${result.rows.length} 行（耗时 ${result.timeMs}ms）`);
     } catch (err) {
-      setExecuting(false);
       message.error(getErrorMessage(err));
+    } finally {
+      setExecuting(false);
     }
   };
 
-  // 解释 SQL 执行计划
-  const handleExplainSql = () => {
+  // 解释 SQL 执行计划：通过远端数据库的 EXPLAIN 返回真实结果。
+  const handleExplainSql = async () => {
     const sql = currentTab?.sql?.trim();
     if (!sql) {
       message.warning("⚠️ 请输入要分析解释的 SQL 语句");
       return;
     }
-    message.info("🔍 EXPLAIN 分析完成: 命中 idx_status 索引，预估扫描 1 行，类型 ref，全表扫描已成功规避");
+    if (!selectedConnection || selectedConnection.type === "Redis" || selectedConnection.type === "MongoDB") {
+      message.warning("请先选择 SQL 数据库连接");
+      return;
+    }
+    if (!selectedDb) {
+      message.warning("请先选择要执行的数据库");
+      return;
+    }
+    setExecuting(true);
+    try {
+      const explainSql = /^\s*explain\b/i.test(sql) ? sql : `EXPLAIN ${sql}`;
+      const result = await databaseApi.query(Number(selectedConnection.id), explainSql, selectedDb);
+      setResultColumnNames(result.columns);
+      setResultRows(result.rows.map((row) => Object.fromEntries(
+        result.columns.map((column, index) => [column, row[index] ?? ""]),
+      )));
+      setExecStats({ affected: result.affectedRows, timeMs: result.timeMs });
+      message.success(`EXPLAIN 已完成（${result.timeMs}ms）`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setExecuting(false);
+    }
   };
 
   // 清空编辑器
   const handleClearSql = () => {
     updateCurrentTabSql("");
     setResultRows(null);
+    setResultColumnNames([]);
     setExecStats(null);
     message.info("SQL 编辑器已清空");
   };
@@ -259,8 +392,9 @@ export const DatabaseView: React.FC = () => {
   // 打开新建 DB 凭据弹窗
   const handleOpenDbModal = (presetType = "MySQL") => {
     dbForm.resetFields();
+    const defaultServerId = server?.id ?? availableServers[0]?.id;
     dbForm.setFieldsValue({
-      server: "server-1",
+      server: defaultServerId ? `server-${defaultServerId}` : undefined,
       type: presetType,
       aiTier: "default",
       port: presetType === "PostgreSQL" ? "5432" : presetType === "MongoDB" ? "27017" : "3306",
@@ -273,18 +407,73 @@ export const DatabaseView: React.FC = () => {
   };
 
   // 测试 DB 连接
-  const handleTestDbConn = () => {
-    setTestDbLoading(true);
-    message.loading({ content: "📡 正在通过本地驱动发起目标数据库握手探测...", key: "testDb" });
-    setTimeout(() => {
+  const handleTestDbConn = async () => {
+    try {
+      const values = await dbForm.validateFields();
+      const serverId = Number(String(values.server ?? "").replace("server-", ""));
+      if (!Number.isInteger(serverId) || serverId <= 0) throw new Error("请选择 SSH 服务器");
+      setTestDbLoading(true);
+      const probe = await databaseApi.testDraft({
+        name: values.name || "临时连接",
+        serverId,
+        engine: values.type || "MySQL",
+        host: values.host || "127.0.0.1",
+        port: Number(values.port || 3306),
+        username: values.user || "root",
+        databaseName: values.database || "",
+        password: values.password || undefined,
+        isProdProtect: dbProdProtect,
+        prodDatabases: values.prodDatabases || "",
+        sshTunnel: dbSshTunnel,
+        aiTier: values.aiTier || "default",
+      });
+      if (!probe.ok) throw new Error(probe.message || "数据库连接失败");
+      message.success(`连接测试成功（${probe.latencyMs ?? 0}ms）`);
+      return;
+    } catch (error) {
+      message.error(getErrorMessage(error));
+      return;
+    } finally {
       setTestDbLoading(false);
-      message.success({ content: "✅ 连接测试成功：TCP 握手 4.2ms，版本 MySQL 8.0.35-community", key: "testDb" });
-    }, 600);
+    }
   };
 
   // 保存 DB 凭据
   const handleSaveDbCredential = async () => {
     try {
+      const values = await dbForm.validateFields();
+      const serverId = Number(String(values.server ?? "").replace("server-", ""));
+      if (!Number.isInteger(serverId) || serverId <= 0) throw new Error("请选择 SSH 服务器");
+      const created = await databaseApi.create({
+        name: values.name?.trim() || "",
+        serverId,
+        engine: values.type || "MySQL",
+        host: values.host || "127.0.0.1",
+        port: Number(values.port || 3306),
+        username: values.user || "root",
+        databaseName: values.database || "",
+        password: values.password || undefined,
+        isProdProtect: dbProdProtect,
+        prodDatabases: values.prodDatabases || "",
+        sshTunnel: dbSshTunnel,
+        aiTier: values.aiTier || "default",
+      });
+      const mapped = mapConnection(created);
+      if (mapped.type === "MongoDB") setMongoConnections((prev) => [...prev, mapped as DbConnectionItem]);
+      else setSqlConnections((prev) => [...prev, mapped as DbConnectionItem]);
+      setSelectedConnectionId(mapped.id);
+      setSelectedDb("database" in mapped ? mapped.database || "" : "");
+      setExpandedConnectionIds((current) => ({ ...current, [mapped.id]: true }));
+      if (mapped.type !== "MongoDB") void handleLoadSqlDatabases(mapped.id, true);
+      setDbModalOpen(false);
+      message.success("数据库连接已保存，密码已写入系统凭据管理器");
+      return;
+    } catch (error) {
+      setDbValidationFailed(true);
+      message.error(getErrorMessage(error));
+      return;
+    }
+    /*
       const values = await dbForm.validateFields();
       if (!values.name?.trim()) {
         setDbValidationFailed(true);
@@ -312,8 +501,11 @@ export const DatabaseView: React.FC = () => {
         setMongoConnections((prev) => [...prev, newItem]);
       } else {
         setSqlConnections((prev) => [...prev, newItem]);
-        if (!selectedDb) setSelectedDb("db_ops_production");
+        setSelectedDb(newItem.database || "db_ops_production");
       }
+
+      setSelectedConnectionId(newItem.id);
+      setExpandedConnectionIds((current) => ({ ...current, [newItem.id]: true }));
 
       setDbModalOpen(false);
       message.success("✅ 数据库凭据已安全落库 (AES-256-GCM 硬件加密)");
@@ -323,10 +515,14 @@ export const DatabaseView: React.FC = () => {
   };
 
   // 打开新建 Redis 连接弹窗
+    */
+  };
+
   const handleOpenRedisModal = () => {
     redisForm.resetFields();
+    const defaultServerId = server?.id ?? availableServers[0]?.id;
     redisForm.setFieldsValue({
-      server: "server-1",
+      server: defaultServerId ? `server-${defaultServerId}` : undefined,
       type: "Redis",
       aiTier: "default",
       port: "6379",
@@ -340,18 +536,67 @@ export const DatabaseView: React.FC = () => {
   };
 
   // 测试 Redis 连接
-  const handleTestRedisConn = () => {
-    setTestRedisLoading(true);
-    message.loading({ content: "📡 正在向 Redis 发送 PING 探针...", key: "testRedis" });
-    setTimeout(() => {
+  const handleTestRedisConn = async () => {
+    try {
+      const values = await redisForm.validateFields();
+      const serverId = Number(String(values.server ?? "").replace("server-", ""));
+      if (!Number.isInteger(serverId) || serverId <= 0) throw new Error("请选择 SSH 服务器");
+      setTestRedisLoading(true);
+      const probe = await databaseApi.testDraft({
+        name: values.name || "临时 Redis",
+        serverId,
+        engine: "redis",
+        host: values.host || "127.0.0.1",
+        port: Number(values.port || 6379),
+        dbIndex: Number(values.dbIndex || 0),
+        password: values.password || undefined,
+        isProdProtect: redisProdProtect,
+        prodDbList: values.prodDbList || "",
+        sshTunnel: redisSshTunnel,
+        aiTier: values.aiTier || "default",
+      });
+      if (!probe.ok) throw new Error(probe.message || "Redis 连接失败");
+      message.success(`Redis PONG（${probe.latencyMs ?? 0}ms）`);
+      return;
+    } catch (error) {
+      message.error(getErrorMessage(error));
+      return;
+    } finally {
       setTestRedisLoading(false);
-      message.success({ content: "✅ Redis PONG 响应成功：耗时 1.8ms，版本 Redis 7.2.4 standalone", key: "testRedis" });
-    }, 500);
+    }
   };
 
   // 保存 Redis 连接
   const handleSaveRedisConn = async () => {
     try {
+      const values = await redisForm.validateFields();
+      const serverId = Number(String(values.server ?? "").replace("server-", ""));
+      if (!Number.isInteger(serverId) || serverId <= 0) throw new Error("请选择 SSH 服务器");
+      const created = await databaseApi.create({
+        name: values.name?.trim() || "",
+        serverId,
+        engine: "redis",
+        host: values.host || "127.0.0.1",
+        port: Number(values.port || 6379),
+        dbIndex: Number(values.dbIndex || 0),
+        password: values.password || undefined,
+        isProdProtect: redisProdProtect,
+        prodDbList: values.prodDbList || "",
+        sshTunnel: redisSshTunnel,
+        aiTier: values.aiTier || "default",
+      });
+      const mapped = mapConnection(created) as RedisConnectionItem;
+      setRedisConnections((prev) => [...prev, mapped]);
+      setSelectedConnectionId(mapped.id);
+      setRedisModalOpen(false);
+      message.success(`Redis 连接 [${mapped.name}] 保存成功`);
+      return;
+    } catch (error) {
+      setRedisValidationFailed(true);
+      message.error(getErrorMessage(error));
+      return;
+    }
+    /*
       const values = await redisForm.validateFields();
       if (!values.name?.trim()) {
         setRedisValidationFailed(true);
@@ -375,6 +620,7 @@ export const DatabaseView: React.FC = () => {
       };
 
       setRedisConnections((prev) => [...prev, newItem]);
+      setSelectedConnectionId(newItem.id);
       setRedisModalOpen(false);
       message.success(`✅ Redis 连接 [${newItem.name}] 保存成功`);
     } catch {
@@ -383,36 +629,195 @@ export const DatabaseView: React.FC = () => {
   };
 
   // 顶部通用新建连接按键
-  const handleTopCreateConnection = () => {
-    if (subTab === "redis") {
-      handleOpenRedisModal();
-    } else if (subTab === "mongodb") {
-      handleOpenDbModal("MongoDB");
-    } else {
-      handleOpenDbModal("MySQL");
+    */
+  };
+
+  const handleDeleteConnection = (connection: DbConnectionItem | RedisConnectionItem) => {
+    Modal.confirm({
+      title: "删除数据库连接？",
+      content: `将删除连接“${connection.name}”，系统凭据也会一并移除。`,
+      okText: "删除",
+      okButtonProps: { danger: true },
+      cancelText: "取消",
+      onOk: async () => {
+        try {
+          await databaseApi.remove(Number(connection.id));
+          setSqlConnections((items) => items.filter((item) => item.id !== connection.id));
+          setRedisConnections((items) => items.filter((item) => item.id !== connection.id));
+          setMongoConnections((items) => items.filter((item) => item.id !== connection.id));
+          if (selectedConnectionId === connection.id) {
+            setSelectedConnectionId(null);
+            setRedisKeys([]);
+            setMongoCollections([]);
+            setMongoDocuments([]);
+          }
+          message.success("数据库连接已删除");
+        } catch (error) {
+          message.error(getErrorMessage(error));
+        }
+      },
+    });
+  };
+
+  const handleProbeSelectedConnection = async () => {
+    if (!selectedConnection) {
+      message.warning("请先在左侧连接树选择连接");
+      return;
+    }
+    setExecuting(true);
+    try {
+      const probe = await databaseApi.testSaved(Number(selectedConnection.id));
+      if (!probe.ok) throw new Error(probe.message || "数据库连接失败");
+      if (selectedConnection.type === "Redis") {
+        const keys = await databaseApi.redisKeys(Number(selectedConnection.id), redisPattern);
+        setRedisKeys(keys);
+        setRedisValue(null);
+      } else if (selectedConnection.type === "MongoDB") {
+        setMongoCollections(await databaseApi.mongoCollections(Number(selectedConnection.id)));
+        setMongoDocuments([]);
+      }
+      message.success(`${selectedConnection.type} 连接测试成功`);
+      return;
+      /*
+      const command = selectedConnection.type === "Redis"
+        ? `redis-cli -h ${selectedConnection.host} -p ${selectedConnection.port} PING`
+        : `mongosh --quiet --host ${selectedConnection.host}:${selectedConnection.port} --eval "db.runCommand({ ping: 1 }).ok"`;
+      const result = await runCommand(command);
+      if (result.exitCode !== 0) {
+        throw new Error(result.stderr || "数据库探测失败");
+      }
+      message.success(`${selectedConnection.type} 连接测试成功`);
+      */
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setExecuting(false);
     }
   };
 
-  // 结果表格列定义
-  const resultColumns = [
-    { title: "id", dataIndex: "id", key: "id", width: 60, render: (v: number) => <span className="font-mono text-slate-400">{v}</span> },
-    { title: "username", dataIndex: "username", key: "username", render: (v: string) => <span className="font-mono text-teal-300 font-medium">{v}</span> },
-    { title: "role", dataIndex: "role", key: "role", render: (v: string) => <span className="font-mono text-slate-300">{v}</span> },
-    {
-      title: "status",
-      dataIndex: "status",
-      key: "status",
-      render: (v: string) => (
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-sans ${v === "正常" ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
-          {v}
-        </span>
-      ),
-    },
-    { title: "created_at", dataIndex: "created_at", key: "created_at", render: (v: string) => <span className="font-mono text-slate-400">{v}</span> },
-  ];
+  const handleLoadRedisKeys = async () => {
+    if (!selectedConnection || selectedConnection.type !== "Redis") return;
+    setExecuting(true);
+    try {
+      setRedisKeys(await databaseApi.redisKeys(Number(selectedConnection.id), redisPattern));
+      setRedisValue(null);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const handleReadRedisValue = async (key: string) => {
+    if (!selectedConnection || selectedConnection.type !== "Redis") return;
+    try {
+      setRedisValue(await databaseApi.redisValue(Number(selectedConnection.id), key));
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const handleLoadMongoCollections = async () => {
+    if (!selectedConnection || selectedConnection.type !== "MongoDB") return;
+    setExecuting(true);
+    try {
+      setMongoCollections(await databaseApi.mongoCollections(Number(selectedConnection.id)));
+      setMongoDocuments([]);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const handleReadMongoCollection = async (collection: string) => {
+    if (!selectedConnection || selectedConnection.type !== "MongoDB") return;
+    try {
+      const raw = await databaseApi.mongoQuery(Number(selectedConnection.id), collection);
+      const parsed: unknown = JSON.parse(raw || "[]");
+      if (!Array.isArray(parsed)) throw new Error("MongoDB 返回的数据格式无效");
+      setMongoDocuments(parsed.map((document) => {
+        if (!document || typeof document !== "object") return { value: String(document) };
+        return Object.fromEntries(Object.entries(document).map(([key, value]) => [
+          key,
+          typeof value === "string" ? value : JSON.stringify(value),
+        ]));
+      }));
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  // 查询结果按服务端返回的列名动态生成，避免把结果强行映射成演示用户表。
+  const resultColumns = resultColumnNames.map((column) => ({
+    title: column,
+    dataIndex: column,
+    key: column,
+    render: (value: string) => <span className="font-mono text-slate-300">{value ?? ""}</span>,
+  }));
+
+  const handleExportCsv = () => {
+    if (!resultRows?.length) return;
+    const headers = resultColumnNames;
+    const escapeCsv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const csv = [
+      headers.join(","),
+      ...resultRows.map((row) => headers.map((header) => escapeCsv(row[header])).join(",")),
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `query-result-${Date.now()}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    message.success("结果集已导出为 CSV");
+  };
+
+  const handleCopyJson = async () => {
+    if (!resultRows?.length) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(resultRows, null, 2));
+      message.success("结果集 JSON 已复制");
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const handleShowStructure = async () => {
+    if (!selectedConnection || selectedConnection.type === "Redis" || selectedConnection.type === "MongoDB") {
+      message.warning("请先选择 SQL 数据库连接");
+      return;
+    }
+    if (!selectedDb) {
+      message.warning("请先选择要查看结构的数据库");
+      return;
+    }
+    setStructureLoading(true);
+    setStructureOpen(true);
+    try {
+      setStructureTables(await databaseApi.listTables(Number(selectedConnection.id), selectedDb));
+    } catch (error) {
+      setStructureOpen(false);
+      message.error(getErrorMessage(error));
+    } finally {
+      setStructureLoading(false);
+    }
+  };
+
+  const handleTopExport = () => {
+    if (!resultRows?.length) {
+      message.info("请先执行查询，再导出结果集");
+      return;
+    }
+    handleExportCsv();
+  };
+
+  const hasActiveConnection = Boolean(
+    selectedConnection && ("dbIndex" in selectedConnection || selectedConnection.type === "MongoDB" || selectedDb),
+  );
 
   return (
-    <div className="space-y-3 pb-8 select-none">
+    <div className="h-full min-h-0 flex flex-col gap-2.5 overflow-hidden select-none">
       {/* 顶部横条工具栏 (截图 1) */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800">
         <div className="flex items-center space-x-2">
@@ -450,31 +855,76 @@ export const DatabaseView: React.FC = () => {
             </button>
           </div>
 
-          {/* 新建连接主按钮 */}
-          <button
-            type="button"
-            onClick={handleTopCreateConnection}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold transition cursor-pointer shadow-sm"
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>+ 新建连接</span>
-          </button>
         </div>
 
-        {/* 右侧动作按钮 */}
-        <div className="flex items-center space-x-1 text-xs">
+        {/* 右侧服务器筛选 */}
+        <div className="flex items-center space-x-2 text-xs">
+          <select
+            value={serverFilter}
+            onChange={(event) => setServerFilter(event.target.value)}
+            className="bg-surface-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-teal-500 cursor-pointer"
+          >
+            <option value="all">全部服务器</option>
+            {Object.entries(serverNames).map(([id, alias]) => (
+              <option key={id} value={id}>{alias}{availableServers.find((item) => String(item.id) === id) ? ` (${availableServers.find((item) => String(item.id) === id)?.hostname})` : ""}</option>
+            ))}
+            {server && !serverNames[server.id] && <option value={String(server.id)}>{server.alias} ({server.hostname})</option>}
+          </select>
+        </div>
+      </div>
+
+      {/* 当前连接状态栏：连接树未选中时保持原型中的引导提示 */}
+      <div className="flex items-center justify-between px-1 text-xs shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          {hasActiveConnection && selectedConnection ? (
+            <>
+              <span className={`font-medium truncate ${selectedConnection.type === "Redis" ? "text-rose-400" : selectedConnection.type === "MongoDB" ? "text-emerald-400" : "text-teal-400"}`}>
+                {displayEngineName(selectedConnection.type)} @ {selectedConnection.server}
+              </span>
+              <span className="text-slate-500 mx-1">/</span>
+              <span className="text-slate-200 font-medium truncate">
+                {"dbIndex" in selectedConnection ? `DB${selectedConnection.dbIndex}` : selectedConnection.type === "MongoDB" ? (selectedConnection.database || "admin") : (selectedDb || "未选库")}
+              </span>
+              {selectedConnection.type !== "Redis" && selectedConnection.type !== "MongoDB" && (
+                <div className="flex items-center gap-2 ml-1">
+                  <button
+                    type="button"
+                    onClick={() => void handleShowStructure()}
+                    className="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 border border-slate-800 flex items-center gap-1 transition"
+                  >
+                    <Table2 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>结构</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTopExport}
+                    className="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 border border-slate-800 flex items-center gap-1 transition"
+                  >
+                    <Download className="w-3.5 h-3.5 text-slate-400" />
+                    <span>导出</span>
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <span className="text-slate-400">← 在左侧连接树选择连接</span>
+          )}
+        </div>
+
+        {/* 历史与片段按钮 */}
+        <div className="flex items-center space-x-1.5 text-xs shrink-0">
           <button
             type="button"
-            onClick={() => message.info("📜 历史执行记录已打开")}
-            className="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-400 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer"
+            onClick={() => setHistoryOpen(true)}
+            className="px-2.5 py-1 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1.5 transition cursor-pointer"
           >
             <History className="w-3.5 h-3.5" />
             <span>历史</span>
           </button>
           <button
             type="button"
-            onClick={() => message.info("📑 SQL 常用片段库已载入")}
-            className="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-400 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer"
+            onClick={() => setSnippetsOpen(true)}
+            className="px-2.5 py-1 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1.5 transition cursor-pointer"
           >
             <Code2 className="w-3.5 h-3.5" />
             <span>片段</span>
@@ -484,9 +934,9 @@ export const DatabaseView: React.FC = () => {
 
       {/* 视图 1: SQL 数据库 (截图 1) */}
       {subTab === "sql" && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 min-h-[520px]">
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-4 gap-3 overflow-hidden">
           {/* 左栏：连接树 */}
-          <div className="md:col-span-1 glass-card p-3 rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col space-y-3">
+          <div className="md:col-span-1 glass-card p-3 rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col min-h-0 overflow-hidden space-y-2.5">
             <button
               type="button"
               onClick={() => handleOpenDbModal("MySQL")}
@@ -507,7 +957,7 @@ export const DatabaseView: React.FC = () => {
             </div>
 
             {/* 当没有连接时的空状态展示 (截图 1 严格对齐) */}
-            {sqlConnections.length === 0 ? (
+            {filteredConnections.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center space-y-3 py-14 text-center">
                 <div className="w-12 h-12 rounded-xl bg-surface-900/90 border border-slate-800 flex items-center justify-center text-slate-500 shadow-inner">
                   <Inbox className="w-6 h-6" />
@@ -524,40 +974,59 @@ export const DatabaseView: React.FC = () => {
               </div>
             ) : (
               /* 连接树列表 */
-              <div className="flex-1 overflow-y-auto space-y-2 text-xs">
-                {sqlConnections.map((conn) => (
-                  <div key={conn.id} className="p-2 rounded-lg bg-surface-900/80 border border-slate-800 space-y-1.5">
-                    <div className="flex items-center justify-between font-semibold text-slate-200">
-                      <span className="flex items-center space-x-1.5 truncate">
-                        <Server className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                        <span className="truncate">{conn.name}</span>
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-teal-500/15 text-teal-400 font-mono">
-                        {conn.type}
-                      </span>
-                    </div>
-                    <div className="pl-3 border-l border-slate-800 space-y-1 text-slate-400 text-[11px]">
-                      <div
-                        className="flex items-center justify-between py-0.5 hover:text-white cursor-pointer"
-                        onClick={() => setSelectedDb("db_ops_production")}
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-1.5 text-xs">
+                {filteredConnections.map((conn) => (
+                  <div
+                    key={conn.id}
+                    className={`rounded-lg border overflow-hidden transition ${selectedConnectionId === conn.id ? "border-teal-500/50 bg-teal-500/10" : "border-slate-800 bg-surface-900/40"}`}
+                  >
+                    <div
+                      className="flex items-center justify-between p-2 hover:bg-surface-800/60 cursor-pointer transition select-none"
+                      onClick={() => selectConnection(conn)}
+                    >
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setExpandedConnectionIds((current) => ({ ...current, [conn.id]: !current[conn.id] }));
+                          if (!expandedConnectionIds[conn.id]) void handleLoadSqlDatabases(conn.id);
+                        }}
+                        className="shrink-0 text-slate-500 hover:text-slate-200"
+                        aria-label={expandedConnectionIds[conn.id] ? "收起连接" : "展开连接"}
                       >
-                        <span className="flex items-center space-x-1">
-                          <Database className="w-3 h-3 text-slate-500" />
-                          <span>db_ops_production</span>
-                        </span>
-                        <span className="text-[10px] text-slate-500">18 表</span>
-                      </div>
-                      <div
-                        className="flex items-center justify-between py-0.5 hover:text-white cursor-pointer"
-                        onClick={() => setSelectedDb("db_analytics")}
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expandedConnectionIds[conn.id] ? "rotate-90" : ""}`} />
+                      </button>
+                      <Database className="w-3.5 h-3.5 text-amber-400 shrink-0 mx-1.5" />
+                      <span className="font-medium truncate text-slate-200 text-xs flex-1">{displayEngineName(conn.type)} @ {conn.server}</span>
+                      <span className="font-mono text-[10px] text-slate-500 shrink-0">{conn.type.toLowerCase()}</span>
+                      <button
+                        type="button"
+                        onClick={(event) => { event.stopPropagation(); handleDeleteConnection(conn); }}
+                        className="ml-2 px-1 text-slate-600 hover:text-rose-400"
+                        aria-label="删除连接"
                       >
-                        <span className="flex items-center space-x-1">
-                          <Database className="w-3 h-3 text-slate-500" />
-                          <span>db_analytics</span>
-                        </span>
-                        <span className="text-[10px] text-slate-500">7 表</span>
-                      </div>
+                        ×
+                      </button>
                     </div>
+                    {expandedConnectionIds[conn.id] && <div className="pl-5 pr-2 pb-2 border-t border-slate-800/60 bg-surface-950/40 space-y-1 text-slate-400 text-[11px]">
+                      {(databaseOptions[conn.id] ?? []).map((databaseName) => (
+                        <button
+                          key={databaseName}
+                          type="button"
+                          className={`w-full flex items-center justify-between py-0.5 hover:text-white text-left ${selectedDb === databaseName && selectedConnectionId === conn.id ? "text-teal-300" : ""}`}
+                          onClick={() => { setSelectedConnectionId(conn.id); setSelectedDb(databaseName); }}
+                        >
+                          <span className="flex items-center space-x-1 min-w-0">
+                            <Folder className="w-3 h-3 text-teal-400 shrink-0" />
+                            <span className="truncate">{databaseName}</span>
+                          </span>
+                        </button>
+                      ))}
+                      {databaseLoading[conn.id] && <div className="py-1 text-slate-500">正在加载数据库…</div>}
+                      {!databaseLoading[conn.id] && (databaseOptions[conn.id] ?? []).length === 0 && (
+                        <button type="button" onClick={() => void handleLoadSqlDatabases(conn.id)} className="py-1 text-slate-500 hover:text-teal-300">加载数据库列表</button>
+                      )}
+                    </div>}
                   </div>
                 ))}
               </div>
@@ -565,7 +1034,7 @@ export const DatabaseView: React.FC = () => {
           </div>
 
           {/* 右栏：SQL 查询编辑器与 AI 辅助 */}
-          <div className="md:col-span-3 glass-card rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col overflow-hidden">
+          <div className="md:col-span-3 glass-card rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col h-full min-h-0 overflow-hidden">
             {/* 标签栏 */}
             <div className="flex items-center justify-between px-3 py-1.5 bg-surface-900/90 border-b border-slate-800 text-xs">
               <div className="flex items-center space-x-1.5">
@@ -669,9 +1138,12 @@ export const DatabaseView: React.FC = () => {
                   className="bg-surface-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
                 >
                   <option value="">选择要执行的库</option>
-                  <option value="db_ops_production">db_ops_production</option>
-                  <option value="db_analytics">db_analytics</option>
-                  <option value="db_auth_center">db_auth_center</option>
+                  {(selectedConnection && "database" in selectedConnection
+                    ? (databaseOptions[selectedConnection.id] ?? [])
+                    : []
+                  ).map((databaseName) => (
+                    <option key={databaseName} value={databaseName}>{databaseName}</option>
+                  ))}
                 </select>
               </div>
               {!selectedDb && (
@@ -682,8 +1154,10 @@ export const DatabaseView: React.FC = () => {
               )}
             </div>
 
+            {/* SQL 编辑器与结果集独立滚动，右侧卡片本身保持原型高度 */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
             {/* SQL 编辑器模拟区域 */}
-            <div className="flex-1 bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[160px] flex space-x-3">
+            <div className="bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0">
               <div className="text-slate-600 select-none text-right w-5 pt-0.5">1</div>
               <textarea
                 value={currentTab.sql}
@@ -694,7 +1168,7 @@ export const DatabaseView: React.FC = () => {
             </div>
 
             {/* 底部操作条 */}
-            <div className="p-2.5 bg-surface-900/90 border-t border-slate-800 flex items-center justify-between text-xs">
+            <div className="p-2.5 bg-surface-900/90 border-t border-b border-slate-800 flex items-center justify-between text-xs sticky top-0 z-10">
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
@@ -707,7 +1181,7 @@ export const DatabaseView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleExplainSql}
+                  onClick={() => void handleExplainSql()}
                   className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700 transition cursor-pointer"
                 >
                   <GitMerge className="w-3.5 h-3.5" />
@@ -744,14 +1218,14 @@ export const DatabaseView: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <button
                       type="button"
-                      onClick={() => message.info("已复制结果为 CSV 格式")}
+                      onClick={handleExportCsv}
                       className="hover:text-white transition cursor-pointer"
                     >
                       导出 CSV
                     </button>
                     <button
                       type="button"
-                      onClick={() => message.info("已复制结果为 JSON 格式")}
+                      onClick={() => void handleCopyJson()}
                       className="hover:text-white transition cursor-pointer"
                     >
                       复制 JSON
@@ -760,7 +1234,7 @@ export const DatabaseView: React.FC = () => {
                 </div>
                 <div className="max-h-56 overflow-auto">
                   <Table
-                    rowKey="id"
+                    rowKey={(_, index) => `${index}`}
                     size="small"
                     columns={resultColumns}
                     dataSource={resultRows}
@@ -770,53 +1244,200 @@ export const DatabaseView: React.FC = () => {
                 </div>
               </div>
             )}
+            {!resultRows && (
+              <div className="flex-1 min-h-[160px] bg-[#090d16]/30 flex flex-col items-center justify-center text-slate-600 text-xs select-none py-10">
+                <Terminal className="w-7 h-7 text-slate-700/60 mb-2" />
+                <span className="text-slate-500">点击「执行」后在此查看 SQL 返回数据</span>
+              </div>
+            )}
+            </div>
           </div>
         </div>
       )}
 
       {/* 视图 2: Redis (截图 4: media_1790640343145.png) */}
       {subTab === "redis" && (
-        <div className="min-h-[520px] flex flex-col items-center justify-center space-y-4 py-28 text-center bg-surface-950/40 rounded-xl border border-slate-800">
-          <div className="w-16 h-16 rounded-2xl bg-surface-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow-inner">
-            <Inbox className="w-8 h-8 text-slate-500" />
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-4 gap-3 overflow-hidden">
+          <div className="md:col-span-1 glass-card p-3 rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col min-h-0 overflow-hidden space-y-2.5">
+            <button type="button" onClick={handleOpenRedisModal} className="w-full shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-200 text-xs border border-slate-700/80 transition">
+              <Plus className="w-3.5 h-3.5" /><span>新建连接</span>
+            </button>
+            <div className="relative shrink-0">
+              <input value={filterText} onChange={(event) => setFilterText(event.target.value)} placeholder="过滤 Redis 实例" className="w-full bg-surface-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-teal-500" />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2 pointer-events-none" />
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+              {filteredConnections.length === 0 ? <div className="h-full flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-500"><Inbox className="w-7 h-7" /><span>还没有 Redis 连接</span></div> : filteredConnections.map((connection) => (
+                <div key={connection.id} role="button" tabIndex={0} onClick={() => selectConnection(connection)} onKeyDown={(event) => { if (event.key === "Enter") selectConnection(connection); }} className={`w-full p-2 rounded-lg border text-left flex items-center justify-between gap-2 transition cursor-pointer ${selectedConnectionId === connection.id ? "border-teal-500/50 bg-teal-500/10" : "border-slate-800 bg-surface-900/40 hover:bg-surface-800/60"}`}>
+                  <span className="flex items-center gap-1.5 min-w-0"><Key className="w-3.5 h-3.5 text-rose-400 shrink-0" /><span className="truncate text-xs text-slate-200">{connection.name}</span></span>
+                  <span className="font-mono text-[10px] text-slate-500 shrink-0">:{connection.port}</span>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); handleDeleteConnection(connection); }} className="px-1 text-slate-500 hover:text-rose-400" aria-label="删除连接">×</button>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="text-xs text-slate-400">
-            {redisConnections.length === 0
-              ? "还没有 Redis 连接。新建一个本地 / 远程 Redis 连接开始。"
-              : `已连接 ${redisConnections.length} 个 Redis 实例`}
+          <div className="md:col-span-3 glass-card rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col min-h-0 overflow-hidden">
+            <div className="px-3 py-2 border-b border-slate-800 bg-surface-900/80 flex items-center gap-2 text-xs">
+              <span className="text-slate-300 mr-auto">Redis 浏览器</span>
+              <Input size="small" value={redisPattern} onChange={(event) => setRedisPattern(event.target.value)} placeholder="键匹配，如 user:*" className="w-40 bg-surface-950" />
+              <Button size="small" loading={executing} disabled={!selectedConnection} onClick={() => void handleProbeSelectedConnection()}>测试连接</Button>
+              <Button size="small" loading={executing} disabled={!selectedConnection} onClick={() => void handleLoadRedisKeys()}>刷新键</Button>
+            </div>
+            {!selectedConnection ? (
+              <div className="flex-1 flex items-center justify-center text-center text-xs text-slate-500"><Inbox className="w-8 h-8 mr-2" />请先选择 Redis 连接</div>
+            ) : (
+              <div className="flex-1 min-h-0 grid grid-cols-2 divide-x divide-slate-800">
+                <div className="overflow-y-auto custom-scrollbar p-2 space-y-1">
+                  {redisKeys.length === 0 ? <div className="p-6 text-center text-xs text-slate-500">暂无键，点击“刷新键”加载</div> : redisKeys.map((item) => (
+                    <button key={item.key} type="button" onClick={() => void handleReadRedisValue(item.key)} className="w-full text-left px-2 py-1.5 rounded hover:bg-surface-800 text-xs text-slate-300 font-mono truncate">{item.key}</button>
+                  ))}
+                </div>
+                <pre className="m-0 p-3 overflow-auto whitespace-pre-wrap text-xs text-slate-300">{redisValue ?? "选择一个键查看值"}</pre>
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={handleOpenRedisModal}
-            className="flex items-center space-x-1.5 px-5 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold transition cursor-pointer shadow-lg shadow-teal-500/20"
-          >
-            <Plus className="w-4 h-4" />
-            <span>新建 Redis 连接</span>
-          </button>
         </div>
       )}
 
       {/* 视图 3: MongoDB */}
       {subTab === "mongodb" && (
-        <div className="min-h-[520px] flex flex-col items-center justify-center space-y-4 py-28 text-center bg-surface-950/40 rounded-xl border border-slate-800">
-          <div className="w-16 h-16 rounded-2xl bg-surface-900 border border-slate-800 flex items-center justify-center text-slate-500 shadow-inner">
-            <Leaf className="w-8 h-8 text-slate-500" />
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-4 gap-3 overflow-hidden">
+          <div className="md:col-span-1 glass-card p-3 rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col min-h-0 overflow-hidden space-y-2.5">
+            <button type="button" onClick={() => handleOpenDbModal("MongoDB")} className="w-full shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-200 text-xs border border-slate-700/80 transition"><Plus className="w-3.5 h-3.5" /><span>新建连接</span></button>
+            <div className="relative shrink-0"><input value={filterText} onChange={(event) => setFilterText(event.target.value)} placeholder="过滤 MongoDB 实例" className="w-full bg-surface-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-teal-500" /><Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2 pointer-events-none" /></div>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+              {filteredConnections.length === 0 ? <div className="h-full flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-500"><Inbox className="w-7 h-7" /><span>还没有 MongoDB 连接</span></div> : filteredConnections.map((connection) => (
+                <div key={connection.id} role="button" tabIndex={0} onClick={() => selectConnection(connection)} onKeyDown={(event) => { if (event.key === "Enter") selectConnection(connection); }} className={`w-full p-2 rounded-lg border text-left flex items-center justify-between gap-2 transition cursor-pointer ${selectedConnectionId === connection.id ? "border-teal-500/50 bg-teal-500/10" : "border-slate-800 bg-surface-900/40 hover:bg-surface-800/60"}`}><span className="flex items-center gap-1.5 min-w-0"><Leaf className="w-3.5 h-3.5 text-emerald-400 shrink-0" /><span className="truncate text-xs text-slate-200">{connection.name}</span></span><span className="font-mono text-[10px] text-slate-500 shrink-0">:{connection.port}</span><button type="button" onClick={(event) => { event.stopPropagation(); handleDeleteConnection(connection); }} className="px-1 text-slate-500 hover:text-rose-400" aria-label="删除连接">×</button></div>
+              ))}
+            </div>
           </div>
-          <div className="text-xs text-slate-400">
-            {mongoConnections.length === 0
-              ? "还没有 MongoDB 连接。新建一个本地 / 远程 MongoDB 连接开始。"
-              : `已连接 ${mongoConnections.length} 个 MongoDB 实例`}
+          <div className="md:col-span-3 glass-card rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col min-h-0 overflow-hidden">
+            <div className="px-3 py-2 border-b border-slate-800 bg-surface-900/80 flex items-center gap-2 text-xs">
+              <span className="text-slate-300 mr-auto">MongoDB 浏览器</span>
+              <Button size="small" loading={executing} disabled={!selectedConnection} onClick={() => void handleProbeSelectedConnection()}>测试连接</Button>
+              <Button size="small" loading={executing} disabled={!selectedConnection} onClick={() => void handleLoadMongoCollections()}>刷新集合</Button>
+            </div>
+            {!selectedConnection ? (
+              <div className="flex-1 flex items-center justify-center text-center text-xs text-slate-500"><Inbox className="w-8 h-8 mr-2" />请先选择 MongoDB 连接</div>
+            ) : (
+              <div className="flex-1 min-h-0 grid grid-cols-3 divide-x divide-slate-800">
+                <div className="overflow-y-auto custom-scrollbar p-2 space-y-1">
+                  {mongoCollections.length === 0 ? <div className="p-4 text-center text-xs text-slate-500">暂无集合，点击“刷新集合”加载</div> : mongoCollections.map((item) => (
+                    <button key={item.name} type="button" onClick={() => void handleReadMongoCollection(item.name)} className="w-full text-left px-2 py-1.5 rounded hover:bg-surface-800 text-xs text-slate-300 font-mono truncate">{item.name}</button>
+                  ))}
+                </div>
+                <div className="col-span-2 overflow-auto p-2">
+                  <Table rowKey={(_, index) => `${index}`} size="small" pagination={false} dataSource={mongoDocuments} columns={Object.keys(mongoDocuments[0] ?? {}).map((column) => ({ title: column, dataIndex: column, key: column }))} className="ops-table text-xs" />
+                </div>
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => handleOpenDbModal("MongoDB")}
-            className="flex items-center space-x-1.5 px-5 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold transition cursor-pointer shadow-lg shadow-teal-500/20"
-          >
-            <Plus className="w-4 h-4" />
-            <span>新建 MongoDB 连接</span>
-          </button>
         </div>
       )}
+
+      {/* 底部全局状态栏固定在工作台底部 */}
+      <div className="px-3 py-1.5 rounded-lg bg-surface-950/80 border border-slate-800 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
+        <div className="flex items-center space-x-3 font-mono min-w-0">
+          <span className="flex items-center space-x-1.5 text-slate-300 truncate">
+            <span className={`w-1.5 h-1.5 rounded-full ${selectedConnection ? "bg-emerald-400" : "bg-slate-600"}`} />
+            <span className="truncate">{selectedConnection ? `${selectedConnection.type} @ ${selectedConnection.server}` : "未选择数据库连接"}</span>
+          </span>
+          {selectedConnection && <>
+            <span>·</span>
+            <span className="text-slate-400">{selectedConnection.type.toLowerCase()}</span>
+            <span className="text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/20 font-sans">支持 写操作记审计</span>
+            {selectedConnection.sshTunnel && <span className="text-slate-500 font-sans">SSH 隧道</span>}
+          </>}
+        </div>
+        <div className="flex items-center space-x-2 text-slate-400 font-sans shrink-0">
+          <span>自动提交</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+        </div>
+      </div>
+
+      <Modal
+        open={structureOpen}
+        title={`数据库结构${selectedDb ? ` · ${selectedDb}` : ""}`}
+        footer={null}
+        onCancel={() => setStructureOpen(false)}
+        width={620}
+      >
+        {structureLoading ? (
+          <div className="py-12 text-center text-xs text-slate-500">正在读取远端数据库结构…</div>
+        ) : structureTables.length === 0 ? (
+          <div className="py-12 text-center text-xs text-slate-500">当前数据库没有可展示的表或视图</div>
+        ) : (
+          <div className="max-h-[460px] overflow-y-auto space-y-1">
+            {structureTables.map((table) => (
+              <button
+                key={`${table.tableType}-${table.name}`}
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-slate-800 bg-surface-950 hover:border-teal-500/40 text-left"
+                onClick={() => {
+                  updateCurrentTabSql(`SELECT * FROM ${table.name} LIMIT 100;`);
+                  setStructureOpen(false);
+                }}
+              >
+                <span className="flex items-center gap-2 text-xs text-slate-200"><Database className="w-3.5 h-3.5 text-teal-400" />{table.name}</span>
+                <span className="text-[11px] text-slate-500">{table.tableType}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* 查询历史 */}
+      <Modal
+        open={historyOpen}
+        title="SQL 执行历史"
+        footer={null}
+        onCancel={() => setHistoryOpen(false)}
+        width={680}
+      >
+        <div className="max-h-[420px] overflow-y-auto space-y-2 pr-1">
+          {queryHistory.length === 0 ? (
+            <div className="py-10 text-center text-xs text-slate-500">暂无执行记录</div>
+          ) : queryHistory.map((item, index) => (
+            <button
+              key={`${item.createdAt}-${index}`}
+              type="button"
+              onClick={() => { updateCurrentTabSql(item.sql); setHistoryOpen(false); }}
+              className="w-full text-left p-2.5 rounded-lg border border-slate-800 bg-surface-950 hover:border-teal-500/40 transition"
+            >
+              <div className="text-[11px] text-slate-500 mb-1">{item.createdAt}</div>
+              <code className="block whitespace-pre-wrap text-xs text-slate-300 font-mono">{item.sql}</code>
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      {/* 常用 SQL 片段 */}
+      <Modal
+        open={snippetsOpen}
+        title="SQL 常用片段"
+        footer={null}
+        onCancel={() => setSnippetsOpen(false)}
+        width={560}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[
+            ["最近 100 条", "SELECT * FROM sys_user ORDER BY user_id DESC LIMIT 100;"],
+            ["按天统计", "SELECT DATE(create_time) AS day, COUNT(*) AS count FROM sys_oper_log GROUP BY day;"],
+            ["联表查询", "SELECT u.user_id, u.user_name, r.role_name FROM sys_user u LEFT JOIN sys_role r ON u.role_id = r.role_id;"],
+            ["看表结构", "DESCRIBE sys_user;"],
+          ].map(([label, sql]) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => { updateCurrentTabSql(sql); setSnippetsOpen(false); }}
+              className="p-2.5 rounded-lg border border-slate-800 bg-surface-950 hover:border-teal-500/40 text-left transition"
+            >
+              <div className="text-xs text-slate-200 mb-1">{label}</div>
+              <code className="text-[11px] text-slate-500 font-mono line-clamp-2">{sql}</code>
+            </button>
+          ))}
+        </div>
+      </Modal>
 
       {/* 模态框 1: 新建 DB 凭据 (截图 2 & 3: media_1790640307974.png / media_1790640317116.png) */}
       <Modal
@@ -825,6 +1446,7 @@ export const DatabaseView: React.FC = () => {
         footer={null}
         width={560}
         centered
+        maskClosable={false}
         className="glass-card-modal"
         title={
           <div className="flex items-center space-x-2 text-white">
@@ -856,8 +1478,8 @@ export const DatabaseView: React.FC = () => {
             <Select
               className="w-full text-xs"
               options={[
-                { label: "💻 我的香草云 · 156.226.177.226:22000", value: "server-1" },
-                { label: "💻 本机 / 独立直连", value: "local" },
+                ...availableServers.map((item) => ({ label: `💻 ${item.alias} · ${item.hostname}:${item.port}`, value: `server-${item.id}` })),
+                ...(server && !availableServers.some((item) => item.id === server.id) ? [{ label: `💻 ${server.alias} · ${server.hostname}:${server.port}`, value: `server-${server.id}` }] : []),
               ]}
             />
           </Form.Item>
@@ -1068,6 +1690,7 @@ export const DatabaseView: React.FC = () => {
         footer={null}
         width={560}
         centered
+        maskClosable={false}
         className="glass-card-modal"
         title={
           <div className="flex items-center space-x-2 text-white">
@@ -1099,8 +1722,8 @@ export const DatabaseView: React.FC = () => {
             <Select
               className="w-full text-xs"
               options={[
-                { label: "💻 我的香草云 · 156.226.177.226:22000", value: "server-1" },
-                { label: "💻 本机 / 独立直连", value: "local" },
+                ...availableServers.map((item) => ({ label: `💻 ${item.alias} · ${item.hostname}:${item.port}`, value: `server-${item.id}` })),
+                ...(server && !availableServers.some((item) => item.id === server.id) ? [{ label: `💻 ${server.alias} · ${server.hostname}:${server.port}`, value: `server-${server.id}` }] : []),
               ]}
             />
           </Form.Item>

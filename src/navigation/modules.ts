@@ -146,6 +146,7 @@ export const MODULES: ModuleDef[] = [
     ],
     icon: Database,
     group: "core",
+    implemented: true,
   },
   {
     key: "batch",
@@ -161,6 +162,7 @@ export const MODULES: ModuleDef[] = [
     ],
     icon: Layers,
     group: "core",
+    implemented: true,
   },
   {
     key: "deploy",
@@ -177,6 +179,7 @@ export const MODULES: ModuleDef[] = [
     ],
     icon: Rocket,
     group: "core",
+    implemented: true,
   },
   {
     key: "copilot",
@@ -193,6 +196,7 @@ export const MODULES: ModuleDef[] = [
     icon: Bot,
     group: "ai",
     dot: "amber",
+    implemented: true,
   },
   {
     key: "mcp",

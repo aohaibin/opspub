@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 /// 当前 Schema 版本
-pub const SCHEMA_VERSION: i32 = 7;
+pub const SCHEMA_VERSION: i32 = 9;
 
 /// 获取数据库版本
 pub fn get_version(conn: &Connection) -> Result<i32, AppError> {
@@ -37,11 +37,10 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
             4 => migrate_v4_to_v5(conn)?,
             5 => migrate_v5_to_v6(conn)?,
             6 => migrate_v6_to_v7(conn)?,
+            7 => migrate_v7_to_v8(conn)?,
+            8 => migrate_v8_to_v9(conn)?,
             _ => {
-                return Err(AppError::Custom(format!(
-                    "未知的数据库版本: {}",
-                    version
-                )));
+                return Err(AppError::Custom(format!("未知的数据库版本: {}", version)));
             }
         }
         version = get_version(conn)?;
@@ -214,5 +213,63 @@ fn migrate_v6_to_v7(conn: &Connection) -> Result<(), AppError> {
     )?;
 
     set_version(conn, 7)?;
+    Ok(())
+}
+
+/// v7 -> v8：数据库连接元数据。密码由系统凭据管理器托管，不落 SQLite。
+fn migrate_v7_to_v8(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v7 -> v8（数据库连接）");
+
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS database_connections (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            name            TEXT NOT NULL,
+            server_id       INTEGER NOT NULL,
+            engine          TEXT NOT NULL,
+            host            TEXT NOT NULL,
+            port            INTEGER NOT NULL,
+            username        TEXT NOT NULL DEFAULT '',
+            database_name   TEXT NOT NULL DEFAULT '',
+            db_index        INTEGER NOT NULL DEFAULT 0,
+            is_prod_protect INTEGER NOT NULL DEFAULT 0,
+            prod_databases  TEXT NOT NULL DEFAULT '',
+            prod_db_list    TEXT NOT NULL DEFAULT '',
+            ssh_tunnel      INTEGER NOT NULL DEFAULT 0,
+            ai_tier         TEXT NOT NULL DEFAULT 'default',
+            created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            updated_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_database_connections_server
+            ON database_connections(server_id);
+        CREATE INDEX IF NOT EXISTS idx_database_connections_engine
+            ON database_connections(engine);
+        ",
+    )?;
+
+    set_version(conn, 8)?;
+    Ok(())
+}
+
+/// v8 -> v9：AI 审批记录持久化；默认锁定由缺失的配置项表示。
+fn migrate_v8_to_v9(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS ai_approvals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_id INTEGER NOT NULL,
+            server_alias TEXT NOT NULL,
+            action TEXT NOT NULL,
+            command TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            requested_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            decided_at INTEGER,
+            finished_at INTEGER,
+            result TEXT NOT NULL DEFAULT ''
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_approvals_status ON ai_approvals(status, expires_at);"
+    )?;
+    set_version(conn, 9)?;
     Ok(())
 }

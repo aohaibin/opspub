@@ -34,6 +34,10 @@ import TerminalPage from "@/pages/terminal";
 import SftpPage from "@/pages/sftp";
 import SettingsPage from "@/pages/settings";
 import ServerCredentialsPage from "@/pages/credentials/ServerCredentialsPage";
+import DatabasePage from "@/pages/database";
+import BatchPage from "@/pages/batch";
+import DeploymentPage from "@/pages/deployment";
+import CopilotPage from "@/pages/copilot";
 import { ModulePlaceholder } from "@/pages/module";
 
 /** 已实现模块的 key → 页面组件 */
@@ -44,6 +48,10 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   sftp: SftpPage,
   settings: SettingsPage,
   credentials: ServerCredentialsPage,
+  database: DatabasePage,
+  batch: BatchPage,
+  deploy: DeploymentPage,
+  copilot: CopilotPage,
 };
 
 /** 路由路径按模块注册表的顺序生成，与左侧导航轨严格同序 */

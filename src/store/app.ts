@@ -95,6 +95,8 @@ interface AppStore {
   aiUnlockDuration: UnlockDuration;
   /** 直接设置锁定态（用户手动拨开关） */
   setAiLocked: (locked: boolean) => void;
+  /** Rust 权威状态同步到前端显示；后端才是执行权限的最终判定。 */
+  setAiLockState: (locked: boolean, unlockUntil: number | null) => void;
   /** 选择限时放行档位并立即生效 */
   setAiUnlockDuration: (duration: UnlockDuration) => void;
   /** 到点自动回归锁定。由顶栏的定时器调用 */
@@ -168,6 +170,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   aiUnlockDuration: "30m",
   setAiLocked: (locked) =>
     set({ aiLocked: locked, aiUnlockUntil: locked ? null : get().aiUnlockUntil }),
+  setAiLockState: (locked, unlockUntil) => set({ aiLocked: locked, aiUnlockUntil: unlockUntil }),
   setAiUnlockDuration: (duration) => {
     if (duration === "forever") {
       // 永久放行没有到期时间，倒计时区随之隐藏

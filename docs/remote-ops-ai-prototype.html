@@ -3647,11 +3647,11 @@
       </div>
 
       <!-- =================================================================================== -->
-      <!-- VIEW 4: 数据库工作台 (1:1 严格对齐截图 media_1790697641201.png) -->
+      <!-- VIEW 4: 数据库工作台 (整体不滚动，左侧连接树滚动，右侧中间内容滚动，1:1 对齐截图) -->
       <!-- =================================================================================== -->
-      <div id="tab-database" class="tab-content hidden flex flex-col space-y-3 min-h-[calc(100vh-80px)] select-none">
-        <!-- 顶栏 1: 引擎切换器与全部服务器下拉 -->
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800">
+      <div id="tab-database" class="tab-content hidden h-full flex flex-col p-4 space-y-2.5 overflow-hidden select-none">
+        <!-- 顶栏 1: 引擎切换器与全部服务器下拉 (固定不滚动) -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800 shrink-0">
           <div class="flex items-center space-x-2">
             <div class="flex items-center space-x-1 p-0.5 rounded-lg bg-surface-950 border border-slate-800 text-xs">
               <button id="mainDbEngineTab-sql" type="button" onclick="switchMainDbEngine('sql')" class="px-3.5 py-1 rounded font-medium bg-surface-800 text-white flex items-center space-x-1.5 cursor-pointer transition">
@@ -3681,8 +3681,8 @@
           </div>
         </div>
 
-        <!-- 顶栏 2: 当前激活连接指示与历史/片段快捷按钮 -->
-        <div class="flex items-center justify-between px-1 text-xs">
+        <!-- 顶栏 2: 当前激活连接指示与历史/片段快捷按钮 (固定不滚动) -->
+        <div class="flex items-center justify-between px-1 text-xs shrink-0">
           <div id="mainDbActiveConnBar" class="flex items-center space-x-2">
             <span id="mainDbConnIndicator" class="flex items-center space-x-1.5 text-slate-400 font-medium">
               <span>← 在左侧连接树选择连接</span>
@@ -3711,21 +3711,23 @@
           </div>
         </div>
 
-        <!-- 主体区域：左右双栏布局 (完全对齐截图 1) -->
-        <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3 min-h-[560px]">
-          <!-- 左栏：连接树与管理面板 -->
-          <div class="md:col-span-1 glass-card p-3 rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col space-y-3">
-            <button type="button" onclick="openCurrentEngineAddModal()" class="w-full flex items-center justify-center space-x-1.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-200 text-xs border border-slate-700/80 transition cursor-pointer shadow-sm active:scale-98">
+        <!-- 主体区域：左右双栏布局 (填满视口空间，整体不滚动) -->
+        <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-4 gap-3 overflow-hidden">
+          <!-- 左栏：连接树与管理面板 (头部固定，中间连接树单独滚动) -->
+          <div class="md:col-span-1 glass-card p-3 rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col h-full min-h-0 overflow-hidden space-y-2.5">
+            <!-- 新建连接按钮 (固定顶部) -->
+            <button type="button" onclick="openCurrentEngineAddModal()" class="w-full shrink-0 flex items-center justify-center space-x-1.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-200 text-xs border border-slate-700/80 transition cursor-pointer shadow-sm active:scale-98">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>新建连接</span>
             </button>
-            <div class="relative">
+            <!-- 过滤搜索框 (固定顶部) -->
+            <div class="relative shrink-0">
               <input type="text" id="mainDbFilterInput" oninput="filterMainDbTree(this.value)" placeholder="过滤库 / 表 / 对象" class="w-full bg-surface-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition">
               <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2 pointer-events-none"></i>
             </div>
 
-            <!-- 连接树列表 (SQL 数据库) -->
-            <div id="mainDbTreeList-sql" class="flex-1 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar">
+            <!-- 连接树列表 (SQL 数据库) - 内部独立垂直滚动 -->
+            <div id="mainDbTreeList-sql" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
               <!-- 连接 1: MySQL @ 我的腾讯云0209 -->
               <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
                 <div onclick="toggleMainDbConnExpand('conn-tencent')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
@@ -3771,8 +3773,8 @@
               </div>
             </div>
 
-            <!-- 连接树列表 (Redis) -->
-            <div id="mainDbTreeList-redis" class="hidden flex-1 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar">
+            <!-- 连接树列表 (Redis) - 内部独立垂直滚动 -->
+            <div id="mainDbTreeList-redis" class="hidden flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
               <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
                 <div onclick="selectMainDbRedisInstance('redis-tencent')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
                   <div class="flex items-center space-x-1.5 min-w-0">
@@ -3793,8 +3795,8 @@
               </div>
             </div>
 
-            <!-- 连接树列表 (MongoDB) -->
-            <div id="mainDbTreeList-mongodb" class="hidden flex-1 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar">
+            <!-- 连接树列表 (MongoDB) - 内部独立垂直滚动 -->
+            <div id="mainDbTreeList-mongodb" class="hidden flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
               <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
                 <div onclick="selectMainDbMongoInstance('mongo-cluster')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
                   <div class="flex items-center space-x-1.5 min-w-0">
@@ -3807,10 +3809,10 @@
             </div>
           </div>
 
-          <!-- 右栏：SQL 查询工作台与 AI 辅助 (完全还原截图 1) -->
-          <div class="md:col-span-3 glass-card rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col overflow-hidden">
-            <!-- SQL 标签栏 -->
-            <div class="flex items-center justify-between px-3 py-1.5 bg-surface-900/90 border-b border-slate-800 text-xs">
+          <!-- 右栏：SQL 查询工作台 (外层卡片默认不滚动，头部固定，中间内容滚动) -->
+          <div class="md:col-span-3 glass-card rounded-xl border border-slate-800 bg-surface-950/60 flex flex-col h-full min-h-0 overflow-hidden">
+            <!-- 固定头部 1: SQL 标签栏 -->
+            <div class="flex items-center justify-between px-3 py-1.5 bg-surface-900/90 border-b border-slate-800 text-xs shrink-0">
               <div id="mainSqlTabsContainer" class="flex items-center space-x-1.5">
                 <button type="button" onclick="addMainSqlTab()" class="px-2.5 py-1 rounded text-slate-400 hover:text-white flex items-center space-x-1 transition cursor-pointer">
                   <i data-lucide="plus" class="w-3 h-3"></i>
@@ -3823,8 +3825,8 @@
               </div>
             </div>
 
-            <!-- AI 智能输入区 (完全对齐截图 1) -->
-            <div class="p-3 border-b border-slate-800/80 bg-surface-900/40 space-y-2">
+            <!-- 固定头部 2: AI 智能输入区 (完全对齐截图 1) -->
+            <div class="p-3 border-b border-slate-800/80 bg-surface-900/40 space-y-2 shrink-0">
               <div class="flex items-center space-x-2">
                 <div class="relative flex-1 flex items-center bg-surface-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1.5 focus-within:border-brand-500 transition">
                   <i data-lucide="sparkles" class="w-4 h-4 text-brand-400 mr-2 shrink-0"></i>
@@ -3851,8 +3853,8 @@
               </div>
             </div>
 
-            <!-- 当前库选择与警告提示 (截图 1) -->
-            <div class="px-3 py-2 bg-surface-950/60 border-b border-slate-800/60 flex items-center space-x-3 text-xs">
+            <!-- 固定头部 3: 当前库选择与警告提示 (截图 1) -->
+            <div class="px-3 py-2 bg-surface-950/60 border-b border-slate-800/60 flex items-center space-x-3 text-xs shrink-0">
               <div class="flex items-center space-x-1.5 text-slate-300">
                 <span class="text-slate-400">当前库</span>
                 <select id="mainCurrentDbSelect" onchange="onMainDbSelected(this.value)" class="bg-surface-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 cursor-pointer">
@@ -3868,67 +3870,76 @@
               </span>
             </div>
 
-            <!-- SQL 编辑器模拟区域 -->
-            <div class="flex-1 bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[160px] flex space-x-3">
-              <div class="text-slate-600 select-none text-right w-5 pt-0.5 font-mono">1</div>
-              <textarea id="mainSqlEditorArea" class="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed" placeholder="选凭据后再写 SQL"></textarea>
-            </div>
-
-            <!-- 底部操作条 (执行 / 解释 / 清空) -->
-            <div class="p-2.5 bg-surface-900/90 border-t border-slate-800 flex items-center justify-between text-xs">
-              <div class="flex items-center space-x-2">
-                <button type="button" onclick="executeMainSql()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 hover:bg-teal-500/30 font-medium transition cursor-pointer shadow-sm active:scale-95">
-                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                  <span>执行</span>
-                </button>
-                <button type="button" onclick="explainMainSql()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700 transition cursor-pointer">
-                  <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
-                  <span>解释</span>
-                </button>
+            <!-- 右侧中间内容区域: SQL 编辑器 + 操作条 + 结果集 (内部独立滚动) -->
+            <div id="mainSqlMiddleContent" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
+              <!-- SQL 编辑器模拟区域 -->
+              <div class="bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0">
+                <div id="mainSqlLineNumbers" class="text-slate-600 select-none text-right w-5 pt-0.5 font-mono leading-relaxed">1</div>
+                <textarea id="mainSqlEditorArea" class="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed custom-scrollbar" placeholder="选凭据后再写 SQL"></textarea>
               </div>
-              <button type="button" onclick="clearMainSqlEditor()" class="px-2.5 py-1 rounded hover:bg-surface-800 text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1">
-                <i data-lucide="eraser" class="w-3.5 h-3.5"></i>
-                <span>清空</span>
-              </button>
-            </div>
 
-            <!-- 执行结果展示区域 (执行后展示) -->
-            <div id="mainSqlResultContainer" class="hidden border-t border-slate-800 bg-surface-950 flex flex-col min-h-[180px]">
-              <div class="px-3 py-2 bg-surface-900/80 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <!-- 操作条 (执行 / 解释 / 清空) - 悬浮吸附于中间区域顶部 -->
+              <div class="p-2.5 bg-surface-900/90 border-t border-b border-slate-800 flex items-center justify-between text-xs shrink-0 sticky top-0 z-10">
                 <div class="flex items-center space-x-2">
-                  <span class="text-emerald-400 font-medium flex items-center space-x-1">
-                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                    <span>执行成功</span>
-                  </span>
-                  <span>共 <span id="mainSqlResultRows" class="text-slate-200 font-mono">5</span> 行</span>
-                  <span>耗时: <span class="text-slate-200 font-mono">14ms</span></span>
+                  <button type="button" onclick="executeMainSql()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 hover:bg-teal-500/30 font-medium transition cursor-pointer shadow-sm active:scale-95">
+                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                    <span>执行</span>
+                  </button>
+                  <button type="button" onclick="explainMainSql()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
+                    <span>解释</span>
+                  </button>
                 </div>
-                <button type="button" onclick="showToast('已导出 CSV 结果集')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 text-[11px] border border-slate-700 transition cursor-pointer">导出 CSV</button>
+                <button type="button" onclick="clearMainSqlEditor()" class="px-2.5 py-1 rounded hover:bg-surface-800 text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1">
+                  <i data-lucide="eraser" class="w-3.5 h-3.5"></i>
+                  <span>清空</span>
+                </button>
               </div>
-              <div class="overflow-x-auto flex-1 custom-scrollbar">
-                <table class="w-full text-left font-mono text-[11px] border-collapse">
-                  <thead class="bg-surface-950 text-slate-400 border-b border-slate-800">
-                    <tr>
-                      <th class="py-1.5 px-3">user_id</th>
-                      <th class="py-1.5 px-3">user_name</th>
-                      <th class="py-1.5 px-3">nick_name</th>
-                      <th class="py-1.5 px-3">email</th>
-                      <th class="py-1.5 px-3">phonenumber</th>
-                      <th class="py-1.5 px-3">status</th>
-                      <th class="py-1.5 px-3">create_time</th>
-                    </tr>
-                  </thead>
-                  <tbody id="mainSqlResultTbody" class="divide-y divide-slate-800/40 text-slate-300">
-                    <!-- 动态记录 -->
-                  </tbody>
-                </table>
+
+              <!-- 执行结果展示区域 (执行后展示) -->
+              <div id="mainSqlResultContainer" class="hidden flex-1 flex flex-col bg-surface-950 min-h-[220px]">
+                <div class="px-3 py-2 bg-surface-900/80 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-emerald-400 font-medium flex items-center space-x-1">
+                      <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                      <span>执行成功</span>
+                    </span>
+                    <span>共 <span id="mainSqlResultRows" class="text-slate-200 font-mono">5</span> 行</span>
+                    <span>耗时: <span class="text-slate-200 font-mono">14ms</span></span>
+                  </div>
+                  <button type="button" onclick="showToast('已导出 CSV 结果集')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 text-[11px] border border-slate-700 transition cursor-pointer">导出 CSV</button>
+                </div>
+                <div class="overflow-x-auto flex-1 custom-scrollbar">
+                  <table class="w-full text-left font-mono text-[11px] border-collapse">
+                    <thead class="bg-surface-950 text-slate-400 border-b border-slate-800 sticky top-0 z-5">
+                      <tr>
+                        <th class="py-1.5 px-3">user_id</th>
+                        <th class="py-1.5 px-3">user_name</th>
+                        <th class="py-1.5 px-3">nick_name</th>
+                        <th class="py-1.5 px-3">email</th>
+                        <th class="py-1.5 px-3">phonenumber</th>
+                        <th class="py-1.5 px-3">status</th>
+                        <th class="py-1.5 px-3">create_time</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mainSqlResultTbody" class="divide-y divide-slate-800/40 text-slate-300">
+                      <!-- 动态记录 -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- 默认未执行时的空状态占位区 (完全对齐截图 1 底部留白) -->
+              <div id="mainSqlEmptyResultArea" class="flex-1 bg-[#090d16]/30 flex flex-col items-center justify-center text-slate-600 text-xs min-h-[160px] select-none py-10">
+                <i data-lucide="terminal" class="w-7 h-7 text-slate-700/60 mb-2"></i>
+                <span class="text-slate-500">点击「执行」后在此查看 SQL 返回数据</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 底部全局状态栏 (对齐截图 1 底部) -->
-        <div class="px-3 py-1.5 rounded-lg bg-surface-950/80 border border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+        <!-- 底部全局状态栏 (对齐截图 1 底部，固定不滚动) -->
+        <div class="px-3 py-1.5 rounded-lg bg-surface-950/80 border border-slate-800 flex items-center justify-between text-[11px] text-slate-400 shrink-0">
           <div class="flex items-center space-x-3 font-mono">
             <span class="flex items-center space-x-1.5 text-slate-300">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -4100,9 +4111,13 @@
                 <input type="number" value="30" class="w-16 bg-surface-950 border border-slate-700 rounded px-2 py-0.5 text-xs text-white font-mono">
               </div>
 
-              <div class="flex items-center space-x-1.5">
-                <span class="text-slate-400">失败即停:</span>
-                <input type="checkbox" class="rounded bg-surface-800 border-slate-700 text-emerald-500">
+              <div class="flex items-center space-x-2">
+                <span class="text-slate-400 select-none">失败即停:</span>
+                <label class="relative inline-flex items-center cursor-pointer select-none" title="开启后任一主机执行返回非0将立即中断后续执行">
+                  <input type="checkbox" id="chkBatchFailStop" onchange="onBatchFailStopToggle(this.checked)" class="sr-only peer" checked>
+                  <div class="w-7 h-4 bg-surface-800 border border-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-teal-500 peer-checked:border-teal-500"></div>
+                </label>
+                <span id="labelBatchFailStop" class="text-[11px] text-teal-400 font-medium select-none">已开启</span>
               </div>
             </div>
 
@@ -6540,295 +6555,776 @@ Filesystem      Size  Used Avail Use% Mounted on
       </div>
 
       <!-- =================================================================================== -->
-      <!-- VIEW: 系统与模型配置 (Settings) - 对应截图 5 media_1789608216289.png (精简精炼版) -->
+      <!-- VIEW: 设置中心 (Settings) - 严格按照截图 media_1790812251040.png 高保真实现 -->
       <!-- =================================================================================== -->
-      <div id="tab-settings" class="tab-content hidden space-y-4">
-        <!-- 顶栏 -->
-        <div class="pb-2 border-b border-slate-800 flex items-center space-x-3">
-          <img src="./logo.png" alt="OpsSentry Logo" class="w-8 h-8 object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.3)] shrink-0">
-          <div>
-            <h1 class="text-base font-bold text-white flex items-center space-x-2">
-              <span>系统与 AI 设置</span>
-            </h1>
-            <p class="text-xs text-slate-400 mt-0.5">
-              OpsSentry 桌面端 · 内置 AI 对话顶配 API Profile / 托盘与失焦安全收敛 / 外观交互 / 网络代理 / 自动化生命周期
-            </p>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <!-- 左侧设置子导航 (对应截图 5 分类) -->
-          <div class="glass-card p-3 rounded-xl border border-slate-800 lg:col-span-1 space-y-3 text-xs">
-            <div class="space-y-1">
-              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1">外观与交互</div>
-              <button onclick="switchSettingSubTab('appearance')" id="set-btn-appearance" class="set-nav-btn w-full text-left px-2.5 py-1.5 rounded-lg bg-surface-800 text-brand-300 font-medium flex items-center space-x-2">
-                <i data-lucide="palette" class="w-3.5 h-3.5"></i><span>界面与主题</span>
-              </button>
-              <button onclick="switchSettingSubTab('window')" id="set-btn-window" class="set-nav-btn w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-surface-800/60 text-slate-300 flex items-center space-x-2">
-                <i data-lucide="app-window" class="w-3.5 h-3.5"></i><span>启动行为与托盘</span>
-              </button>
-            </div>
-
-            <div class="space-y-1 pt-2 border-t border-slate-800">
-              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1">AI 与网络</div>
-              <button onclick="switchSettingSubTab('llm')" id="set-btn-llm" class="set-nav-btn w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-surface-800/60 text-slate-300 flex items-center space-x-2">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>API Profiles 模型</span>
-              </button>
-              <button onclick="switchSettingSubTab('proxy')" id="set-btn-proxy" class="set-nav-btn w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-surface-800/60 text-slate-300 flex items-center space-x-2">
-                <i data-lucide="network" class="w-3.5 h-3.5"></i><span>网络代理与白名单</span>
-              </button>
-            </div>
-
-            <div class="space-y-1 pt-2 border-t border-slate-800">
-              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1">安全与审计</div>
-              <button onclick="switchSettingSubTab('safety')" id="set-btn-safety" class="set-nav-btn w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-surface-800/60 text-slate-300 flex items-center space-x-2">
-                <i data-lucide="shield" class="w-3.5 h-3.5"></i><span>主密码与黑名单</span>
-              </button>
-              <button onclick="switchSettingSubTab('backup')" id="set-btn-backup" class="set-nav-btn w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-surface-800/60 text-slate-300 flex items-center space-x-2">
-                <i data-lucide="database" class="w-3.5 h-3.5"></i><span>数据备份与还原</span>
-              </button>
+      <div id="tab-settings" class="tab-content hidden h-full w-full flex overflow-hidden select-none">
+        
+        <!-- 左侧设置子导航 (完全对齐截图分类与菜单) -->
+        <aside class="w-[230px] shrink-0 h-full border-r border-slate-800/80 bg-[#0a0e13]/90 backdrop-blur-md flex flex-col overflow-hidden">
+          <!-- 头部标题 -->
+          <div class="px-4 py-3.5 border-b border-slate-800/80 flex items-center space-x-2.5 shrink-0">
+            <i data-lucide="settings" class="w-4 h-4 text-slate-300"></i>
+            <div class="min-w-0">
+              <h2 class="text-sm font-bold text-white leading-tight">设置</h2>
+              <p class="text-[11px] text-slate-500 truncate" title="内置 AI 对话顶的模型服务 / 主机运维与系统策略">内置 AI 对话顶的模型服务 / 主...</p>
             </div>
           </div>
 
-          <!-- 右侧设置配置详情 (对应截图 5 各项设置) -->
-          <div class="glass-card p-5 rounded-xl border border-slate-800 lg:col-span-3 space-y-5 text-xs">
+          <!-- 子导航列表 -->
+          <div class="flex-1 overflow-y-auto custom-scrollbar p-2.5 space-y-3 text-xs">
             
-            <!-- 子项 1: 界面与主题 -->
-            <div id="panel-set-appearance" class="space-y-5">
-              <div>
-                <div class="font-bold text-sm text-white flex items-center space-x-2">
-                  <i data-lucide="languages" class="w-4 h-4 text-brand-400"></i>
+            <!-- 分组 1: 外观与交互 -->
+            <div>
+              <div class="text-[11px] font-medium text-slate-500 px-2 py-1">外观与交互</div>
+              <div class="space-y-0.5 mt-0.5">
+                <button type="button" onclick="scrollSettingsTo('language')" id="set-subnav-language" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-medium transition bg-teal-500/10 text-teal-400 border border-teal-500/30">
+                  <span class="w-4 text-center font-bold text-xs">文</span>
                   <span>界面语言</span>
-                </div>
-                <p class="text-slate-400 text-xs mt-0.5">切换后立即生效，本设置会持久化</p>
-                <div class="flex items-center space-x-3 mt-3">
-                  <button class="px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-medium shadow">简体中文</button>
-                  <button class="px-4 py-1.5 rounded-lg bg-surface-900 text-slate-400 border border-slate-700 hover:text-white">English</button>
-                </div>
-              </div>
-
-              <div class="pt-4 border-t border-slate-800">
-                <div class="font-bold text-sm text-white flex items-center space-x-2">
-                  <i data-lucide="palette" class="w-4 h-4 text-brand-400"></i>
-                  <span>外观主题 (暗色 / 亮色)</span>
-                </div>
-                <div class="grid grid-cols-3 gap-3 mt-3">
-                  <div class="p-3 rounded-xl bg-surface-950 border-2 border-emerald-500 flex flex-col justify-between h-20 cursor-pointer">
-                    <div class="flex items-center space-x-1.5">
-                      <div class="w-3 h-3 rounded-full bg-emerald-400"></div>
-                      <span class="text-white font-bold text-xs">午夜耀石 (默认)</span>
-                    </div>
-                    <span class="text-[10px] text-emerald-400">✓ 当前激活</span>
-                  </div>
-                  <div class="p-3 rounded-xl bg-[#18181b] border border-slate-700 hover:border-slate-500 flex flex-col justify-between h-20 cursor-pointer">
-                    <div class="flex items-center space-x-1.5">
-                      <div class="w-3 h-3 rounded-full bg-indigo-400"></div>
-                      <span class="text-slate-200 font-bold text-xs">石墨暗黑</span>
-                    </div>
-                  </div>
-                  <div class="p-3 rounded-xl bg-[#1c1917] border border-slate-700 hover:border-slate-500 flex flex-col justify-between h-20 cursor-pointer">
-                    <div class="flex items-center space-x-1.5">
-                      <div class="w-3 h-3 rounded-full bg-amber-400"></div>
-                      <span class="text-slate-200 font-bold text-xs">暮薇暖橙</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 子项 2: 启动行为与托盘 (截图5重点特性) -->
-            <div id="panel-set-window" class="hidden space-y-5">
-              <div>
-                <div class="font-bold text-sm text-white flex items-center space-x-2">
-                  <i data-lucide="power" class="w-4 h-4 text-emerald-400"></i>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('startup')" id="set-subnav-startup" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="power" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
                   <span>启动行为</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('window')" id="set-subnav-window" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="app-window" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>窗口与托盘</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('appearance')" id="set-subnav-appearance" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="palette" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>外观主题</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('terminal-theme')" id="set-subnav-terminal-theme" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="terminal" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>终端主题</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 分组 2: AI 与网络 -->
+            <div class="pt-2 border-t border-slate-800/60">
+              <div class="text-[11px] font-medium text-slate-500 px-2 py-1">AI 与网络</div>
+              <div class="space-y-0.5 mt-0.5">
+                <button type="button" onclick="scrollSettingsTo('models')" id="set-subnav-models" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>模型服务</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('proxy')" id="set-subnav-proxy" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="network" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>网络代理</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('whitelist')" id="set-subnav-whitelist" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>出站地址白名单</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 分组 3: 安全 -->
+            <div class="pt-2 border-t border-slate-800/60">
+              <div class="text-[11px] font-medium text-slate-500 px-2 py-1">安全</div>
+              <div class="space-y-0.5 mt-0.5">
+                <button type="button" onclick="scrollSettingsTo('ssh-keys')" id="set-subnav-ssh-keys" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="key" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>SSH 密钥</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('lock')" id="set-subnav-lock" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="lock" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>主密码 / 应用锁定</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('blacklist')" id="set-subnav-blacklist" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>命令黑名单</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('audit-retention')" id="set-subnav-audit-retention" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="clipboard-list" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>审计保留</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 分组 4: 数据 -->
+            <div class="pt-2 border-t border-slate-800/60">
+              <div class="text-[11px] font-medium text-slate-500 px-2 py-1">数据</div>
+              <div class="space-y-0.5 mt-0.5">
+                <button type="button" onclick="scrollSettingsTo('backup')" id="set-subnav-backup" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="database" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>备份与还原</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('mobile-pairing')" id="set-subnav-mobile-pairing" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="smartphone" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>手机配对</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 分组 5: 关于 -->
+            <div class="pt-2 border-t border-slate-800/60">
+              <div class="text-[11px] font-medium text-slate-500 px-2 py-1">关于</div>
+              <div class="space-y-0.5 mt-0.5">
+                <button type="button" onclick="scrollSettingsTo('license')" id="set-subnav-license" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="shield" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>授权管理</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('legal')" id="set-subnav-legal" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>法律声明</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('community')" id="set-subnav-community" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="users" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>作者 & 社区</span>
+                </button>
+                <button type="button" onclick="scrollSettingsTo('apps')" id="set-subnav-apps" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>推荐应用</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+
+        <!-- 右侧设置配置详情滚动区 (全景卡片流) -->
+        <div id="settingsContentPanel" class="flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar p-6 space-y-4 bg-surface-950/40">
+          
+          <!-- 卡片 1: 界面语言 (对齐截图) -->
+          <div id="setting-card-language" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <span class="text-teal-400 font-bold text-sm">文</span>
+                <span>界面语言</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">切换后立即生效，本设置会持久化</p>
+            </div>
+            <div class="flex items-center space-x-2.5 pt-1">
+              <button type="button" onclick="selectSettingLanguage('zh-CN')" id="btn-lang-zh" class="px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-medium text-xs shadow-sm transition">简体中文</button>
+              <button type="button" onclick="selectSettingLanguage('en')" id="btn-lang-en" class="px-4 py-1.5 rounded-lg bg-[#141a22] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs transition">English</button>
+            </div>
+          </div>
+
+          <!-- 卡片 2: 启动行为 (对齐截图) -->
+          <div id="setting-card-startup" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="power" class="w-4 h-4 text-teal-400"></i>
+                <span>启动行为</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1 leading-relaxed">
+                系统登录后自动启动 Reeve（用户级注册表，无需管理员权限）。Windows 写 HKCU\...\Run；macOS 写 LaunchAgent；Linux 写 ~/.config/autostart。
+              </p>
+            </div>
+            <div class="space-y-3.5 pt-1">
+              <div class="flex items-center">
+                <span class="text-xs text-slate-300 w-28 shrink-0">开机自启:</span>
+                <div onclick="toggleSettingAutostart()" id="toggle-setting-autostart" class="w-9 h-5 bg-slate-700 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0">
+                  <div id="thumb-setting-autostart" class="w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-0 shadow"></div>
                 </div>
-                <p class="text-slate-400 text-xs mt-0.5">系统登录后自动启动 OpsSentry (写开机注册表，不侵占管理员权限)</p>
-                <div class="space-y-3 mt-3">
-                  <div class="flex items-center justify-between p-3 rounded-lg bg-surface-900 border border-slate-800">
-                    <div>
-                      <span class="text-slate-200 font-medium">开机自启</span>
-                      <p class="text-[11px] text-slate-500">下次开机时是否自动拉起服务</p>
-                    </div>
-                    <input type="checkbox" class="w-4 h-4 rounded bg-surface-950 border-slate-700">
-                  </div>
-                  <div class="flex items-center justify-between p-3 rounded-lg bg-surface-900 border border-slate-800">
-                    <div>
-                      <span class="text-slate-200 font-medium">自启后收进托盘</span>
-                      <p class="text-[11px] text-slate-500">被系统拉起时不弹出主窗口，只在后台托盘驻留等待 MCP 或告警</p>
-                    </div>
-                    <input type="checkbox" checked class="w-4 h-4 rounded bg-surface-950 border-slate-700">
-                  </div>
+                <span id="note-setting-autostart" class="text-xs text-slate-400 ml-3">下次开机不会自动启动，需手动打开</span>
+              </div>
+              <div class="flex items-center">
+                <span class="text-xs text-slate-300 w-28 shrink-0">自启后收进托盘:</span>
+                <div onclick="toggleSettingTrayOnStart()" id="toggle-setting-tray" class="w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0">
+                  <div id="thumb-setting-tray" class="w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow"></div>
+                </div>
+                <span class="text-xs text-slate-400 ml-3">
+                  被系统开机自启拉起时不显窗口、不占任务栏，只留托盘图标（手动打开始终正常显示窗口），点托盘图标唤回 <span class="text-amber-400 font-medium">（需先开启上方「开机自启」才生效）</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 3: 窗口与托盘 (对齐截图) -->
+          <div id="setting-card-window" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="app-window" class="w-4 h-4 text-teal-400"></i>
+                <span>窗口与托盘</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1 leading-relaxed">
+                点击主窗口关闭按钮时的行为。Reeve 是常驻后台的 MCP 网关，建议保持「最小化到托盘」—— 关闭后仍持续为 AI 提供服务，可随时从托盘图标重新打开，或在托盘菜单里彻底退出。
+              </p>
+            </div>
+            <div>
+              <div class="inline-flex rounded-lg border border-slate-700/80 p-0.5 bg-[#141a22]">
+                <button type="button" onclick="setSettingCloseAction('ask')" id="btn-close-ask" class="px-3.5 py-1 text-xs text-slate-300 hover:text-white rounded-md transition">每次询问</button>
+                <button type="button" onclick="setSettingCloseAction('minimize')" id="btn-close-minimize" class="px-3.5 py-1 text-xs text-slate-300 hover:text-white rounded-md transition">最小化到托盘</button>
+                <button type="button" onclick="setSettingCloseAction('quit')" id="btn-close-quit" class="px-3.5 py-1 text-xs text-white bg-teal-500 rounded-md font-medium shadow-sm transition">直接退出</button>
+              </div>
+              <p id="desc-setting-close" class="text-xs text-slate-400 mt-2">关闭窗口 = 退出 Reeve（停止后台 MCP 服务）。</p>
+            </div>
+            <div class="flex items-start pt-3 border-t border-slate-800/60">
+              <span class="text-xs text-slate-300 shrink-0 mt-0.5">界面失联时失效 AI 权限:</span>
+              <div class="ml-3 shrink-0">
+                <div onclick="toggleSettingAiKillswitch()" id="toggle-setting-killswitch" class="w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none">
+                  <div id="thumb-setting-killswitch" class="w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow"></div>
                 </div>
               </div>
+              <span class="text-xs text-slate-400 ml-3 leading-relaxed">
+                界面崩溃且自动重启无效时，立即停止 AI 总开关，拒绝全部待审批并锁定应用（推荐：界面没了就没人盯着 AI，而空闲自动锁定也能随界面一起失效）。
+              </span>
+            </div>
+          </div>
 
-              <!-- 截图5最受好评的安全配置: 界面失焦时收敛 AI 权限 -->
-              <div class="pt-4 border-t border-slate-800">
-                <div class="font-bold text-sm text-white flex items-center space-x-2">
-                  <i data-lucide="shield-check" class="w-4 h-4 text-rose-400"></i>
-                  <span>窗口托盘与 AI 失焦防护 (核心安全)</span>
+          <!-- 卡片 4: 外观主题 (对齐截图 3套暗色 + 3套亮色) -->
+          <div id="setting-card-appearance" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="palette" class="w-4 h-4 text-teal-400"></i>
+                <span>外观主题</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">
+                整个界面的调色主题。3 套暗色 + 3 套亮色，点选即时切换（终端配色自动跟随所选主题）。
+              </p>
+            </div>
+
+            <div>
+              <div class="text-xs text-slate-400 font-medium mb-2.5">暗色</div>
+              <div class="grid grid-cols-3 gap-3.5">
+                <!-- 石墨 -->
+                <div onclick="selectThemeSkin('graphite')" id="theme-card-graphite" class="rounded-xl p-3 bg-[#161a22] border border-slate-700/70 hover:border-slate-500 cursor-pointer transition flex flex-col justify-between h-28 group">
+                  <div>
+                    <div class="w-1/3 h-1.5 bg-indigo-500 rounded-full mb-3"></div>
+                    <div class="w-3/4 h-1.5 bg-slate-700/80 rounded-full mb-1.5"></div>
+                    <div class="w-1/2 h-1.5 bg-slate-700/80 rounded-full"></div>
+                  </div>
+                  <div id="theme-label-graphite" class="text-xs text-slate-300 text-center font-normal transition">石墨</div>
                 </div>
-                <div class="space-y-3 mt-3">
-                  <div class="p-3 rounded-lg bg-surface-900 border border-slate-800 space-y-2">
-                    <div class="flex items-center justify-between">
-                      <span class="text-slate-200 font-medium">点击主窗口关闭按钮 (X) 时的行为</span>
-                      <span class="text-[10px] text-slate-500">可在关闭弹窗中勾选“记住选择”自动同步至此</span>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                      <label class="flex items-center space-x-1.5 text-slate-300 cursor-pointer">
-                        <input type="radio" name="closeAction" onchange="onSettingCloseActionChange('ask')" id="settingCloseAsk" checked class="text-brand-500">
-                        <span class="text-brand-300 font-semibold">每次询问 (弹出退出/最小化选择)</span>
-                      </label>
-                      <label class="flex items-center space-x-1.5 text-slate-300 cursor-pointer">
-                        <input type="radio" name="closeAction" onchange="onSettingCloseActionChange('minimize')" id="settingCloseMinimize" class="text-brand-500">
-                        <span class="text-slate-300">最小化到系统托盘 (保持 MCP 运行)</span>
-                      </label>
-                      <label class="flex items-center space-x-1.5 text-slate-300 cursor-pointer">
-                        <input type="radio" name="closeAction" onchange="onSettingCloseActionChange('quit')" id="settingCloseQuit" class="text-brand-500">
-                        <span class="text-slate-300">直接退出应用</span>
-                      </label>
-                    </div>
-                  </div>
 
-                  <div class="flex items-center justify-between p-3 rounded-lg bg-surface-900 border border-brand-500/30">
-                    <div>
-                      <div class="text-slate-200 font-semibold flex items-center space-x-1.5">
-                        <span>界面失焦时收敛 AI 权限</span>
-                        <span class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[10px] font-bold">防误操作推荐</span>
-                      </div>
-                      <p class="text-[11px] text-slate-400 mt-0.5">
-                        界面脱离焦点或锁屏时，立即停止 AI 自动执行总开关，拒绝全部未审批待办（防止电脑无人在场时 AI 动作失控）
-                      </p>
-                    </div>
-                    <input type="checkbox" checked class="w-4 h-4 rounded bg-surface-950 border-slate-700">
+                <!-- 午夜曜石 (默认高亮) -->
+                <div onclick="selectThemeSkin('obsidian')" id="theme-card-obsidian" class="rounded-xl p-3 bg-[#0d1618] border-2 border-teal-500 shadow-[0_0_12px_rgba(20,184,166,0.15)] cursor-pointer transition flex flex-col justify-between h-28 group">
+                  <div>
+                    <div class="w-1/3 h-1.5 bg-teal-400 rounded-full mb-3"></div>
+                    <div class="w-3/4 h-1.5 bg-slate-600 rounded-full mb-1.5"></div>
+                    <div class="w-1/2 h-1.5 bg-slate-600 rounded-full"></div>
                   </div>
+                  <div id="theme-label-obsidian" class="text-xs text-teal-400 text-center font-medium transition">✓ 午夜曜石</div>
+                </div>
+
+                <!-- 落霞橙 -->
+                <div onclick="selectThemeSkin('amber')" id="theme-card-amber" class="rounded-xl p-3 bg-[#1c1815] border border-slate-700/70 hover:border-slate-500 cursor-pointer transition flex flex-col justify-between h-28 group">
+                  <div>
+                    <div class="w-1/3 h-1.5 bg-amber-500 rounded-full mb-3"></div>
+                    <div class="w-3/4 h-1.5 bg-slate-700/80 rounded-full mb-1.5"></div>
+                    <div class="w-1/2 h-1.5 bg-slate-700/80 rounded-full"></div>
+                  </div>
+                  <div id="theme-label-amber" class="text-xs text-slate-300 text-center font-normal transition">落霞橙</div>
                 </div>
               </div>
             </div>
 
-            <!-- 子项 3: API Profiles 大模型引擎 -->
-            <div id="panel-set-llm" class="hidden space-y-4">
-              <div class="font-bold text-sm text-white flex items-center space-x-2">
-                <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i>
-                <span>API Profiles (多大模型配置)</span>
-              </div>
-              <p class="text-slate-400 text-xs">配置用于 AI 诊断、批量脚本生成与 MCP 运维推理的大模型凭证</p>
-              
-              <div class="space-y-3">
-                <div class="p-3 rounded-lg bg-surface-900 border border-slate-800 space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="font-bold text-slate-200">DeepSeek-R1 / V3 (默认)</span>
-                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">已连通 (Ping 168ms)</span>
+            <div>
+              <div class="text-xs text-slate-400 font-medium mb-2.5">亮色</div>
+              <div class="grid grid-cols-3 gap-3.5">
+                <!-- 极简白 -->
+                <div onclick="selectThemeSkin('sky')" id="theme-card-sky" class="rounded-xl p-3 bg-[#f8fafc] border border-slate-300 hover:border-slate-400 cursor-pointer transition flex flex-col justify-between h-28 group">
+                  <div>
+                    <div class="w-1/3 h-1.5 bg-cyan-600 rounded-full mb-3"></div>
+                    <div class="w-3/4 h-1.5 bg-slate-300 rounded-full mb-1.5"></div>
+                    <div class="w-1/2 h-1.5 bg-slate-300 rounded-full"></div>
                   </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="text-slate-400 block mb-1">API Base URL</label>
-                      <input type="text" value="https://api.deepseek.com/v1" class="w-full bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
-                    </div>
-                    <div>
-                      <label class="text-slate-400 block mb-1">API Key (AES加密存储)</label>
-                      <input type="password" value="sk-dsk892348912347891234" class="w-full bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
-                    </div>
-                  </div>
+                  <div id="theme-label-sky" class="text-xs text-slate-700 text-center font-normal transition">极简白</div>
                 </div>
 
-                <div class="p-3 rounded-lg bg-surface-900 border border-slate-800 space-y-2">
-                  <div class="flex items-center justify-between">
+                <!-- 暖阳白 -->
+                <div onclick="selectThemeSkin('warm')" id="theme-card-warm" class="rounded-xl p-3 bg-[#fffbeb] border border-amber-200 hover:border-amber-300 cursor-pointer transition flex flex-col justify-between h-28 group">
+                  <div>
+                    <div class="w-1/3 h-1.5 bg-amber-500 rounded-full mb-3"></div>
+                    <div class="w-3/4 h-1.5 bg-amber-200 rounded-full mb-1.5"></div>
+                    <div class="w-1/2 h-1.5 bg-amber-200 rounded-full"></div>
+                  </div>
+                  <div id="theme-label-warm" class="text-xs text-slate-700 text-center font-normal transition">暖阳白</div>
+                </div>
+
+                <!-- 浅墨 -->
+                <div onclick="selectThemeSkin('aurora')" id="theme-card-aurora" class="rounded-xl p-3 bg-[#f1f5f9] border border-slate-300 hover:border-slate-400 cursor-pointer transition flex flex-col justify-between h-28 group">
+                  <div>
+                    <div class="w-1/3 h-1.5 bg-slate-800 rounded-full mb-3"></div>
+                    <div class="w-3/4 h-1.5 bg-slate-300 rounded-full mb-1.5"></div>
+                    <div class="w-1/2 h-1.5 bg-slate-300 rounded-full"></div>
+                  </div>
+                  <div id="theme-label-aurora" class="text-xs text-slate-700 text-center font-normal transition">浅墨</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 5: 终端主题 -->
+          <div id="setting-card-terminal-theme" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="terminal" class="w-4 h-4 text-teal-400"></i>
+                <span>终端主题与渲染</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">控制内嵌 SSH 终端的配色方案、字号与光标渲染样式</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+              <div class="p-3 rounded-xl bg-[#0c1015] border-2 border-teal-500/80 cursor-pointer">
+                <div class="font-mono text-teal-400 text-xs font-semibold mb-1">Monokai Pro</div>
+                <div class="font-mono text-[10px] text-slate-400">深灰底色 + 霓虹高亮</div>
+              </div>
+              <div class="p-3 rounded-xl bg-[#1e1e2e] border border-slate-700 hover:border-slate-500 cursor-pointer">
+                <div class="font-mono text-purple-300 text-xs font-semibold mb-1">Catppuccin</div>
+                <div class="font-mono text-[10px] text-slate-400">柔和莫兰迪色系</div>
+              </div>
+              <div class="p-3 rounded-xl bg-[#282a36] border border-slate-700 hover:border-slate-500 cursor-pointer">
+                <div class="font-mono text-pink-400 text-xs font-semibold mb-1">Dracula</div>
+                <div class="font-mono text-[10px] text-slate-400">经典吸血鬼暗紫</div>
+              </div>
+              <div class="p-3 rounded-xl bg-[#001408] border border-slate-700 hover:border-slate-500 cursor-pointer">
+                <div class="font-mono text-emerald-400 text-xs font-semibold mb-1">Matrix Green</div>
+                <div class="font-mono text-[10px] text-slate-400">黑客绿荧光终端</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 pt-2 border-t border-slate-800/60">
+              <div>
+                <label class="text-slate-400 block mb-1">终端字号</label>
+                <select class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs">
+                  <option>13px (紧凑高效)</option>
+                  <option selected>14px (推荐)</option>
+                  <option>16px (大屏适中)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">行高 (Line Height)</label>
+                <select class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs">
+                  <option selected>1.35 (标准)</option>
+                  <option>1.20 (紧密)</option>
+                  <option>1.50 (宽松)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">光标样式</label>
+                <select class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs">
+                  <option selected>闪烁方块 (Blinking Block)</option>
+                  <option>垂直光标细线 (I-Beam)</option>
+                  <option>静态下划线 (Underline)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 6: 模型服务 (API Profiles) -->
+          <div id="setting-card-models" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-teal-400"></i>
+                <span>模型服务 (API Profiles)</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">配置用于 AI 诊断、批量脚本生成与 MCP 运维推理的大语言模型凭据</p>
+            </div>
+            
+            <div class="space-y-3 pt-1">
+              <!-- DeepSeek -->
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="font-bold text-slate-200">DeepSeek-R1 / V3</span>
+                    <span class="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px]">默认引擎</span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] flex items-center space-x-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      <span>已连通 (Ping 168ms)</span>
+                    </span>
+                    <button type="button" onclick="showToast('正在向 DeepSeek 发送测试探测包... 延迟 168ms 正常')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">测速</button>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-slate-400 block mb-1">API Base URL</label>
+                    <input type="text" value="https://api.deepseek.com/v1" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-slate-400 block mb-1">API Key (AES-256 加密保存)</label>
+                    <input type="password" value="sk-dsk892348912347891234" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Claude -->
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
                     <span class="font-bold text-slate-200">Anthropic Claude 3.5 Sonnet</span>
-                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">备用</span>
+                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">备用引擎</span>
                   </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="text-slate-400 block mb-1">Base URL</label>
-                      <input type="text" value="https://api.anthropic.com/v1" class="w-full bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
-                    </div>
-                    <div>
-                      <label class="text-slate-400 block mb-1">API Key</label>
-                      <input type="password" value="sk-ant-api03-xxxx" class="w-full bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
-                    </div>
+                  <button type="button" onclick="showToast('Anthropic 端点探测成功 (Ping 340ms)')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">测试连通</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-slate-400 block mb-1">Base URL</label>
+                    <input type="text" value="https://api.anthropic.com/v1" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-slate-400 block mb-1">API Key</label>
+                    <input type="password" value="sk-ant-api03-xxxx-secret" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
                   </div>
                 </div>
+              </div>
 
-                <div class="p-3 rounded-lg bg-surface-900 border border-slate-800 space-y-2">
-                  <div class="flex items-center justify-between">
+              <!-- Ollama -->
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
                     <span class="font-bold text-slate-200">本地私有化 Ollama (零数据上云)</span>
-                    <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[10px]">内网安全</span>
+                    <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[10px]">内网安全</span>
                   </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="text-slate-400 block mb-1">Endpoint</label>
-                      <input type="text" value="http://127.0.0.1:11434" class="w-full bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
-                    </div>
-                    <div>
-                      <label class="text-slate-400 block mb-1">模型 Tag</label>
-                      <input type="text" value="qwen2.5-coder:7b" class="w-full bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
-                    </div>
+                  <span class="text-[10px] text-slate-400">已侦测到 qwen2.5-coder:7b</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-slate-400 block mb-1">Endpoint</label>
+                    <input type="text" value="http://127.0.0.1:11434" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-slate-400 block mb-1">模型 Tag</label>
+                    <input type="text" value="qwen2.5-coder:7b" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 子项 4: 网络代理与出站 -->
-            <div id="panel-set-proxy" class="hidden space-y-4">
-              <div class="font-bold text-sm text-white flex items-center space-x-2">
-                <i data-lucide="network" class="w-4 h-4 text-cyan-400"></i>
-                <span>网络代理与出站白名单</span>
+          <!-- 卡片 7: 网络代理 -->
+          <div id="setting-card-proxy" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="network" class="w-4 h-4 text-teal-400"></i>
+                <span>网络代理</span>
               </div>
-              <div class="space-y-3">
-                <div class="p-3 rounded-lg bg-surface-900 border border-slate-800 space-y-2">
-                  <span class="text-slate-200 font-medium">应用网络代理 (用于访问海外云服务器与 API)</span>
-                  <div class="grid grid-cols-3 gap-2">
-                    <select class="bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200">
-                      <option>SOCKS5 代理</option>
-                      <option>HTTP 代理</option>
-                      <option>直连 (不走代理)</option>
-                    </select>
-                    <input type="text" value="127.0.0.1" placeholder="IP / 主机" class="bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
-                    <input type="text" value="7890" placeholder="端口" class="bg-surface-950 border border-slate-700 rounded px-2.5 py-1 text-slate-200 font-mono">
+              <p class="text-slate-400 text-xs mt-1">配置应用出站代理，用于访问海外服务器 SSH 跳板与外部 AI 接口</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              <div>
+                <label class="text-slate-400 block mb-1">代理协议</label>
+                <select class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200">
+                  <option selected>SOCKS5 代理</option>
+                  <option>HTTP 代理</option>
+                  <option>直连 (不使用代理)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">代理主机 / IP</label>
+                <input type="text" value="127.0.0.1" class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">端口</label>
+                <input type="text" value="7890" class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono">
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <span class="text-slate-500 text-[11px]">代理仅作用于出站连接，不会监听非本机网络流量</span>
+              <button type="button" onclick="showToast('代理连通测试成功：127.0.0.1:7890 (SOCKS5)')" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium transition">测试代理连通性</button>
+            </div>
+          </div>
+
+          <!-- 卡片 8: 出站地址白名单 -->
+          <div id="setting-card-whitelist" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-teal-400"></i>
+                <span>出站地址白名单 (防数据外泄)</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">启用出站白名单后，Reeve 与 MCP 网关仅被允许与下列指定 IP / CIDR 网段及域名通信</p>
+            </div>
+            <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between py-1 border-b border-slate-800">
+                <span class="font-mono text-slate-300">192.168.0.0/16</span>
+                <span class="text-slate-500 text-[11px]">本地专有子网</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-slate-800">
+                <span class="font-mono text-slate-300">10.0.0.0/8</span>
+                <span class="text-slate-500 text-[11px]">企业私有生产网络</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-slate-800">
+                <span class="font-mono text-slate-300">api.deepseek.com</span>
+                <span class="text-slate-500 text-[11px]">大模型 API 域名</span>
+              </div>
+              <div class="flex items-center justify-between py-1">
+                <span class="font-mono text-slate-300">127.0.0.1</span>
+                <span class="text-slate-500 text-[11px]">本地回环 (默认必需)</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <input type="text" placeholder="输入新的 IP、CIDR 或域名 (如 172.16.0.0/12)" class="flex-1 bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs">
+              <button type="button" onclick="showToast('已加入出站白名单')" class="px-3.5 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 font-medium">添加白名单</button>
+            </div>
+          </div>
+
+          <!-- 卡片 9: SSH 密钥 -->
+          <div id="setting-card-ssh-keys" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-sm text-white flex items-center space-x-2">
+                  <i data-lucide="key" class="w-4 h-4 text-teal-400"></i>
+                  <span>SSH 密钥管理</span>
+                </div>
+                <p class="text-slate-400 text-xs mt-1">本地密钥库管理，私钥使用应用主密码派生的 AES-256-GCM 本地加密保存</p>
+              </div>
+              <button type="button" onclick="showToast('生成 SSH 密钥对向导已启动')" class="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium flex items-center space-x-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>生成新密钥对</span>
+              </button>
+            </div>
+            <div class="space-y-2 pt-1">
+              <div class="flex items-center justify-between p-3 rounded-xl bg-[#141a22] border border-slate-800">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="key-round" class="w-4 h-4 text-teal-400"></i>
+                  <div>
+                    <div class="font-bold text-slate-200 font-mono">id_ed25519 (默认运维主密钥)</div>
+                    <div class="text-[10px] text-slate-500 font-mono">SHA256:2f8a...9c21 · 256 bits ED25519</div>
                   </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 text-[10px]">默认</span>
+                  <button type="button" onclick="showToast('公钥已复制到剪贴板')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">复制公钥</button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-3 rounded-xl bg-[#141a22] border border-slate-800">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="key-round" class="w-4 h-4 text-indigo-400"></i>
+                  <div>
+                    <div class="font-bold text-slate-200 font-mono">id_rsa_prod (生产堡垒机专属)</div>
+                    <div class="text-[10px] text-slate-500 font-mono">SHA256:7b1e...34d0 · 4096 bits RSA</div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button type="button" onclick="showToast('公钥已复制到剪贴板')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">复制公钥</button>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 子项 5: 安全与合规策略 (命令黑名单) -->
-            <div id="panel-set-safety" class="hidden space-y-4">
-              <div class="font-bold text-sm text-white flex items-center space-x-2">
-                <i data-lucide="shield" class="w-4 h-4 text-rose-400"></i>
+          <!-- 卡片 10: 主密码 / 应用锁定 -->
+          <div id="setting-card-lock" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="lock" class="w-4 h-4 text-teal-400"></i>
+                <span>主密码与应用锁定</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">用于加解密全部敏感 SSH 私钥与大模型 API Key，以及在离开电脑时自动锁定操作界面</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4 pt-1">
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2">
+                <span class="text-slate-200 font-medium">空闲超时自动锁定</span>
+                <p class="text-[11px] text-slate-500">当鼠标键盘无操作超过设定时长时，自动锁死操作台</p>
+                <select class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200">
+                  <option>5 分钟</option>
+                  <option selected>15 分钟 (推荐)</option>
+                  <option>30 分钟</option>
+                  <option>从不自动锁定</option>
+                </select>
+              </div>
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2 flex flex-col justify-between">
+                <div>
+                  <span class="text-slate-200 font-medium">修改应用主密码</span>
+                  <p class="text-[11px] text-slate-500">修改后将使用新密码重新派生 AES-GCM 根密钥</p>
+                </div>
+                <button type="button" onclick="showToast('请在弹出的安全验证框中输入原密码')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 font-medium w-full text-center">重设主密码</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 11: 命令黑名单 -->
+          <div id="setting-card-blacklist" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-teal-400"></i>
                 <span>命令黑名单与双人复核策略</span>
               </div>
-              <p class="text-slate-400 text-xs">以下危险正则表达式将被系统直接阻断，或强制要求输入主密码放行：</p>
-              <div class="p-3 rounded-lg bg-surface-950 border border-slate-800 font-mono text-xs text-rose-300 space-y-1">
-                <div>^rm\s+-rf\s+(/|\*|/\*|/home|/root|/var|/etc)</div>
-                <div>^mkfs\..*</div>
-                <div>^dd\s+if=.*of=/dev/(sd|nvme|vd).*</div>
-                <div>^iptables\s+-F</div>
-                <div>^:\(\)\{\s*:\|:&\s*\};:</div>
-              </div>
-              <div class="flex items-center justify-between pt-2">
-                <button onclick="alert('规则已更新保存')" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium">保存安全策略</button>
-              </div>
+              <p class="text-slate-400 text-xs mt-1">命中以下高危正则的命令将被系统直接阻断，或强制弹出主密码双重确认弹窗</p>
             </div>
-
-            <!-- 子项 6: 数据备份与还原 -->
-            <div id="panel-set-backup" class="hidden space-y-4">
-              <div class="font-bold text-sm text-white flex items-center space-x-2">
-                <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i>
-                <span>本地 SQLite 数据备份与导入还原</span>
-              </div>
-              <p class="text-slate-400 text-xs">所有服务器连接信息、审计日志、凭据均存储在本地 SQLite 数据库中</p>
-              <div class="flex items-center space-x-3 pt-2">
-                <button onclick="alert('已备份至: opssentry_backup_20260917.db')" class="px-3.5 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 font-medium border border-slate-700 flex items-center space-x-1.5">
-                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                  <span>导出本地数据包</span>
-                </button>
-                <button onclick="alert('请选择需要还原的 .db 文件')" class="px-3.5 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 font-medium border border-slate-700 flex items-center space-x-1.5">
-                  <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                  <span>导入还原数据</span>
-                </button>
-              </div>
+            <div class="p-3.5 rounded-xl bg-[#0a0e13] border border-slate-800 font-mono text-xs text-rose-300/90 space-y-1.5">
+              <div class="flex items-center justify-between"><span>^rm\s+-rf\s+(/|\*|/\*|/home|/root|/var|/etc)</span><span class="text-[10px] text-rose-400 font-sans">根/系统目录强删</span></div>
+              <div class="flex items-center justify-between"><span>^mkfs\..*</span><span class="text-[10px] text-rose-400 font-sans">格式化磁盘</span></div>
+              <div class="flex items-center justify-between"><span>^dd\s+if=.*of=/dev/(sd|nvme|vd).*</span><span class="text-[10px] text-rose-400 font-sans">底层覆写块设备</span></div>
+              <div class="flex items-center justify-between"><span>^iptables\s+-F</span><span class="text-[10px] text-rose-400 font-sans">清空全部防火墙规则</span></div>
+              <div class="flex items-center justify-between"><span>^:\(\)\{\s*:\|:&\s*\};:</span><span class="text-[10px] text-rose-400 font-sans">Fork 炸弹</span></div>
             </div>
-
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" onclick="showToast('正在添加自定义规则...')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 font-medium">添加自定义正则</button>
+              <button type="button" onclick="showToast('安全黑名单策略已更新并同步到本地安全引擎')" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium">保存安全策略</button>
+            </div>
           </div>
+
+          <!-- 卡片 12: 审计保留 -->
+          <div id="setting-card-audit-retention" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="clipboard-list" class="w-4 h-4 text-teal-400"></i>
+                <span>审计保留策略</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">控制终端操作回放、AI 审批记录与危险拦截日志的本地持久化保留时长</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4 pt-1">
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2">
+                <span class="text-slate-200 font-medium">日志自动清理周期</span>
+                <select class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200">
+                  <option>保留最近 30 天</option>
+                  <option selected>保留最近 90 天 (等保推荐)</option>
+                  <option>保留最近 180 天</option>
+                  <option>永久保留 (不自动清理)</option>
+                </select>
+              </div>
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2 flex flex-col justify-between">
+                <div>
+                  <span class="text-slate-200 font-medium">当前本地数据库体积</span>
+                  <div class="font-mono text-teal-400 font-bold text-sm mt-0.5">24.6 MB <span class="text-[10px] text-slate-500 font-normal">/ 1,280 条审计记录</span></div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button type="button" onclick="showToast('已完成 SQLite VACUUM 空间收缩，释放 3.2MB')" class="flex-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">压缩空间</button>
+                  <button type="button" onclick="showToast('审计数据已导出为 audit_export_20261001.csv')" class="flex-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">导出报表</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 13: 备份与还原 -->
+          <div id="setting-card-backup" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="database" class="w-4 h-4 text-teal-400"></i>
+                <span>备份与还原</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">所有服务器连接信息、审计日志、凭据均存储在本地 SQLite 数据库中，支持加密打包导出与一键还原</p>
+            </div>
+            <div class="flex items-center space-x-3 pt-1">
+              <button type="button" onclick="showToast('已导出本地数据包: reeve_backup_20261001.db')" class="px-4 py-2 rounded-xl bg-[#141a22] hover:bg-slate-800 text-slate-200 font-medium border border-slate-700 flex items-center space-x-2 transition">
+                <i data-lucide="download" class="w-4 h-4 text-teal-400"></i>
+                <span>导出本地加密数据包</span>
+              </button>
+              <button type="button" onclick="showToast('请选择需要还原的 .db 文件')" class="px-4 py-2 rounded-xl bg-[#141a22] hover:bg-slate-800 text-slate-200 font-medium border border-slate-700 flex items-center space-x-2 transition">
+                <i data-lucide="upload" class="w-4 h-4 text-indigo-400"></i>
+                <span>从备份文件还原工作区</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 卡片 14: 手机配对 -->
+          <div id="setting-card-mobile-pairing" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="smartphone" class="w-4 h-4 text-teal-400"></i>
+                <span>手机配对 (移动端审批助手)</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">使用手机 Reeve App 扫码配对后，外出离开办公桌时可接收高危运维动作实时推送并单手完成审批放行</p>
+            </div>
+            <div class="flex items-center space-x-5 pt-1">
+              <div class="w-24 h-24 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0">
+                <div class="w-full h-full border-2 border-slate-900 border-dashed rounded flex flex-col items-center justify-center text-slate-900 font-mono text-[9px] text-center">
+                  <span>[ QR CODE ]</span>
+                  <span class="text-[8px] text-slate-600 mt-1">点此刷新</span>
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <div class="text-slate-200 font-semibold flex items-center space-x-2">
+                  <span>已绑定移动设备 (1 台)</span>
+                  <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">在线</span>
+                </div>
+                <div class="text-slate-400 text-xs font-mono">iPhone 15 Pro Max · iOS 18.2 · 配对时间 2026-09-18</div>
+                <button type="button" onclick="showToast('已向手机端发送测试审批弹窗')" class="px-3 py-1 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs border border-slate-700">发送测试审批通知</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 15: 授权管理 -->
+          <div id="setting-card-license" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="shield" class="w-4 h-4 text-teal-400"></i>
+                <span>授权管理</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">商业企业专业版授权凭证与设备绑定状态</p>
+            </div>
+            <div class="p-4 rounded-xl bg-gradient-to-r from-teal-950/40 to-slate-900 border border-teal-500/30 flex items-center justify-between">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-white text-sm">👑 Reeve Enterprise 商业团队版</span>
+                  <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-semibold">07/27 到期</span>
+                </div>
+                <div class="text-slate-400 text-xs mt-1 font-mono">纳管节点限额: 200 节点 · 当前已纳管 18 节点 · 支持离线离网运行</div>
+              </div>
+              <button type="button" onclick="showToast('正在向授权服务器校验证书... 状态有效')" class="px-3.5 py-1.5 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 font-medium">更新授权密钥</button>
+            </div>
+          </div>
+
+          <!-- 卡片 16: 法律声明 -->
+          <div id="setting-card-legal" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-teal-400"></i>
+                <span>法律声明与隐私保障</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">Reeve 坚守数据主权独立原则：全量数据驻留本地，禁止任何未经授权的遥测外传</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
+                <div class="text-teal-400 font-bold mb-1">零数据上云</div>
+                <div class="text-[10px] text-slate-500">主机密码私钥均不离机</div>
+              </div>
+              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
+                <div class="text-teal-400 font-bold mb-1">本地优先存储</div>
+                <div class="text-[10px] text-slate-500">SQLite AES-256 加密</div>
+              </div>
+              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
+                <div class="text-teal-400 font-bold mb-1">开源审计透明</div>
+                <div class="text-[10px] text-slate-500">核心 Rust 源码可查验</div>
+              </div>
+              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
+                <div class="text-teal-400 font-bold mb-1">MCP 标准协议</div>
+                <div class="text-[10px] text-slate-500">Anthropic 开放规范</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 17: 作者 & 社区 -->
+          <div id="setting-card-community" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="users" class="w-4 h-4 text-teal-400"></i>
+                <span>作者 & 社区</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">感谢所有开发者、运维架构师与开源社区对 Reeve 项目的支持与贡献</p>
+            </div>
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#141a22] border border-slate-800">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center font-bold">R</div>
+                <div>
+                  <div class="font-bold text-white">Reeve Desktop Core Team</div>
+                  <div class="text-[11px] text-slate-400 font-mono">v2.3.0 · Built with Tauri 2.x & Rust 2021</div>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button type="button" onclick="showToast('正在打开官方 GitHub 仓库页面...')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700">GitHub</button>
+                <button type="button" onclick="showToast('欢迎加入技术交流群：reeve-community')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700">技术交流群</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 18: 推荐应用 -->
+          <div id="setting-card-apps" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-teal-400"></i>
+                <span>推荐应用 (MCP 插件生态)</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-1">官方精选的 MCP 网关协同扩展工具</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-1">
+                <div class="font-bold text-slate-200">Postgres Studio MCP</div>
+                <div class="text-[10px] text-slate-400">AI 数据库架构解析与慢查诊断插件</div>
+              </div>
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-1">
+                <div class="font-bold text-slate-200">Docker Mesh Gateway</div>
+                <div class="text-[10px] text-slate-400">多节点容器拓扑自动纳管与编排</div>
+              </div>
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-1">
+                <div class="font-bold text-slate-200">K8s Pod Inspector</div>
+                <div class="text-[10px] text-slate-400">Kubeconfig 凭据自动挂载与事件分析</div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -9330,7 +9826,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       // 终端、SFTP 与新版工作台界面无外层包边卡片，直顶顶部与左侧
       const mainEl = document.getElementById('appMainContent') || document.querySelector('main');
       if (mainEl) {
-        if (tabId === 'tab-terminal' || tabId === 'tab-sftp' || tabId === 'tab-workbench') {
+        if (tabId === 'tab-terminal' || tabId === 'tab-sftp' || tabId === 'tab-workbench' || tabId === 'tab-database' || tabId === 'tab-settings') {
           mainEl.classList.remove('p-5', 'space-y-5', 'overflow-y-auto');
           mainEl.classList.add('p-0', 'overflow-hidden');
         } else {
@@ -9453,15 +9949,25 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (mode === 'serial') document.getElementById('modeSerial').className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium';
     }
 
+    function onBatchFailStopToggle(checked) {
+      const lbl = document.getElementById('labelBatchFailStop');
+      if (lbl) {
+        lbl.textContent = checked ? '已开启' : '已关闭';
+        lbl.className = checked ? 'text-[11px] text-teal-400 font-medium select-none' : 'text-[11px] text-slate-500 select-none';
+      }
+      showToast(checked ? '失败即停已开启：任一目标报错将自动中止后续批次' : '失败即停已关闭：所有目标将继续独立执行');
+    }
+
     function startBatchExecution() {
       const cmd = document.getElementById('batchCommandInput').value.trim();
       if (!cmd) {
-        alert('请输入要批量下发的命令');
+        showToast('请输入要批量下发的命令');
         return;
       }
+      const failStop = document.getElementById('chkBatchFailStop')?.checked ?? true;
       document.getElementById('batchEmptyState').classList.add('hidden');
       document.getElementById('batchResultsContainer').classList.remove('hidden');
-      alert(`🚀 正在并发下发批量命令至选中的主机...\n命令: ${cmd}\n已通过安全规则黑名单检查！`);
+      showToast(`🚀 正在下发批量命令 (失败即停: ${failStop ? '已开启' : '已关闭'})，安全黑名单规则校验通过！`);
     }
 
     function resetBatchForm() {
@@ -13795,27 +14301,139 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     }
 
     // ==========================================
-    // 设置中心交互逻辑 (截图 5)
+    // 设置中心交互逻辑 (高保真对齐截图 media_1790812251040.png)
     // ==========================================
+    let currentSettingSubnav = 'language';
+    let settingAutostartEnabled = false;
+    let settingTrayOnStartEnabled = true;
+    let settingCloseAction = 'quit';
+    let settingAiKillswitchEnabled = true;
+    let settingLanguage = 'zh-CN';
+
+    function scrollSettingsTo(sectionId) {
+      currentSettingSubnav = sectionId;
+      document.querySelectorAll('.set-subnav-btn').forEach(btn => {
+        btn.classList.remove('bg-teal-500/10', 'text-teal-400', 'border-teal-500/30', 'font-medium');
+        btn.classList.add('text-slate-400', 'border-transparent');
+      });
+      const activeBtn = document.getElementById('set-subnav-' + sectionId);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-400', 'border-transparent');
+        activeBtn.classList.add('bg-teal-500/10', 'text-teal-400', 'border-teal-500/30', 'font-medium');
+      }
+      const targetCard = document.getElementById('setting-card-' + sectionId);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
     function switchSettingSubTab(subKey) {
-      const panels = ['appearance', 'window', 'llm', 'proxy', 'safety', 'backup'];
-      panels.forEach(k => {
-        const p = document.getElementById('panel-set-' + k);
-        const b = document.getElementById('set-btn-' + k);
-        if (p) p.classList.add('hidden');
-        if (b) {
-          b.classList.remove('bg-surface-800', 'text-brand-300');
-          b.classList.add('text-slate-300');
+      const aliasMap = {
+        'appearance': 'appearance',
+        'window': 'startup',
+        'llm': 'models',
+        'proxy': 'proxy',
+        'safety': 'blacklist',
+        'backup': 'backup'
+      };
+      scrollSettingsTo(aliasMap[subKey] || subKey);
+    }
+
+    function selectSettingLanguage(lang) {
+      settingLanguage = lang;
+      const btnZh = document.getElementById('btn-lang-zh');
+      const btnEn = document.getElementById('btn-lang-en');
+      if (lang === 'zh-CN') {
+        if (btnZh) {
+          btnZh.className = 'px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-medium text-xs shadow-sm transition';
+        }
+        if (btnEn) {
+          btnEn.className = 'px-4 py-1.5 rounded-lg bg-[#141a22] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs transition';
+        }
+        showToast('已切换界面语言为：简体中文 (已持久化)');
+      } else {
+        if (btnZh) {
+          btnZh.className = 'px-4 py-1.5 rounded-lg bg-[#141a22] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs transition';
+        }
+        if (btnEn) {
+          btnEn.className = 'px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-medium text-xs shadow-sm transition';
+        }
+        showToast('Language switched to: English (Persisted)');
+      }
+    }
+
+    function toggleSettingAutostart() {
+      settingAutostartEnabled = !settingAutostartEnabled;
+      const toggle = document.getElementById('toggle-setting-autostart');
+      const thumb = document.getElementById('thumb-setting-autostart');
+      const note = document.getElementById('note-setting-autostart');
+      if (settingAutostartEnabled) {
+        if (toggle) toggle.className = 'w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow';
+        if (note) note.textContent = '开机自启已开启，下次登录系统时自动在后台启动';
+        showToast('开机自启已开启 (写入 HKCU Run 注册表)');
+      } else {
+        if (toggle) toggle.className = 'w-9 h-5 bg-slate-700 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-0 shadow';
+        if (note) note.textContent = '下次开机不会自动启动，需手动打开';
+        showToast('开机自启已关闭');
+      }
+    }
+
+    function toggleSettingTrayOnStart() {
+      settingTrayOnStartEnabled = !settingTrayOnStartEnabled;
+      const toggle = document.getElementById('toggle-setting-tray');
+      const thumb = document.getElementById('thumb-setting-tray');
+      if (settingTrayOnStartEnabled) {
+        if (toggle) toggle.className = 'w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow';
+        showToast('已开启：自启后收进托盘');
+      } else {
+        if (toggle) toggle.className = 'w-9 h-5 bg-slate-700 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-0 shadow';
+        showToast('已关闭：自启后将直接弹出主窗口');
+      }
+    }
+
+    function setSettingCloseAction(action) {
+      settingCloseAction = action;
+      const actions = ['ask', 'minimize', 'quit'];
+      actions.forEach(act => {
+        const btn = document.getElementById('btn-close-' + act);
+        if (btn) {
+          if (act === action) {
+            btn.className = 'px-3.5 py-1 text-xs text-white bg-teal-500 rounded-md font-medium shadow-sm transition';
+          } else {
+            btn.className = 'px-3.5 py-1 text-xs text-slate-300 hover:text-white rounded-md transition';
+          }
         }
       });
-      const activeP = document.getElementById('panel-set-' + subKey);
-      const activeB = document.getElementById('set-btn-' + subKey);
-      if (activeP) activeP.classList.remove('hidden');
-      if (activeB) {
-        activeB.classList.add('bg-surface-800', 'text-brand-300');
-        activeB.classList.remove('text-slate-300');
+      const desc = document.getElementById('desc-setting-close');
+      if (desc) {
+        if (action === 'quit') {
+          desc.textContent = '关闭窗口 = 退出 Reeve（停止后台 MCP 服务）。';
+        } else if (action === 'minimize') {
+          desc.textContent = '关闭窗口 = 最小化到系统托盘（保持后台 MCP 与 AI 守护运行）。';
+        } else {
+          desc.textContent = '关闭窗口 = 每次弹出二次询问对话框，让您确认是否退出或托盘驻留。';
+        }
       }
-      lucide.createIcons();
+      showToast('主窗口关闭动作已设置为: ' + (action === 'quit' ? '直接退出' : action === 'minimize' ? '最小化到托盘' : '每次询问'));
+    }
+
+    function toggleSettingAiKillswitch() {
+      settingAiKillswitchEnabled = !settingAiKillswitchEnabled;
+      const toggle = document.getElementById('toggle-setting-killswitch');
+      const thumb = document.getElementById('thumb-setting-killswitch');
+      if (settingAiKillswitchEnabled) {
+        if (toggle) toggle.className = 'w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none';
+        if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow';
+        showToast('界面失联时失效 AI 权限已开启 (高安全性防护)');
+      } else {
+        if (toggle) toggle.className = 'w-9 h-5 bg-slate-700 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none';
+        if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-0 shadow';
+        showToast('界面失联失效 AI 权限已关闭 (请确保无人操作时的安全)');
+      }
     }
 
     // 审计复制
@@ -14268,13 +14886,47 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         activeEl.appendChild(badge);
       }
 
+      // 同步设置中心的外观主题卡片高亮与选中标记 (对齐截图 media_1790812251040.png)
+      const themeLabelMap = {
+        'graphite': '石墨',
+        'obsidian': '午夜曜石',
+        'amber': '落霞橙',
+        'sky': '极简白',
+        'warm': '暖阳白',
+        'aurora': '浅墨'
+      };
+      const themeKeys = ['graphite', 'obsidian', 'amber', 'sky', 'warm', 'aurora'];
+      themeKeys.forEach(k => {
+        const card = document.getElementById('theme-card-' + k);
+        const label = document.getElementById('theme-label-' + k);
+        const isDarkTheme = ['graphite', 'obsidian', 'amber'].includes(k);
+        if (card) {
+          if (k === themeKey) {
+            card.classList.remove('border-slate-700/70', 'border-slate-300', 'hover:border-slate-500', 'hover:border-slate-400');
+            card.classList.add('border-2', 'border-teal-500', 'shadow-[0_0_12px_rgba(20,184,166,0.15)]');
+          } else {
+            card.classList.remove('border-2', 'border-teal-500', 'shadow-[0_0_12px_rgba(20,184,166,0.15)]');
+            card.classList.add(isDarkTheme ? 'border-slate-700/70' : 'border-slate-300');
+          }
+        }
+        if (label) {
+          if (k === themeKey) {
+            label.textContent = '✓ ' + themeLabelMap[k];
+            label.className = 'text-xs text-teal-400 text-center font-medium transition';
+          } else {
+            label.textContent = themeLabelMap[k];
+            label.className = 'text-xs ' + (isDarkTheme ? 'text-slate-300' : 'text-slate-700') + ' text-center font-normal transition';
+          }
+        }
+      });
+
       const names = {
-        'obsidian': '午夜耀石 (默认暗色)',
+        'obsidian': '午夜曜石 (默认暗色)',
         'graphite': '石墨暗黑 (冷调紫蓝)',
-        'amber': '暮薇暖橙 (琥珀色系)',
-        'sky': '晴空素白 (高对比亮色)',
-        'warm': '活力晨光 (暖调亮色)',
-        'aurora': '极光浅葱 (清爽青绿)'
+        'amber': '落霞橙 (琥珀色系)',
+        'sky': '极简白 (高对比亮色)',
+        'warm': '暖阳白 (活力晨光)',
+        'aurora': '浅墨 (极光浅葱)'
       };
       if (!quiet) {
         showToast('🎨 已切换外观主题皮肤为: ' + (names[themeKey] || themeKey));
@@ -15724,6 +16376,15 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       showToast('🔄 凭据列表已刷新');
     }
 
+    function syncMainSqlLineNumbers() {
+      const editorArea = document.getElementById('mainSqlEditorArea');
+      const lineNumbers = document.getElementById('mainSqlLineNumbers');
+      if (editorArea && lineNumbers) {
+        const lines = editorArea.value.split('\n').length;
+        lineNumbers.innerHTML = Array.from({length: Math.max(lines, 1)}, (_, i) => i + 1).join('<br>');
+      }
+    }
+
     // 3. 结构、导出、历史、片段
     function showMainDbStructure() {
       const editor = document.getElementById('mainSqlEditorArea');
@@ -15733,6 +16394,7 @@ DESCRIBE sys_user;
 
 -- 建表 DDL
 SHOW CREATE TABLE sys_user;`;
+        syncMainSqlLineNumbers();
       }
       executeMainSql();
       showToast('📐 已加载并执行表结构查看命令');
@@ -15801,6 +16463,7 @@ SHOW CREATE TABLE sys_user;`;
       const editor = document.getElementById('mainSqlEditorArea');
       if (editor && (!editor.value || editor.value.trim() === '')) {
         editor.value = `SELECT * FROM ${dbName === 'sys_auth' ? 'sys_user' : 'sys_config'} LIMIT 10;`;
+        syncMainSqlLineNumbers();
       }
 
       showToast(`✅ 已连接目标库: [${serverName}] ${dbName}`);
@@ -15884,6 +16547,7 @@ WHERE u.del_flag = '0'
 ORDER BY u.user_id ASC
 LIMIT 100;`;
         }
+        syncMainSqlLineNumbers();
         showToast('✨ AI 已成功生成 SQL 脚本');
       }, 500);
     }
@@ -15894,7 +16558,10 @@ LIMIT 100;`;
 
     function setMainAiSqlSample(sql) {
       const editor = document.getElementById('mainSqlEditorArea');
-      if (editor) editor.value = sql;
+      if (editor) {
+        editor.value = sql;
+        syncMainSqlLineNumbers();
+      }
       showToast('已填入常用 SQL 示例');
     }
 
@@ -15932,6 +16599,8 @@ LIMIT 100;`;
         return;
       }
 
+      const emptyArea = document.getElementById('mainSqlEmptyResultArea');
+      if (emptyArea) emptyArea.classList.add('hidden');
       const resultBox = document.getElementById('mainSqlResultContainer');
       const tbody = document.getElementById('mainSqlResultTbody');
       const rowsSpan = document.getElementById('mainSqlResultRows');
@@ -16013,6 +16682,10 @@ LIMIT 100;`;
     function clearMainSqlEditor() {
       const editor = document.getElementById('mainSqlEditorArea');
       if (editor) editor.value = '';
+      const lineNumbers = document.getElementById('mainSqlLineNumbers');
+      if (lineNumbers) lineNumbers.innerHTML = '1';
+      const emptyArea = document.getElementById('mainSqlEmptyResultArea');
+      if (emptyArea) emptyArea.classList.remove('hidden');
       const res = document.getElementById('mainSqlResultContainer');
       if (res) res.classList.add('hidden');
       showToast('SQL 编辑器已清空');
@@ -16021,6 +16694,18 @@ LIMIT 100;`;
     function clearWbSqlEditor() {
       clearMainSqlEditor();
     }
+
+    // 监听 SQL 编辑器输入，同步行号
+    document.addEventListener('DOMContentLoaded', () => {
+      const editorArea = document.getElementById('mainSqlEditorArea');
+      const lineNumbers = document.getElementById('mainSqlLineNumbers');
+      if (editorArea && lineNumbers) {
+        editorArea.addEventListener('input', () => {
+          const lines = editorArea.value.split('\n').length;
+          lineNumbers.innerHTML = Array.from({length: Math.max(lines, 1)}, (_, i) => i + 1).join('<br>');
+        });
+      }
+    });
 
     // 8. 模态框: 新建 DB 凭据 (截图 2 & 3)
     function openDbCredentialModal(presetType = 'MySQL') {

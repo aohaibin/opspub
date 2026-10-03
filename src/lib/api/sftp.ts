@@ -1,7 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { SftpCredentials, SftpRemoteFile } from "@/pages/sftp/types";
+import type { SftpCredentials, SftpRemoteFile, SftpSessionInfo } from "@/pages/sftp/types";
 
 export const sftpApi = {
+  open: (request: SftpCredentials) =>
+    invoke<SftpSessionInfo>("open_sftp_session", { request }),
+
+  listSessions: () => invoke<SftpSessionInfo[]>("list_sftp_sessions"),
+
+  close: (serverId: number) =>
+    invoke<void>("close_sftp_session", { serverId }),
+
+  closeAll: () => invoke<void>("close_all_sftp_sessions"),
+
   list: (request: SftpCredentials, path: string) =>
     invoke<SftpRemoteFile[]>("sftp_list", { request, path }),
 

@@ -22,3 +22,6 @@ export {
 } from "./terminal";
 export { sftpApi } from "./sftp";
 export { workbenchApi } from "./workbench";
+export { databaseApi } from "./database";
+export { deploymentApi } from "./deployment";
+export { copilotApi } from "./copilot";

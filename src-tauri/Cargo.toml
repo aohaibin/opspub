@@ -49,7 +49,7 @@ regex = "1"
 # 并发 HashMap（SSH session pool）
 dashmap = "5"
 # UUID（工单/会话 ID）
-uuid = { version = "1", features = ["serde"] }
+uuid = { version = "1", features = ["serde", "v4"] }
 # 详见 src/remote/ 模块和 .claude/skills/remote-gateway/skill.md
 axum = { version = "0.7", features = ["ws", "multipart"] }
 tower-http = { version = "0.5", features = ["cors"] }

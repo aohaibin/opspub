@@ -937,7 +937,7 @@ export default function ServersPage() {
               setPolicyInput("approval");
               setPolicyModalOpen(true);
             }}
-            onBatchExecute={() => navigate(modulePath("batch"))}
+            onBatchExecute={() => navigate(modulePath("batch"), { state: { serverIds: selectedIds } })}
             onBatchDelete={handleBatchDelete}
             onClear={() => setSelectedIds([])}
           />

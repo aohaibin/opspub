@@ -1,8 +1,9 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 use chrono::TimeZone;
 use dashmap::DashMap;
@@ -75,6 +76,8 @@ pub struct SftpManager {
     sessions: Arc<DashMap<i64, SftpSessionHandle>>,
     session_info: Arc<DashMap<i64, SftpSessionInfo>>,
     sequence: AtomicU64,
+    // 建连过程跨越 TCP、SSH 握手和凭据认证，需保证同一服务器不会并发创建并覆盖会话。
+    connect_lock: Mutex<()>,
 }
 
 impl Default for SftpManager {
@@ -83,6 +86,7 @@ impl Default for SftpManager {
             sessions: Arc::new(DashMap::new()),
             session_info: Arc::new(DashMap::new()),
             sequence: AtomicU64::new(1),
+            connect_lock: Mutex::new(()),
         }
     }
 }
@@ -103,6 +107,12 @@ impl SftpManager {
     }
 
     fn ensure(&self, db: &Database, request: &SftpRequest) -> Result<SftpSessionHandle, AppError> {
+        // 先检查再建立必须是一个原子流程；否则页面恢复和目录加载同时触发时，
+        // 两个 worker 会互相覆盖同一 server_id 的会话映射。
+        let _connect_guard = self
+            .connect_lock
+            .lock()
+            .map_err(|_| AppError::Custom("SFTP 建连锁已损坏".into()))?;
         if let Some(existing) = self.sessions.get(&request.server_id) {
             if self
                 .session_info
@@ -123,6 +133,8 @@ impl SftpManager {
         let sftp = session
             .sftp()
             .map_err(|error| AppError::Custom(format!("初始化 SFTP 子系统失败: {error}")))?;
+        // 菜单切换期间 worker 仍然存活，通过 SSH keepalive 防止服务端/NAT 因空闲回收连接。
+        session.set_keepalive(true, 15);
         let sequence = self.sequence.fetch_add(1, Ordering::Relaxed);
         let session_id = format!(
             "sftp-{}-{}-{}",
@@ -318,7 +330,22 @@ fn run_sftp_session(
     sessions: Arc<DashMap<i64, SftpSessionHandle>>,
     session_info: Arc<DashMap<i64, SftpSessionInfo>>,
 ) {
-    while let Ok(operation) = receiver.recv() {
+    loop {
+        let operation = match receiver.recv_timeout(Duration::from_secs(10)) {
+            Ok(operation) => operation,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                if let Err(error) = session.keepalive_send() {
+                    if let Some(mut info) = session_info.get_mut(&server_id) {
+                        info.status = "error".into();
+                        info.message = format!("SFTP 保活失败: {error}");
+                    }
+                    break;
+                }
+                continue;
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+        };
+
         match operation {
             SftpOperation::List { path, response } => {
                 let _ = response.send(list_on_sftp(&sftp, path));

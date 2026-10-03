@@ -148,6 +148,8 @@ export default function SftpPage() {
   const [tabs, setTabs] = useState<SftpSessionTab[]>([]);
   const [restoredSessions, setRestoredSessions] = useState<SftpSessionInfo[]>([]);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  // 标签恢复完成前禁止路由自动连接，否则自动连接可能用空 tabs 覆盖已恢复的会话。
+  const [tabsInitialized, setTabsInitialized] = useState(false);
   const restoredDirectoryIdsRef = useRef(new Set<string>());
   const [activeTabId, setActiveTabId] = useState<string>("picker");
   const [secondaryTabId, setSecondaryTabId] = useState<string | null>(null);
@@ -349,7 +351,7 @@ export default function SftpPage() {
 
   // 初始化：默认打开一个「选择服务器...」标签，与截图 1 对应
   useEffect(() => {
-    if (!sessionsLoaded || loadingServers || tabs.length !== 0) return;
+    if (!sessionsLoaded || loadingServers || tabsInitialized) return;
     const restoredTabs: SftpSessionTab[] = [];
     restoredSessions.forEach((session) => {
       const server = servers.find((item) => item.id === session.serverId);
@@ -384,7 +386,8 @@ export default function SftpPage() {
       setTabs([defaultTab]);
       setActiveTabId(defaultTab.id);
     }
-  }, [loadingServers, restoredSessions, routeServerId, servers, sessionsLoaded, tabs.length]);
+    setTabsInitialized(true);
+  }, [loadingServers, restoredSessions, routeServerId, servers, sessionsLoaded, tabsInitialized]);
 
   // 左侧（主）激活的标签对象
   const activeLeftTab = useMemo(() => {
@@ -510,12 +513,17 @@ export default function SftpPage() {
   // 服务器资产页明确点击 SFTP 时，直接打开该服务器的会话或验证框。
   const autoConnectedServerRef = useRef<number | null>(null);
   useEffect(() => {
+    // 离开带 serverId 的路由后允许下一次同服务器跳转重新触发一次定位。
+    if (routeServerId === null) {
+      autoConnectedServerRef.current = null;
+      return;
+    }
+
     if (
-      routeServerId === null ||
       loadingServers ||
       !sessionsLoaded ||
-      sshServer !== null ||
-      autoConnectedServerRef.current === routeServerId
+      !tabsInitialized ||
+      sshServer !== null
     ) {
       return;
     }
@@ -523,9 +531,21 @@ export default function SftpPage() {
     const server = servers.find((item) => item.id === routeServerId);
     if (!server) return;
 
+    // 路由只负责进入页面时定位一次。后续顶部标签切换不能再次执行这里，
+    // 否则会把用户手动切换的标签强制切回路由携带的服务器。
+    if (autoConnectedServerRef.current === routeServerId) return;
     autoConnectedServerRef.current = routeServerId;
+
+    // 路由从服务器列表跳转回来时优先切换到已恢复的标签，
+    // 不再因为凭据状态尚未 hydrate 而重复弹出 SSH 验证框。
+    const existingTab = tabs.find((tab) => tab.serverId === routeServerId);
+    if (existingTab) {
+      setActiveTabId(existingTab.id);
+      return;
+    }
+
     handleConnectServer(server);
-  }, [handleConnectServer, loadingServers, routeServerId, servers, sessionsLoaded, sshServer]);
+  }, [handleConnectServer, loadingServers, routeServerId, servers, sessionsLoaded, sshServer, tabs, tabsInitialized]);
 
   // 关闭单个标签
   const handleCloseTab = (tabId: string, e: React.MouseEvent) => {

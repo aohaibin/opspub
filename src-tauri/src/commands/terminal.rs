@@ -35,9 +35,7 @@ pub fn list_terminal_sessions(
 
 /// 应用退出前统一请求关闭所有 SSH PTY 会话。
 #[tauri::command]
-pub fn close_all_terminal_sessions(
-    state: tauri::State<'_, AppState>,
-) -> Result<(), CommandError> {
+pub fn close_all_terminal_sessions(state: tauri::State<'_, AppState>) -> Result<(), CommandError> {
     state.terminals.close_all();
     Ok(())
 }

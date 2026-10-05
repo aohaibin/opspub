@@ -118,7 +118,8 @@ impl DatabaseConnectionService {
             && is_mutating_sql(sql)
         {
             return Err(AppError::InvalidInput(
-                "当前数据库启用了生产保护，仅允许执行查询类 SQL（SELECT/SHOW/DESCRIBE/EXPLAIN）".into(),
+                "当前数据库启用了生产保护，仅允许执行查询类 SQL（SELECT/SHOW/DESCRIBE/EXPLAIN）"
+                    .into(),
             ));
         }
         let command = build_sql_command(
@@ -410,14 +411,28 @@ fn is_protected_database(connection: &DatabaseConnection, database_name: Option<
     configured.is_empty()
         || database_name
             .or_else(|| Some(connection.database_name.as_str()))
-            .is_some_and(|database| configured.iter().any(|item| item.eq_ignore_ascii_case(database)))
+            .is_some_and(|database| {
+                configured
+                    .iter()
+                    .any(|item| item.eq_ignore_ascii_case(database))
+            })
 }
 
 fn is_mutating_sql(sql: &str) -> bool {
     let statement = sql.trim_start().to_ascii_lowercase();
     [
-        "insert ", "update ", "delete ", "replace ", "alter ", "drop ",
-        "truncate ", "create ", "grant ", "revoke ", "call ", "do ",
+        "insert ",
+        "update ",
+        "delete ",
+        "replace ",
+        "alter ",
+        "drop ",
+        "truncate ",
+        "create ",
+        "grant ",
+        "revoke ",
+        "call ",
+        "do ",
     ]
     .iter()
     .any(|prefix| statement.starts_with(prefix))

@@ -14,6 +14,11 @@ mod tray;
 use state::AppState;
 use tauri::Manager;
 
+/// 供外部 Claude/Codex/Cursor 通过 stdio 启动当前可执行文件时调用。
+pub fn run_mcp_stdio(token: String, port: u16) -> Result<(), String> {
+    services::mcp::run_stdio_proxy(&token, port)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -67,6 +72,16 @@ pub fn run() {
 
             // 注册全局状态
             app.manage(AppState::new(db));
+
+            // MCP HTTP 端点只绑定本机回环地址，应用启动时即准备好给 stdio 适配器转发。
+            let mcp_app = app.handle().clone();
+            let mcp_state = app.state::<AppState>();
+            if let Err(error) = tauri::async_runtime::block_on(
+                services::mcp::McpService::start_http(&mcp_state.mcp, mcp_app, None),
+            ) {
+                // MCP 端点异常不应阻止主界面启动，页面会显示可诊断的错误状态并允许重试。
+                log::warn!("MCP HTTP 端点启动失败: {}", error);
+            }
 
             // 初始化系统托盘
             tray::setup_tray(app)?;
@@ -159,7 +174,30 @@ pub fn run() {
             // 审核日志模块
             commands::audit::get_audit_logs,
             commands::audit::add_audit_log,
+            // MCP 接入中心
+            commands::mcp::get_mcp_status,
+            commands::mcp::test_mcp_connection,
+            commands::mcp::start_mcp_http,
+            commands::mcp::stop_mcp_http,
+            commands::mcp::list_mcp_tokens,
+            commands::mcp::create_mcp_token,
+            commands::mcp::revoke_mcp_token,
+            commands::mcp::get_mcp_client_config,
+            commands::mcp::inject_mcp_client_config,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if matches!(
+                event,
+                tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+            ) {
+                let state = app.state::<AppState>();
+                let _ = tauri::async_runtime::block_on(services::mcp::McpService::stop_http(
+                    &state.mcp,
+                ));
+                state.terminals.close_all();
+                state.sftps.close_all();
+            }
+        });
 }

@@ -80,7 +80,10 @@ impl DeploymentService {
         Ok(true)
     }
 
-    pub fn list_history(db: &Database, target_id: Option<&str>) -> Result<Vec<DeploymentHistory>, AppError> {
+    pub fn list_history(
+        db: &Database,
+        target_id: Option<&str>,
+    ) -> Result<Vec<DeploymentHistory>, AppError> {
         let raw = db.get_config(HISTORY_KEY)?.unwrap_or_else(|| "[]".into());
         let history: Vec<DeploymentHistory> = serde_json::from_str(&raw)?;
         Ok(history
@@ -104,19 +107,39 @@ impl DeploymentService {
             .get_server_by_id(target.server_id)?
             .ok_or_else(|| AppError::NotFound("部署目标绑定的服务器不存在".into()))?;
         if server.os_type != "linux" {
-            return Err(AppError::InvalidInput("部署目前只支持 Linux SSH 服务器".into()));
+            return Err(AppError::InvalidInput(
+                "部署目前只支持 Linux SSH 服务器".into(),
+            ));
         }
 
         let version = normalize_version(request.version.as_deref().unwrap_or_default())?;
         let timeout = request.timeout_secs.unwrap_or(600).clamp(10, 1800);
-        emit_progress(&app, &target.id, "preflight", "正在检查部署目标和远端环境", false);
+        emit_progress(
+            &app,
+            &target.id,
+            "preflight",
+            "正在检查部署目标和远端环境",
+            false,
+        );
         let command = if action == "rollback" {
             build_rollback_command(&target)?
         } else {
             build_deploy_command(&target, &version)?
         };
-        AuditService::add_log(&state.db, &server.alias, &command, "deployment", "dispatched")?;
-        emit_progress(&app, &target.id, "deploy", "已通过本地校验，开始远端部署", false);
+        AuditService::add_log(
+            &state.db,
+            &server.alias,
+            &command,
+            "deployment",
+            "dispatched",
+        )?;
+        emit_progress(
+            &app,
+            &target.id,
+            "deploy",
+            "已通过本地校验，开始远端部署",
+            false,
+        );
         let started = Instant::now();
         let result = WorkbenchService::execute_with_timeout(
             &state.db,
@@ -132,8 +155,17 @@ impl DeploymentService {
         let duration_ms = started.elapsed().as_millis();
         let (status, stdout, stderr, exit_code) = match result {
             Ok(result) => {
-                let status = if result.exit_code == 0 { "success" } else { "failed" };
-                (status.to_string(), result.stdout, result.stderr, result.exit_code)
+                let status = if result.exit_code == 0 {
+                    "success"
+                } else {
+                    "failed"
+                };
+                (
+                    status.to_string(),
+                    result.stdout,
+                    result.stderr,
+                    result.exit_code,
+                )
             }
             Err(error) => {
                 let message = error.to_string();
@@ -162,11 +194,25 @@ impl DeploymentService {
         emit_progress(
             &app,
             &target.id,
-            if status == "success" { "done" } else { "failed" },
-            if status == "success" { "部署完成" } else { "部署失败，已保留失败现场" },
+            if status == "success" {
+                "done"
+            } else {
+                "failed"
+            },
+            if status == "success" {
+                "部署完成"
+            } else {
+                "部署失败，已保留失败现场"
+            },
             true,
         );
-        Ok(DeployRunResult { history, stdout, stderr, exit_code, duration_ms })
+        Ok(DeployRunResult {
+            history,
+            stdout,
+            stderr,
+            exit_code,
+            duration_ms,
+        })
     }
 
     fn append_history(db: &Database, item: DeploymentHistory) -> Result<(), AppError> {
@@ -180,16 +226,26 @@ impl DeploymentService {
 
 fn validate_target(input: &DeployTargetInput) -> Result<(), AppError> {
     if input.name.trim().is_empty() || input.name.len() > 80 {
-        return Err(AppError::InvalidInput("部署目标名称不能为空且不能超过 80 个字符".into()));
+        return Err(AppError::InvalidInput(
+            "部署目标名称不能为空且不能超过 80 个字符".into(),
+        ));
     }
     if !RECIPES.contains(&input.recipe.as_str()) {
         return Err(AppError::InvalidInput("不支持的部署配方".into()));
     }
     validate_remote_path(&input.remote_path)?;
-    if let Some(path) = input.artifact_path.as_deref().filter(|path| !path.trim().is_empty()) {
+    if let Some(path) = input
+        .artifact_path
+        .as_deref()
+        .filter(|path| !path.trim().is_empty())
+    {
         validate_remote_path(path)?;
     }
-    if let Some(command) = input.health_command.as_deref().filter(|command| !command.trim().is_empty()) {
+    if let Some(command) = input
+        .health_command
+        .as_deref()
+        .filter(|command| !command.trim().is_empty())
+    {
         validate_health_command(command)?;
     }
     Ok(())
@@ -197,16 +253,31 @@ fn validate_target(input: &DeployTargetInput) -> Result<(), AppError> {
 
 fn validate_remote_path(path: &str) -> Result<(), AppError> {
     let path = path.trim();
-    if !path.starts_with('/') || path.contains("..") || path.len() > 240 || path.chars().any(char::is_control) {
-        return Err(AppError::InvalidInput("远端路径必须是安全的绝对路径，且不能包含 ..".into()));
+    if !path.starts_with('/')
+        || path.contains("..")
+        || path.len() > 240
+        || path.chars().any(char::is_control)
+    {
+        return Err(AppError::InvalidInput(
+            "远端路径必须是安全的绝对路径，且不能包含 ..".into(),
+        ));
     }
     Ok(())
 }
 
 fn validate_health_command(command: &str) -> Result<(), AppError> {
     let lower = command.to_ascii_lowercase();
-    if command.contains(['\n', '\r']) || command.len() > 500 || ["rm -", "mkfs", "wipefs", "shutdown", "reboot", "dd ", ":(){"].iter().any(|item| lower.contains(item)) {
-        return Err(AppError::InvalidInput("健康检查命令只能是短的只读命令".into()));
+    if command.contains(['\n', '\r'])
+        || command.len() > 500
+        || [
+            "rm -", "mkfs", "wipefs", "shutdown", "reboot", "dd ", ":(){",
+        ]
+        .iter()
+        .any(|item| lower.contains(item))
+    {
+        return Err(AppError::InvalidInput(
+            "健康检查命令只能是短的只读命令".into(),
+        ));
     }
     Ok(())
 }
@@ -217,8 +288,14 @@ fn normalize_version(version: &str) -> Result<String, AppError> {
     } else {
         version.trim().to_string()
     };
-    if value.len() > 64 || !value.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-')) {
-        return Err(AppError::InvalidInput("版本号只能包含字母、数字、点、下划线和短横线".into()));
+    if value.len() > 64
+        || !value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-'))
+    {
+        return Err(AppError::InvalidInput(
+            "版本号只能包含字母、数字、点、下划线和短横线".into(),
+        ));
     }
     Ok(value)
 }
@@ -258,9 +335,15 @@ fn build_rollback_command(target: &DeployTarget) -> Result<String, AppError> {
     } else if target.recipe == "static-nginx" || target.recipe == "static-openresty" {
         script.push_str("nginx -t; nginx -s reload; ");
     } else if target.recipe == "systemd-binary" {
-        script.push_str(&format!("sudo systemctl restart {}; ", shell_quote(&target.name)));
+        script.push_str(&format!(
+            "sudo systemctl restart {}; ",
+            shell_quote(&target.name)
+        ));
     } else if target.recipe == "node-pm2" {
-        script.push_str(&format!("pm2 reload {} --update-env; ", shell_quote(&target.name)));
+        script.push_str(&format!(
+            "pm2 reload {} --update-env; ",
+            shell_quote(&target.name)
+        ));
     }
     if !target.health_command.is_empty() {
         script.push_str(&format!("{}; ", target.health_command));
@@ -270,12 +353,15 @@ fn build_rollback_command(target: &DeployTarget) -> Result<String, AppError> {
 }
 
 fn emit_progress(app: &AppHandle, target_id: &str, stage: &str, message: &str, completed: bool) {
-    let _ = app.emit("deployment-progress", DeploymentProgress {
-        target_id: target_id.to_string(),
-        stage: stage.to_string(),
-        message: message.to_string(),
-        completed,
-    });
+    let _ = app.emit(
+        "deployment-progress",
+        DeploymentProgress {
+            target_id: target_id.to_string(),
+            stage: stage.to_string(),
+            message: message.to_string(),
+            completed,
+        },
+    );
 }
 
 #[cfg(test)]

@@ -531,3 +531,63 @@ pub struct AlertRule {
     pub enabled: bool,
     pub created_at: String,
 }
+
+/// MCP 本地接入端点状态。真实协议服务未启动时必须明确返回 stopped，避免 UI 伪造 READY。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpStatus {
+    pub version: String,
+    pub stdio_path: String,
+    pub http_url: String,
+    pub http_port: u16,
+    pub http_running: bool,
+    pub stdio_ready: bool,
+    pub in_process_ready: bool,
+    pub http_started_at: Option<String>,
+    pub endpoint_message: String,
+    pub endpoint_error: Option<String>,
+    pub last_tested_at: Option<String>,
+    pub message: String,
+}
+
+/// MCP Scoped Token 元数据。secret 永不通过列表接口返回。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpToken {
+    pub id: i64,
+    pub name: String,
+    pub client: String,
+    pub server_scope: String,
+    pub tool_scope: String,
+    pub expires_at: Option<String>,
+    pub status: String,
+    pub token_hint: String,
+    pub created_at: String,
+    pub revoked_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpTokenInput {
+    pub name: String,
+    pub client: String,
+    pub server_scope: String,
+    pub tool_scope: String,
+    pub expires_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpTokenCreated {
+    pub token: McpToken,
+    pub secret: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpClientConfig {
+    pub client: String,
+    pub path: String,
+    pub format: String,
+    pub content: String,
+}

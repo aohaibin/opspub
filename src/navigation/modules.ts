@@ -212,6 +212,7 @@ export const MODULES: ModuleDef[] = [
     ],
     icon: PlugZap,
     group: "ai",
+    implemented: true,
   },
   {
     key: "skills",

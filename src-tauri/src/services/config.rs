@@ -24,7 +24,9 @@ impl ConfigService {
         }
         // 安全总开关只允许专用命令修改，避免通用配置 IPC 绕过审批策略。
         if key == "ai_unlock_until" {
-            return Err(AppError::InvalidInput("AI 操作总开关须通过专用接口修改".into()));
+            return Err(AppError::InvalidInput(
+                "AI 操作总开关须通过专用接口修改".into(),
+            ));
         }
         db.set_config(key, value)
     }
@@ -32,7 +34,9 @@ impl ConfigService {
     /// 删除配置
     pub fn delete(db: &Database, key: &str) -> Result<(), AppError> {
         if key == "ai_unlock_until" {
-            return Err(AppError::InvalidInput("AI 操作总开关须通过专用接口修改".into()));
+            return Err(AppError::InvalidInput(
+                "AI 操作总开关须通过专用接口修改".into(),
+            ));
         }
         let deleted = db.delete_config(key)?;
         if !deleted {

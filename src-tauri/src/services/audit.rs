@@ -7,7 +7,13 @@ pub struct AuditService;
 
 impl AuditService {
     /// 添加审核日志
-    pub fn add_log(db: &Database, server_alias: &str, command: &str, user: &str, result: &str) -> Result<i64, AppError> {
+    pub fn add_log(
+        db: &Database,
+        server_alias: &str,
+        command: &str,
+        user: &str,
+        result: &str,
+    ) -> Result<i64, AppError> {
         db.add_audit_log(server_alias, command, user, result)
     }
 

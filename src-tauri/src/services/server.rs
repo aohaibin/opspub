@@ -7,10 +7,10 @@ use ssh2::{HashType, HostKeyType, Session};
 
 use crate::database::Database;
 use crate::error::AppError;
-use crate::services::credential::CredentialService;
 use crate::models::{
     ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult, TerminalOpenRequest,
 };
+use crate::services::credential::CredentialService;
 
 /// 连通性探测超时（毫秒）
 ///
@@ -22,7 +22,16 @@ const CONNECT_TIMEOUT_MS: u64 = 3000;
 const SSH_TIMEOUT_MS: u32 = 10_000;
 
 /// AI 策略允许的档位
-const AI_POLICIES: [&str; 8] = ["trusted", "allowlist", "approval", "readonly", "disabled", "denied", "strict", "autonomous"];
+const AI_POLICIES: [&str; 8] = [
+    "trusted",
+    "allowlist",
+    "approval",
+    "readonly",
+    "disabled",
+    "denied",
+    "strict",
+    "autonomous",
+];
 
 /// 服务器管理服务
 pub struct ServerService;

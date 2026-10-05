@@ -30,10 +30,14 @@ pub struct BatchService;
 
 fn validate_command(command: &str, timeout_secs: u32) -> Result<(), AppError> {
     if command.is_empty() || command.contains(['\n', '\r']) || command.len() > 4096 {
-        return Err(AppError::InvalidInput("只能执行长度不超过 4096 的单行命令".into()));
+        return Err(AppError::InvalidInput(
+            "只能执行长度不超过 4096 的单行命令".into(),
+        ));
     }
     if !(1..=300).contains(&timeout_secs) {
-        return Err(AppError::InvalidInput("单台超时须在 1 到 300 秒之间".into()));
+        return Err(AppError::InvalidInput(
+            "单台超时须在 1 到 300 秒之间".into(),
+        ));
     }
 
     let forbidden = [
@@ -53,31 +57,47 @@ fn validate_command(command: &str, timeout_secs: u32) -> Result<(), AppError> {
 }
 
 impl BatchService {
-    pub fn execute(db: &Database, request: BatchTargetRequest) -> Result<BatchTargetResult, AppError> {
+    pub fn execute(
+        db: &Database,
+        request: BatchTargetRequest,
+    ) -> Result<BatchTargetResult, AppError> {
         let command = request.command.trim();
         // 最小物理阻断；更广泛的审批策略仍由应用安全闸门负责。
         validate_command(command, request.timeout_secs)?;
 
-        let server = db.get_server_by_id(request.server_id)?
+        let server = db
+            .get_server_by_id(request.server_id)?
             .ok_or_else(|| AppError::NotFound(format!("服务器 {} 不存在", request.server_id)))?;
         if server.os_type != "linux" {
-            return Err(AppError::InvalidInput("批量命令当前只支持 Linux SSH 主机".into()));
+            return Err(AppError::InvalidInput(
+                "批量命令当前只支持 Linux SSH 主机".into(),
+            ));
         }
 
         // 先记录下发，再执行远端命令；审计不可写时禁止执行。
         AuditService::add_log(db, &server.alias, command, "batch-runner", "dispatched")?;
         let started = Instant::now();
-        let result = WorkbenchService::execute_with_timeout(db, WorkbenchCommandRequest {
-            server_id: server.id,
-            command: command.to_string(),
-            password: None,
-            private_key_path: None,
-            passphrase: None,
-        }, request.timeout_secs);
+        let result = WorkbenchService::execute_with_timeout(
+            db,
+            WorkbenchCommandRequest {
+                server_id: server.id,
+                command: command.to_string(),
+                password: None,
+                private_key_path: None,
+                passphrase: None,
+            },
+            request.timeout_secs,
+        );
         let duration_ms = started.elapsed().as_millis();
         match result {
             Ok(output) => {
-                AuditService::add_log(db, &server.alias, command, "batch-runner", &format!("exit={} duration_ms={duration_ms}", output.exit_code))?;
+                AuditService::add_log(
+                    db,
+                    &server.alias,
+                    command,
+                    "batch-runner",
+                    &format!("exit={} duration_ms={duration_ms}", output.exit_code),
+                )?;
                 Ok(BatchTargetResult {
                     stdout: output.stdout,
                     stderr: output.stderr,
@@ -86,7 +106,13 @@ impl BatchService {
                 })
             }
             Err(error) => {
-                AuditService::add_log(db, &server.alias, command, "batch-runner", &format!("failed duration_ms={duration_ms}"))?;
+                AuditService::add_log(
+                    db,
+                    &server.alias,
+                    command,
+                    "batch-runner",
+                    &format!("failed duration_ms={duration_ms}"),
+                )?;
                 Err(error)
             }
         }

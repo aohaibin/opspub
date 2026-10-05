@@ -1,10 +1,11 @@
 pub mod audit;
 pub mod batch;
-pub mod copilot;
 pub mod config;
+pub mod copilot;
 pub mod credential;
 pub mod database_connection;
 pub mod deployment;
+pub mod mcp;
 pub mod server;
 pub mod sftp;
 pub mod terminal;

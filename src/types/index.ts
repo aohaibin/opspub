@@ -29,3 +29,4 @@ export type {
   DeploymentProgress,
 } from "./deployment";
 export type { AiApproval, AiLockState, CopilotRequest, CopilotToolCall, CopilotResponse, CopilotProgress } from "./copilot";
+export type { McpStatus, McpToken, McpTokenInput, McpTokenCreated, McpClientConfig } from "./mcp";

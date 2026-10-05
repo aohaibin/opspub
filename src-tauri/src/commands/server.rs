@@ -2,8 +2,7 @@ use tauri::Manager;
 
 use crate::error::CommandError;
 use crate::models::{
-    ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult,
-    StoredSshCredential,
+    ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult, StoredSshCredential,
 };
 use crate::services::credential::CredentialService;
 use crate::services::server::ServerService;

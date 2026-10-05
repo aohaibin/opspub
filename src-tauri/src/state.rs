@@ -1,4 +1,5 @@
 use crate::database::Database;
+use crate::services::mcp::McpServerManager;
 use crate::services::sftp::SftpManager;
 use crate::services::terminal::TerminalManager;
 
@@ -7,6 +8,7 @@ pub struct AppState {
     pub db: Database,
     pub terminals: TerminalManager,
     pub sftps: SftpManager,
+    pub mcp: McpServerManager,
 }
 
 impl AppState {
@@ -15,6 +17,7 @@ impl AppState {
             db,
             terminals: TerminalManager::default(),
             sftps: SftpManager::default(),
+            mcp: McpServerManager::default(),
         }
     }
 }

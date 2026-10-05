@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 /// 当前 Schema 版本
-pub const SCHEMA_VERSION: i32 = 9;
+pub const SCHEMA_VERSION: i32 = 10;
 
 /// 获取数据库版本
 pub fn get_version(conn: &Connection) -> Result<i32, AppError> {
@@ -39,6 +39,7 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
             6 => migrate_v6_to_v7(conn)?,
             7 => migrate_v7_to_v8(conn)?,
             8 => migrate_v8_to_v9(conn)?,
+            9 => migrate_v9_to_v10(conn)?,
             _ => {
                 return Err(AppError::Custom(format!("未知的数据库版本: {}", version)));
             }
@@ -268,8 +269,30 @@ fn migrate_v8_to_v9(conn: &Connection) -> Result<(), AppError> {
             finished_at INTEGER,
             result TEXT NOT NULL DEFAULT ''
         );
-        CREATE INDEX IF NOT EXISTS idx_ai_approvals_status ON ai_approvals(status, expires_at);"
+        CREATE INDEX IF NOT EXISTS idx_ai_approvals_status ON ai_approvals(status, expires_at);",
     )?;
     set_version(conn, 9)?;
+    Ok(())
+}
+
+/// v9 -> v10：MCP Scoped Token 元数据。令牌密文存入系统凭据管理器，不落 SQLite。
+fn migrate_v9_to_v10(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v9 -> v10（MCP 令牌）");
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS mcp_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            client TEXT NOT NULL,
+            server_scope TEXT NOT NULL DEFAULT '*',
+            tool_scope TEXT NOT NULL DEFAULT 'readonly',
+            expires_at TEXT,
+            status TEXT NOT NULL DEFAULT 'active',
+            token_hint TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            revoked_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_mcp_tokens_status ON mcp_tokens(status, expires_at);",
+    )?;
+    set_version(conn, 10)?;
     Ok(())
 }

@@ -1,12 +1,12 @@
-pub mod schema;
 mod copilot_policy;
+pub mod schema;
 
 use std::sync::Mutex;
 
 use rusqlite::{Connection, OptionalExtension};
 
 use crate::error::AppError;
-use crate::models::{AppConfig, AuditLog, DatabaseConnection, Server};
+use crate::models::{AppConfig, AuditLog, DatabaseConnection, McpToken, Server};
 
 /// 数据库封装，线程安全
 pub struct Database {
@@ -27,6 +27,9 @@ const SERVER_COLUMNS: &str =
 const DATABASE_CONNECTION_COLUMNS: &str =
     "id, name, server_id, engine, host, port, username, database_name, db_index, \
      is_prod_protect, prod_databases, prod_db_list, ssh_tunnel, ai_tier, created_at, updated_at";
+
+const MCP_TOKEN_COLUMNS: &str =
+    "id, name, client, server_scope, tool_scope, expires_at, status, token_hint, created_at, revoked_at";
 
 /// 将一行查询结果映射为 Server
 ///
@@ -77,6 +80,21 @@ fn map_database_connection_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Data
         ai_tier: row.get(13)?,
         created_at: row.get(14)?,
         updated_at: row.get(15)?,
+    })
+}
+
+fn map_mcp_token_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<McpToken> {
+    Ok(McpToken {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        client: row.get(2)?,
+        server_scope: row.get(3)?,
+        tool_scope: row.get(4)?,
+        expires_at: row.get(5)?,
+        status: row.get(6)?,
+        token_hint: row.get(7)?,
+        created_at: row.get(8)?,
+        revoked_at: row.get(9)?,
     })
 }
 
@@ -473,6 +491,79 @@ impl Database {
             .collect::<Result<Vec<_>, _>>()
             .map_err(AppError::from);
         result
+    }
+
+    // ─── MCP Token DAO ───────────────────────────────────────────────
+
+    pub fn get_all_mcp_tokens(&self) -> Result<Vec<McpToken>, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {} FROM mcp_tokens ORDER BY created_at DESC, id DESC",
+            MCP_TOKEN_COLUMNS
+        ))?;
+        let result = stmt
+            .query_map([], map_mcp_token_row)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(AppError::from);
+        result
+    }
+
+    pub fn add_mcp_token(
+        &self,
+        name: &str,
+        client: &str,
+        server_scope: &str,
+        tool_scope: &str,
+        expires_at: Option<&str>,
+        token_hint: &str,
+    ) -> Result<i64, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        conn.execute(
+            "INSERT INTO mcp_tokens (name, client, server_scope, tool_scope, expires_at, token_hint) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![name, client, server_scope, tool_scope, expires_at, token_hint],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn delete_mcp_token(&self, id: i64) -> Result<bool, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let affected = conn.execute("DELETE FROM mcp_tokens WHERE id=?1", [id])?;
+        Ok(affected > 0)
+    }
+
+    pub fn revoke_mcp_token(&self, id: i64) -> Result<bool, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let affected = conn.execute(
+            "UPDATE mcp_tokens SET status='revoked', revoked_at=datetime('now','localtime') WHERE id=?1 AND status='active'",
+            [id],
+        )?;
+        Ok(affected > 0)
+    }
+
+    pub fn get_mcp_token(&self, id: i64) -> Result<Option<McpToken>, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        conn.query_row(
+            &format!("SELECT {} FROM mcp_tokens WHERE id=?1", MCP_TOKEN_COLUMNS),
+            [id],
+            map_mcp_token_row,
+        )
+        .optional()
+        .map_err(AppError::from)
     }
 
     pub fn get_database_connection(&self, id: i64) -> Result<Option<DatabaseConnection>, AppError> {

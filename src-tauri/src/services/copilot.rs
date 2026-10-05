@@ -244,7 +244,13 @@ impl CopilotService {
                 continue;
             }
             if matches!(server.ai_policy.as_str(), "denied" | "disabled") {
-                let _ = AuditService::add_log(&state.db, &server.alias, command.command, "copilot", "blocked: server disabled");
+                let _ = AuditService::add_log(
+                    &state.db,
+                    &server.alias,
+                    command.command,
+                    "copilot",
+                    "blocked: server disabled",
+                );
                 tool_calls.push(CopilotToolCall {
                     tool: command.tool.into(),
                     server_alias: Some(server.alias.clone()),

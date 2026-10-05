@@ -55,8 +55,8 @@ impl CredentialService {
 
     pub fn get(server_id: i64) -> Result<Option<StoredSshCredential>, AppError> {
         let mut last_error: Option<AppError> = None;
-        for service in std::iter::once(CREDENTIAL_SERVICE)
-            .chain(COMPAT_CREDENTIAL_SERVICES.iter().copied())
+        for service in
+            std::iter::once(CREDENTIAL_SERVICE).chain(COMPAT_CREDENTIAL_SERVICES.iter().copied())
         {
             let entry = match entry_for(service, server_id) {
                 Ok(entry) => entry,
@@ -70,8 +70,8 @@ impl CredentialService {
                     let credential = serde_json::from_str(&payload).map_err(AppError::from)?;
                     if service != CREDENTIAL_SERVICE {
                         // 旧版本凭据读取成功后立即迁移，后续启动不再依赖旧服务名。
-                        if let Err(error) = entry_for(CREDENTIAL_SERVICE, server_id)
-                            .and_then(|entry| {
+                        if let Err(error) =
+                            entry_for(CREDENTIAL_SERVICE, server_id).and_then(|entry| {
                                 entry
                                     .set_password(&payload)
                                     .map_err(keyring_error("迁移 SSH 凭据"))
@@ -99,8 +99,8 @@ impl CredentialService {
     }
 
     pub fn delete(server_id: i64) -> Result<(), AppError> {
-        for service in std::iter::once(CREDENTIAL_SERVICE)
-            .chain(COMPAT_CREDENTIAL_SERVICES.iter().copied())
+        for service in
+            std::iter::once(CREDENTIAL_SERVICE).chain(COMPAT_CREDENTIAL_SERVICES.iter().copied())
         {
             match entry_for(service, server_id)?.delete_credential() {
                 Ok(()) | Err(KeyringError::NoEntry) => {}

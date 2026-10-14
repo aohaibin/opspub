@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 /// 当前 Schema 版本
-pub const SCHEMA_VERSION: i32 = 10;
+pub const SCHEMA_VERSION: i32 = 11;
 
 /// 获取数据库版本
 pub fn get_version(conn: &Connection) -> Result<i32, AppError> {
@@ -40,6 +40,7 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
             7 => migrate_v7_to_v8(conn)?,
             8 => migrate_v8_to_v9(conn)?,
             9 => migrate_v9_to_v10(conn)?,
+            10 => migrate_v10_to_v11(conn)?,
             _ => {
                 return Err(AppError::Custom(format!("未知的数据库版本: {}", version)));
             }
@@ -294,5 +295,37 @@ fn migrate_v9_to_v10(conn: &Connection) -> Result<(), AppError> {
         CREATE INDEX IF NOT EXISTS idx_mcp_tokens_status ON mcp_tokens(status, expires_at);",
     )?;
     set_version(conn, 10)?;
+    Ok(())
+}
+
+/// v10 -> v11：敏感库只保存脱敏元数据，原始命中内容不落库。
+fn migrate_v10_to_v11(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v10 -> v11（敏感库）");
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS sensitive_entries (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_id     INTEGER,
+            server_alias  TEXT NOT NULL DEFAULT '',
+            detected_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            secret_type   TEXT NOT NULL,
+            label         TEXT NOT NULL,
+            masked_value  TEXT NOT NULL,
+            source        TEXT NOT NULL,
+            status        TEXT NOT NULL DEFAULT 'pending',
+            value_hash    TEXT NOT NULL,
+            match_count   INTEGER NOT NULL DEFAULT 1,
+            created_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            updated_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_sensitive_entries_status
+            ON sensitive_entries(status, detected_at);
+        CREATE INDEX IF NOT EXISTS idx_sensitive_entries_type
+            ON sensitive_entries(secret_type);
+        CREATE INDEX IF NOT EXISTS idx_sensitive_entries_server
+            ON sensitive_entries(server_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_sensitive_entries_dedup
+            ON sensitive_entries(server_id, source, value_hash, status);",
+    )?;
+    set_version(conn, 11)?;
     Ok(())
 }

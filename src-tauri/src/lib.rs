@@ -143,6 +143,12 @@ pub fn run() {
             commands::sftp::sftp_chmod,
             commands::sftp::sftp_delete,
             commands::sftp::sftp_archive,
+            // 敏感库：扫描只在当前 IPC 调用内处理原文，持久化结果均为脱敏数据
+            commands::sensitive::list_sensitive_entries,
+            commands::sensitive::scan_sensitive_content,
+            commands::sensitive::update_sensitive_status,
+            commands::sensitive::delete_sensitive_entry,
+            commands::sensitive::export_sensitive_csv,
             commands::workbench::execute_workbench_command,
             commands::batch::execute_batch_target,
             commands::copilot::copilot_chat,

@@ -6,7 +6,9 @@ use std::sync::Mutex;
 use rusqlite::{Connection, OptionalExtension};
 
 use crate::error::AppError;
-use crate::models::{AppConfig, AuditLog, DatabaseConnection, McpToken, Server};
+use crate::models::{
+    AppConfig, AuditLog, DatabaseConnection, McpToken, SensitiveEntry, SensitiveListFilter, Server,
+};
 
 /// 数据库封装，线程安全
 pub struct Database {
@@ -30,6 +32,10 @@ const DATABASE_CONNECTION_COLUMNS: &str =
 
 const MCP_TOKEN_COLUMNS: &str =
     "id, name, client, server_scope, tool_scope, expires_at, status, token_hint, created_at, revoked_at";
+
+const SENSITIVE_ENTRY_COLUMNS: &str =
+    "id, server_id, server_alias, detected_at, secret_type, label, masked_value, source, status, \
+     value_hash, match_count, created_at, updated_at";
 
 /// 将一行查询结果映射为 Server
 ///
@@ -95,6 +101,24 @@ fn map_mcp_token_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<McpToken> {
         token_hint: row.get(7)?,
         created_at: row.get(8)?,
         revoked_at: row.get(9)?,
+    })
+}
+
+fn map_sensitive_entry_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SensitiveEntry> {
+    Ok(SensitiveEntry {
+        id: row.get(0)?,
+        server_id: row.get(1)?,
+        server_alias: row.get(2)?,
+        detected_at: row.get(3)?,
+        secret_type: row.get(4)?,
+        label: row.get(5)?,
+        masked_value: row.get(6)?,
+        source: row.get(7)?,
+        status: row.get(8)?,
+        value_hash: row.get(9)?,
+        match_count: row.get(10)?,
+        created_at: row.get(11)?,
+        updated_at: row.get(12)?,
     })
 }
 
@@ -671,5 +695,105 @@ impl Database {
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(logs)
+    }
+
+    // ─── 敏感库 DAO ─────────────────────────────────────────────────────────
+
+    pub fn get_sensitive_entries(
+        &self,
+        filter: &SensitiveListFilter,
+    ) -> Result<Vec<SensitiveEntry>, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {} FROM sensitive_entries
+             WHERE (?1 IS NULL OR server_id = ?1)
+               AND (?2 IS NULL OR status = ?2)
+               AND (?3 IS NULL OR secret_type = ?3)
+               AND (?4 IS NULL OR server_alias LIKE '%' || ?4 || '%'
+                    OR label LIKE '%' || ?4 || '%' OR source LIKE '%' || ?4 || '%')
+             ORDER BY detected_at DESC, id DESC",
+            SENSITIVE_ENTRY_COLUMNS
+        ))?;
+        let search = filter
+            .search
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+        let rows = stmt
+            .query_map(
+                rusqlite::params![filter.server_id, filter.status, filter.secret_type, search],
+                map_sensitive_entry_row,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
+    pub fn add_sensitive_entry(
+        &self,
+        server_id: Option<i64>,
+        server_alias: &str,
+        detected_at: &str,
+        secret_type: &str,
+        label: &str,
+        masked_value: &str,
+        source: &str,
+        value_hash: &str,
+        match_count: i64,
+    ) -> Result<SensitiveEntry, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        conn.execute(
+            "INSERT INTO sensitive_entries
+             (server_id, server_alias, detected_at, secret_type, label, masked_value, source, status, value_hash, match_count)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'pending', ?8, ?9)
+             ON CONFLICT(server_id, source, value_hash, status) DO UPDATE SET
+               match_count = sensitive_entries.match_count + excluded.match_count,
+               detected_at = excluded.detected_at,
+               updated_at = datetime('now', 'localtime')",
+            rusqlite::params![
+                server_id,
+                server_alias,
+                detected_at,
+                secret_type,
+                label,
+                masked_value,
+                source,
+                value_hash,
+                match_count
+            ],
+        )?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {} FROM sensitive_entries
+             WHERE server_id IS ?1 AND source = ?2 AND value_hash = ?3 AND status = 'pending'",
+            SENSITIVE_ENTRY_COLUMNS
+        ))?;
+        stmt.query_row(rusqlite::params![server_id, source, value_hash], map_sensitive_entry_row)
+            .map_err(AppError::from)
+    }
+
+    pub fn update_sensitive_status(&self, id: i64, status: &str) -> Result<bool, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let affected = conn.execute(
+            "UPDATE sensitive_entries SET status = ?1, updated_at = datetime('now', 'localtime') WHERE id = ?2",
+            rusqlite::params![status, id],
+        )?;
+        Ok(affected > 0)
+    }
+
+    pub fn delete_sensitive_entry(&self, id: i64) -> Result<bool, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let affected = conn.execute("DELETE FROM sensitive_entries WHERE id = ?1", [id])?;
+        Ok(affected > 0)
     }
 }

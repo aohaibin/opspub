@@ -520,6 +520,52 @@ pub struct AuditLog {
     pub created_at: String,
 }
 
+/// 敏感库条目。只保存脱敏预览、来源和哈希，绝不保存命中的原文。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SensitiveEntry {
+    pub id: i64,
+    pub server_id: Option<i64>,
+    pub server_alias: String,
+    pub detected_at: String,
+    pub secret_type: String,
+    pub label: String,
+    pub masked_value: String,
+    pub source: String,
+    pub status: String,
+    pub value_hash: String,
+    pub match_count: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// 敏感库列表筛选条件。
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SensitiveListFilter {
+    pub server_id: Option<i64>,
+    pub status: Option<String>,
+    pub secret_type: Option<String>,
+    pub search: Option<String>,
+}
+
+/// 单次敏感内容扫描请求。content 只在本次 IPC 调用内存在，不写入数据库或日志。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SensitiveScanRequest {
+    pub server_id: Option<i64>,
+    pub server_alias: Option<String>,
+    pub source: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SensitiveScanResult {
+    pub entries: Vec<SensitiveEntry>,
+    pub match_count: usize,
+}
+
 /// 告警规则
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertRule {

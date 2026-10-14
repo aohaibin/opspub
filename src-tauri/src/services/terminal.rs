@@ -244,6 +244,9 @@ fn run_terminal(
     let mut stdout = [0_u8; 8192];
     let mut stderr = [0_u8; 4096];
     let mut stderr_stream = channel.stderr();
+    // 非阻塞 SSH 会话在网络暂时不可写/不可读时会返回 EAGAIN 或 socket
+    // timeout。尺寸变化也不能丢弃，否则下一次按键期间可能把临时状态误判为断线。
+    let mut pending_resize: Option<(u32, u32)> = None;
     let mut close_requested = false;
     let mut failure_message = None;
 
@@ -252,11 +255,9 @@ fn run_terminal(
             match receiver.try_recv() {
                 Ok(TerminalControl::Input(data)) => pending.extend(data),
                 Ok(TerminalControl::Resize { cols, rows }) => {
-                    if let Err(error) = channel.request_pty_size(cols, rows, None, None) {
-                        failure_message = Some(format!("调整终端尺寸失败: {error}"));
-                        close_requested = true;
-                        break;
-                    }
+                    // ResizeObserver 可能在一次布局变化中连续发出多次事件，
+                    // 只保留最新尺寸，等 SSH 通道可写时再提交。
+                    pending_resize = Some((cols, rows));
                 }
                 Ok(TerminalControl::Close) | Err(mpsc::TryRecvError::Disconnected) => {
                     close_requested = true;
@@ -266,14 +267,33 @@ fn run_terminal(
             }
         }
 
+        if let Some((cols, rows)) = pending_resize {
+            match channel.request_pty_size(cols, rows, None, None) {
+                Ok(()) => pending_resize = None,
+                Err(error) if is_retryable_ssh_error(&error) => {}
+                Err(error) => {
+                    // 部分 SSH 服务端不支持运行时调整 PTY 尺寸；这是显示能力
+                    // 降级，不是会话故障，不能因为它关闭用户正在使用的终端。
+                    log::warn!("调整 SSH 终端尺寸失败，保持当前会话: {error}");
+                    pending_resize = None;
+                }
+            }
+        }
+
         if !pending.is_empty() {
             let contiguous = pending.make_contiguous();
             match channel.write(contiguous) {
+                Ok(0) => {}
                 Ok(written) => {
                     pending.drain(..written);
-                    let _ = channel.flush();
+                    if let Err(error) = channel.flush() {
+                        if !is_retryable_io(&error) {
+                            failure_message = Some(format!("刷新 SSH 终端写入失败: {error}"));
+                            break;
+                        }
+                    }
                 }
-                Err(error) if is_would_block(&error) => {}
+                Err(error) if is_retryable_io(&error) => {}
                 Err(error) => {
                     failure_message = Some(format!("写入 SSH 终端失败: {error}"));
                     break;
@@ -289,7 +309,7 @@ fn run_terminal(
                 append_output(&output_history, &session_id, &stdout[..size]);
                 emit_output(&app, &session_id, &stdout[..size]);
             }
-            Err(error) if is_would_block(&error) => {}
+            Err(error) if is_retryable_io(&error) => {}
             Err(error) => {
                 failure_message = Some(format!("读取 SSH 终端输出失败: {error}"));
                 break;
@@ -303,7 +323,7 @@ fn run_terminal(
                 append_output(&output_history, &session_id, &stderr[..size]);
                 emit_output(&app, &session_id, &stderr[..size]);
             }
-            Err(error) if is_would_block(&error) => {}
+            Err(error) if is_retryable_io(&error) => {}
             Err(error) => {
                 failure_message = Some(format!("读取 SSH 终端错误输出失败: {error}"));
                 break;
@@ -314,11 +334,13 @@ fn run_terminal(
             break;
         }
         if !received_output {
-            thread::sleep(Duration::from_millis(if pending.is_empty() {
-                12
-            } else {
-                4
-            }));
+            thread::sleep(Duration::from_millis(
+                if pending.is_empty() && pending_resize.is_none() {
+                    12
+                } else {
+                    4
+                },
+            ));
         }
     }
 
@@ -390,10 +412,31 @@ fn update_session(
     }
 }
 
-fn is_would_block(error: &std::io::Error) -> bool {
-    error.kind() == ErrorKind::WouldBlock
-        || error.to_string().contains("would block")
-        || error.to_string().contains("EAGAIN")
+fn is_retryable_io(error: &std::io::Error) -> bool {
+    if matches!(
+        error.kind(),
+        ErrorKind::WouldBlock | ErrorKind::TimedOut | ErrorKind::Interrupted
+    ) {
+        return true;
+    }
+
+    let message = error.to_string().to_ascii_lowercase();
+    message.contains("would block")
+        || message.contains("eagain")
+        || message.contains("timeout")
+        || message.contains("timed out")
+        || message.contains("window full")
+        || message.contains("window exceeded")
+}
+
+fn is_retryable_ssh_error(error: &ssh2::Error) -> bool {
+    let message = error.message().to_ascii_lowercase();
+    message.contains("would block")
+        || message.contains("eagain")
+        || message.contains("timeout")
+        || message.contains("timed out")
+        || message.contains("window full")
+        || message.contains("window exceeded")
 }
 
 fn emit_output(app: &AppHandle, session_id: &str, bytes: &[u8]) {
@@ -414,5 +457,38 @@ fn emit_status(app: &AppHandle, session_id: &str, status: &str, message: &str) {
     };
     if let Err(error) = app.emit(TERMINAL_STATUS_EVENT, payload) {
         log::warn!("推送终端状态失败 (session={}): {}", session_id, error);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_retryable_io, is_retryable_ssh_error};
+    use ssh2::{Error, ErrorCode};
+    use std::io::{Error as IoError, ErrorKind};
+
+    #[test]
+    fn socket_timeout_is_retryable_for_nonblocking_pty() {
+        assert!(is_retryable_io(&IoError::new(
+            ErrorKind::Other,
+            "socket timeout"
+        )));
+        assert!(is_retryable_io(&IoError::new(
+            ErrorKind::TimedOut,
+            "timed out"
+        )));
+    }
+
+    #[test]
+    fn eagain_is_retryable_for_resize_requests() {
+        let error = Error::new(ErrorCode::Session(-37), "operation would block");
+        assert!(is_retryable_ssh_error(&error));
+    }
+
+    #[test]
+    fn connection_errors_are_not_hidden_as_transient() {
+        assert!(!is_retryable_io(&IoError::new(
+            ErrorKind::BrokenPipe,
+            "socket disconnected",
+        )));
     }
 }

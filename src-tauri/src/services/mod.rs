@@ -8,5 +8,6 @@ pub mod deployment;
 pub mod mcp;
 pub mod server;
 pub mod sftp;
+pub mod sensitive;
 pub mod terminal;
 pub mod workbench;

@@ -649,6 +649,26 @@ impl Database {
         Ok(affected > 0)
     }
 
+    pub fn update_database_connection(
+        &self, id: i64, name: &str, server_id: i64, engine: &str, host: &str,
+        port: i32, username: &str, database_name: &str, db_index: i32,
+        is_prod_protect: bool, prod_databases: &str, prod_db_list: &str,
+        ssh_tunnel: bool, ai_tier: &str,
+    ) -> Result<bool, AppError> {
+        let conn = self.conn.lock().map_err(|e| AppError::Custom(e.to_string()))?;
+        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let affected = conn.execute(
+            "UPDATE database_connections SET name=?1, server_id=?2, engine=?3, host=?4,
+             port=?5, username=?6, database_name=?7, db_index=?8, is_prod_protect=?9,
+             prod_databases=?10, prod_db_list=?11, ssh_tunnel=?12, ai_tier=?13,
+             updated_at=?14 WHERE id=?15",
+            rusqlite::params![name, server_id, engine, host, port, username, database_name,
+                db_index, is_prod_protect as i32, prod_databases, prod_db_list,
+                ssh_tunnel as i32, ai_tier, now, id],
+        )?;
+        Ok(affected > 0)
+    }
+
     // ─── 审核日志 DAO ────────────────────────────────
 
     /// 添加审核日志

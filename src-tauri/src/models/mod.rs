@@ -357,6 +357,8 @@ pub struct DatabaseConnection {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DatabaseConnectionInput {
+    #[serde(default)]
+    pub connection_id: Option<i64>,
     pub name: String,
     pub server_id: i64,
     pub engine: String,

@@ -23,6 +23,7 @@ import {
   Folder,
   Table2,
   Terminal,
+  Pencil,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/client";
 import { databaseApi, type DatabaseConnection, type DatabaseTableItem, type MongoCollectionItem, type RedisKeyItem } from "@/lib/api/database";
@@ -73,9 +74,12 @@ interface SqlTabItem {
 type QueryRow = Record<string, string>;
 
 function displayEngineName(engine: string): string {
+  if (engine.toLowerCase() === "sqlite") return "SQLite";
   if (engine.toLowerCase() === "mysql") return "MySQL";
   if (engine.toLowerCase() === "mariadb") return "MariaDB";
   if (engine.toLowerCase() === "postgresql") return "PostgreSQL";
+  if (engine.toLowerCase() === "oracle") return "Oracle";
+  if (["sqlserver", "mssql", "microsoft sql server"].includes(engine.toLowerCase())) return "Microsoft SQL Server";
   if (engine.toLowerCase() === "mongodb") return "MongoDB";
   if (engine.toLowerCase() === "redis") return "Redis";
   if (engine.toLowerCase() === "clickhouse") return "ClickHouse";
@@ -130,7 +134,12 @@ export const DatabaseView: React.FC = () => {
 
   // 新建 DB 凭据弹窗 (截图 2 & 3)
   const [dbModalOpen, setDbModalOpen] = useState(false);
+  const [editingConnection, setEditingConnection] = useState<DbConnectionItem | null>(null);
+  const [editingRedisConnection, setEditingRedisConnection] = useState<RedisConnectionItem | null>(null);
+  const [detailConnection, setDetailConnection] = useState<DbConnectionItem | RedisConnectionItem | null>(null);
   const [dbForm] = Form.useForm();
+  const selectedDbType = Form.useWatch("type", dbForm) as string | undefined;
+  const isSqliteForm = selectedDbType === "SQLite";
   const [dbProdProtect, setDbProdProtect] = useState(false);
   const [dbSshTunnel, setDbSshTunnel] = useState(false);
   const [dbPasswordVisible, setDbPasswordVisible] = useState(false);
@@ -151,7 +160,7 @@ export const DatabaseView: React.FC = () => {
       id: String(connection.id),
       serverId: connection.serverId,
       name: connection.name,
-      server: aliases[connection.serverId] ?? `server-${connection.serverId}`,
+      server: connection.serverId === 0 ? "本机" : aliases[connection.serverId] ?? `server-${connection.serverId}`,
       host: connection.host,
       port: String(connection.port),
       isProdProtect: connection.isProdProtect,
@@ -169,7 +178,7 @@ export const DatabaseView: React.FC = () => {
     }
     return {
       ...base,
-      type: connection.engine === "mongodb" ? "MongoDB" : connection.engine,
+      type: connection.engine === "mongodb" ? "MongoDB" : connection.engine === "sqlite" ? "SQLite" : displayEngineName(connection.engine),
       user: connection.username,
       database: connection.databaseName,
       prodDatabases: connection.prodDatabases,
@@ -232,13 +241,21 @@ export const DatabaseView: React.FC = () => {
     }
   };
 
-  const handleLoadSqlDatabases = async (connectionId: string, selectFirst = false) => {
+  const handleLoadSqlDatabases = async (
+    connectionId: string,
+    selectFirst = false,
+    connectionOverride?: DbConnectionItem,
+  ) => {
     setDatabaseLoading((current) => ({ ...current, [connectionId]: true }));
     try {
+      const connection = connectionOverride ?? sqlConnections.find((item) => item.id === connectionId);
       const names = await databaseApi.listDatabases(Number(connectionId));
-      setDatabaseOptions((current) => ({ ...current, [connectionId]: names }));
-      if (selectFirst && names.length > 0) {
-        setSelectedDb((current) => current && names.includes(current) ? current : names[0]);
+      const displayNames = connection?.type === "SQLite"
+        ? names.map((name) => `${name} (${connection.host.split(/[\\/]/).filter(Boolean).pop() || connection.host})`)
+        : names;
+      setDatabaseOptions((current) => ({ ...current, [connectionId]: displayNames }));
+      if (selectFirst && displayNames.length > 0) {
+        setSelectedDb((current) => current && displayNames.includes(current) ? current : displayNames[0]);
       }
     } catch (error) {
       message.error(getErrorMessage(error));
@@ -391,16 +408,62 @@ export const DatabaseView: React.FC = () => {
 
   // 打开新建 DB 凭据弹窗
   const handleOpenDbModal = (presetType = "MySQL") => {
+    setEditingConnection(null);
     dbForm.resetFields();
     const defaultServerId = server?.id ?? availableServers[0]?.id;
     dbForm.setFieldsValue({
-      server: defaultServerId ? `server-${defaultServerId}` : undefined,
+      server: presetType === "SQLite" ? "local" : defaultServerId ? `server-${defaultServerId}` : undefined,
       type: presetType,
       aiTier: "default",
-      port: presetType === "PostgreSQL" ? "5432" : presetType === "MongoDB" ? "27017" : "3306",
+      port: presetType === "SQLite" ? "" : presetType === "PostgreSQL" ? "5432" : presetType === "MongoDB" ? "27017" : presetType === "Oracle" ? "1521" : presetType === "Microsoft SQL Server" ? "1433" : "3306",
+      host: "",
+      sqlitePath: "",
     });
     setDbProdProtect(false);
     setDbSshTunnel(false);
+    setDbPasswordVisible(false);
+    setDbValidationFailed(false);
+    setDbModalOpen(true);
+  };
+
+  const handleEditDbConnection = (connection: DbConnectionItem | RedisConnectionItem) => {
+    if ("dbIndex" in connection) {
+      setEditingConnection(null);
+      setEditingRedisConnection(connection);
+      redisForm.setFieldsValue({
+        name: connection.name,
+        server: `server-${connection.serverId}`,
+        type: "Redis",
+        aiTier: connection.aiTier,
+        host: connection.host,
+        port: connection.port,
+        dbIndex: connection.dbIndex,
+        password: "",
+        prodDbList: connection.prodDbList,
+      });
+      setRedisProdProtect(connection.isProdProtect);
+      setRedisSshTunnel(connection.sshTunnel);
+      setRedisPasswordVisible(false);
+      setRedisValidationFailed(false);
+      setRedisModalOpen(true);
+      return;
+    }
+    setEditingConnection(connection);
+    dbForm.setFieldsValue({
+      name: connection.name,
+      server: connection.serverId === 0 ? "local" : `server-${connection.serverId}`,
+      type: connection.type,
+      aiTier: connection.aiTier,
+      host: connection.type === "SQLite" ? "" : connection.host,
+      sqlitePath: connection.type === "SQLite" ? connection.host : "",
+      port: connection.port,
+      user: connection.user,
+      database: connection.database,
+      password: "",
+      prodDatabases: connection.prodDatabases,
+    });
+    setDbProdProtect(connection.isProdProtect);
+    setDbSshTunnel(connection.sshTunnel);
     setDbPasswordVisible(false);
     setDbValidationFailed(false);
     setDbModalOpen(true);
@@ -410,21 +473,24 @@ export const DatabaseView: React.FC = () => {
   const handleTestDbConn = async () => {
     try {
       const values = await dbForm.validateFields();
-      const serverId = Number(String(values.server ?? "").replace("server-", ""));
-      if (!Number.isInteger(serverId) || serverId <= 0) throw new Error("请选择 SSH 服务器");
+      const isSqlite = values.type === "SQLite";
+      const serverId = isSqlite ? 0 : Number(String(values.server ?? "").replace("server-", ""));
+      if (!isSqlite && (!Number.isInteger(serverId) || serverId <= 0)) throw new Error("请选择 SSH 服务器");
+      if (isSqlite && !values.sqlitePath?.trim()) throw new Error("请选择 SQLite 数据库文件路径");
       setTestDbLoading(true);
       const probe = await databaseApi.testDraft({
+        connectionId: editingConnection ? Number(editingConnection.id) : undefined,
         name: values.name || "临时连接",
         serverId,
         engine: values.type || "MySQL",
-        host: values.host || "127.0.0.1",
-        port: Number(values.port || 3306),
-        username: values.user || "root",
+        host: isSqlite ? values.sqlitePath.trim() : values.host || "127.0.0.1",
+        port: isSqlite ? 0 : Number(values.port || 3306),
+        username: isSqlite ? "" : values.user || "root",
         databaseName: values.database || "",
-        password: values.password || undefined,
+        password: isSqlite ? undefined : values.password || undefined,
         isProdProtect: dbProdProtect,
         prodDatabases: values.prodDatabases || "",
-        sshTunnel: dbSshTunnel,
+        sshTunnel: isSqlite ? false : dbSshTunnel,
         aiTier: values.aiTier || "default",
       });
       if (!probe.ok) throw new Error(probe.message || "数据库连接失败");
@@ -442,31 +508,43 @@ export const DatabaseView: React.FC = () => {
   const handleSaveDbCredential = async () => {
     try {
       const values = await dbForm.validateFields();
-      const serverId = Number(String(values.server ?? "").replace("server-", ""));
-      if (!Number.isInteger(serverId) || serverId <= 0) throw new Error("请选择 SSH 服务器");
-      const created = await databaseApi.create({
+      const isSqlite = values.type === "SQLite";
+      const serverId = isSqlite ? 0 : Number(String(values.server ?? "").replace("server-", ""));
+      if (!isSqlite && (!Number.isInteger(serverId) || serverId <= 0)) throw new Error("请选择 SSH 服务器");
+      if (isSqlite && !values.sqlitePath?.trim()) throw new Error("请选择 SQLite 数据库文件路径");
+      const input = {
+        connectionId: editingConnection ? Number(editingConnection.id) : undefined,
         name: values.name?.trim() || "",
         serverId,
         engine: values.type || "MySQL",
-        host: values.host || "127.0.0.1",
-        port: Number(values.port || 3306),
-        username: values.user || "root",
+        host: isSqlite ? values.sqlitePath.trim() : values.host || "127.0.0.1",
+        port: isSqlite ? 0 : Number(values.port || 3306),
+        username: isSqlite ? "" : values.user || "root",
         databaseName: values.database || "",
-        password: values.password || undefined,
+        password: isSqlite ? undefined : values.password || undefined,
         isProdProtect: dbProdProtect,
         prodDatabases: values.prodDatabases || "",
-        sshTunnel: dbSshTunnel,
+        sshTunnel: isSqlite ? false : dbSshTunnel,
         aiTier: values.aiTier || "default",
-      });
+      };
+      const created = editingConnection
+        ? await databaseApi.update(Number(editingConnection.id), input)
+        : await databaseApi.create(input);
       const mapped = mapConnection(created);
-      if (mapped.type === "MongoDB") setMongoConnections((prev) => [...prev, mapped as DbConnectionItem]);
-      else setSqlConnections((prev) => [...prev, mapped as DbConnectionItem]);
+      const replaceOrAppend = (items: DbConnectionItem[]) => editingConnection
+        ? items.map((item) => item.id === mapped.id ? mapped as DbConnectionItem : item)
+        : [...items, mapped as DbConnectionItem];
+      if (mapped.type === "MongoDB") setMongoConnections(replaceOrAppend);
+      else setSqlConnections(replaceOrAppend);
       setSelectedConnectionId(mapped.id);
       setSelectedDb("database" in mapped ? mapped.database || "" : "");
       setExpandedConnectionIds((current) => ({ ...current, [mapped.id]: true }));
-      if (mapped.type !== "MongoDB") void handleLoadSqlDatabases(mapped.id, true);
+      if (mapped.type !== "MongoDB") void handleLoadSqlDatabases(mapped.id, true, mapped as DbConnectionItem);
       setDbModalOpen(false);
-      message.success("数据库连接已保存，密码已写入系统凭据管理器");
+      setEditingConnection(null);
+      message.success(isSqlite
+        ? editingConnection ? "SQLite 连接已更新" : "SQLite 本机文件连接已保存"
+        : editingConnection ? "数据库连接已更新" : "数据库连接已保存，密码已写入系统凭据管理器");
       return;
     } catch (error) {
       setDbValidationFailed(true);
@@ -519,6 +597,7 @@ export const DatabaseView: React.FC = () => {
   };
 
   const handleOpenRedisModal = () => {
+    setEditingRedisConnection(null);
     redisForm.resetFields();
     const defaultServerId = server?.id ?? availableServers[0]?.id;
     redisForm.setFieldsValue({
@@ -572,7 +651,8 @@ export const DatabaseView: React.FC = () => {
       const values = await redisForm.validateFields();
       const serverId = Number(String(values.server ?? "").replace("server-", ""));
       if (!Number.isInteger(serverId) || serverId <= 0) throw new Error("请选择 SSH 服务器");
-      const created = await databaseApi.create({
+      const input = {
+        connectionId: editingRedisConnection ? Number(editingRedisConnection.id) : undefined,
         name: values.name?.trim() || "",
         serverId,
         engine: "redis",
@@ -584,11 +664,17 @@ export const DatabaseView: React.FC = () => {
         prodDbList: values.prodDbList || "",
         sshTunnel: redisSshTunnel,
         aiTier: values.aiTier || "default",
-      });
+      };
+      const created = editingRedisConnection
+        ? await databaseApi.update(Number(editingRedisConnection.id), input)
+        : await databaseApi.create(input);
       const mapped = mapConnection(created) as RedisConnectionItem;
-      setRedisConnections((prev) => [...prev, mapped]);
+      setRedisConnections((prev) => editingRedisConnection
+        ? prev.map((item) => item.id === mapped.id ? mapped : item)
+        : [...prev, mapped]);
       setSelectedConnectionId(mapped.id);
       setRedisModalOpen(false);
+      setEditingRedisConnection(null);
       message.success(`Redis 连接 [${mapped.name}] 保存成功`);
       return;
     } catch (error) {
@@ -865,6 +951,7 @@ export const DatabaseView: React.FC = () => {
             className="bg-surface-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-teal-500 cursor-pointer"
           >
             <option value="all">全部服务器</option>
+            {sqlConnections.some((connection) => connection.serverId === 0) && <option value="0">本机</option>}
             {Object.entries(serverNames).map(([id, alias]) => (
               <option key={id} value={id}>{alias}{availableServers.find((item) => String(item.id) === id) ? ` (${availableServers.find((item) => String(item.id) === id)?.hostname})` : ""}</option>
             ))}
@@ -996,9 +1083,25 @@ export const DatabaseView: React.FC = () => {
                       >
                         <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expandedConnectionIds[conn.id] ? "rotate-90" : ""}`} />
                       </button>
-                      <Database className="w-3.5 h-3.5 text-amber-400 shrink-0 mx-1.5" />
+                      {conn.type === "SQLite" ? <div className="w-3.5 h-3.5 rounded border border-sky-400/70 text-sky-300 flex items-center justify-center text-[9px] font-bold shrink-0 mx-1.5">S</div> : <Database className="w-3.5 h-3.5 text-amber-400 shrink-0 mx-1.5" />}
                       <span className="font-medium truncate text-slate-200 text-xs flex-1">{displayEngineName(conn.type)} @ {conn.server}</span>
                       <span className="font-mono text-[10px] text-slate-500 shrink-0">{conn.type.toLowerCase()}</span>
+                      <button
+                        type="button"
+                        onClick={(event) => { event.stopPropagation(); setDetailConnection(conn); }}
+                        className="ml-1 px-1 text-slate-500 hover:text-teal-300"
+                        aria-label="查看连接详情"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => { event.stopPropagation(); handleEditDbConnection(conn); }}
+                        className="px-1 text-slate-500 hover:text-blue-300"
+                        aria-label="编辑连接"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         type="button"
                         onClick={(event) => { event.stopPropagation(); handleDeleteConnection(conn); }}
@@ -1271,6 +1374,8 @@ export const DatabaseView: React.FC = () => {
                 <div key={connection.id} role="button" tabIndex={0} onClick={() => selectConnection(connection)} onKeyDown={(event) => { if (event.key === "Enter") selectConnection(connection); }} className={`w-full p-2 rounded-lg border text-left flex items-center justify-between gap-2 transition cursor-pointer ${selectedConnectionId === connection.id ? "border-teal-500/50 bg-teal-500/10" : "border-slate-800 bg-surface-900/40 hover:bg-surface-800/60"}`}>
                   <span className="flex items-center gap-1.5 min-w-0"><Key className="w-3.5 h-3.5 text-rose-400 shrink-0" /><span className="truncate text-xs text-slate-200">{connection.name}</span></span>
                   <span className="font-mono text-[10px] text-slate-500 shrink-0">:{connection.port}</span>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); setDetailConnection(connection); }} className="px-1 text-slate-500 hover:text-teal-300" aria-label="查看连接详情"><Eye className="w-3.5 h-3.5" /></button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); handleEditDbConnection(connection); }} className="px-1 text-slate-500 hover:text-blue-300" aria-label="编辑连接"><Pencil className="w-3.5 h-3.5" /></button>
                   <button type="button" onClick={(event) => { event.stopPropagation(); handleDeleteConnection(connection); }} className="px-1 text-slate-500 hover:text-rose-400" aria-label="删除连接">×</button>
                 </div>
               ))}
@@ -1354,6 +1459,34 @@ export const DatabaseView: React.FC = () => {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
         </div>
       </div>
+
+      <Modal
+        open={Boolean(detailConnection)}
+        title="数据库连接详情"
+        footer={null}
+        onCancel={() => setDetailConnection(null)}
+        width={480}
+      >
+        {detailConnection && <div className="space-y-3 py-2 text-xs">
+          {[
+            ["连接名称", detailConnection.name],
+            ["数据库类型", displayEngineName(detailConnection.type)],
+            ["归属服务器", detailConnection.server],
+            [detailConnection.type === "SQLite" ? "数据库文件" : "主机地址", detailConnection.type === "SQLite" ? detailConnection.host : `${detailConnection.host}:${detailConnection.port}`],
+            ["SSH 隧道", detailConnection.sshTunnel ? "已启用" : "未启用"],
+            ["生产库保护", detailConnection.isProdProtect ? "已启用" : "未启用"],
+            ["AI 策略", detailConnection.aiTier],
+          ].map(([label, value]) => <div key={label} className="grid grid-cols-[96px_1fr] gap-3 border-b border-slate-800 pb-2">
+            <span className="text-slate-500">{label}</span><span className="text-slate-200 break-all">{value}</span>
+          </div>)}
+          <div className="flex justify-end pt-1">
+            <Button size="small" onClick={() => {
+              if (detailConnection) handleEditDbConnection(detailConnection);
+              setDetailConnection(null);
+            }}>编辑连接</Button>
+          </div>
+        </div>}
+      </Modal>
 
       <Modal
         open={structureOpen}
@@ -1442,16 +1575,17 @@ export const DatabaseView: React.FC = () => {
       {/* 模态框 1: 新建 DB 凭据 (截图 2 & 3: media_1790640307974.png / media_1790640317116.png) */}
       <Modal
         open={dbModalOpen}
-        onCancel={() => setDbModalOpen(false)}
+        onCancel={() => { setDbModalOpen(false); setEditingConnection(null); }}
         footer={null}
         width={560}
         centered
+        styles={{ body: { maxHeight: "calc(100vh - 176px)", overflowY: "auto", paddingRight: 8 } }}
         maskClosable={false}
         className="glass-card-modal"
         title={
           <div className="flex items-center space-x-2 text-white">
             <Database className="w-4 h-4 text-teal-400" />
-            <span>新建 DB 凭据</span>
+            <span>{editingConnection ? "编辑数据库连接" : "新建数据库连接"}</span>
           </div>
         }
       >
@@ -1461,6 +1595,7 @@ export const DatabaseView: React.FC = () => {
             label={<span className="text-slate-300 font-medium"><span className="text-rose-400 mr-1">*</span>名称</span>}
             name="name"
             className="mb-2"
+            rules={[{ required: true, message: "请输入连接名称" }]}
           >
             <Input
               placeholder="如 阿里云 RDS - 主库 / 测试 SQLite"
@@ -1470,17 +1605,20 @@ export const DatabaseView: React.FC = () => {
 
           {/* 归属 */}
           <Form.Item
-            label={<span className="text-slate-300 font-medium">归属（本机 / 或选一台服务器做分类，AI 不会自动通过 SSH 连）</span>}
+            label={<span className="text-slate-300 font-medium">归属{isSqliteForm && <span className="text-slate-500 font-normal text-[11px]">（SQLite 仅支持本机文件）</span>}</span>}
             name="server"
             initialValue="server-1"
             className="mb-2"
           >
             <Select
               className="w-full text-xs"
-              options={[
-                ...availableServers.map((item) => ({ label: `💻 ${item.alias} · ${item.hostname}:${item.port}`, value: `server-${item.id}` })),
-                ...(server && !availableServers.some((item) => item.id === server.id) ? [{ label: `💻 ${server.alias} · ${server.hostname}:${server.port}`, value: `server-${server.id}` }] : []),
-              ]}
+              disabled={isSqliteForm}
+              options={isSqliteForm
+                ? [{ label: "本机 / 本地文件", value: "local" }]
+                : [
+                  ...availableServers.map((item) => ({ label: `💻 ${item.alias} · ${item.hostname}:${item.port}`, value: `server-${item.id}` })),
+                  ...(server && !availableServers.some((item) => item.id === server.id) ? [{ label: `💻 ${server.alias} · ${server.hostname}:${server.port}`, value: `server-${server.id}` }] : []),
+                ]}
             />
           </Form.Item>
 
@@ -1500,7 +1638,13 @@ export const DatabaseView: React.FC = () => {
                 else if (val === "Microsoft SQL Server") dbForm.setFieldValue("port", "1433");
                 else if (val === "ClickHouse") dbForm.setFieldValue("port", "8123");
                 else if (val === "MongoDB") dbForm.setFieldValue("port", "27017");
-                else if (val === "SQLite") dbForm.setFieldValue("port", "");
+                else if (val === "SQLite") {
+                  dbForm.setFieldsValue({ server: "local", port: "", host: "", user: "", password: "" });
+                  setDbSshTunnel(false);
+                } else if (dbForm.getFieldValue("server") === "local") {
+                  const defaultServerId = server?.id ?? availableServers[0]?.id;
+                  dbForm.setFieldValue("server", defaultServerId ? `server-${defaultServerId}` : undefined);
+                }
               }}
               options={[
                 { label: "MySQL", value: "MySQL" },
@@ -1538,7 +1682,7 @@ export const DatabaseView: React.FC = () => {
           </Form.Item>
 
           {/* 生产库保护 */}
-          <div className="space-y-1.5 pt-1">
+          {!isSqliteForm && <div className="space-y-1.5 pt-1">
             <span className="block text-slate-300 font-medium">
               生产库保护 <span className="text-slate-500 font-normal text-[11px]">(AI 永久只读 + 人工写操作强制确认)</span>
             </span>
@@ -1564,23 +1708,35 @@ export const DatabaseView: React.FC = () => {
             <p className="text-[11px] text-slate-500 leading-relaxed">
               整条连接不是生产库时，可在此列出该实例上属于生产的库名（逗号分隔），只有目标指向这些库的语句才受保护 —— 适合「一台实例既有 prod 也有 staging」。
             </p>
-          </div>
+          </div>}
 
           {/* 经服务器 SSH 隧道访问 */}
-          <div className="flex items-center justify-between pt-1 border-t border-slate-800">
+          {!isSqliteForm && <div className="flex items-center justify-between pt-1 border-t border-slate-800">
             <span className="text-xs text-teal-400 font-medium">经服务器 SSH 隧道访问 ?</span>
             <Switch
               checked={dbSshTunnel}
               onChange={(checked) => setDbSshTunnel(checked)}
               size="small"
             />
-          </div>
+          </div>}
 
+          {isSqliteForm ? <Form.Item
+            label={<span className="text-slate-300 font-medium"><span className="text-rose-400 mr-1">*</span>数据库文件路径</span>}
+            name="sqlitePath"
+            className="mb-2"
+            rules={[{ required: true, message: "请输入 SQLite 数据库文件路径" }]}
+          >
+            <Input
+              placeholder="如 C:\\data\\app.db 或 /var/lib/app/data.db"
+              className="bg-surface-950 border-slate-700 text-slate-200 text-xs font-mono"
+            />
+          </Form.Item> : <>
           {/* 主机 */}
           <Form.Item
             label={<span className="text-slate-300 font-medium"><span className="text-rose-400 mr-1">*</span>主机</span>}
             name="host"
             className="mb-2"
+            rules={[{ required: true, message: "请输入数据库主机地址" }]}
           >
             <Input
               placeholder="如 127.0.0.1 或 rm-xxxx.mysql.aliyuncs.com"
@@ -1642,18 +1798,20 @@ export const DatabaseView: React.FC = () => {
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs font-mono"
             />
           </Form.Item>
+          </>}
 
-          {/* 数据库名 */}
-          <Form.Item
-            label={<span className="text-slate-300 font-medium">数据库名 <span className="text-slate-500 font-normal text-[11px]">(可选)</span></span>}
+          {/* 数据库名：SQLite 固定使用 main，不显示网络数据库名字段 */}
+          {!isSqliteForm && <Form.Item
+            label={<span className="text-slate-300 font-medium">{selectedDbType === "Oracle" ? "服务名" : "数据库名"} <span className="text-slate-500 font-normal text-[11px]">{selectedDbType === "Oracle" ? "(必填)" : "(可选)"}</span></span>}
             name="database"
             className="mb-2"
+            rules={selectedDbType === "Oracle" ? [{ required: true, message: "请输入 Oracle 服务名" }] : []}
           >
             <Input
-              placeholder="如 appdb（root 可省略，连后用 SHOW DATABASES 探索）"
+              placeholder={selectedDbType === "Oracle" ? "如 ORCLPDB1" : "如 appdb（可连接后从左侧浏览数据库）"}
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs"
             />
-          </Form.Item>
+          </Form.Item>}
 
           {/* 校验错误提示 (截图 3) */}
           {dbValidationFailed && (
@@ -1664,8 +1822,8 @@ export const DatabaseView: React.FC = () => {
           )}
 
           {/* 弹窗底部操作按钮 */}
-          <div className="flex items-center justify-end space-x-2.5 pt-3 border-t border-slate-800">
-            <Button size="small" onClick={() => setDbModalOpen(false)}>
+          <div className="sticky bottom-0 flex items-center justify-end space-x-2.5 pt-3 pb-1 border-t border-slate-800 bg-[#141c2d]">
+            <Button size="small" onClick={() => { setDbModalOpen(false); setEditingConnection(null); }}>
               取消
             </Button>
             <Button
@@ -1677,7 +1835,7 @@ export const DatabaseView: React.FC = () => {
               测试连接
             </Button>
             <Button type="primary" size="small" onClick={handleSaveDbCredential}>
-              保存
+              {editingConnection ? "保存修改" : "保存"}
             </Button>
           </div>
         </Form>
@@ -1686,16 +1844,17 @@ export const DatabaseView: React.FC = () => {
       {/* 模态框 2: 新建 Redis 连接 (截图 5: media_1790640361934.png) */}
       <Modal
         open={redisModalOpen}
-        onCancel={() => setRedisModalOpen(false)}
+        onCancel={() => { setRedisModalOpen(false); setEditingRedisConnection(null); }}
         footer={null}
         width={560}
         centered
+        styles={{ body: { maxHeight: "calc(100vh - 176px)", overflowY: "auto", paddingRight: 8 } }}
         maskClosable={false}
         className="glass-card-modal"
         title={
           <div className="flex items-center space-x-2 text-white">
             <Key className="w-4 h-4 text-teal-400" />
-            <span>新建 Redis 连接</span>
+            <span>{editingRedisConnection ? "编辑 Redis 连接" : "新建 Redis 连接"}</span>
           </div>
         }
       >
@@ -1876,8 +2035,8 @@ export const DatabaseView: React.FC = () => {
           )}
 
           {/* 弹窗底部操作按钮 */}
-          <div className="flex items-center justify-end space-x-2.5 pt-3 border-t border-slate-800">
-            <Button size="small" onClick={() => setRedisModalOpen(false)}>
+          <div className="sticky bottom-0 flex items-center justify-end space-x-2.5 pt-3 pb-1 border-t border-slate-800 bg-[#141c2d]">
+            <Button size="small" onClick={() => { setRedisModalOpen(false); setEditingRedisConnection(null); }}>
               取消
             </Button>
             <Button
@@ -1889,7 +2048,7 @@ export const DatabaseView: React.FC = () => {
               测试连接
             </Button>
             <Button type="primary" size="small" onClick={handleSaveRedisConn}>
-              保存
+              {editingRedisConnection ? "保存修改" : "保存"}
             </Button>
           </div>
         </Form>

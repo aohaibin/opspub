@@ -3681,25 +3681,55 @@
           </div>
         </div>
 
-        <!-- 顶栏 2: 当前激活连接指示与历史/片段快捷按钮 (固定不滚动) -->
-        <div class="flex items-center justify-between px-1 text-xs shrink-0">
-          <div id="mainDbActiveConnBar" class="flex items-center space-x-2">
-            <span id="mainDbConnIndicator" class="flex items-center space-x-1.5 text-slate-400 font-medium">
+        <!-- 顶栏 2: 当前激活连接指示与快捷动作栏 (1:1 严格对齐截图 3) -->
+        <div class="flex items-center justify-between px-1 text-xs shrink-0 gap-2">
+          <div id="mainDbActiveConnBar" class="flex items-center space-x-2 overflow-x-auto">
+            <span id="mainDbConnIndicator" class="flex items-center space-x-1.5 text-slate-400 font-medium shrink-0">
               <span>← 在左侧连接树选择连接</span>
             </span>
-            <div id="mainDbConnectedActions" class="hidden flex items-center space-x-2">
-              <button type="button" onclick="showMainDbStructure()" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+            <!-- 激活连接后的动作栏：结构、导出、建库、同步、改密、备份、运行、实例 (截图 3 对齐) -->
+            <div id="mainDbConnectedActions" class="hidden flex items-center space-x-1.5 shrink-0">
+              <button type="button" onclick="showMainDbStructure()" title="查看表结构与 DDL" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
                 <i data-lucide="table" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>结构</span>
               </button>
-              <button type="button" onclick="exportMainDbDump()" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+              <button type="button" onclick="exportMainDbDump()" title="导出数据或 SQL Dump" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
                 <i data-lucide="download" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>导出</span>
+              </button>
+              <button type="button" onclick="createMainDbDatabase()" title="新建数据库" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>建库</span>
+              </button>
+              <button type="button" onclick="syncMainDbSchema()" title="同步数据库字典与表结构" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>同步</span>
+              </button>
+              <button type="button" onclick="changeMainDbPassword()" title="修改当前用户或实例密码" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="key" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>改密</span>
+              </button>
+              <button type="button" onclick="backupMainDb()" title="创建备份快照" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>备份</span>
+              </button>
+              <button type="button" onclick="runMainDbScript()" title="运行选中 SQL 脚本" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="play" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>运行</span>
+              </button>
+              <button type="button" onclick="showMainDbInstanceInfo()" title="查看数据库实例规格与运行状态" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>实例</span>
               </button>
             </div>
           </div>
 
-          <div class="flex items-center space-x-1.5 text-xs">
+          <!-- 右侧查找数据框与历史/片段按钮 (截图 3 对齐) -->
+          <div class="flex items-center space-x-2 text-xs shrink-0">
+            <div class="relative w-48">
+              <input type="text" id="mainDbGlobalSearchInput" onkeydown="if(event.key==='Enter') searchMainDbData(this.value)" placeholder="查找数据... ctrl+shift+F" class="w-full bg-surface-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1 text-[11px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1.5 pointer-events-none"></i>
+            </div>
             <button type="button" onclick="showMainDbHistoryModal()" class="px-2.5 py-1 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1.5 transition cursor-pointer">
               <i data-lucide="history" class="w-3.5 h-3.5 text-slate-400"></i>
               <span>历史</span>
@@ -3720,45 +3750,58 @@
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>新建连接</span>
             </button>
-            <!-- 过滤搜索框 (固定顶部) -->
+            <!-- 过滤搜索框 (固定顶部，对齐截图 3: 过滤库 / 表 / 对象 / 注释) -->
             <div class="relative shrink-0">
-              <input type="text" id="mainDbFilterInput" oninput="filterMainDbTree(this.value)" placeholder="过滤库 / 表 / 对象" class="w-full bg-surface-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition">
+              <input type="text" id="mainDbFilterInput" oninput="filterMainDbTree(this.value)" placeholder="过滤库 / 表 / 对象 / 注释" class="w-full bg-surface-900 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition">
               <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2 pointer-events-none"></i>
             </div>
 
             <!-- 连接树列表 (SQL 数据库) - 内部独立垂直滚动 -->
             <div id="mainDbTreeList-sql" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
-              <!-- 连接 1: MySQL @ 我的腾讯云0209 -->
-              <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div onclick="toggleMainDbConnExpand('conn-tencent')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+              <!-- 连接 1: MySQL @ 我的腾讯云0209 (支持鼠标右键弹出菜单，对齐截图 3) -->
+              <div id="connGroup-tencent" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-tencent" onclick="toggleMainDbConnExpand('conn-tencent')" oncontextmenu="openDbConnContextMenu(event, 'conn-tencent', 'MySQL @ 我的腾讯云0209')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-tencent" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
-                    <span class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的腾讯云0209</span>
+                    <span id="connTitle-tencent" class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的腾讯云0209</span>
                   </div>
-                  <span class="font-mono text-[10px] text-slate-500 shrink-0">mysql</span>
+                  <span class="font-mono text-[10px] text-slate-500 shrink-0 group-hover:text-slate-400">mysql</span>
                 </div>
+                <!-- 腾讯云数据库子列表 (严格对齐截图 3: information_schema, mysql, performance_schema, single_cihui, sys) -->
                 <div id="connChildren-tencent" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
-                  <div onclick="selectMainDbDatabase('tencent', 'app_production')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-brand-400"></i><span>app_production</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">18 表</span>
+                  <div onclick="selectMainDbDatabase('tencent', 'information_schema')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>information_schema</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">80 表</span>
                   </div>
-                  <div onclick="selectMainDbDatabase('tencent', 'sys_auth')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>sys_auth</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">6 表</span>
+                  <div onclick="selectMainDbDatabase('tencent', 'mysql')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>mysql</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">38 表</span>
+                  </div>
+                  <div onclick="selectMainDbDatabase('tencent', 'performance_schema')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>performance_schema</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">110 表</span>
+                  </div>
+                  <div onclick="selectMainDbDatabase('tencent', 'single_cihui')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder-check" class="w-3 h-3 text-emerald-400"></i><span>single_cihui</span></span>
+                    <span class="text-[10px] text-emerald-400/80 font-mono">42 表</span>
+                  </div>
+                  <div onclick="selectMainDbDatabase('tencent', 'sys')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>sys</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">102 表</span>
                   </div>
                 </div>
               </div>
 
-              <!-- 连接 2: MySQL @ 我的阿里云3045 -->
-              <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div onclick="toggleMainDbConnExpand('conn-aliyun')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+              <!-- 连接 2: MySQL @ 我的阿里云3045 (支持鼠标右键弹出菜单) -->
+              <div id="connGroup-aliyun" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-aliyun" onclick="toggleMainDbConnExpand('conn-aliyun')" oncontextmenu="openDbConnContextMenu(event, 'conn-aliyun', 'MySQL @ 我的阿里云3045')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-aliyun" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
-                    <span class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的阿里云3045</span>
+                    <span id="connTitle-aliyun" class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的阿里云3045</span>
                   </div>
-                  <span class="font-mono text-[10px] text-slate-500 shrink-0">mysql</span>
+                  <span class="font-mono text-[10px] text-slate-500 shrink-0 group-hover:text-slate-400">mysql</span>
                 </div>
                 <div id="connChildren-aliyun" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
                   <div onclick="selectMainDbDatabase('aliyun', 'core_db')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
@@ -3768,6 +3811,24 @@
                   <div onclick="selectMainDbDatabase('aliyun', 'nacos_config')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
                     <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>nacos_config</span></span>
                     <span class="text-[10px] text-slate-500 font-mono">14 表</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 连接 3: SQLite @ 本机应用数据库 (1:1 响应用户对 SQLite 的新建和编辑需求) -->
+              <div id="connGroup-sqlite" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-sqlite" onclick="toggleMainDbConnExpand('conn-sqlite')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlite', 'SQLite @ 本机应用数据库')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-sqlite" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="file-database" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
+                    <span id="connTitle-sqlite" class="font-medium text-slate-200 truncate text-xs">SQLite @ 本机应用数据库</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-sky-400 shrink-0 group-hover:text-sky-300">sqlite</span>
+                </div>
+                <div id="connChildren-sqlite" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div onclick="selectMainDbDatabase('sqlite', 'main')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3 h-3 text-sky-400"></i><span>main (data.db)</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">16 表</span>
                   </div>
                 </div>
               </div>
@@ -10151,18 +10212,18 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 模态框 1: 新建 DB 凭据 (1:1 严格对齐截图 2 & 3 media_1790697716447.png / media_1790697727685.png) -->
+  <!-- 模态框 1: 新建 / 编辑 DB 凭据 (1:1 严格对齐截图 1 & 2，兼容小屏与缩放，中间独立滚动，顶底部固定) -->
   <!-- ========================================================================= -->
-  <div id="modalDbCredentialAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
-      <!-- 标题栏 -->
-      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0">
+  <div id="modalDbCredentialAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 font-sans overflow-hidden">
+    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[500px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[82vh] my-auto animate-in fade-in zoom-in-95 duration-150">
+      <!-- 标题栏 (支持新建 DB 凭据 / 编辑连接 双模式，固定顶部不被挤出) -->
+      <div class="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0 select-none z-10">
         <div class="flex items-center space-x-2.5">
-          <div class="w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+          <div id="dbCredModalIconWrap" class="w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
             <i data-lucide="database" class="w-3.5 h-3.5"></i>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-white tracking-wide">新建 DB 凭据</h3>
+            <h3 id="dbCredModalTitle" class="text-sm font-bold text-white tracking-wide">新建 DB 凭据</h3>
           </div>
         </div>
         <button type="button" onclick="closeDbCredentialModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800 transition cursor-pointer">
@@ -10170,22 +10231,27 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
         </button>
       </div>
 
-      <!-- 表单主体 (可滚动) -->
-      <div class="p-5 space-y-3.5 overflow-y-auto text-xs custom-scrollbar">
-        <!-- 名称 -->
+      <!-- 表单主体 (限制最大高度为 82vh-120px，确保在任何屏幕上下均不超出，中间平滑滚动) -->
+      <div class="flex-1 min-h-0 max-h-[calc(82vh-120px)] overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs custom-scrollbar">
+        <!-- 名称 (必填，带一键清空 x 按钮) -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>名称</label>
-          <input type="text" id="dbCredName" placeholder="如 阿里云 RDS - 主库 / 测试 SQLite" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 transition">
+          <div class="relative flex items-center">
+            <input type="text" id="dbCredName" oninput="toggleInputClearBtn('dbCredName', 'dbCredNameClearBtn')" placeholder="如 阿里云 RDS - 主库 / 测试 SQLite" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 transition">
+            <button type="button" id="dbCredNameClearBtn" onclick="clearInputAndFocus('dbCredName', 'dbCredNameClearBtn')" class="hidden absolute right-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- 归属 -->
+        <!-- 归属 (本机，或数据库所在的服务器；选了服务器默认经它的 SSH 隧道连接) -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5">归属（本机 / 或选一台服务器做分类，AI 不会自动通过 SSH 连）</label>
+          <label class="block font-medium text-slate-300 mb-1.5">归属（本机，或数据库所在的服务器；选了服务器默认经它的 SSH 隧道连接）</label>
           <div class="relative">
-            <select id="dbCredServer" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+            <select id="dbCredServer" onchange="onDbCredServerChange(this.value)" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer transition">
               <option value="local">💻 本机 / 本地（无需服务器）</option>
-              <option value="tencent">💻 我的腾讯云0209 · 111.231.165.192</option>
-              <option value="aliyun">💻 我的阿里云3045 · 47.98.134.201</option>
+              <option value="tencent">💻 我的腾讯云0209 · 111.231.166.192:22</option>
+              <option value="aliyun">💻 我的阿里云3045 · 47.98.134.201:22</option>
             </select>
             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
           </div>
@@ -10195,7 +10261,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">数据库类型</label>
           <div class="relative">
-            <select id="dbCredType" onchange="onDbCredTypeChange(this.value)" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+            <select id="dbCredType" onchange="onDbCredTypeChange(this.value)" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer transition">
               <option value="MySQL">MySQL</option>
               <option value="PostgreSQL">PostgreSQL</option>
               <option value="SQLite">SQLite</option>
@@ -10203,6 +10269,8 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
               <option value="Microsoft SQL Server">Microsoft SQL Server</option>
               <option value="MariaDB">MariaDB</option>
               <option value="ClickHouse">ClickHouse</option>
+              <option value="Redis">Redis</option>
+              <option value="MongoDB">MongoDB</option>
             </select>
             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
           </div>
@@ -10212,7 +10280,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
         <div>
           <label class="block font-medium text-slate-300 mb-1.5">AI 策略档位 <span class="text-slate-500 font-normal text-[11px]">(独立于服务器档位；不选跟随服务器)</span></label>
           <div class="relative">
-            <select id="dbCredAiTier" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-teal-500 appearance-none cursor-pointer">
+            <select id="dbCredAiTier" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer">
               <option value="default">跟随服务器档位（默认）</option>
               <option value="readonly">只读分析（仅允许 SELECT / EXPLAIN）</option>
               <option value="restricted">受限写入（禁止 DROP / TRUNCATE）</option>
@@ -10222,68 +10290,138 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
           </div>
         </div>
 
-        <!-- 生产库保护 -->
+        <!-- 生产库保护 (AI 永久只读 + 人工写操作强审批) -->
         <div>
-          <label class="block font-medium text-slate-300 mb-1.5">生产库保护 <span class="text-slate-500 font-normal text-[11px]">(AI 永久只读 + 人工写操作强制确认)</span></label>
+          <label class="block font-medium text-slate-300 mb-1.5">生产库保护 <span class="text-slate-500 font-normal text-[11px]">(AI 永久只读 + 人工写操作强审批)</span></label>
           <div class="flex items-center space-x-3 mb-2">
             <button type="button" id="dbProdProtectToggle" onclick="toggleDbProdProtect()" class="relative inline-flex items-center h-6 w-16 px-1 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] transition-colors duration-200">
               <span id="dbProdProtectIndicator" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 transition duration-200 translate-x-0"></span>
               <span id="dbProdProtectText" class="ml-1.5 text-[10px] font-medium text-slate-400 select-none">非生产</span>
             </button>
           </div>
-          <input type="text" id="dbProdDbList" placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）" class="w-full bg-[#090d16] border border-slate-700/80 focus:border-teal-500 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none transition mb-1.5">
+          <div class="relative flex items-center mb-1.5">
+            <input type="text" id="dbProdDbList" oninput="toggleInputClearBtn('dbProdDbList', 'dbProdDbListClearBtn')" placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）" class="w-full bg-[#090d16] border border-slate-700/80 focus:border-indigo-500 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs focus:outline-none transition">
+            <button type="button" id="dbProdDbListClearBtn" onclick="clearInputAndFocus('dbProdDbList', 'dbProdDbListClearBtn')" class="hidden absolute right-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
           <p class="text-[11px] text-slate-500 leading-relaxed">
             整条连接不是生产库时，可在此列出该实例上属于生产的库名（逗号分隔），只有目标指向这些库的语句才受保护 —— 适合「一台实例既有 prod 也有 staging」。
           </p>
         </div>
 
-        <!-- 主机 -->
-        <div>
-          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>主机</label>
-          <input type="text" id="dbCredHost" placeholder="如 127.0.0.1 或 rm-xxxx.mysql.aliyuncs.com" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-        </div>
-
-        <!-- 端口 -->
-        <div>
-          <label class="block font-medium text-slate-300 mb-1.5">端口 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
-          <input type="text" id="dbCredPort" value="3306" placeholder="3306" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
-        </div>
-
-        <!-- 用户名 -->
-        <div>
-          <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>用户名</label>
-          <input type="text" id="dbCredUser" placeholder="如 root / app" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
-        </div>
-
-        <!-- 密码 -->
-        <div>
-          <label class="flex items-center space-x-1.5 font-medium text-slate-300 mb-1.5">
-            <span>密码</span>
-            <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-900/60 border border-rose-700/50 text-rose-300 font-mono font-medium">加密</span>
-            <span class="text-slate-500 font-normal text-[11px]">(可选)</span>
-          </label>
-          <div class="relative flex items-center">
-            <input type="password" id="dbCredPassword" placeholder="DB 密码（落库前 AES-256-GCM 加密）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500 font-mono">
-            <button type="button" onclick="toggleDbPwdVisibility('dbCredPassword', 'dbCredEyeIcon')" class="absolute right-2.5 text-slate-400 hover:text-white cursor-pointer">
-              <i id="dbCredEyeIcon" data-lucide="eye-off" class="w-4 h-4"></i>
-            </button>
+        <!-- SQLite 专用字段: 数据库文件路径 (1:1 严格对齐截图 media_1792655801662_47c8b7da.png) -->
+        <div id="dbCredSqliteFields" class="hidden space-y-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>数据库文件路径</label>
+            <div class="relative flex items-center">
+              <input type="text" id="dbCredSqlitePath" oninput="toggleInputClearBtn('dbCredSqlitePath', 'dbCredSqlitePathClearBtn')" placeholder="如 /var/lib/app/data.db 或 C:\app\data.db" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 font-mono transition">
+              <button type="button" id="dbCredSqlitePathClearBtn" onclick="clearInputAndFocus('dbCredSqlitePath', 'dbCredSqlitePathClearBtn')" class="hidden absolute right-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- 数据库名 -->
-        <div>
-          <label class="block font-medium text-slate-300 mb-1.5">数据库名 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
-          <input type="text" id="dbCredDatabase" placeholder="如 appdb（root 可省略，连后用 SHOW DATABASES 探索）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-teal-500">
+        <!-- 网络数据库专用字段模块 (MySQL / PG / Oracle / Redis 等展示；选 SQLite 时完全隐藏) -->
+        <div id="dbCredNetworkFields" class="space-y-3">
+          <!-- 经服务器 SSH 隧道访问模块 (严格对齐截图 2 布局：新建时完全可选可切换，编辑时固化锁定不可修改) -->
+          <div id="dbCredSshTunnelBox" class="rounded-xl border border-slate-800 bg-[#090d16]/70 p-3 space-y-2.5 transition">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="network" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <span class="font-medium text-slate-300 text-xs">经服务器 SSH 隧道访问 ?</span>
+                <span id="dbCredSshLockedBadge" class="hidden text-[10px] px-1.5 py-0.5 rounded bg-surface-800 text-slate-400 border border-slate-700/60 font-mono flex items-center space-x-1">
+                  <i data-lucide="lock" class="w-2.5 h-2.5 text-amber-400/80"></i>
+                  <span>已固化不可改</span>
+                </span>
+              </div>
+              <button type="button" id="dbCredSshTunnelToggle" onclick="toggleDbSshTunnel()" class="relative inline-flex items-center h-5 w-9 shrink-0 cursor-pointer rounded-full border border-indigo-500/50 bg-indigo-600 transition-colors duration-200">
+                <span id="dbCredSshTunnelIndicator" class="pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 translate-x-4"></span>
+              </button>
+            </div>
+            <div id="dbCredSshTunnelContent" class="space-y-2">
+              <div class="relative">
+                <select id="dbCredSshServer" onchange="onDbCredSshServerChange(this.value)" class="w-full bg-[#0d1322] border border-slate-700/80 rounded-lg px-3 py-1.5 pr-8 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer transition">
+                  <option value="tencent">💻 我的腾讯云0209 · 111.231.166.192:22</option>
+                  <option value="aliyun">💻 我的阿里云3045 · 47.98.134.201:22</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+              </div>
+              <p id="dbCredSshTip" class="text-[11px] text-slate-400 leading-relaxed">
+                主机 / 端口按服务器「<span id="dbCredSshServerName" class="text-slate-300 font-medium">我的腾讯云0209</span>」的视角填写：数据库就放在这台服务器上时，主机填 127.0.0.1。
+              </p>
+            </div>
+          </div>
+
+          <!-- 主机 (必填，带清空 x 按钮) -->
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>主机</label>
+            <div class="relative flex items-center">
+              <input type="text" id="dbCredHost" oninput="toggleInputClearBtn('dbCredHost', 'dbCredHostClearBtn')" placeholder="如 127.0.0.1 或 rm-xxxx.mysql.aliyuncs.com" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 transition">
+              <button type="button" id="dbCredHostClearBtn" onclick="clearInputAndFocus('dbCredHost', 'dbCredHostClearBtn')" class="hidden absolute right-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 端口 (可选，带清空 x 按钮) -->
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5">端口 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
+            <div class="relative flex items-center">
+              <input type="text" id="dbCredPort" oninput="toggleInputClearBtn('dbCredPort', 'dbCredPortClearBtn')" value="3306" placeholder="3306" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 font-mono transition">
+              <button type="button" id="dbCredPortClearBtn" onclick="clearInputAndFocus('dbCredPort', 'dbCredPortClearBtn')" class="hidden absolute right-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 用户名 (必填，带清空 x 按钮) -->
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>用户名</label>
+            <div class="relative flex items-center">
+              <input type="text" id="dbCredUser" oninput="toggleInputClearBtn('dbCredUser', 'dbCredUserClearBtn')" placeholder="如 root / app" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 transition">
+              <button type="button" id="dbCredUserClearBtn" onclick="clearInputAndFocus('dbCredUser', 'dbCredUserClearBtn')" class="hidden absolute right-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 密码 (可选，支持 AES 加密与明暗切换) -->
+          <div>
+            <label class="flex items-center space-x-1.5 font-medium text-slate-300 mb-1.5">
+              <span>密码</span>
+              <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-900/60 border border-rose-700/50 text-rose-300 font-mono font-medium">加密</span>
+              <span class="text-slate-500 font-normal text-[11px]">(可选)</span>
+            </label>
+            <div class="relative flex items-center">
+              <input type="password" id="dbCredPassword" placeholder="DB 密码（落库前 AES-256-GCM 加密）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 font-mono">
+              <button type="button" onclick="toggleDbPwdVisibility('dbCredPassword', 'dbCredEyeIcon')" class="absolute right-2.5 text-slate-400 hover:text-white cursor-pointer">
+                <i id="dbCredEyeIcon" data-lucide="eye-off" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 数据库名 (可选，带清空 x 按钮) -->
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5">数据库名 <span class="text-slate-500 font-normal text-[11px]">(可选)</span></label>
+            <div class="relative flex items-center">
+              <input type="text" id="dbCredDatabase" oninput="toggleInputClearBtn('dbCredDatabase', 'dbCredDatabaseClearBtn')" placeholder="如 appdb（root 可省略，连后用 SHOW DATABASES 探索）" class="w-full bg-[#090d16] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 transition">
+              <button type="button" id="dbCredDatabaseClearBtn" onclick="clearInputAndFocus('dbCredDatabase', 'dbCredDatabaseClearBtn')" class="hidden absolute right-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- 校验错误提示 (截图 3 严格对齐) -->
+        <!-- 校验错误提示 (严格对齐截图) -->
         <div id="dbCredValidationTip" class="hidden text-amber-400 text-xs font-medium flex items-center space-x-1.5 pt-1">
           <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-          <span>⚠️ 请填名称</span>
+          <span id="dbCredValidationTipText">⚠️ 请填名称</span>
         </div>
       </div>
 
-      <!-- 底部操作按钮 -->
+      <!-- 底部操作按钮 (对齐截图 1 & 2: 取消、测试连接、保存) -->
       <div class="px-5 py-3 border-t border-slate-800 flex items-center justify-end space-x-2.5 bg-surface-900/95 shrink-0">
         <button type="button" onclick="closeDbCredentialModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs transition cursor-pointer">
           取消
@@ -10292,7 +10430,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
           <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
           <span id="btnTestDbConnText">测试连接</span>
         </button>
-        <button type="button" onclick="saveDbCredentialMock()" class="px-4 py-1.5 rounded-lg bg-[#14b8a6] hover:bg-[#0d9488] text-white font-medium text-xs transition cursor-pointer shadow-sm">
+        <button type="button" onclick="saveDbCredentialMock()" class="px-5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition cursor-pointer shadow-md shadow-indigo-600/30 active:scale-98">
           保存
         </button>
       </div>
@@ -10300,12 +10438,39 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 模态框 2: 新建 Redis 连接 (1:1 严格对齐截图 4 media_1790697758813.png) -->
+  <!-- 数据库连接上下文菜单 (鼠标右键唤起，1:1 严格对齐截图 3) -->
   <!-- ========================================================================= -->
-  <div id="modalRedisConnAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+  <div id="dbConnContextMenu" class="hidden fixed z-[100] min-w-[170px] bg-[#0f172a] border border-slate-700/90 rounded-xl shadow-2xl py-1.5 text-xs text-slate-200 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100 select-none">
+    <button type="button" onclick="handleDbConnAction('reconnect')" class="w-full px-3 py-1.5 text-left flex items-center space-x-2 hover:bg-surface-800/80 text-slate-200 transition cursor-pointer">
+      <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-teal-400"></i>
+      <span>重新连接 / 刷新</span>
+    </button>
+    <button type="button" onclick="handleDbConnAction('test')" class="w-full px-3 py-1.5 text-left flex items-center space-x-2 hover:bg-surface-800/80 text-slate-200 transition cursor-pointer">
+      <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+      <span>测试连接</span>
+    </button>
+    <button type="button" onclick="handleDbConnAction('edit')" class="w-full px-3 py-1.5 text-left flex items-center space-x-2 hover:bg-surface-800/80 text-slate-200 transition cursor-pointer">
+      <i data-lucide="edit-3" class="w-3.5 h-3.5 text-blue-400"></i>
+      <span>编辑连接</span>
+    </button>
+    <button type="button" onclick="handleDbConnAction('copy_name')" class="w-full px-3 py-1.5 text-left flex items-center space-x-2 hover:bg-surface-800/80 text-slate-200 transition cursor-pointer">
+      <i data-lucide="copy" class="w-3.5 h-3.5 text-purple-400"></i>
+      <span>复制连接名</span>
+    </button>
+    <div class="my-1 border-t border-slate-800"></div>
+    <button type="button" onclick="handleDbConnAction('delete')" class="w-full px-3 py-1.5 text-left flex items-center space-x-2 hover:bg-rose-500/10 text-rose-400 transition cursor-pointer">
+      <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-400"></i>
+      <span>删除连接</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 模态框 2: 新建 Redis 连接 (1:1 严格对齐截图 4，兼容小屏，中间独立滚动，顶底部固定) -->
+  <!-- ========================================================================= -->
+  <div id="modalRedisConnAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 font-sans overflow-hidden">
+    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[82vh] my-auto animate-in fade-in zoom-in-95 duration-150">
       <!-- 标题栏 -->
-      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0">
+      <div class="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0 select-none z-10">
         <div class="flex items-center space-x-2.5">
           <div class="w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
             <i data-lucide="database" class="w-3.5 h-3.5"></i>
@@ -10319,8 +10484,8 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
         </button>
       </div>
 
-      <!-- 表单主体 (可滚动) -->
-      <div class="p-5 space-y-3.5 overflow-y-auto text-xs custom-scrollbar">
+      <!-- 表单主体 (限制最大高度为 82vh-120px，确保在任何屏幕上下均不超出，中间平滑滚动) -->
+      <div class="flex-1 min-h-0 max-h-[calc(82vh-120px)] overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs custom-scrollbar">
         <!-- 名称 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>名称</label>
@@ -10437,12 +10602,12 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 模态框 3: 新建 MongoDB 连接 (1:1 严格对齐截图 5 media_1790697779779.png) -->
+  <!-- 模态框 3: 新建 MongoDB 连接 (1:1 严格对齐截图 5，兼容小屏，中间独立滚动，顶底部固定) -->
   <!-- ========================================================================= -->
-  <div id="modalMongoConnAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+  <div id="modalMongoConnAdd" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 font-sans overflow-hidden">
+    <div class="glass-card bg-[#0f172a] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[82vh] my-auto animate-in fade-in zoom-in-95 duration-150">
       <!-- 标题栏 -->
-      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0">
+      <div class="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-surface-900/95 shrink-0 select-none z-10">
         <div class="flex items-center space-x-2.5">
           <div class="w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
             <i data-lucide="database" class="w-3.5 h-3.5"></i>
@@ -10456,8 +10621,8 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
         </button>
       </div>
 
-      <!-- 表单主体 (可滚动) -->
-      <div class="p-5 space-y-3.5 overflow-y-auto text-xs custom-scrollbar">
+      <!-- 表单主体 (限制最大高度为 82vh-120px，确保在任何屏幕上下均不超出，中间平滑滚动) -->
+      <div class="flex-1 min-h-0 max-h-[calc(82vh-120px)] overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs custom-scrollbar">
         <!-- 名称 -->
         <div>
           <label class="block font-medium text-slate-300 mb-1.5"><span class="text-rose-500 mr-1">*</span>名称</label>
@@ -18725,7 +18890,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       }
     }
 
-    // 3. 结构、导出、历史、片段
+    // 3. 顶栏数据库操作 (结构、导出、建库、同步、改密、备份、运行、实例，对齐截图 3)
     function showMainDbStructure() {
       const editor = document.getElementById('mainSqlEditorArea');
       if (editor) {
@@ -18743,8 +18908,37 @@ SHOW CREATE TABLE sys_user;`;
     function exportMainDbDump() {
       showToast('📦 正在生成数据库 mysqldump 逻辑备份...');
       setTimeout(() => {
-        showToast('✅ 逻辑备份导出完成: app_production_20260930.sql.gz (18.4MB)');
+        showToast('✅ 逻辑备份导出完成: app_production_20261022.sql.gz (18.4MB)');
       }, 700);
+    }
+
+    function createMainDbDatabase() {
+      showToast('🏗️ 建库向导已就绪: 输入库名、字符集 (utf8mb4) 与排序规则 (utf8mb4_unicode_ci)');
+    }
+
+    function syncMainDbSchema() {
+      showToast('🔄 正在与远端数据库同步架构与表字典元数据... 同步完成 (32 张表)');
+    }
+
+    function changeMainDbPassword() {
+      showToast('🔑 修改数据库密码: 建议使用 16 位强随机密码并同步更新凭据');
+    }
+
+    function backupMainDb() {
+      exportMainDbDump();
+    }
+
+    function runMainDbScript() {
+      executeMainSql();
+    }
+
+    function showMainDbInstanceInfo() {
+      showToast('🖥️ 实例详情: MySQL 8.0.35-community, Uptime 142d, 活跃线程 8, Buffer Pool 2.0GB');
+    }
+
+    function searchMainDbData(kw) {
+      if (!kw || !kw.trim()) return;
+      showToast(`🔎 正在全库全表检索「${kw.trim()}」相关数据与字段...`);
     }
 
     function showMainDbHistoryModal() {
@@ -18769,8 +18963,18 @@ SHOW CREATE TABLE sys_user;`;
     }
 
     function toggleMainDbConnExpand(connId) {
-      const children = document.getElementById(connId === 'conn-tencent' ? 'connChildren-tencent' : 'connChildren-aliyun');
-      const chevron = document.getElementById(connId === 'conn-tencent' ? 'connChevron-tencent' : 'connChevron-aliyun');
+      let children = null;
+      let chevron = null;
+      if (connId === 'conn-tencent') {
+        children = document.getElementById('connChildren-tencent');
+        chevron = document.getElementById('connChevron-tencent');
+      } else if (connId === 'conn-aliyun') {
+        children = document.getElementById('connChildren-aliyun');
+        chevron = document.getElementById('connChevron-aliyun');
+      } else if (connId === 'conn-sqlite') {
+        children = document.getElementById('connChildren-sqlite');
+        chevron = document.getElementById('connChevron-sqlite');
+      }
       if (!children) return;
       const isHidden = children.classList.contains('hidden');
       if (isHidden) {
@@ -18783,10 +18987,21 @@ SHOW CREATE TABLE sys_user;`;
     }
 
     function selectMainDbDatabase(server, dbName) {
-      const serverName = server === 'tencent' ? '我的腾讯云0209' : '我的阿里云3045';
+      let connDisplayName = '数据库连接';
+      if (server === 'tencent') {
+        const connTitleEl = document.getElementById('connTitle-tencent');
+        connDisplayName = connTitleEl ? connTitleEl.textContent.trim() : 'MySQL @ 我的腾讯云0209';
+      } else if (server === 'aliyun') {
+        const connTitleEl = document.getElementById('connTitle-aliyun');
+        connDisplayName = connTitleEl ? connTitleEl.textContent.trim() : 'MySQL @ 我的阿里云3045';
+      } else if (server === 'sqlite') {
+        const connTitleEl = document.getElementById('connTitle-sqlite');
+        connDisplayName = connTitleEl ? connTitleEl.textContent.trim() : 'SQLite @ 本机应用数据库';
+      }
+
       const indicator = document.getElementById('mainDbConnIndicator');
       if (indicator) {
-        indicator.innerHTML = `<span class="text-teal-400 font-bold">MySQL @ ${serverName}</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-200 font-medium">${dbName}</span>`;
+        indicator.innerHTML = `<span class="text-teal-400 font-bold">${connDisplayName}</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-200 font-medium">${dbName}</span>`;
       }
       const actions = document.getElementById('mainDbConnectedActions');
       if (actions) actions.classList.remove('hidden');
@@ -18798,15 +19013,19 @@ SHOW CREATE TABLE sys_user;`;
       if (warn) warn.classList.add('hidden');
 
       const statusName = document.getElementById('mainDbStatusConnName');
-      if (statusName) statusName.textContent = `MySQL @ ${serverName} · ${dbName}`;
+      if (statusName) statusName.textContent = `${connDisplayName} · ${dbName}`;
 
       const editor = document.getElementById('mainSqlEditorArea');
       if (editor && (!editor.value || editor.value.trim() === '')) {
-        editor.value = `SELECT * FROM ${dbName === 'sys_auth' ? 'sys_user' : 'sys_config'} LIMIT 10;`;
+        editor.value = `-- 当前目标库: ${dbName}
+SELECT u.user_id, u.user_name, u.nick_name, u.email, u.phonenumber, u.status, u.create_time
+FROM sys_user u
+WHERE u.del_flag = '0'
+LIMIT 10;`;
         syncMainSqlLineNumbers();
       }
 
-      showToast(`✅ 已连接目标库: [${serverName}] ${dbName}`);
+      showToast(`✅ 已连接目标库: [${connDisplayName}] ${dbName}`);
       if (window.lucide) lucide.createIcons();
     }
 
@@ -19047,33 +19266,450 @@ LIMIT 100;`;
       }
     });
 
-    // 8. 模态框: 新建 DB 凭据 (截图 2 & 3)
-    function openDbCredentialModal(presetType = 'MySQL') {
+    // 8. 模态框: 新建 DB 凭据 & 编辑连接 (1:1 严格对齐截图 1 & 2 & 3)
+    let currentEditingConnId = null;
+    let isDbCredModalEdit = false;
+    let dbCredSshTunnelEnabled = true;
+
+    // 输入框一键清空 (x) 辅助函数
+    function toggleInputClearBtn(inputId, btnId) {
+      const input = document.getElementById(inputId);
+      const btn = document.getElementById(btnId);
+      if (!input || !btn) return;
+      if (input.value && input.value.trim().length > 0) {
+        btn.classList.remove('hidden');
+      } else {
+        btn.classList.add('hidden');
+      }
+    }
+
+    function clearInputAndFocus(inputId, btnId) {
+      const input = document.getElementById(inputId);
+      const btn = document.getElementById(btnId);
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      if (btn) btn.classList.add('hidden');
+    }
+
+    function updateAllDbModalClearButtons() {
+      const pairs = [
+        ['dbCredName', 'dbCredNameClearBtn'],
+        ['dbProdDbList', 'dbProdDbListClearBtn'],
+        ['dbCredSqlitePath', 'dbCredSqlitePathClearBtn'],
+        ['dbCredHost', 'dbCredHostClearBtn'],
+        ['dbCredPort', 'dbCredPortClearBtn'],
+        ['dbCredUser', 'dbCredUserClearBtn'],
+        ['dbCredDatabase', 'dbCredDatabaseClearBtn']
+      ];
+      pairs.forEach(([inp, btn]) => toggleInputClearBtn(inp, btn));
+    }
+
+    // 渲染 SSH 隧道开关样式与禁用态（新建时自由可选，编辑时完全固化不可改）
+    function renderDbSshTunnelSwitch() {
+      const toggle = document.getElementById('dbCredSshTunnelToggle');
+      const indicator = document.getElementById('dbCredSshTunnelIndicator');
+      const content = document.getElementById('dbCredSshTunnelContent');
+      const lockedBadge = document.getElementById('dbCredSshLockedBadge');
+      const sshServerSelect = document.getElementById('dbCredSshServer');
+      const sshBox = document.getElementById('dbCredSshTunnelBox');
+
+      if (!toggle || !indicator) return;
+
+      // 确保外层容器自身不被屏蔽点击，状态由内部控件按模式分别控制
+      if (sshBox) {
+        sshBox.classList.remove('pointer-events-none', 'opacity-40');
+      }
+
+      if (isDbCredModalEdit) {
+        // 【编辑模式】：完全固化锁定，不可修改
+        if (lockedBadge) lockedBadge.classList.remove('hidden');
+        toggle.disabled = true;
+        if (sshServerSelect) {
+          sshServerSelect.disabled = true;
+          sshServerSelect.classList.add('cursor-not-allowed', 'opacity-70');
+          sshServerSelect.classList.remove('cursor-pointer');
+        }
+
+        if (dbCredSshTunnelEnabled) {
+          toggle.className = 'relative inline-flex items-center h-5 w-9 shrink-0 cursor-not-allowed rounded-full border border-indigo-500/40 bg-indigo-600/70 opacity-80 transition-colors duration-200';
+          indicator.className = 'pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 translate-x-4';
+          if (content) {
+            content.classList.remove('opacity-40', 'pointer-events-none');
+          }
+        } else {
+          toggle.className = 'relative inline-flex items-center h-5 w-9 shrink-0 cursor-not-allowed rounded-full border border-slate-700 bg-[#090d16] opacity-60 transition-colors duration-200';
+          indicator.className = 'pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-slate-400 transition duration-200 translate-x-0';
+          if (content) {
+            content.classList.add('opacity-40', 'pointer-events-none');
+          }
+        }
+      } else {
+        // 【新建模式】：完全自由可选可交互
+        if (lockedBadge) lockedBadge.classList.add('hidden');
+        toggle.disabled = false;
+        if (sshServerSelect) {
+          sshServerSelect.disabled = false;
+          sshServerSelect.classList.remove('cursor-not-allowed', 'opacity-70');
+          sshServerSelect.classList.add('cursor-pointer');
+        }
+
+        if (dbCredSshTunnelEnabled) {
+          toggle.className = 'relative inline-flex items-center h-5 w-9 shrink-0 cursor-pointer rounded-full border border-indigo-500/60 bg-indigo-600 hover:ring-2 hover:ring-indigo-500/30 transition-colors duration-200';
+          indicator.className = 'pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 translate-x-4';
+          if (content) {
+            content.classList.remove('opacity-40', 'pointer-events-none');
+          }
+        } else {
+          toggle.className = 'relative inline-flex items-center h-5 w-9 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-[#090d16] hover:border-slate-500 transition-colors duration-200';
+          indicator.className = 'pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-slate-400 transition duration-200 translate-x-0';
+          if (content) {
+            content.classList.add('opacity-40', 'pointer-events-none');
+          }
+        }
+      }
+    }
+
+    // 唤起新建或编辑 DB 凭据模态框
+    function openDbCredentialModal(presetType = 'MySQL', isEdit = false, config = null) {
       const modal = document.getElementById('modalDbCredentialAdd');
       if (!modal) return;
-      const typeSelect = document.getElementById('dbCredType');
-      if (typeSelect && presetType) typeSelect.value = presetType;
+
+      const titleEl = document.getElementById('dbCredModalTitle');
+      const iconWrap = document.getElementById('dbCredModalIconWrap');
       const tip = document.getElementById('dbCredValidationTip');
+      const tipText = document.getElementById('dbCredValidationTipText');
       if (tip) tip.classList.add('hidden');
+
+      const serverSelect = document.getElementById('dbCredServer');
+      const typeSelect = document.getElementById('dbCredType');
+      const sshServerSelect = document.getElementById('dbCredSshServer');
+      const serverNameSpan = document.getElementById('dbCredSshServerName');
+      const sqlitePathInput = document.getElementById('dbCredSqlitePath');
+
+      isDbCredModalEdit = !!isEdit;
+
+      if (isEdit && config) {
+        currentEditingConnId = config.id || null;
+        if (titleEl) titleEl.textContent = '编辑连接';
+        if (iconWrap) {
+          iconWrap.className = 'w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400';
+        }
+
+        // 编辑模式：归属、类型锁定不可修改
+        if (serverSelect) {
+          serverSelect.value = config.server || 'tencent';
+          serverSelect.disabled = true;
+          serverSelect.classList.add('cursor-not-allowed', 'opacity-70');
+          serverSelect.classList.remove('cursor-pointer');
+        }
+
+        const targetType = config.type || presetType || 'MySQL';
+        if (typeSelect) {
+          typeSelect.value = targetType;
+          typeSelect.disabled = true;
+          typeSelect.classList.add('cursor-not-allowed', 'opacity-70');
+          typeSelect.classList.remove('cursor-pointer');
+        }
+
+        const nameInput = document.getElementById('dbCredName');
+        if (nameInput) nameInput.value = config.name || '';
+
+        const aiTierSelect = document.getElementById('dbCredAiTier');
+        if (aiTierSelect) aiTierSelect.value = config.aiTier || 'default';
+
+        const prodListInput = document.getElementById('dbProdDbList');
+        if (prodListInput) prodListInput.value = config.prodDbs || '';
+
+        // 联动切换字段显示模式 (SQLite vs 网络库)
+        onDbCredTypeChange(targetType);
+
+        if (targetType === 'SQLite') {
+          if (sqlitePathInput) {
+            sqlitePathInput.value = config.sqlitePath || config.path || 'C:\\app\\data.db';
+          }
+        } else {
+          const hostInput = document.getElementById('dbCredHost');
+          if (hostInput) hostInput.value = config.host || '127.0.0.1';
+
+          const portInput = document.getElementById('dbCredPort');
+          if (portInput) portInput.value = config.port || '3306';
+
+          const userInput = document.getElementById('dbCredUser');
+          if (userInput) userInput.value = config.user || 'root';
+
+          const pwdInput = document.getElementById('dbCredPassword');
+          if (pwdInput) pwdInput.value = config.password || '••••••••';
+
+          const dbInput = document.getElementById('dbCredDatabase');
+          if (dbInput) dbInput.value = config.database || '';
+
+          // 编辑模式 SSH 隧道：按原有配置固化并锁定
+          dbCredSshTunnelEnabled = config.sshTunnel !== false;
+          if (sshServerSelect) {
+            sshServerSelect.value = config.server || 'tencent';
+          }
+          if (serverNameSpan) {
+            serverNameSpan.textContent = (config.server === 'aliyun') ? '我的阿里云3045' : '我的腾讯云0209';
+          }
+          renderDbSshTunnelSwitch();
+        }
+      } else {
+        currentEditingConnId = null;
+        if (titleEl) titleEl.textContent = '新建 DB 凭据';
+        if (iconWrap) {
+          iconWrap.className = 'w-6 h-6 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400';
+        }
+
+        const targetType = presetType || 'MySQL';
+
+        // 新建模式：归属、类型完全可用
+        if (serverSelect) {
+          serverSelect.disabled = false;
+          serverSelect.classList.remove('cursor-not-allowed', 'opacity-70');
+          serverSelect.classList.add('cursor-pointer');
+          serverSelect.value = targetType === 'SQLite' ? 'local' : 'tencent';
+        }
+
+        if (typeSelect) {
+          typeSelect.disabled = false;
+          typeSelect.classList.remove('cursor-not-allowed', 'opacity-70');
+          typeSelect.classList.add('cursor-pointer');
+          typeSelect.value = targetType;
+        }
+
+        const nameInput = document.getElementById('dbCredName');
+        if (nameInput) nameInput.value = targetType === 'SQLite' ? 'SQLite' : '';
+
+        const aiTierSelect = document.getElementById('dbCredAiTier');
+        if (aiTierSelect) aiTierSelect.value = 'default';
+
+        const prodListInput = document.getElementById('dbProdDbList');
+        if (prodListInput) prodListInput.value = '';
+
+        if (sqlitePathInput) sqlitePathInput.value = '';
+
+        const hostInput = document.getElementById('dbCredHost');
+        if (hostInput) hostInput.value = '';
+
+        const portInput = document.getElementById('dbCredPort');
+        if (portInput) portInput.value = '3306';
+
+        const userInput = document.getElementById('dbCredUser');
+        if (userInput) userInput.value = '';
+
+        const pwdInput = document.getElementById('dbCredPassword');
+        if (pwdInput) pwdInput.value = '';
+
+        const dbInput = document.getElementById('dbCredDatabase');
+        if (dbInput) dbInput.value = '';
+
+        // 新建模式 SSH 隧道：默认开启，自由选择
+        dbCredSshTunnelEnabled = true;
+        if (sshServerSelect) {
+          sshServerSelect.value = 'tencent';
+        }
+        if (serverNameSpan) {
+          serverNameSpan.textContent = '我的腾讯云0209';
+        }
+        renderDbSshTunnelSwitch();
+
+        // 联动切换字段显示模式 (SQLite vs 网络库)
+        onDbCredTypeChange(targetType);
+      }
+
+      updateAllDbModalClearButtons();
       modal.classList.remove('hidden');
       if (window.lucide) lucide.createIcons();
+    }
+
+    // 唤起编辑指定连接模态框 (截图 2 & SQLite 严格对齐)
+    function openDbConnectionEditModal(connId) {
+      let cfg = null;
+      if (connId === 'conn-tencent') {
+        const titleEl = document.getElementById('connTitle-tencent');
+        cfg = {
+          id: 'conn-tencent',
+          name: titleEl ? titleEl.textContent.trim() : 'MySQL @ 我的腾讯云0209',
+          server: 'tencent',
+          sshTunnel: true,
+          type: 'MySQL',
+          aiTier: 'default',
+          host: '127.0.0.1',
+          port: '3306',
+          user: 'root',
+          password: '••••••••',
+          database: '',
+          prodDbs: '',
+          isProd: false
+        };
+      } else if (connId === 'conn-aliyun') {
+        const titleEl = document.getElementById('connTitle-aliyun');
+        cfg = {
+          id: 'conn-aliyun',
+          name: titleEl ? titleEl.textContent.trim() : 'MySQL @ 我的阿里云3045',
+          server: 'aliyun',
+          sshTunnel: true,
+          type: 'MySQL',
+          aiTier: 'default',
+          host: '127.0.0.1',
+          port: '3306',
+          user: 'admin',
+          password: '••••••••',
+          database: '',
+          prodDbs: '',
+          isProd: false
+        };
+      } else if (connId === 'conn-sqlite') {
+        const titleEl = document.getElementById('connTitle-sqlite');
+        cfg = {
+          id: 'conn-sqlite',
+          name: titleEl ? titleEl.textContent.trim() : 'SQLite @ 本机应用数据库',
+          server: 'local',
+          sshTunnel: false,
+          type: 'SQLite',
+          aiTier: 'default',
+          sqlitePath: 'C:\\app\\data.db',
+          prodDbs: '',
+          isProd: false
+        };
+      } else {
+        cfg = {
+          id: connId,
+          name: 'MySQL @ 远程实例',
+          server: 'tencent',
+          sshTunnel: true,
+          type: 'MySQL',
+          aiTier: 'default',
+          host: '127.0.0.1',
+          port: '3306',
+          user: 'root',
+          password: '••••••••'
+        };
+      }
+      openDbCredentialModal(cfg.type || 'MySQL', true, cfg);
     }
 
     function closeDbCredentialModal() {
       const modal = document.getElementById('modalDbCredentialAdd');
       if (modal) modal.classList.add('hidden');
+      currentEditingConnId = null;
+      isDbCredModalEdit = false;
+
+      // 隐藏校验提示
+      const tip = document.getElementById('dbCredValidationTip');
+      if (tip) tip.classList.add('hidden');
+
+      // 退出模态框时清理表单锁定状态
+      const serverSelect = document.getElementById('dbCredServer');
+      if (serverSelect) {
+        serverSelect.disabled = false;
+        serverSelect.classList.remove('cursor-not-allowed', 'opacity-70');
+        serverSelect.classList.add('cursor-pointer');
+      }
+      const typeSelect = document.getElementById('dbCredType');
+      if (typeSelect) {
+        typeSelect.disabled = false;
+        typeSelect.classList.remove('cursor-not-allowed', 'opacity-70');
+        typeSelect.classList.add('cursor-pointer');
+      }
+      const sshServerSelect = document.getElementById('dbCredSshServer');
+      if (sshServerSelect) {
+        sshServerSelect.disabled = false;
+        sshServerSelect.classList.remove('cursor-not-allowed', 'opacity-70');
+        sshServerSelect.classList.add('cursor-pointer');
+      }
+      const toggle = document.getElementById('dbCredSshTunnelToggle');
+      if (toggle) {
+        toggle.disabled = false;
+      }
     }
 
+    // 归属服务器切换联动 SSH 隧道模块（新建模式下自由联动）
+    function onDbCredServerChange(val) {
+      if (isDbCredModalEdit) return; // 编辑模式下归属固定不可改
+      const sshServerSelect = document.getElementById('dbCredSshServer');
+      const serverNameSpan = document.getElementById('dbCredSshServerName');
+      if (val === 'local') {
+        // 本机默认不开启隧道，但用户可自由点击开关开启
+        dbCredSshTunnelEnabled = false;
+        renderDbSshTunnelSwitch();
+      } else {
+        // 选择了具体服务器，默认开启隧道
+        dbCredSshTunnelEnabled = true;
+        if (sshServerSelect) sshServerSelect.value = val;
+        if (serverNameSpan) {
+          serverNameSpan.textContent = val === 'tencent' ? '我的腾讯云0209' : '我的阿里云3045';
+        }
+        renderDbSshTunnelSwitch();
+      }
+    }
+
+    function onDbCredSshServerChange(val) {
+      if (isDbCredModalEdit) return; // 编辑模式下经由服务器固定不可改
+      const serverNameSpan = document.getElementById('dbCredSshServerName');
+      if (serverNameSpan) {
+        serverNameSpan.textContent = val === 'tencent' ? '我的腾讯云0209' : '我的阿里云3045';
+      }
+    }
+
+    // 切换 SSH 隧道开关（新建模式可自由点击，编辑模式阻断并提示）
+    function toggleDbSshTunnel() {
+      if (isDbCredModalEdit) {
+        showToast('ℹ️ 已有连接的 SSH 隧道与归属配置已固化，不可修改；如需变更请新建连接');
+        return;
+      }
+      dbCredSshTunnelEnabled = !dbCredSshTunnelEnabled;
+      renderDbSshTunnelSwitch();
+      if (dbCredSshTunnelEnabled) {
+        showToast('🔌 已开启 SSH 隧道访问，主机/端口将按跳板机视角转发');
+      } else {
+        showToast('🌐 已关闭 SSH 隧道，将尝试从本地直连目标数据库');
+      }
+    }
+
+    // 数据库类型联动：若选 SQLite 则切换单文件表单，否则展示网络数据库表单
     function onDbCredTypeChange(val) {
+      const netFields = document.getElementById('dbCredNetworkFields');
+      const sqliteFields = document.getElementById('dbCredSqliteFields');
       const portInput = document.getElementById('dbCredPort');
-      if (!portInput) return;
-      if (val === 'MySQL' || val === 'MariaDB') portInput.value = '3306';
-      else if (val === 'PostgreSQL') portInput.value = '5432';
-      else if (val === 'Oracle') portInput.value = '1521';
-      else if (val === 'Microsoft SQL Server') portInput.value = '1433';
-      else if (val === 'ClickHouse') portInput.value = '8123';
-      else if (val === 'MongoDB') portInput.value = '27017';
-      else if (val === 'SQLite') portInput.value = '';
+      const nameInput = document.getElementById('dbCredName');
+      const serverSelect = document.getElementById('dbCredServer');
+      const tip = document.getElementById('dbCredValidationTip');
+      if (tip) tip.classList.add('hidden');
+
+      if (val === 'SQLite') {
+        // 1:1 对齐用户截图 media_1792655801662_47c8b7da.png
+        if (netFields) netFields.classList.add('hidden');
+        if (sqliteFields) sqliteFields.classList.remove('hidden');
+
+        // 新建模式下，若名称未填，默认填入 SQLite
+        if (!isDbCredModalEdit && nameInput && (!nameInput.value || nameInput.value.trim() === '')) {
+          nameInput.value = 'SQLite';
+        }
+        // 新建模式下，归属默认为本机
+        if (!isDbCredModalEdit && serverSelect && serverSelect.value === 'tencent') {
+          serverSelect.value = 'local';
+        }
+        toggleInputClearBtn('dbCredSqlitePath', 'dbCredSqlitePathClearBtn');
+      } else {
+        // 切换回网络数据库 (MySQL / PG / Redis 等)
+        if (netFields) netFields.classList.remove('hidden');
+        if (sqliteFields) sqliteFields.classList.add('hidden');
+
+        if (portInput) {
+          if (val === 'MySQL' || val === 'MariaDB') portInput.value = '3306';
+          else if (val === 'PostgreSQL') portInput.value = '5432';
+          else if (val === 'Oracle') portInput.value = '1521';
+          else if (val === 'Microsoft SQL Server') portInput.value = '1433';
+          else if (val === 'ClickHouse') portInput.value = '8123';
+          else if (val === 'Redis') portInput.value = '6379';
+          else if (val === 'MongoDB') portInput.value = '27017';
+          toggleInputClearBtn('dbCredPort', 'dbCredPortClearBtn');
+        }
+      }
+      updateAllDbModalClearButtons();
     }
 
     function toggleDbProdProtect() {
@@ -19110,8 +19746,38 @@ LIMIT 100;`;
       if (window.lucide) lucide.createIcons();
     }
 
+    // 测试数据库连接 (SQLite 探测本地单文件路径，网络库发起握手)
     function testDbConnectionMock() {
+      const typeSelect = document.getElementById('dbCredType');
+      const isSqlite = typeSelect && typeSelect.value === 'SQLite';
       const text = document.getElementById('btnTestDbConnText');
+      const tip = document.getElementById('dbCredValidationTip');
+      const tipText = document.getElementById('dbCredValidationTipText');
+
+      if (isSqlite) {
+        const sqlitePathInput = document.getElementById('dbCredSqlitePath');
+        const pathVal = sqlitePathInput ? sqlitePathInput.value.trim() : '';
+        if (!pathVal) {
+          if (tip && tipText) {
+            tipText.textContent = '⚠️ 请填 数据库文件路径';
+            tip.classList.remove('hidden');
+          }
+          if (sqlitePathInput) sqlitePathInput.focus();
+          showToast('⚠️ 请填 数据库文件路径');
+          return;
+        }
+        if (tip) tip.classList.add('hidden');
+        if (text) text.textContent = '探测中...';
+        showToast(`📡 正在探测 SQLite 数据库文件: ${pathVal}`);
+        setTimeout(() => {
+          if (text) text.textContent = '测试连接';
+          showToast('✅ SQLite 文件校验通过：Header 验证正常，WAL 模式就绪，读写权限正常');
+        }, 500);
+        return;
+      }
+
+      // 普通网络数据库
+      if (tip) tip.classList.add('hidden');
       if (text) text.textContent = '探测中...';
       showToast('📡 正在通过本地驱动发起目标数据库握手探测...');
       setTimeout(() => {
@@ -19120,19 +19786,187 @@ LIMIT 100;`;
       }, 600);
     }
 
+    // 保存 DB 凭据 (严格校验 SQLite 路径 / 网络主机)
     function saveDbCredentialMock() {
       const nameInput = document.getElementById('dbCredName');
       const name = nameInput ? nameInput.value.trim() : '';
       const tip = document.getElementById('dbCredValidationTip');
+      const tipText = document.getElementById('dbCredValidationTipText');
+
       if (!name) {
-        if (tip) tip.classList.remove('hidden');
+        if (tip && tipText) {
+          tipText.textContent = '⚠️ 请填名称';
+          tip.classList.remove('hidden');
+        }
         if (nameInput) nameInput.focus();
+        showToast('⚠️ 请填写连接名称');
         return;
       }
+
+      const typeSelect = document.getElementById('dbCredType');
+      const isSqlite = typeSelect && typeSelect.value === 'SQLite';
+      if (isSqlite) {
+        const sqlitePathInput = document.getElementById('dbCredSqlitePath');
+        const pathVal = sqlitePathInput ? sqlitePathInput.value.trim() : '';
+        if (!pathVal) {
+          if (tip && tipText) {
+            tipText.textContent = '⚠️ 请填 数据库文件路径';
+            tip.classList.remove('hidden');
+          }
+          if (sqlitePathInput) sqlitePathInput.focus();
+          showToast('⚠️ 请填 数据库文件路径');
+          return;
+        }
+      }
+
       if (tip) tip.classList.add('hidden');
-      closeDbCredentialModal();
-      showToast('✅ 数据库凭据已安全落库 (AES-256-GCM 硬件加密)');
+
+      if (currentEditingConnId) {
+        // 更新左侧连接树节点名称
+        let titleEl = null;
+        if (currentEditingConnId === 'conn-tencent') titleEl = document.getElementById('connTitle-tencent');
+        else if (currentEditingConnId === 'conn-aliyun') titleEl = document.getElementById('connTitle-aliyun');
+        else if (currentEditingConnId === 'conn-sqlite') titleEl = document.getElementById('connTitle-sqlite');
+
+        if (titleEl) {
+          titleEl.textContent = name;
+        }
+        // 若顶栏当前显示的是该连接，同步更新顶栏名称
+        const indicator = document.getElementById('mainDbConnIndicator');
+        if (indicator) {
+          indicator.innerHTML = `<span class="text-teal-400 font-bold">${name}</span><span class="text-slate-500 mx-1">/</span><span class="text-slate-200 font-medium">${isSqlite ? 'main' : 'single_cihui'}</span>`;
+        }
+        const statusName = document.getElementById('mainDbStatusConnName');
+        if (statusName) statusName.textContent = `${name} · ${isSqlite ? 'main' : 'single_cihui'}`;
+
+        closeDbCredentialModal();
+        showToast(`✅ 连接「${name}」配置已更新成功并生效`);
+      } else {
+        closeDbCredentialModal();
+        showToast(`✅ ${isSqlite ? 'SQLite' : '数据库'}凭据 [${name}] 已安全落库 (硬件加密)`);
+      }
     }
+
+    // =========================================================================
+    // 数据库连接树右键上下文菜单逻辑 (截图 3 对齐)
+    // =========================================================================
+    let currentContextConnId = null;
+    let currentContextConnName = '';
+
+    function openDbConnContextMenu(e, connId, connName) {
+      e.preventDefault();
+      e.stopPropagation();
+      currentContextConnId = connId;
+
+      // 读取最新名称
+      let titleEl = null;
+      if (connId === 'conn-tencent') titleEl = document.getElementById('connTitle-tencent');
+      else if (connId === 'conn-aliyun') titleEl = document.getElementById('connTitle-aliyun');
+      else if (connId === 'conn-sqlite') titleEl = document.getElementById('connTitle-sqlite');
+      currentContextConnName = titleEl ? titleEl.textContent.trim() : (connName || '数据库连接');
+
+      const menu = document.getElementById('dbConnContextMenu');
+      if (!menu) return;
+
+      menu.classList.remove('hidden');
+
+      // 菜单自适应边界防溢出
+      const menuWidth = 180;
+      const menuHeight = 220;
+      let x = e.clientX;
+      let y = e.clientY;
+
+      if (x + menuWidth > window.innerWidth) {
+        x = window.innerWidth - menuWidth - 10;
+      }
+      if (y + menuHeight > window.innerHeight) {
+        y = window.innerHeight - menuHeight - 10;
+      }
+
+      menu.style.left = `${Math.max(10, x)}px`;
+      menu.style.top = `${Math.max(10, y)}px`;
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDbConnContextMenu() {
+      const menu = document.getElementById('dbConnContextMenu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    function handleDbConnAction(action) {
+      closeDbConnContextMenu();
+      if (!currentContextConnId) return;
+
+      if (action === 'reconnect') {
+        showToast(`🔄 正在重新连接 [${currentContextConnName}]... 握手成功 (3.1ms)`);
+        // 自动展开子库列表
+        let children = null;
+        let chevron = null;
+        if (currentContextConnId === 'conn-tencent') {
+          children = document.getElementById('connChildren-tencent');
+          chevron = document.getElementById('connChevron-tencent');
+        } else if (currentContextConnId === 'conn-aliyun') {
+          children = document.getElementById('connChildren-aliyun');
+          chevron = document.getElementById('connChevron-aliyun');
+        } else if (currentContextConnId === 'conn-sqlite') {
+          children = document.getElementById('connChildren-sqlite');
+          chevron = document.getElementById('connChevron-sqlite');
+        }
+        if (children && children.classList.contains('hidden')) {
+          children.classList.remove('hidden');
+          if (chevron) chevron.classList.add('rotate-90');
+        }
+      } else if (action === 'test') {
+        if (currentContextConnId === 'conn-sqlite') {
+          showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：SQLite 本地单文件读取正常 (WAL 模式，页大小 4096)`);
+        } else {
+          showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：TCP 握手 3.8ms，版本 MySQL 8.0.35`);
+        }
+      } else if (action === 'edit') {
+        openDbConnectionEditModal(currentContextConnId);
+      } else if (action === 'copy_name') {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(currentContextConnName).then(() => {
+            showToast(`📋 已复制连接名称到剪贴板: ${currentContextConnName}`);
+          }).catch(() => {
+            showToast(`📋 连接名称: ${currentContextConnName}`);
+          });
+        } else {
+          showToast(`📋 已复制连接名称: ${currentContextConnName}`);
+        }
+      } else if (action === 'delete') {
+        if (confirm(`确定要删除连接「${currentContextConnName}」吗？相关凭据与已存会话将一并清除。`)) {
+          let group = null;
+          if (currentContextConnId === 'conn-tencent') group = document.getElementById('connGroup-tencent');
+          else if (currentContextConnId === 'conn-aliyun') group = document.getElementById('connGroup-aliyun');
+          else if (currentContextConnId === 'conn-sqlite') group = document.getElementById('connGroup-sqlite');
+          if (group) {
+            group.remove();
+            showToast(`🗑️ 已删除连接: ${currentContextConnName}`);
+          }
+          const indicator = document.getElementById('mainDbConnIndicator');
+          if (indicator && indicator.textContent.includes(currentContextConnName)) {
+            indicator.innerHTML = '<span>← 在左侧连接树选择连接</span>';
+            const actions = document.getElementById('mainDbConnectedActions');
+            if (actions) actions.classList.add('hidden');
+          }
+        }
+      }
+    }
+
+    // 全局点击与 ESC 键关闭右键菜单
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('dbConnContextMenu');
+      if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target)) {
+        closeDbConnContextMenu();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDbConnContextMenu();
+      }
+    });
 
     // 9. 模态框: 新建 Redis 连接 (截图 4)
     function openRedisConnModal() {

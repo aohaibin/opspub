@@ -24,6 +24,15 @@ pub fn add_database_connection(
 }
 
 #[tauri::command]
+pub fn update_database_connection(
+    state: tauri::State<'_, AppState>,
+    id: i64,
+    input: DatabaseConnectionInput,
+) -> Result<DatabaseConnection, CommandError> {
+    DatabaseConnectionService::update(&state.db, id, input).map_err(CommandError::from)
+}
+
+#[tauri::command]
 pub fn delete_database_connection(
     state: tauri::State<'_, AppState>,
     id: i64,

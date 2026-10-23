@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type DatabaseEngine = "mysql" | "mariadb" | "postgresql" | "redis" | "mongodb" | "clickhouse";
+export type DatabaseEngine = "sqlite" | "mysql" | "mariadb" | "postgresql" | "oracle" | "sqlserver" | "redis" | "mongodb" | "clickhouse";
 
 export interface DatabaseConnection {
   id: number;
@@ -22,6 +22,7 @@ export interface DatabaseConnection {
 }
 
 export interface DatabaseConnectionInput {
+  connectionId?: number;
   name: string;
   serverId: number;
   engine: DatabaseEngine | string;
@@ -70,6 +71,8 @@ export const databaseApi = {
   list: () => invoke<DatabaseConnection[]>("list_database_connections"),
   create: (input: DatabaseConnectionInput) =>
     invoke<DatabaseConnection>("add_database_connection", { input }),
+  update: (id: number, input: DatabaseConnectionInput) =>
+    invoke<DatabaseConnection>("update_database_connection", { id, input }),
   remove: (id: number) => invoke<boolean>("delete_database_connection", { id }),
   testDraft: (input: DatabaseConnectionInput) =>
     invoke<DatabaseProbeResult>("test_database_connection", { input }),

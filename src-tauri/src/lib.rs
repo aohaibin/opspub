@@ -167,6 +167,7 @@ pub fn run() {
             // 数据库连接与查询
             commands::database::list_database_connections,
             commands::database::add_database_connection,
+            commands::database::update_database_connection,
             commands::database::delete_database_connection,
             commands::database::test_database_connection,
             commands::database::test_saved_database_connection,

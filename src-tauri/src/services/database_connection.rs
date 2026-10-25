@@ -1,11 +1,12 @@
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Instant;
 
 use keyring::{Entry, Error as KeyringError};
 use mysql::prelude::Queryable;
-use mysql::{OptsBuilder, Value as MysqlValue};
+use mysql::{OptsBuilder, SslOpts, Value as MysqlValue};
 use rusqlite::{types::ValueRef, Connection as SqliteConnection};
 use ssh2::ErrorCode as SshErrorCode;
 use ssh2::Session;
@@ -23,6 +24,12 @@ use crate::models::{TerminalOpenRequest, WorkbenchCommandResult};
 use crate::services::server::ServerService;
 
 const DATABASE_CREDENTIAL_SERVICE: &str = "com.opsentr.yunwei.database";
+
+/// Rustls 依赖同时包含多个 provider 时，连接建立前必须显式选择一个。
+/// 该调用是幂等的：应用启动时已完成初始化时直接返回，不影响其他 TLS 客户端。
+fn ensure_rustls_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct DatabaseCredential {
@@ -730,6 +737,8 @@ fn run_probe(
     connection: &DatabaseConnection,
     password: Option<&str>,
 ) -> Result<String, AppError> {
+    // 测试连接也可能从独立后台线程进入，不能只依赖 Tauri 启动钩子。
+    ensure_rustls_provider();
     if is_sqlite_engine(&connection.engine) {
         execute_sqlite_query(connection, "SELECT 1")?;
         return Ok("SQLite 数据库文件连接成功".to_string());
@@ -868,6 +877,7 @@ fn execute_oracle_query(
     password: Option<&str>,
     sql: &str,
 ) -> Result<(Vec<String>, Vec<Vec<String>>, usize), AppError> {
+    ensure_rustls_provider();
     let password = password.unwrap_or_default().to_string();
     let tunnel = if connection.ssh_tunnel {
         Some(open_database_tunnel(db, connection)?)
@@ -943,6 +953,7 @@ fn execute_sqlserver_query(
     sql: &str,
     database_name: Option<&str>,
 ) -> Result<(Vec<String>, Vec<Vec<String>>, usize), AppError> {
+    ensure_rustls_provider();
     let password = password.unwrap_or_default().to_string();
     let tunnel = if connection.ssh_tunnel {
         Some(open_database_tunnel(db, connection)?)
@@ -1078,7 +1089,8 @@ fn execute_mysql_query(
     sql: &str,
     database_name: Option<&str>,
 ) -> Result<(Vec<String>, Vec<Vec<String>>, usize), AppError> {
-    let tunnel = if connection.ssh_tunnel {
+    ensure_rustls_provider();
+    let mut tunnel = if connection.ssh_tunnel {
         Some(open_database_tunnel(db, connection)?)
     } else {
         None
@@ -1093,7 +1105,7 @@ fn execute_mysql_query(
         .map(|value| value.port)
         .unwrap_or(connection.port as u16);
     let mut builder = OptsBuilder::new()
-        .ip_or_hostname(Some(mysql_host))
+        .ip_or_hostname(Some(mysql_host.clone()))
         .tcp_port(mysql_port)
         .user(Some(connection.username.clone()))
         .db_name(
@@ -1105,13 +1117,38 @@ fn execute_mysql_query(
                 })
                 .map(str::to_owned),
         )
+        .prefer_socket(false)
+        .ssl_opts(Some(
+            SslOpts::default()
+                .with_danger_skip_domain_validation(tunnel.is_some())
+                // SSH 隧道下服务端通常使用私有 CA 或自签证书；SSH 主机指纹已先行验证，
+                // 隧道保护了 TLS 握手链路，因此只对隧道模式跳过数据库证书链验证。
+                .with_danger_accept_invalid_certs(tunnel.is_some()),
+        ))
         .tcp_connect_timeout(Some(std::time::Duration::from_secs(10)));
     if let Some(password) = password.filter(|value| !value.is_empty()) {
         builder = builder.pass(Some(password.to_string()));
     }
 
-    let mut conn = mysql::Conn::new(builder)
-        .map_err(|error| AppError::Custom(format!("MySQL/MariaDB 连接失败: {error}")))?;
+    let mode = if tunnel.is_some() {
+        "SSH 隧道"
+    } else {
+        "直连"
+    };
+    let mut conn = match mysql::Conn::new(builder) {
+        Ok(connection) => connection,
+        Err(error) => {
+            let tunnel_failure = tunnel
+                .as_mut()
+                .and_then(MysqlTunnel::join_and_failure)
+                .map(|failure| format!("；SSH 转发细节：{failure}"))
+                .unwrap_or_default();
+            return Err(AppError::Custom(format!(
+                "MySQL/MariaDB 连接失败（{} {}:{}，{}，已启用 TLS）: {error}{tunnel_failure}",
+                mode, mysql_host, mysql_port, connection.username
+            )));
+        }
+    };
     let mut result = conn
         .query_iter(sql)
         .map_err(|error| AppError::Custom(format!("MySQL/MariaDB 查询失败: {error}")))?;
@@ -1127,9 +1164,9 @@ fn execute_mysql_query(
         let row =
             row.map_err(|error| AppError::Custom(format!("读取 MySQL/MariaDB 结果失败: {error}")))?;
         rows.push(
-            row.unwrap()
+            row.unwrap_raw()
                 .into_iter()
-                .map(mysql_value_to_string)
+                .map(|value| value.map(mysql_value_to_string).unwrap_or_default())
                 .collect(),
         );
     }
@@ -1200,6 +1237,16 @@ fn sqlite_value_to_string(value: ValueRef<'_>) -> String {
 struct MysqlTunnel {
     port: u16,
     worker: Option<JoinHandle<()>>,
+    failure: Arc<Mutex<Option<String>>>,
+}
+
+impl MysqlTunnel {
+    fn join_and_failure(&mut self) -> Option<String> {
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+        self.failure.lock().ok().and_then(|failure| failure.clone())
+    }
 }
 
 impl Drop for MysqlTunnel {
@@ -1225,17 +1272,34 @@ fn open_database_tunnel(
     )?;
     let listener = TcpListener::bind(("127.0.0.1", 0))
         .map_err(|error| AppError::Custom(format!("创建本地数据库隧道失败: {error}")))?;
+    listener
+        .set_nonblocking(true)
+        .map_err(|error| AppError::Custom(format!("配置本地数据库隧道失败: {error}")))?;
     let port = listener
         .local_addr()
         .map_err(|error| AppError::Custom(format!("读取本地数据库隧道端口失败: {error}")))?
         .port();
     let target_host = connection.host.clone();
     let target_port = connection.port as u16;
+    let failure = Arc::new(Mutex::new(None));
+    let worker_failure = Arc::clone(&failure);
     let worker = thread::Builder::new()
         .name("database-ssh-tunnel".into())
         .spawn(move || {
             let result = (|| -> Result<(), String> {
-                let (mut client, _) = listener.accept().map_err(|error| error.to_string())?;
+                let started = Instant::now();
+                let (mut client, _) = loop {
+                    match listener.accept() {
+                        Ok(connection) => break connection,
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                            if started.elapsed() >= std::time::Duration::from_secs(12) {
+                                return Err("等待 MySQL 客户端连接 SSH 隧道超时".into());
+                            }
+                            thread::sleep(std::time::Duration::from_millis(10));
+                        }
+                        Err(error) => return Err(error.to_string()),
+                    }
+                };
                 let mut channel = session
                     .channel_direct_tcpip(&target_host, target_port, None)
                     .map_err(|error| error.to_string())?;
@@ -1245,12 +1309,17 @@ fn open_database_tunnel(
                     .map_err(|error| error.to_string())?;
                 relay_database_tunnel(&mut client, &mut channel)
             })();
-            let _ = result;
+            if let Err(error) = result {
+                if let Ok(mut failure) = worker_failure.lock() {
+                    *failure = Some(error);
+                }
+            }
         })
         .map_err(|error| AppError::Custom(format!("启动本地数据库隧道失败: {error}")))?;
     Ok(MysqlTunnel {
         port,
         worker: Some(worker),
+        failure,
     })
 }
 
@@ -1267,6 +1336,7 @@ fn relay_database_tunnel(
     let mut client_eof = false;
     let mut ssh_eof_sent = false;
     let mut ssh_eof = false;
+    let mut ssh_bytes_received = 0usize;
 
     loop {
         let mut progressed = false;
@@ -1306,6 +1376,7 @@ fn relay_database_tunnel(
                 Ok(length) => {
                     to_client_len = length;
                     to_client_offset = 0;
+                    ssh_bytes_received += length;
                     progressed = true;
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
@@ -1324,6 +1395,9 @@ fn relay_database_tunnel(
             }
         }
         if ssh_eof && to_client_len == to_client_offset {
+            if ssh_bytes_received == 0 {
+                return Err("远程数据库 SSH 通道在返回 MySQL 握手数据前关闭".into());
+            }
             return Ok(());
         }
         if !progressed {

@@ -2760,9 +2760,13 @@ dependencies = [
  "named_pipe",
  "pem",
  "percent-encoding",
+ "rustls",
+ "rustls-pemfile",
  "socket2",
  "twox-hash",
  "url",
+ "webpki",
+ "webpki-roots 1.0.10",
 ]
 
 [[package]]
@@ -4874,6 +4878,7 @@ dependencies = [
  "regex",
  "ring",
  "rusqlite",
+ "rustls",
  "serde",
  "serde_json",
  "sha2",
@@ -6142,6 +6147,16 @@ dependencies = [
  "pkg-config",
  "soup3-sys",
  "system-deps",
+]
+
+[[package]]
+name = "webpki"
+version = "0.22.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed63aea5ce73d0ff405984102c42de94fc55a6b75765d621c65262469b3c9b53"
+dependencies = [
+ "ring",
+ "untrusted",
 ]
 
 [[package]]

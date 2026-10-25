@@ -19,8 +19,24 @@ pub fn run_mcp_stdio(token: String, port: u16) -> Result<(), String> {
     services::mcp::run_stdio_proxy(&token, port)
 }
 
+/// 依赖树同时包含 ring 和 aws-lc-rs 时，Rustls 不会自动选择默认 provider。
+/// 在任何数据库、更新器或远程 TLS 连接创建前显式选择 ring，避免运行时 panic。
+fn install_rustls_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
+#[cfg(test)]
+mod rustls_provider_tests {
+    #[test]
+    fn application_selects_a_process_level_crypto_provider() {
+        super::install_rustls_provider();
+        assert!(rustls::crypto::CryptoProvider::get_default().is_some());
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    install_rustls_provider();
     tauri::Builder::default()
         // ─── 禁止多开（必须是第一个注册的插件）─────────
         // 锁键 = identifier，第二个实例启动时进程立刻退出，回调在“已运行的实例”里执行：

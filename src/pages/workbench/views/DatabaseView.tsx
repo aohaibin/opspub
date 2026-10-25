@@ -86,6 +86,11 @@ function displayEngineName(engine: string): string {
   return engine;
 }
 
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  return normalized === "localhost" || normalized === "::1" || /^127(?:\.\d{1,3}){3}$/.test(normalized);
+}
+
 export const DatabaseView: React.FC = () => {
   const { server } = useWorkbenchRuntime();
 
@@ -138,6 +143,8 @@ export const DatabaseView: React.FC = () => {
   const [editingRedisConnection, setEditingRedisConnection] = useState<RedisConnectionItem | null>(null);
   const [detailConnection, setDetailConnection] = useState<DbConnectionItem | RedisConnectionItem | null>(null);
   const [dbForm] = Form.useForm();
+  const [dbFormKey, setDbFormKey] = useState(0);
+  const [dbFormInitialValues, setDbFormInitialValues] = useState<Record<string, unknown>>({});
   const selectedDbType = Form.useWatch("type", dbForm) as string | undefined;
   const isSqliteForm = selectedDbType === "SQLite";
   const [dbProdProtect, setDbProdProtect] = useState(false);
@@ -149,6 +156,8 @@ export const DatabaseView: React.FC = () => {
   // 新建 Redis 连接弹窗 (截图 5)
   const [redisModalOpen, setRedisModalOpen] = useState(false);
   const [redisForm] = Form.useForm();
+  const [redisFormKey, setRedisFormKey] = useState(0);
+  const [redisFormInitialValues, setRedisFormInitialValues] = useState<Record<string, unknown>>({});
   const [redisProdProtect, setRedisProdProtect] = useState(false);
   const [redisSshTunnel, setRedisSshTunnel] = useState(false);
   const [redisPasswordVisible, setRedisPasswordVisible] = useState(false);
@@ -409,18 +418,20 @@ export const DatabaseView: React.FC = () => {
   // 打开新建 DB 凭据弹窗
   const handleOpenDbModal = (presetType = "MySQL") => {
     setEditingConnection(null);
-    dbForm.resetFields();
+    setEditingRedisConnection(null);
+    setRedisModalOpen(false);
     const defaultServerId = server?.id ?? availableServers[0]?.id;
-    dbForm.setFieldsValue({
+    setDbFormInitialValues({
       server: presetType === "SQLite" ? "local" : defaultServerId ? `server-${defaultServerId}` : undefined,
       type: presetType,
       aiTier: "default",
       port: presetType === "SQLite" ? "" : presetType === "PostgreSQL" ? "5432" : presetType === "MongoDB" ? "27017" : presetType === "Oracle" ? "1521" : presetType === "Microsoft SQL Server" ? "1433" : "3306",
-      host: "",
+      host: presetType === "SQLite" ? "" : "127.0.0.1",
       sqlitePath: "",
     });
+    setDbFormKey((key) => key + 1);
     setDbProdProtect(false);
-    setDbSshTunnel(false);
+    setDbSshTunnel(presetType !== "SQLite");
     setDbPasswordVisible(false);
     setDbValidationFailed(false);
     setDbModalOpen(true);
@@ -430,7 +441,8 @@ export const DatabaseView: React.FC = () => {
     if ("dbIndex" in connection) {
       setEditingConnection(null);
       setEditingRedisConnection(connection);
-      redisForm.setFieldsValue({
+      setDbModalOpen(false);
+      setRedisFormInitialValues({
         name: connection.name,
         server: `server-${connection.serverId}`,
         type: "Redis",
@@ -441,6 +453,7 @@ export const DatabaseView: React.FC = () => {
         password: "",
         prodDbList: connection.prodDbList,
       });
+      setRedisFormKey((key) => key + 1);
       setRedisProdProtect(connection.isProdProtect);
       setRedisSshTunnel(connection.sshTunnel);
       setRedisPasswordVisible(false);
@@ -448,8 +461,10 @@ export const DatabaseView: React.FC = () => {
       setRedisModalOpen(true);
       return;
     }
+    setEditingRedisConnection(null);
     setEditingConnection(connection);
-    dbForm.setFieldsValue({
+    setRedisModalOpen(false);
+    setDbFormInitialValues({
       name: connection.name,
       server: connection.serverId === 0 ? "local" : `server-${connection.serverId}`,
       type: connection.type,
@@ -462,8 +477,11 @@ export const DatabaseView: React.FC = () => {
       password: "",
       prodDatabases: connection.prodDatabases,
     });
+    setDbFormKey((key) => key + 1);
     setDbProdProtect(connection.isProdProtect);
-    setDbSshTunnel(connection.sshTunnel);
+    setDbSshTunnel(
+      connection.sshTunnel || (connection.serverId > 0 && isLoopbackHost(connection.host)),
+    );
     setDbPasswordVisible(false);
     setDbValidationFailed(false);
     setDbModalOpen(true);
@@ -598,15 +616,17 @@ export const DatabaseView: React.FC = () => {
 
   const handleOpenRedisModal = () => {
     setEditingRedisConnection(null);
-    redisForm.resetFields();
+    setEditingConnection(null);
+    setDbModalOpen(false);
     const defaultServerId = server?.id ?? availableServers[0]?.id;
-    redisForm.setFieldsValue({
+    setRedisFormInitialValues({
       server: defaultServerId ? `server-${defaultServerId}` : undefined,
       type: "Redis",
       aiTier: "default",
       port: "6379",
       dbIndex: "0",
     });
+    setRedisFormKey((key) => key + 1);
     setRedisProdProtect(false);
     setRedisSshTunnel(false);
     setRedisPasswordVisible(false);
@@ -1577,9 +1597,11 @@ export const DatabaseView: React.FC = () => {
         open={dbModalOpen}
         onCancel={() => { setDbModalOpen(false); setEditingConnection(null); }}
         footer={null}
-        width={560}
+        width={500}
         centered
-        styles={{ body: { maxHeight: "calc(100vh - 176px)", overflowY: "auto", paddingRight: 8 } }}
+        styles={{
+          body: { height: "calc(82vh - 56px)", maxHeight: "calc(82vh - 56px)", overflow: "hidden", padding: 0 },
+        }}
         maskClosable={false}
         className="glass-card-modal"
         title={
@@ -1589,7 +1611,15 @@ export const DatabaseView: React.FC = () => {
           </div>
         }
       >
-        <Form form={dbForm} layout="vertical" className="space-y-3.5 text-xs pt-2">
+        <Form
+          key={dbFormKey}
+          form={dbForm}
+          initialValues={dbFormInitialValues}
+          layout="vertical"
+          className="flex flex-col text-xs"
+          style={{ display: "flex", flexDirection: "column", height: "100%" }}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 space-y-3.5">
           {/* 名称 */}
           <Form.Item
             label={<span className="text-slate-300 font-medium"><span className="text-rose-400 mr-1">*</span>名称</span>}
@@ -1599,6 +1629,7 @@ export const DatabaseView: React.FC = () => {
           >
             <Input
               placeholder="如 阿里云 RDS - 主库 / 测试 SQLite"
+              allowClear
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs"
             />
           </Form.Item>
@@ -1607,12 +1638,14 @@ export const DatabaseView: React.FC = () => {
           <Form.Item
             label={<span className="text-slate-300 font-medium">归属{isSqliteForm && <span className="text-slate-500 font-normal text-[11px]">（SQLite 仅支持本机文件）</span>}</span>}
             name="server"
-            initialValue="server-1"
             className="mb-2"
           >
             <Select
               className="w-full text-xs"
-              disabled={isSqliteForm}
+              disabled={isSqliteForm || Boolean(editingConnection)}
+              onChange={(value) => {
+                if (!editingConnection) setDbSshTunnel(value !== "local");
+              }}
               options={isSqliteForm
                 ? [{ label: "本机 / 本地文件", value: "local" }]
                 : [
@@ -1644,6 +1677,7 @@ export const DatabaseView: React.FC = () => {
                 } else if (dbForm.getFieldValue("server") === "local") {
                   const defaultServerId = server?.id ?? availableServers[0]?.id;
                   dbForm.setFieldValue("server", defaultServerId ? `server-${defaultServerId}` : undefined);
+                  setDbSshTunnel(Boolean(defaultServerId));
                 }
               }}
               options={[
@@ -1687,21 +1721,19 @@ export const DatabaseView: React.FC = () => {
               生产库保护 <span className="text-slate-500 font-normal text-[11px]">(AI 永久只读 + 人工写操作强制确认)</span>
             </span>
             <div className="flex items-center space-x-3">
-              <button
-                type="button"
-                onClick={() => setDbProdProtect(!dbProdProtect)}
-                className={`px-3 py-1 rounded-full text-[11px] font-medium border transition cursor-pointer ${
-                  dbProdProtect
-                    ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
-                    : "bg-surface-950 border-slate-700 text-slate-400"
-                }`}
-              >
+              <Switch
+                checked={dbProdProtect}
+                onChange={setDbProdProtect}
+                size="small"
+              />
+              <span className={`text-[11px] ${dbProdProtect ? "text-rose-300" : "text-slate-500"}`}>
                 {dbProdProtect ? "生产环境" : "非生产"}
-              </button>
+              </span>
             </div>
             <Form.Item name="prodDatabases" className="mb-1">
               <Input
                 placeholder="例如: prod_app, order_prod（留空 = 不启用逐库保护）"
+                allowClear
                 className="bg-surface-950 border-slate-700 text-slate-200 text-xs"
               />
             </Form.Item>
@@ -1711,14 +1743,22 @@ export const DatabaseView: React.FC = () => {
           </div>}
 
           {/* 经服务器 SSH 隧道访问 */}
-          {!isSqliteForm && <div className="flex items-center justify-between pt-1 border-t border-slate-800">
-            <span className="text-xs text-teal-400 font-medium">经服务器 SSH 隧道访问 ?</span>
-            <Switch
-              checked={dbSshTunnel}
-              onChange={(checked) => setDbSshTunnel(checked)}
-              size="small"
-            />
-          </div>}
+          {!isSqliteForm && <section className="space-y-2.5 rounded-lg border border-slate-700/80 bg-surface-950/70 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-slate-300">
+                <Wifi className="h-3.5 w-3.5 text-indigo-400" />
+                <span className="font-medium">经服务器 SSH 隧道访问</span>
+              </div>
+              <Switch
+                checked={dbSshTunnel}
+                onChange={(checked) => setDbSshTunnel(checked)}
+                size="small"
+              />
+            </div>
+            {dbSshTunnel && <p className="text-[11px] leading-relaxed text-slate-500">
+              使用上方归属服务器建立 SSH 转发。数据库位于该服务器本机时，主机填写 127.0.0.1；关闭后将从本机直接连接数据库。
+            </p>}
+          </section>}
 
           {isSqliteForm ? <Form.Item
             label={<span className="text-slate-300 font-medium"><span className="text-rose-400 mr-1">*</span>数据库文件路径</span>}
@@ -1728,6 +1768,7 @@ export const DatabaseView: React.FC = () => {
           >
             <Input
               placeholder="如 C:\\data\\app.db 或 /var/lib/app/data.db"
+              allowClear
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs font-mono"
             />
           </Form.Item> : <>
@@ -1740,6 +1781,7 @@ export const DatabaseView: React.FC = () => {
           >
             <Input
               placeholder="如 127.0.0.1 或 rm-xxxx.mysql.aliyuncs.com"
+              allowClear
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs font-mono"
             />
           </Form.Item>
@@ -1753,6 +1795,7 @@ export const DatabaseView: React.FC = () => {
           >
             <Input
               placeholder="3306"
+              allowClear
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs font-mono"
             />
           </Form.Item>
@@ -1765,6 +1808,7 @@ export const DatabaseView: React.FC = () => {
           >
             <Input
               placeholder="如 root / app"
+              allowClear
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs"
             />
           </Form.Item>
@@ -1785,7 +1829,7 @@ export const DatabaseView: React.FC = () => {
           >
             <Input
               type={dbPasswordVisible ? "text" : "password"}
-              placeholder="DB 密码（落库前 AES-256-GCM 加密）"
+              placeholder="数据库密码（保存到系统凭据管理器）"
               suffix={
                 <button
                   type="button"
@@ -1809,6 +1853,7 @@ export const DatabaseView: React.FC = () => {
           >
             <Input
               placeholder={selectedDbType === "Oracle" ? "如 ORCLPDB1" : "如 appdb（可连接后从左侧浏览数据库）"}
+              allowClear
               className="bg-surface-950 border-slate-700 text-slate-200 text-xs"
             />
           </Form.Item>}
@@ -1821,8 +1866,9 @@ export const DatabaseView: React.FC = () => {
             </div>
           )}
 
-          {/* 弹窗底部操作按钮 */}
-          <div className="sticky bottom-0 flex items-center justify-end space-x-2.5 pt-3 pb-1 border-t border-slate-800 bg-[#141c2d]">
+          </div>
+          {/* 固定底部操作区，避免表单内容过长时按钮被滚出弹窗 */}
+          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-slate-800 bg-surface-900/95 px-4 py-3 sm:px-5">
             <Button size="small" onClick={() => { setDbModalOpen(false); setEditingConnection(null); }}>
               取消
             </Button>
@@ -1858,7 +1904,13 @@ export const DatabaseView: React.FC = () => {
           </div>
         }
       >
-        <Form form={redisForm} layout="vertical" className="space-y-3.5 text-xs pt-2">
+        <Form
+          key={redisFormKey}
+          form={redisForm}
+          initialValues={redisFormInitialValues}
+          layout="vertical"
+          className="space-y-3.5 text-xs pt-2"
+        >
           {/* 名称 */}
           <Form.Item
             label={<span className="text-slate-300 font-medium"><span className="text-rose-400 mr-1">*</span>名称</span>}

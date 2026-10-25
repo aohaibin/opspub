@@ -8,6 +8,14 @@ use crate::models::{
 use crate::services::database_connection::DatabaseConnectionService;
 use crate::state::AppState;
 
+fn database_task_error(error: impl std::fmt::Display) -> CommandError {
+    log::error!("数据库后台任务异常结束: {error}");
+    CommandError {
+        code: "INTERNAL".into(),
+        message: format!("数据库后台任务异常结束: {error}"),
+    }
+}
+
 #[tauri::command]
 pub fn list_database_connections(
     state: tauri::State<'_, AppState>,
@@ -50,10 +58,7 @@ pub async fn test_database_connection(
         DatabaseConnectionService::test_draft(&state.db, input).map_err(CommandError::from)
     })
     .await
-    .map_err(|error| CommandError {
-        code: "INTERNAL".into(),
-        message: format!("数据库测试任务异常结束: {error}"),
-    })?
+    .map_err(database_task_error)?
 }
 
 #[tauri::command]
@@ -66,10 +71,31 @@ pub async fn test_saved_database_connection(
         DatabaseConnectionService::test_saved(&state.db, id).map_err(CommandError::from)
     })
     .await
-    .map_err(|error| CommandError {
-        code: "INTERNAL".into(),
-        message: format!("数据库测试任务异常结束: {error}"),
-    })?
+    .map_err(database_task_error)?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::database_task_error;
+
+    #[test]
+    fn database_test_task_panic_becomes_a_command_error() {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("create test runtime");
+        let join_error = runtime.block_on(async {
+            tokio::task::spawn_blocking(|| panic!("simulated database driver panic"))
+                .await
+                .expect_err("the simulated task must panic")
+        });
+
+        let command_error = database_task_error(join_error);
+        assert_eq!(command_error.code, "INTERNAL");
+        assert!(command_error
+            .message
+            .contains("simulated database driver panic"));
+    }
 }
 
 #[tauri::command]

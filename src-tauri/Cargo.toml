@@ -26,7 +26,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 rusqlite = { version = "0.31", features = ["bundled"] }
-mysql = { version = "28", default-features = false, features = ["minimal-rust"] }
+mysql = { version = "28", default-features = false, features = ["minimal-rust", "rustls-tls-ring"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 oracle-rs = "0.1.7"
 tiberius = { version = "0.13", default-features = false, features = ["tds80", "rustls-webpki-roots"] }
 tokio-util = { version = "0.7", features = ["compat"] }
@@ -71,4 +72,4 @@ opt-level = "z"         # 最小体积优化
 lto = true              # 链接时优化
 codegen-units = 1       # 单代码生成单元（更好优化）
 strip = true            # 剥离调试符号
-panic = "abort"         # panic 时 abort（减小体积）
+panic = "unwind"        # 允许后台任务把 panic 转成错误，避免驱动异常结束整个桌面进程

@@ -4,6 +4,7 @@ pub mod config;
 pub mod copilot;
 pub mod database;
 pub mod deployment;
+pub mod file;
 pub mod mcp;
 pub mod server;
 pub mod sftp;

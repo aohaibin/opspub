@@ -65,6 +65,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         // ─── 应用初始化 ─────────────────────────────
         .setup(|app| {
             // 初始化数据库（存放在应用数据目录）
@@ -123,6 +124,7 @@ pub fn run() {
             commands::config::get_config,
             commands::config::set_config,
             commands::config::delete_config,
+            commands::file::write_text_file,
             // 服务器模块
             commands::server::list_servers,
             commands::server::list_saved_ssh_credentials,

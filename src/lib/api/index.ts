@@ -27,3 +27,4 @@ export { deploymentApi } from "./deployment";
 export { copilotApi } from "./copilot";
 export { mcpApi } from "./mcp";
 export { sensitiveApi } from "./sensitive";
+export { fileApi } from "./file";

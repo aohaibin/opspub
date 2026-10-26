@@ -313,11 +313,11 @@ impl DatabaseConnectionService {
         }
         let engine = normalize_engine(&connection.engine);
         let sql = match engine.as_str() {
-            "sqlite" => "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name",
-            "postgresql" => "SELECT table_name, table_type FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema') ORDER BY table_name",
-            "mysql" | "mariadb" => "SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME",
-            "oracle" => "SELECT table_name, 'TABLE' FROM user_tables UNION ALL SELECT view_name, 'VIEW' FROM user_views ORDER BY 1",
-            "sqlserver" => "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME",
+            "sqlite" => "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view', 'index', 'trigger') AND name NOT LIKE 'sqlite_%' ORDER BY name",
+            "postgresql" => "SELECT table_name, table_type FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema') UNION ALL SELECT routine_name, routine_type FROM information_schema.routines WHERE routine_schema NOT IN ('pg_catalog', 'information_schema') UNION ALL SELECT trigger_name, 'TRIGGER' FROM information_schema.triggers WHERE trigger_schema NOT IN ('pg_catalog', 'information_schema') UNION ALL SELECT indexname, 'INDEX' FROM pg_indexes WHERE schemaname NOT IN ('pg_catalog', 'information_schema') ORDER BY 1",
+            "mysql" | "mariadb" => "SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() UNION ALL SELECT ROUTINE_NAME, ROUTINE_TYPE FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() UNION ALL SELECT TRIGGER_NAME, 'TRIGGER' FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() UNION ALL SELECT DISTINCT INDEX_NAME, 'INDEX' FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND INDEX_NAME <> 'PRIMARY' ORDER BY 1",
+            "oracle" => "SELECT object_name, object_type FROM user_objects WHERE object_type IN ('TABLE', 'VIEW', 'PROCEDURE', 'FUNCTION', 'TRIGGER', 'INDEX') ORDER BY object_name",
+            "sqlserver" => "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT name, CASE type WHEN 'TR' THEN 'TRIGGER' WHEN 'P' THEN 'PROCEDURE' WHEN 'FN' THEN 'FUNCTION' WHEN 'IF' THEN 'FUNCTION' WHEN 'TF' THEN 'FUNCTION' WHEN 'PK' THEN 'INDEX' WHEN 'UQ' THEN 'INDEX' ELSE type_desc END FROM sys.objects WHERE type IN ('TR', 'P', 'FN', 'IF', 'TF', 'PK', 'UQ') ORDER BY 1",
             "clickhouse" => "SHOW TABLES",
             _ => return Err(AppError::InvalidInput("当前连接不支持结构查询".into())),
         };

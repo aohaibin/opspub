@@ -35,6 +35,7 @@ log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+tauri-plugin-dialog = "2"
 # 禁止多开：dev/prod 因 identifier 分流各占一个实例锁，可同时各开一个；重复启动唤回已有窗口
 tauri-plugin-single-instance = "2"
 

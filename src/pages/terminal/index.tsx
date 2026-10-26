@@ -13,6 +13,7 @@ import {
   Download,
   Eraser,
   Folder,
+  FolderTree,
   Grid2X2,
   LayoutGrid,
   List,
@@ -21,6 +22,7 @@ import {
   Plus,
   Radio,
   Rows2,
+  RefreshCw,
   Search,
   Send,
   Server as ServerIcon,
@@ -91,7 +93,7 @@ export default function TerminalPage() {
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [layout, setLayout] = useState<"grid" | "list" | "tree">("grid");
   const [splitMode, setSplitMode] = useState<SplitMode>("single");
   const [syncInput, setSyncInput] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -594,9 +596,9 @@ function QuickConnectView({
   servers: Server[];
   loading: boolean;
   search: string;
-  layout: "grid" | "list";
+  layout: "grid" | "list" | "tree";
   onSearch: (value: string) => void;
-  onLayout: (value: "grid" | "list") => void;
+  onLayout: (value: "grid" | "list" | "tree") => void;
   onOpen: (server: Server) => void;
   onCreate: () => void;
 }) {
@@ -620,6 +622,7 @@ function QuickConnectView({
           <div className="ops-terminal-view-toggle">
             <button type="button" className={layout === "grid" ? "active" : ""} title="网格卡片视图" onClick={() => onLayout("grid")}><LayoutGrid size={14} /></button>
             <button type="button" className={layout === "list" ? "active" : ""} title="列表精简视图" onClick={() => onLayout("list")}><List size={14} /></button>
+            <button type="button" className={layout === "tree" ? "active" : ""} title="树形层级视图" onClick={() => onLayout("tree")}><FolderTree size={14} /></button>
           </div>
           <button type="button" className="ops-terminal-create-button" onClick={onCreate}>
             <Plus size={14} />
@@ -635,6 +638,8 @@ function QuickConnectView({
 
       {loading && servers.length === 0 ? <Spin /> : servers.length === 0 ? (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无匹配的服务器" />
+      ) : layout === "tree" ? (
+        <TerminalServerTree servers={servers} onOpen={onOpen} />
       ) : (
         <div className={layout === "grid" ? "ops-terminal-server-grid" : "ops-terminal-server-list"}>
           {servers.map((server) => <ServerCard key={server.id} server={server} compact={layout === "list"} onOpen={onOpen} />)}
@@ -675,6 +680,137 @@ function ServerCard({ server, compact, onOpen }: { server: Server; compact: bool
       </span>
       <span className="ops-terminal-server-latency">{server.last_connection_status === "verified" ? "已认证" : "待验证"}</span>
     </button>
+  );
+}
+
+function TerminalServerTree({ servers, onOpen }: { servers: Server[]; onOpen: (server: Server) => void }) {
+  const [selectedId, setSelectedId] = useState<number | null>(servers[0]?.id ?? null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [probeState, setProbeState] = useState<Record<number, { loading: boolean; message: string; latency: number | null }>>({});
+  const selectedServer = servers.find((server) => server.id === selectedId) ?? servers[0] ?? null;
+
+  const groups = useMemo(() => {
+    const grouped = new Map<string, Server[]>();
+    servers.forEach((server) => {
+      const name = server.group?.trim() || "我的服务器";
+      grouped.set(name, [...(grouped.get(name) ?? []), server]);
+    });
+    return Array.from(grouped.entries());
+  }, [servers]);
+
+  const handleProbe = async (server: Server) => {
+    setProbeState((current) => ({ ...current, [server.id]: { loading: true, message: "正在检测", latency: null } }));
+    try {
+      const result = await serverApi.testConnectivity(server.hostname, server.port, server.id);
+      setProbeState((current) => ({
+        ...current,
+        [server.id]: { loading: false, message: result.ok ? "在线" : "不可达", latency: result.latency_ms },
+      }));
+    } catch (error) {
+      setProbeState((current) => ({ ...current, [server.id]: { loading: false, message: getErrorMessage(error), latency: null } }));
+    }
+  };
+
+  const getStatus = (server: Server) => {
+    const probe = probeState[server.id];
+    if (probe) return probe;
+    if (server.last_connection_status === "verified") return { loading: false, message: "在线", latency: null };
+    if (server.last_connection_status === "failed" || server.last_connection_status === "host_key_changed") {
+      return { loading: false, message: "连接异常", latency: null };
+    }
+    return { loading: false, message: "待验证", latency: null };
+  };
+
+  return (
+    <div className="ops-terminal-tree-view">
+      <div className="ops-terminal-tree-sidebar">
+        {groups.map(([groupName, groupServers]) => {
+          const collapsed = collapsedGroups[groupName] ?? false;
+          return (
+            <div key={groupName} className="ops-terminal-tree-group">
+              <button
+                type="button"
+                className="ops-terminal-tree-group-head"
+                onClick={() => setCollapsedGroups((current) => ({ ...current, [groupName]: !collapsed }))}
+                aria-expanded={!collapsed}
+              >
+                <span className="ops-terminal-tree-group-label">
+                  <ChevronDown size={14} className={collapsed ? "-rotate-90" : ""} />
+                  <Folder size={14} />
+                  <strong>{groupName}</strong>
+                </span>
+                <span className="ops-terminal-tree-count">{groupServers.length}</span>
+              </button>
+              {!collapsed && (
+                <div className="ops-terminal-tree-items">
+                  {groupServers.map((server) => {
+                    const status = getStatus(server);
+                    const policy = AI_POLICY_META[server.ai_policy as keyof typeof AI_POLICY_META];
+                    return (
+                      <div
+                        key={server.id}
+                        className={`ops-terminal-tree-item ${selectedServer?.id === server.id ? "active" : ""}`}
+                        onClick={() => setSelectedId(server.id)}
+                        onDoubleClick={() => onOpen(server)}
+                        title="单击查看属性，双击连接终端"
+                      >
+                        <span className="ops-terminal-tree-item-main">
+                          <ServerIcon size={16} />
+                          <span className="ops-terminal-tree-item-text">
+                            <strong>{server.alias}</strong>
+                            <em>{server.hostname}:{server.port}</em>
+                          </span>
+                        </span>
+                        <span className={`ops-terminal-tree-item-status ${status.message === "在线" ? "online" : status.message === "待验证" ? "pending" : "error"}`}>
+                          <Circle size={6} fill="currentColor" />
+                          {status.latency !== null ? `${status.latency}ms` : status.message === "在线" ? "在线" : ""}
+                        </span>
+                        <span className="ops-terminal-tree-policy" title={policy?.hint ?? server.ai_policy}>{policy?.short ?? server.ai_policy}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {selectedServer ? (() => {
+        const status = getStatus(selectedServer);
+        const policy = AI_POLICY_META[selectedServer.ai_policy as keyof typeof AI_POLICY_META];
+        return (
+          <section className="ops-terminal-tree-detail">
+            <div className="ops-terminal-tree-detail-head">
+              <div className="ops-terminal-tree-detail-title">
+                <span className="ops-terminal-tree-detail-icon"><ServerIcon size={20} /></span>
+                <span>
+                  <span className="ops-terminal-tree-detail-name"><strong>{selectedServer.alias}</strong><em>{policy?.label ?? selectedServer.ai_policy}</em></span>
+                  <span className={`ops-terminal-tree-detail-status ${status.message === "在线" ? "online" : status.message === "待验证" ? "pending" : "error"}`}>
+                    <Circle size={7} fill="currentColor" />
+                    {status.latency !== null ? `${status.message} · ${status.latency}ms` : status.message}
+                  </span>
+                </span>
+              </div>
+              <button type="button" className="ops-terminal-tree-connect" onClick={() => onOpen(selectedServer)}>
+                <TerminalIcon size={14} />
+                <span>连接</span>
+              </button>
+            </div>
+            <div className="ops-terminal-tree-details">
+              <div><span>主机</span><strong>{selectedServer.hostname}:{selectedServer.port}</strong></div>
+              <div><span>用户名</span><strong>{selectedServer.username}</strong></div>
+              <div><span>分组</span><strong>{selectedServer.group || "我的服务器"}</strong></div>
+              <div><span>策略</span><strong>{policy?.label ?? selectedServer.ai_policy}</strong></div>
+              <div><span>系统</span><strong>{OS_TYPE_LABEL[selectedServer.os_type as keyof typeof OS_TYPE_LABEL] ?? selectedServer.os_type}</strong></div>
+              <div className="ops-terminal-tree-online-row"><span>在线状态</span><strong className={status.message === "在线" ? "online" : status.message === "待验证" ? "pending" : "error"}>{status.latency !== null ? `${status.message} · ${status.latency}ms` : status.message}</strong><button type="button" onClick={() => void handleProbe(selectedServer)} disabled={status.loading}><RefreshCw size={13} className={status.loading ? "animate-spin" : ""} />重测</button></div>
+            </div>
+          </section>
+        );
+      })() : (
+        <div className="ops-terminal-tree-detail ops-terminal-tree-empty"><FolderTree size={28} /><span>请选择一台服务器查看详情</span></div>
+      )}
+    </div>
   );
 }
 

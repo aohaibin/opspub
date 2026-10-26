@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Form, Input, Modal, Select, Switch, Table, message } from "antd";
 import {
   Database,
@@ -73,6 +73,28 @@ interface SqlTabItem {
 
 type QueryRow = Record<string, string>;
 
+const SQL_KEYWORDS = [
+  "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "JOIN", "LEFT JOIN", "RIGHT JOIN",
+  "INNER JOIN", "ON", "AS", "ORDER BY", "GROUP BY", "HAVING", "LIMIT", "OFFSET",
+  "INSERT INTO", "VALUES", "UPDATE", "SET", "DELETE FROM", "CREATE TABLE", "ALTER TABLE",
+  "DISTINCT", "COUNT", "SUM", "AVG", "MIN", "MAX", "NULL", "IS NULL", "LIKE", "IN",
+];
+
+function getSqlSuggestions(sql: string, caret: number, tableNames: string[]) {
+  const beforeCaret = sql.slice(0, caret);
+  const tokenMatch = beforeCaret.match(/[\w$]+$/);
+  if (!tokenMatch) return { start: caret, items: [] as string[], tableContext: false };
+
+  const prefix = tokenMatch[0].toLowerCase();
+  const start = caret - tokenMatch[0].length;
+  const tableContext = /\b(from|join|update|into|table)\s+[\w$]*$/i.test(beforeCaret);
+  const source = tableContext ? tableNames : SQL_KEYWORDS;
+  const items = source
+    .filter((item) => item.toLowerCase().startsWith(prefix) && item.toLowerCase() !== prefix)
+    .slice(0, 8);
+  return { start, items, tableContext };
+}
+
 function displayEngineName(engine: string): string {
   if (engine.toLowerCase() === "sqlite") return "SQLite";
   if (engine.toLowerCase() === "mysql") return "MySQL";
@@ -115,6 +137,10 @@ export const DatabaseView: React.FC = () => {
   const [structureOpen, setStructureOpen] = useState(false);
   const [structureLoading, setStructureLoading] = useState(false);
   const [structureTables, setStructureTables] = useState<DatabaseTableItem[]>([]);
+  const [sqlSuggestions, setSqlSuggestions] = useState<string[]>([]);
+  const [activeSqlSuggestion, setActiveSqlSuggestion] = useState(0);
+  const [suggestingTable, setSuggestingTable] = useState(false);
+  const sqlEditorRef = useRef<HTMLTextAreaElement>(null);
 
   // 查询标签页
   const [sqlTabs, setSqlTabs] = useState<SqlTabItem[]>([
@@ -279,6 +305,42 @@ export const DatabaseView: React.FC = () => {
     setSqlTabs((prev) =>
       prev.map((t) => (t.id === activeTabId ? { ...t, sql: val } : t))
     );
+  };
+
+  const refreshSqlSuggestions = (sql: string, caret: number) => {
+    const result = getSqlSuggestions(sql, caret, structureTables.map((table) => table.name));
+    setSqlSuggestions(result.items);
+    setSuggestingTable(result.tableContext);
+    setActiveSqlSuggestion(0);
+  };
+
+  const applySqlSuggestion = (suggestion: string) => {
+    const editor = sqlEditorRef.current;
+    if (!editor) return;
+    const caret = editor.selectionStart;
+    const result = getSqlSuggestions(currentTab.sql, caret, structureTables.map((table) => table.name));
+    const nextSql = `${currentTab.sql.slice(0, result.start)}${suggestion}${currentTab.sql.slice(caret)}`;
+    const nextCaret = result.start + suggestion.length;
+    updateCurrentTabSql(nextSql);
+    setSqlSuggestions([]);
+    requestAnimationFrame(() => {
+      editor.focus();
+      editor.setSelectionRange(nextCaret, nextCaret);
+    });
+  };
+
+  const handleSqlEditorKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (sqlSuggestions.length === 0) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      setActiveSqlSuggestion((current) => (current + direction + sqlSuggestions.length) % sqlSuggestions.length);
+    } else if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      applySqlSuggestion(sqlSuggestions[activeSqlSuggestion]);
+    } else if (event.key === "Escape") {
+      setSqlSuggestions([]);
+    }
   };
 
   // 添加新 SQL 标签
@@ -1062,6 +1124,9 @@ export const DatabaseView: React.FC = () => {
               />
               <Search className="w-3 h-3 text-slate-500 absolute left-2 top-2 pointer-events-none" />
             </div>
+            <div className="px-1 text-[10px] leading-relaxed text-slate-500">
+              支持按连接名、服务器、主机和数据库类型实时过滤
+            </div>
 
             {/* 当没有连接时的空状态展示 (截图 1 严格对齐) */}
             {filteredConnections.length === 0 ? (
@@ -1280,14 +1345,50 @@ export const DatabaseView: React.FC = () => {
             {/* SQL 编辑器与结果集独立滚动，右侧卡片本身保持原型高度 */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
             {/* SQL 编辑器模拟区域 */}
-            <div className="bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0">
+            <div className="bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0 relative">
               <div className="text-slate-600 select-none text-right w-5 pt-0.5">1</div>
-              <textarea
-                value={currentTab.sql}
-                onChange={(e) => updateCurrentTabSql(e.target.value)}
-                placeholder="选库后再写 SQL"
-                className="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed"
-              />
+              <div className="relative flex-1 min-w-0">
+                <textarea
+                  ref={sqlEditorRef}
+                  value={currentTab.sql}
+                  onChange={(event) => {
+                    updateCurrentTabSql(event.target.value);
+                    refreshSqlSuggestions(event.target.value, event.target.selectionStart);
+                  }}
+                  onClick={(event) => refreshSqlSuggestions(event.currentTarget.value, event.currentTarget.selectionStart)}
+                  onKeyUp={(event) => {
+                    if (!["ArrowUp", "ArrowDown", "Enter", "Tab", "Escape"].includes(event.key)) {
+                      refreshSqlSuggestions(event.currentTarget.value, event.currentTarget.selectionStart);
+                    }
+                  }}
+                  onKeyDown={handleSqlEditorKeyDown}
+                  onBlur={() => window.setTimeout(() => setSqlSuggestions([]), 120)}
+                  placeholder="选库后再写 SQL"
+                  className="w-full min-h-[114px] resize-y bg-transparent border-0 focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed"
+                  spellCheck={false}
+                />
+                {sqlSuggestions.length > 0 && (
+                  <div className="absolute left-0 top-6 z-20 min-w-48 max-w-full overflow-hidden rounded-md border border-slate-700 bg-slate-900 shadow-xl">
+                    <div className="px-2.5 py-1 border-b border-slate-800 text-[10px] text-slate-500">
+                      {suggestingTable ? "表名建议" : "SQL 关键字"} · ↑↓ 选择 · Enter 补全
+                    </div>
+                    {sqlSuggestions.map((suggestion, index) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => applySqlSuggestion(suggestion)}
+                        className={`block w-full px-2.5 py-1 text-left font-mono text-[11px] ${index === activeSqlSuggestion ? "bg-teal-500/20 text-teal-200" : "text-slate-300 hover:bg-slate-800"}`}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="px-3 py-1.5 bg-surface-950/70 border-b border-slate-800/70 text-[10px] text-slate-500">
+              输入 SQL 关键字可查看补全；在 FROM / JOIN / UPDATE 后输入表名前，请先点击“看表结构”加载表名。
             </div>
 
             {/* 底部操作条 */}

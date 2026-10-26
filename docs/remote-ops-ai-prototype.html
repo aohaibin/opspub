@@ -3357,57 +3357,242 @@
 
         <!-- 3. 内容区：状态 A (选机卡片) 与 状态 B (SFTP 文件管理器) -->
         <div id="sftpMainContentContainer" class="flex-1 flex flex-col min-h-0 relative">
-          <!-- 3.1 状态 A: 快速连接服务器（选机视图，完全 1:1 对齐截图 1） -->
-          <div id="sftpQuickConnectView" class="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto custom-scrollbar">
-            <!-- 顶层检索与快捷操作条 -->
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex items-center space-x-2">
-                <span class="flex items-center space-x-1.5 font-bold text-sm text-white">
-                  <i data-lucide="zap" class="w-4 h-4 text-cyan-400"></i>
-                  <span>快速连接</span>
-                </span>
-                <span class="text-xs text-slate-500">选一台服务器快捷连接进入 SFTP</span>
+          <!-- 3.1 状态 A: 快速连接服务器（选机视图，支持 网格 / 列表 / 树形 3 种视图切换，与终端完全一致） -->
+          <div id="sftpQuickConnectView" class="flex-1 flex flex-col p-6 overflow-y-auto custom-scrollbar justify-between">
+            <div class="space-y-5">
+              <!-- 顶层检索与快捷操作条 -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80 font-sans">
+                <div class="flex items-center space-x-2.5">
+                  <i data-lucide="zap" class="w-5 h-5 text-cyan-400"></i>
+                  <h2 class="text-base font-bold text-white tracking-wide">快速连接</h2>
+                  <span class="text-xs text-slate-400 font-normal">选一台服务器快捷连接进入 SFTP</span>
+                </div>
+
+                <div class="flex items-center space-x-2.5">
+                  <!-- 搜索框 -->
+                  <div class="relative w-64">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5"></i>
+                    <input type="text" id="sftpServerSearchInput" oninput="filterSftpServerCards()" placeholder="搜索别名 / IP / 标签..."
+                           class="w-full bg-surface-900 border border-slate-800 focus:border-cyan-500/60 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition">
+                  </div>
+
+                  <!-- 视图切换 (网格 / 列表 / 树形视图 3 态切换，与终端完全一致) -->
+                  <div class="flex items-center space-x-1 bg-surface-900 p-0.5 rounded-xl border border-slate-800">
+                    <button type="button" onclick="setSftpServerCardView('grid')" id="sftpCardView-grid" class="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 transition cursor-pointer" title="网格卡片视图">
+                      <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" onclick="setSftpServerCardView('list')" id="sftpCardView-list" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer" title="列表精简视图">
+                      <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" onclick="setSftpServerCardView('tree')" id="sftpCardView-tree" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer" title="树形层级视图">
+                      <i data-lucide="folder-tree" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+
+                  <!-- 新建服务器按钮 -->
+                  <button type="button" onclick="openAddServerModal()" class="px-3 py-1.5 rounded-xl bg-surface-900 hover:bg-surface-800 text-slate-200 border border-slate-700/80 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+                    <i data-lucide="plus" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>新建服务器</span>
+                  </button>
+                </div>
               </div>
 
-              <div class="flex items-center space-x-2">
-                <div class="relative w-64">
-                  <input type="text" id="sftpServerSearchInput" oninput="filterSftpServerCards()" placeholder="搜索别名 / IP / 标签..."
-                         class="w-full bg-surface-900 border border-brand-500/30 focus:border-brand-500 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-200 placeholder:text-slate-500 focus:outline-none transition">
-                  <i data-lucide="search" class="w-3.5 h-3.5 text-brand-400 absolute left-2.5 top-2 pointer-events-none"></i>
+              <!-- 模式 A & B: 卡片视图 (网格 / 列表) -->
+              <div id="sftpServerCardViewContainer" class="space-y-4">
+                <div class="flex items-center space-x-2 text-xs font-sans">
+                  <span class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.5)]"></span>
+                  <span class="font-semibold text-slate-200 text-sm">我的服务器</span>
+                  <span id="sftpServerCountBadge" class="text-xs text-slate-500 font-mono">4 台</span>
                 </div>
 
-                <div class="flex items-center p-0.5 rounded-lg bg-surface-900 border border-slate-800 text-slate-400">
-                  <button type="button" onclick="setSftpServerCardView('grid')" id="sftpCardView-grid" class="p-1.5 rounded transition bg-surface-800 text-white" title="卡片网格">
-                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-                  </button>
-                  <button type="button" onclick="setSftpServerCardView('list')" id="sftpCardView-list" class="p-1.5 rounded transition hover:text-slate-200" title="紧凑列表">
-                    <i data-lucide="list" class="w-3.5 h-3.5"></i>
-                  </button>
+                <div id="sftpServerCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 font-sans">
+                  <!-- 动态渲染服务器卡片 (对齐截图绿色终端图标、信任标签、已开数量与延迟) -->
+                </div>
+              </div>
+
+              <!-- 模式 C: ★ SFTP 树形视图 (Tree View，与终端树形视图设计与交互完全统一) -->
+              <div id="sftpQuickConnectTreeView" class="hidden flex-1 flex flex-col md:flex-row gap-5 min-h-[460px] font-sans">
+                <!-- 左栏：可折叠分组与服务器层级树 -->
+                <div class="w-full md:w-80 shrink-0 flex flex-col space-y-2 select-none">
+                  <!-- 分组标题 (我的服务器 · 4) -->
+                  <div onclick="toggleSftpTreeGroup('sftp-servers')" class="flex items-center justify-between px-2 py-1.5 text-xs text-slate-300 hover:text-white cursor-pointer group">
+                    <div class="flex items-center space-x-2">
+                      <i id="sftpTreeChevron-sftp-servers" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"></i>
+                      <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-400 fill-slate-400/20"></i>
+                      <span class="font-medium text-slate-200">我的服务器</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 font-mono bg-surface-900/80 px-1.5 py-0.5 rounded">4</span>
+                  </div>
+
+                  <!-- 分组列表项 (单击看属性，双击连接) -->
+                  <div id="sftpTreeGroupItems-sftp-servers" class="space-y-1 pl-3 transition-all duration-200">
+                    <!-- 项 1: 我的腾讯云0209 (默认激活态) -->
+                    <div id="sftpTreeNode-prod-api-01"
+                         onclick="selectSftpTreeNode('prod-api-01')"
+                         ondblclick="connectSftpByTree('prod-api-01')"
+                         class="sftp-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none bg-[#131b2e] border border-cyan-500/40 text-cyan-200 shadow-sm"
+                         title="单击查看属性，双击连接 SFTP">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-white truncate">我的腾讯云0209</span>
+                          <span class="text-[11px] text-slate-400 font-mono">111.231.166.192</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-emerald-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>340ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
+
+                    <!-- 项 2: 我的阿里云 -->
+                    <div id="sftpTreeNode-prod-aliyun"
+                         onclick="selectSftpTreeNode('prod-aliyun')"
+                         ondblclick="connectSftpByTree('prod-aliyun')"
+                         class="sftp-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent"
+                         title="单击查看属性，双击连接 SFTP">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-slate-200 truncate">我的阿里云</span>
+                          <span class="text-[11px] text-slate-400 font-mono">106.14.39.78</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-emerald-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>338ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
+
+                    <!-- 项 3: 我的阿里云3045 -->
+                    <div id="sftpTreeNode-prod-aliyun-3045"
+                         onclick="selectSftpTreeNode('prod-aliyun-3045')"
+                         ondblclick="connectSftpByTree('prod-aliyun-3045')"
+                         class="sftp-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent"
+                         title="单击查看属性，双击连接 SFTP">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-slate-200 truncate">我的阿里云3045</span>
+                          <span class="text-[11px] text-slate-400 font-mono">8.145.62.223</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-emerald-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>326ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
+
+                    <!-- 项 4: 我的香草云 -->
+                    <div id="sftpTreeNode-prod-vanilla"
+                         onclick="selectSftpTreeNode('prod-vanilla')"
+                         ondblclick="connectSftpByTree('prod-vanilla')"
+                         class="sftp-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent"
+                         title="单击查看属性，双击连接 SFTP">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-slate-200 truncate">我的香草云</span>
+                          <span class="text-[11px] text-slate-400 font-mono truncate max-w-[100px]">156.226.177.226:220...</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-rose-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                          <span>515ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <button type="button" onclick="openAddServerModal()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-200 border border-slate-700/80 hover:border-slate-600 transition text-xs font-medium cursor-pointer">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                  <span>新建服务器</span>
-                </button>
+                <!-- 右栏：选中服务器详细信息卡片面板 (与终端树形视图属性卡片完全一致) -->
+                <div class="flex-1 bg-[#090d16]/80 border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-sm">
+                  <div class="space-y-6">
+                    <!-- 卡片顶栏: 大图标 + 标题 + 策略徽章 + 在线状态 + 右侧快捷连接按钮 -->
+                    <div class="flex items-center justify-between pb-5 border-b border-slate-800/80">
+                      <div class="flex items-center space-x-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+                          <i data-lucide="server" class="w-5 h-5"></i>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="flex items-center space-x-2">
+                            <h3 id="sftpTreeDetailName" class="text-base font-bold text-white tracking-wide">我的腾讯云0209</h3>
+                            <span id="sftpTreeDetailPolicyBadge" class="px-1.5 py-0.5 rounded text-[10px] bg-rose-500/15 border border-rose-500/30 text-rose-300 font-medium">信任</span>
+                          </div>
+                          <div class="flex items-center space-x-1.5 text-xs">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span id="sftpTreeDetailStatusLine" class="text-emerald-400 font-mono text-[11px]">在线 · 340ms</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 右侧连接大按钮 -->
+                      <button onclick="connectCurrentSftpTreeServer()" id="btnSftpTreeConnect" class="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs shadow-lg shadow-cyan-600/30 flex items-center space-x-1.5 transition cursor-pointer active:scale-98">
+                        <i data-lucide="folder-sync" class="w-4 h-4"></i>
+                        <span>连接 SFTP</span>
+                      </button>
+                    </div>
+
+                    <!-- 详细属性列表 (主机、用户名、分组、策略、系统、在线+重测) -->
+                    <div class="divide-y divide-slate-800/80 text-xs">
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">主机</span>
+                        <span id="sftpTreeDetailHost" class="text-slate-200 font-mono">111.231.166.192:22</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">用户名</span>
+                        <span id="sftpTreeDetailUser" class="text-slate-200 font-mono">root</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">分组</span>
+                        <span id="sftpTreeDetailGroup" class="text-slate-200">我的服务器</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">策略</span>
+                        <span id="sftpTreeDetailPolicy" class="text-slate-200">信任</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">系统</span>
+                        <span id="sftpTreeDetailOS" class="text-slate-200 font-mono">Linux</span>
+                      </div>
+                      <div class="py-3 flex items-center justify-between">
+                        <div class="flex items-center">
+                          <span class="w-28 text-slate-400 font-medium select-none">在线</span>
+                          <div class="flex items-center space-x-1.5 font-mono text-[11px] text-emerald-400">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span id="sftpTreeDetailOnline">在线 · 340ms</span>
+                          </div>
+                        </div>
+                        <button type="button" onclick="retestSftpTreeServer()" class="text-slate-400 hover:text-white flex items-center space-x-1 text-xs transition cursor-pointer">
+                          <i data-lucide="rotate-cw" id="sftpTreeRetestIcon" class="w-3.5 h-3.5 text-slate-400"></i>
+                          <span>重测</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- 分组与服务器卡片列表 -->
-            <div class="space-y-2.5">
-              <div class="flex items-center space-x-2 text-xs font-semibold text-slate-300">
-                <span class="w-2 h-2 rounded-full bg-brand-500"></span>
-                <span>我的服务器</span>
-                <span id="sftpServerCountBadge" class="text-slate-500 font-normal">4 台</span>
+            <!-- 底部操作导航指引 (对齐终端: 单击看属性 · 双击连接) -->
+            <div class="shrink-0 pt-6 flex items-center justify-between text-[11px] text-slate-500 font-mono select-none">
+              <div id="sftpQuickBottomTip">↑↓ 选择 · 回车连接 · 直接输入即搜索</div>
+              <div class="flex items-center space-x-3">
+                <span id="sftpQuickBottomSubTip">双击卡片即刻连接 SFTP</span>
+                <span class="text-slate-600">|</span>
+                <span class="text-slate-400 font-medium">OpsSentry SFTP Engine</span>
               </div>
-
-              <div id="sftpServerCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                <!-- 动态渲染服务器卡片 (对齐截图 1 绿色终端图标、信任标签、已开数量与延迟) -->
-              </div>
-            </div>
-
-            <!-- 底部快捷提示 -->
-            <div class="mt-auto pt-4 text-center text-[11px] text-slate-500 font-mono">
-              ↑↓ 选择 · 回车连接 · 直接输入即搜索
             </div>
           </div>
 
@@ -3684,11 +3869,13 @@
         <!-- 顶栏 2: 当前激活连接指示与快捷动作栏 (1:1 严格对齐截图 3) -->
         <div class="flex items-center justify-between px-1 text-xs shrink-0 gap-2">
           <div id="mainDbActiveConnBar" class="flex items-center space-x-2 overflow-x-auto">
-            <span id="mainDbConnIndicator" class="flex items-center space-x-1.5 text-slate-400 font-medium shrink-0">
-              <span>← 在左侧连接树选择连接</span>
+            <span id="mainDbConnIndicator" class="flex items-center space-x-1.5 text-slate-300 font-medium shrink-0">
+              <span class="text-teal-400 font-bold">MySQL @ 我的腾讯云0209</span>
+              <span class="text-slate-500 mx-1">-</span>
+              <span class="text-slate-400 font-mono text-xs">111.231.165.192:3306</span>
             </span>
             <!-- 激活连接后的动作栏：结构、导出、建库、同步、改密、备份、运行、实例 (截图 3 对齐) -->
-            <div id="mainDbConnectedActions" class="hidden flex items-center space-x-1.5 shrink-0">
+            <div id="mainDbConnectedActions" class="flex items-center space-x-1.5 shrink-0">
               <button type="button" onclick="showMainDbStructure()" title="查看表结构与 DDL" class="px-2.5 py-1 rounded bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-800 flex items-center space-x-1 transition cursor-pointer">
                 <i data-lucide="table" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span>结构</span>
@@ -3758,42 +3945,220 @@
 
             <!-- 连接树列表 (SQL 数据库) - 内部独立垂直滚动 -->
             <div id="mainDbTreeList-sql" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
-              <!-- 连接 1: MySQL @ 我的腾讯云0209 (支持鼠标右键弹出菜单，对齐截图 3) -->
+              <!-- 连接 1: MySQL @ 我的腾讯云0209 (1:1 严格对齐用户截图：默认展开，mysql 展开展示 表/视图/存储过程/函数) -->
               <div id="connGroup-tencent" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
                 <div id="connHeader-tencent" onclick="toggleMainDbConnExpand('conn-tencent')" oncontextmenu="openDbConnContextMenu(event, 'conn-tencent', 'MySQL @ 我的腾讯云0209')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
-                    <i id="connChevron-tencent" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i id="connChevron-tencent" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                     <span id="connTitle-tencent" class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的腾讯云0209</span>
                   </div>
                   <span class="font-mono text-[10px] text-slate-500 shrink-0 group-hover:text-slate-400">mysql</span>
                 </div>
-                <!-- 腾讯云数据库子列表 (严格对齐截图 3: information_schema, mysql, performance_schema, single_cihui, sys) -->
-                <div id="connChildren-tencent" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
-                  <div onclick="selectMainDbDatabase('tencent', 'information_schema')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>information_schema</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">80 表</span>
+
+                <!-- 腾讯云数据库子列表 (1:1 严格对齐截图: information_schema, mysql, performance_schema, single_cihui, sys) -->
+                <div id="connChildren-tencent" class="pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <!-- 1. information_schema -->
+                  <div class="main-db-item rounded hover:bg-surface-800/80 cursor-pointer select-none">
+                    <div onclick="toggleMainDbFolder('tencent-info-schema', event)" class="p-1.5 flex items-center justify-between text-slate-400 hover:text-slate-200">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-tencent-info-schema" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i>
+                        <span class="truncate">information_schema</span>
+                      </div>
+                    </div>
                   </div>
-                  <div onclick="selectMainDbDatabase('tencent', 'mysql')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>mysql</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">38 表</span>
+
+                  <!-- 2. mysql (默认展开，1:1 严格对齐截图: 表、视图、存储过程、函数) -->
+                  <div class="main-db-item rounded bg-surface-900/40 select-none">
+                    <div onclick="toggleMainDbFolder('tencent-mysql', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer group">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-tencent-mysql" data-lucide="chevron-down" class="w-3 h-3 text-slate-400 transition-transform"></i>
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                        <span class="font-medium text-emerald-300 truncate">mysql</span>
+                      </div>
+                    </div>
+
+                    <!-- mysql 下属对象分类列表 (表、视图、存储过程、函数，1:1 对齐截图) -->
+                    <div id="folderChildren-tencent-mysql" class="pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-emerald-500/30 ml-2.5">
+                      <!-- 2.1 表 (Table) -->
+                      <div class="rounded hover:bg-surface-800/80">
+                        <div onclick="toggleMainDbFolder('tencent-mysql-tables', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                          <div class="flex items-center space-x-1.5 min-w-0">
+                            <i id="folderChevron-tencent-mysql-tables" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                            <i data-lucide="table" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+                            <span>表</span>
+                          </div>
+                          <span class="text-[10px] text-slate-500 font-mono">38</span>
+                        </div>
+                        <div id="folderChildren-tencent-mysql-tables" class="hidden pl-4 pr-1 pb-1 space-y-0.5 border-l border-blue-500/20 ml-2 text-[11px]">
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'table', 'user')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>user</span></span>
+                            <span class="text-[10px] text-slate-500 font-mono">124 行</span>
+                          </div>
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'table', 'db')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>db</span></span>
+                            <span class="text-[10px] text-slate-500 font-mono">18 行</span>
+                          </div>
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'table', 'tables_priv')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>tables_priv</span></span>
+                            <span class="text-[10px] text-slate-500 font-mono">6 行</span>
+                          </div>
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'table', 'plugin')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>plugin</span></span>
+                            <span class="text-[10px] text-slate-500 font-mono">42 行</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 2.2 视图 (Views) -->
+                      <div class="rounded hover:bg-surface-800/80">
+                        <div onclick="toggleMainDbFolder('tencent-mysql-views', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                          <div class="flex items-center space-x-1.5 min-w-0">
+                            <i id="folderChevron-tencent-mysql-views" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                            <i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                            <span>视图</span>
+                          </div>
+                          <span class="text-[10px] text-slate-500 font-mono">4</span>
+                        </div>
+                        <div id="folderChildren-tencent-mysql-views" class="hidden pl-4 pr-1 pb-1 space-y-0.5 border-l border-amber-500/20 ml-2 text-[11px]">
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'view', 'user_summary')" class="p-1 rounded hover:bg-amber-500/10 text-slate-400 hover:text-amber-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="eye" class="w-3 h-3 text-amber-400"></i><span>user_summary</span></span>
+                          </div>
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'view', 'schema_table_statistics')" class="p-1 rounded hover:bg-amber-500/10 text-slate-400 hover:text-amber-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="eye" class="w-3 h-3 text-amber-400"></i><span>schema_table_statistics</span></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 2.3 存储过程 (Procedures) -->
+                      <div class="rounded hover:bg-surface-800/80">
+                        <div onclick="toggleMainDbFolder('tencent-mysql-procs', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                          <div class="flex items-center space-x-1.5 min-w-0">
+                            <i id="folderChevron-tencent-mysql-procs" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                            <i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+                            <span>存储过程</span>
+                          </div>
+                          <span class="text-[10px] text-slate-500 font-mono">3</span>
+                        </div>
+                        <div id="folderChildren-tencent-mysql-procs" class="hidden pl-4 pr-1 pb-1 space-y-0.5 border-l border-cyan-500/20 ml-2 text-[11px]">
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'proc', 'sp_reload_privileges')" class="p-1 rounded hover:bg-cyan-500/10 text-slate-400 hover:text-cyan-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="settings-2" class="w-3 h-3 text-cyan-400"></i><span>sp_reload_privileges</span></span>
+                          </div>
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'proc', 'sp_flush_tables')" class="p-1 rounded hover:bg-cyan-500/10 text-slate-400 hover:text-cyan-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><i data-lucide="settings-2" class="w-3 h-3 text-cyan-400"></i><span>sp_flush_tables</span></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 2.4 函数 (Functions，1:1 还原截图绿色 Σ 且鼠标悬停弹出深色「函数」Tooltip 气泡) -->
+                      <div class="rounded hover:bg-surface-800/80 relative group">
+                        <div onclick="toggleMainDbFolder('tencent-mysql-funcs', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                          <div class="flex items-center space-x-1.5 min-w-0">
+                            <i id="folderChevron-tencent-mysql-funcs" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                            <span class="w-3.5 h-3.5 flex items-center justify-center font-bold text-emerald-400 text-xs font-serif leading-none select-none">Σ</span>
+                            <span>函数</span>
+                          </div>
+                          <span class="text-[10px] text-slate-500 font-mono">5</span>
+                        </div>
+                        <!-- 悬停气泡提示 (1:1 严格对齐截图上的深色函数气泡) -->
+                        <div class="absolute -top-7 left-12 hidden group-hover:flex items-center px-2 py-0.5 rounded-md bg-[#0a0f1d] border border-slate-700/80 text-[11px] text-white shadow-xl pointer-events-none z-30 font-sans">
+                          <span>函数</span>
+                          <div class="absolute -bottom-1 left-3 w-2 h-2 bg-[#0a0f1d] border-r border-b border-slate-700/80 transform rotate-45"></div>
+                        </div>
+                        <div id="folderChildren-tencent-mysql-funcs" class="hidden pl-4 pr-1 pb-1 space-y-0.5 border-l border-emerald-500/20 ml-2 text-[11px]">
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'func', 'fn_check_auth')" class="p-1 rounded hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>fn_check_auth</span></span>
+                          </div>
+                          <div onclick="selectMainDbObject('tencent', 'mysql', 'func', 'fn_format_bytes')" class="p-1 rounded hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-300 flex items-center justify-between cursor-pointer">
+                            <span class="flex items-center space-x-1.5 truncate"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>fn_format_bytes</span></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div onclick="selectMainDbDatabase('tencent', 'performance_schema')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>performance_schema</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">110 表</span>
+
+                  <!-- 3. performance_schema -->
+                  <div class="main-db-item rounded hover:bg-surface-800/80 cursor-pointer select-none">
+                    <div onclick="toggleMainDbFolder('tencent-perf-schema', event)" class="p-1.5 flex items-center justify-between text-slate-400 hover:text-slate-200">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-tencent-perf-schema" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i>
+                        <span class="truncate">performance_schema</span>
+                      </div>
+                    </div>
                   </div>
-                  <div onclick="selectMainDbDatabase('tencent', 'single_cihui')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder-check" class="w-3 h-3 text-emerald-400"></i><span>single_cihui</span></span>
-                    <span class="text-[10px] text-emerald-400/80 font-mono">42 表</span>
+
+                  <!-- 4. single_cihui (业务库) -->
+                  <div class="main-db-item rounded hover:bg-surface-800/80 cursor-pointer select-none">
+                    <div onclick="toggleMainDbFolder('tencent-single-cihui', event)" class="p-1.5 flex items-center justify-between text-slate-400 hover:text-slate-200">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-tencent-single-cihui" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="folder" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span class="truncate">single_cihui</span>
+                      </div>
+                      <span class="text-[10px] text-emerald-400/80 font-mono">42 表</span>
+                    </div>
+                    <div id="folderChildren-tencent-single-cihui" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-emerald-500/20 ml-2.5">
+                      <div onclick="toggleMainDbFolder('tencent-cihui-tables', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <div class="flex items-center space-x-1.5 min-w-0">
+                          <i id="folderChevron-tencent-cihui-tables" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                          <i data-lucide="table" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+                          <span>表</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono">42</span>
+                      </div>
+                      <div id="folderChildren-tencent-cihui-tables" class="hidden pl-4 pr-1 pb-1 space-y-0.5 border-l border-blue-500/20 ml-2 text-[11px]">
+                        <div onclick="selectMainDbObject('tencent', 'single_cihui', 'table', 'cihui_entries')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                          <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>cihui_entries</span></span>
+                          <span class="text-[10px] text-slate-500 font-mono">5.2w 行</span>
+                        </div>
+                        <div onclick="selectMainDbObject('tencent', 'single_cihui', 'table', 'cihui_tags')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                          <span class="flex items-center space-x-1.5 truncate"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>cihui_tags</span></span>
+                          <span class="text-[10px] text-slate-500 font-mono">840 行</span>
+                        </div>
+                      </div>
+                      <div onclick="toggleMainDbFolder('tencent-cihui-views', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <div class="flex items-center space-x-1.5 min-w-0">
+                          <i id="folderChevron-tencent-cihui-views" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                          <i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                          <span>视图</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono">3</span>
+                      </div>
+                      <div onclick="toggleMainDbFolder('tencent-cihui-procs', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <div class="flex items-center space-x-1.5 min-w-0">
+                          <i id="folderChevron-tencent-cihui-procs" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                          <i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+                          <span>存储过程</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono">2</span>
+                      </div>
+                      <div onclick="toggleMainDbFolder('tencent-cihui-funcs', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <div class="flex items-center space-x-1.5 min-w-0">
+                          <i id="folderChevron-tencent-cihui-funcs" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                          <span class="w-3.5 h-3.5 flex items-center justify-center font-bold text-emerald-400 text-xs font-serif leading-none select-none">Σ</span>
+                          <span>函数</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono">4</span>
+                      </div>
+                    </div>
                   </div>
-                  <div onclick="selectMainDbDatabase('tencent', 'sys')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>sys</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">102 表</span>
+
+                  <!-- 5. sys -->
+                  <div class="main-db-item rounded hover:bg-surface-800/80 cursor-pointer select-none">
+                    <div onclick="toggleMainDbFolder('tencent-sys', event)" class="p-1.5 flex items-center justify-between text-slate-400 hover:text-slate-200">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-tencent-sys" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i>
+                        <span class="truncate">sys</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 连接 2: MySQL @ 我的阿里云3045 (支持鼠标右键弹出菜单) -->
+              <!-- 连接 2: MySQL @ 我的阿里云3045 (支持鼠标右键弹出菜单，可展开表/视图/存储过程/函数) -->
               <div id="connGroup-aliyun" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
                 <div id="connHeader-aliyun" onclick="toggleMainDbConnExpand('conn-aliyun')" oncontextmenu="openDbConnContextMenu(event, 'conn-aliyun', 'MySQL @ 我的阿里云3045')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
@@ -3803,32 +4168,297 @@
                   </div>
                   <span class="font-mono text-[10px] text-slate-500 shrink-0 group-hover:text-slate-400">mysql</span>
                 </div>
-                <div id="connChildren-aliyun" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
-                  <div onclick="selectMainDbDatabase('aliyun', 'core_db')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-brand-400"></i><span>core_db</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">32 表</span>
+                <div id="connChildren-aliyun" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded hover:bg-surface-800/80 cursor-pointer select-none">
+                    <div onclick="toggleMainDbFolder('aliyun-core-db', event)" class="p-1.5 flex items-center justify-between text-slate-300">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-aliyun-core-db" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="folder" class="w-3.5 h-3.5 text-brand-400"></i>
+                        <span>core_db</span>
+                      </div>
+                      <span class="text-[10px] text-slate-500 font-mono">32 表</span>
+                    </div>
+                    <div id="folderChildren-aliyun-core-db" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-brand-500/20 ml-2.5">
+                      <div onclick="selectMainDbObject('aliyun', 'core_db', 'table', 'sys_user')" class="p-1 rounded hover:bg-surface-800/80 text-slate-400 hover:text-white flex items-center justify-between cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (32)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('aliyun', 'core_db', 'view', 'v_user_role')" class="p-1 rounded hover:bg-surface-800/80 text-slate-400 hover:text-white flex items-center justify-between cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (6)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('aliyun', 'core_db', 'proc', 'sp_sync_audit')" class="p-1 rounded hover:bg-surface-800/80 text-slate-400 hover:text-white flex items-center justify-between cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400"></i><span>存储过程 (4)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('aliyun', 'core_db', 'func', 'fn_gen_token')" class="p-1 rounded hover:bg-surface-800/80 text-slate-400 hover:text-white flex items-center justify-between cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>函数 (8)</span></span>
+                      </div>
+                    </div>
                   </div>
                   <div onclick="selectMainDbDatabase('aliyun', 'nacos_config')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>nacos_config</span></span>
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i><span>nacos_config</span></span>
                     <span class="text-[10px] text-slate-500 font-mono">14 表</span>
                   </div>
                 </div>
               </div>
 
-              <!-- 连接 3: SQLite @ 本机应用数据库 (1:1 响应用户对 SQLite 的新建和编辑需求) -->
+              <!-- 连接 3: ★ PostgreSQL @ 阿里云PG-01 (分析集群) -->
+              <div id="connGroup-postgres" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-postgres" onclick="toggleMainDbConnExpand('conn-postgres')" oncontextmenu="openDbConnContextMenu(event, 'conn-postgres', 'PostgreSQL @ 阿里云PG-01 (分析集群)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-postgres" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+                    <span id="connTitle-postgres" class="font-medium text-slate-200 truncate text-xs">PostgreSQL @ 阿里云PG-01 (分析集群)</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-indigo-400 shrink-0 group-hover:text-indigo-300">postgres</span>
+                </div>
+                <div id="connChildren-postgres" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded bg-surface-900/30 select-none">
+                    <div onclick="toggleMainDbFolder('pg-analytics', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-pg-analytics" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span>analytics_db</span>
+                      </div>
+                      <span class="text-[10px] text-indigo-400/80 font-mono">public</span>
+                    </div>
+                    <div id="folderChildren-pg-analytics" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-indigo-500/20 ml-2.5">
+                      <div onclick="toggleMainDbFolder('pg-tables', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i id="folderChevron-pg-tables" data-lucide="chevron-right" class="w-3 h-3 text-slate-500"></i><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (24)</span></span>
+                      </div>
+                      <div id="folderChildren-pg-tables" class="hidden pl-4 pr-1 pb-1 space-y-0.5 border-l border-blue-500/20 ml-2">
+                        <div onclick="selectMainDbObject('postgres', 'analytics_db', 'table', 'user_events')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                          <span class="flex items-center space-x-1.5"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>user_events</span></span>
+                          <span class="text-[10px] text-slate-500 font-mono">180w</span>
+                        </div>
+                        <div onclick="selectMainDbObject('postgres', 'analytics_db', 'table', 'daily_metrics')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                          <span class="flex items-center space-x-1.5"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>daily_metrics</span></span>
+                        </div>
+                      </div>
+                      <div onclick="selectMainDbObject('postgres', 'analytics_db', 'view', 'v_active_subscribers')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (8)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('postgres', 'analytics_db', 'matview', 'mv_hourly_stats')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-400"></i><span>物化视图 (3)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('postgres', 'analytics_db', 'func', 'calc_retention')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>函数 (12)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('postgres', 'analytics_db', 'seq', 'user_events_id_seq')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="hash" class="w-3.5 h-3.5 text-purple-400"></i><span>序列 (15)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div onclick="selectMainDbDatabase('postgres', 'postgres')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i><span>postgres (系统库)</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 连接 4: ★ SQLite @ 本地应用数据库 (app_data.db) -->
               <div id="connGroup-sqlite" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-sqlite" onclick="toggleMainDbConnExpand('conn-sqlite')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlite', 'SQLite @ 本机应用数据库')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-sqlite" onclick="toggleMainDbConnExpand('conn-sqlite')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlite', 'SQLite @ 本地应用数据库 (app_data.db)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-sqlite" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="file-database" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
-                    <span id="connTitle-sqlite" class="font-medium text-slate-200 truncate text-xs">SQLite @ 本机应用数据库</span>
+                    <span id="connTitle-sqlite" class="font-medium text-slate-200 truncate text-xs">SQLite @ 本地应用数据库 (app_data.db)</span>
                   </div>
                   <span class="font-mono text-[10px] text-sky-400 shrink-0 group-hover:text-sky-300">sqlite</span>
                 </div>
-                <div id="connChildren-sqlite" class="hidden pl-5 pr-2 pb-2 space-y-1 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
-                  <div onclick="selectMainDbDatabase('sqlite', 'main')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3 h-3 text-sky-400"></i><span>main (data.db)</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono">16 表</span>
+                <div id="connChildren-sqlite" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded select-none">
+                    <div onclick="toggleMainDbFolder('sqlite-main', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-sqlite-main" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="table" class="w-3.5 h-3.5 text-sky-400"></i>
+                        <span>main (data.db)</span>
+                      </div>
+                      <span class="text-[10px] text-slate-500 font-mono">14 表</span>
+                    </div>
+                    <div id="folderChildren-sqlite-main" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-sky-500/20 ml-2.5">
+                      <div onclick="toggleMainDbFolder('sqlite-tables', event)" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i id="folderChevron-sqlite-tables" data-lucide="chevron-right" class="w-3 h-3 text-slate-500"></i><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (14)</span></span>
+                      </div>
+                      <div id="folderChildren-sqlite-tables" class="hidden pl-4 pr-1 pb-1 space-y-0.5 border-l border-blue-500/20 ml-2">
+                        <div onclick="selectMainDbObject('sqlite', 'main', 'table', 'app_config')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                          <span class="flex items-center space-x-1.5"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>app_config</span></span>
+                        </div>
+                        <div onclick="selectMainDbObject('sqlite', 'main', 'table', 'session_history')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                          <span class="flex items-center space-x-1.5"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>session_history</span></span>
+                        </div>
+                        <div onclick="selectMainDbObject('sqlite', 'main', 'table', 'audit_log')" class="p-1 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-300 flex items-center justify-between cursor-pointer">
+                          <span class="flex items-center space-x-1.5"><i data-lucide="table-2" class="w-3 h-3 text-blue-400"></i><span>audit_log</span></span>
+                        </div>
+                      </div>
+                      <div onclick="selectMainDbObject('sqlite', 'main', 'view', 'v_recent_sessions')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (3)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('sqlite', 'main', 'trigger', 'trg_audit_insert')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i><span>触发器 (4)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('sqlite', 'main', 'idx', 'idx_audit_created')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="key" class="w-3.5 h-3.5 text-slate-400"></i><span>索引 (18)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 连接 5: ★ Oracle 19c @ 核心财务ERP (1521/ORCL) -->
+              <div id="connGroup-oracle" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-oracle" onclick="toggleMainDbConnExpand('conn-oracle')" oncontextmenu="openDbConnContextMenu(event, 'conn-oracle', 'Oracle 19c @ 核心财务ERP (1521/ORCL)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-oracle" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
+                    <span id="connTitle-oracle" class="font-medium text-slate-200 truncate text-xs">Oracle 19c @ 核心财务ERP (1521/ORCL)</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-rose-400 shrink-0 group-hover:text-rose-300">oracle</span>
+                </div>
+                <div id="connChildren-oracle" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded select-none">
+                    <div onclick="toggleMainDbFolder('oracle-fin', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-oracle-fin" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-rose-400"></i>
+                        <span>FIN_CORE (核心方案)</span>
+                      </div>
+                      <span class="text-[10px] text-rose-400/80 font-mono">42 表</span>
+                    </div>
+                    <div id="folderChildren-oracle-fin" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-rose-500/20 ml-2.5">
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'table', 'GL_LEDGER_ACCOUNTS')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (42)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'view', 'V_MONTHLY_BALANCE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (16)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'proc', 'SP_MONTH_END_CLOSE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400"></i><span>存储过程 (14)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'func', 'FN_EXCHANGE_RATE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>函数 (8)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'pkg', 'PKG_FIN_REPORT')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="package" class="w-3.5 h-3.5 text-purple-400"></i><span>包 (Packages · 5)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'seq', 'SEQ_JOURNAL_ID')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="hash" class="w-3.5 h-3.5 text-slate-400"></i><span>序列 (28)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div onclick="selectMainDbDatabase('oracle', 'SYSTEM')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i><span>SYSTEM (系统方案)</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 连接 6: ★ SQL Server 2022 @ 运营数据中心 (1433) -->
+              <div id="connGroup-sqlserver" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-sqlserver" onclick="toggleMainDbConnExpand('conn-sqlserver')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlserver', 'SQL Server 2022 @ 运营数据中心 (1433)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-sqlserver" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+                    <span id="connTitle-sqlserver" class="font-medium text-slate-200 truncate text-xs">SQL Server 2022 @ 运营数据中心 (1433)</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-blue-400 shrink-0 group-hover:text-blue-300">sqlserver</span>
+                </div>
+                <div id="connChildren-sqlserver" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded select-none">
+                    <div onclick="toggleMainDbFolder('mssql-opscenter', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-mssql-opscenter" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-blue-400"></i>
+                        <span>OpsCenterDB</span>
+                      </div>
+                      <span class="text-[10px] text-blue-400/80 font-mono">dbo</span>
+                    </div>
+                    <div id="folderChildren-mssql-opscenter" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-blue-500/20 ml-2.5">
+                      <div onclick="selectMainDbObject('sqlserver', 'OpsCenterDB', 'table', 'Dim_HostServers')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (36)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('sqlserver', 'OpsCenterDB', 'view', 'vw_DailyServerHealth')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (8)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('sqlserver', 'OpsCenterDB', 'proc', 'usp_GenerateDailyHealthReport')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400"></i><span>存储过程 (15)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('sqlserver', 'OpsCenterDB', 'func', 'ufn_GetServerUptimePct')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>函数 (6)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div onclick="selectMainDbDatabase('sqlserver', 'master')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i><span>master (系统库)</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 连接 7: ★ MariaDB @ 开源社区镜像库 (10.11) -->
+              <div id="connGroup-mariadb" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-mariadb" onclick="toggleMainDbConnExpand('conn-mariadb')" oncontextmenu="openDbConnContextMenu(event, 'conn-mariadb', 'MariaDB @ 开源社区镜像库 (10.11)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-mariadb" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-teal-400 shrink-0"></i>
+                    <span id="connTitle-mariadb" class="font-medium text-slate-200 truncate text-xs">MariaDB @ 开源社区镜像库 (10.11)</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-teal-400 shrink-0 group-hover:text-teal-300">mariadb</span>
+                </div>
+                <div id="connChildren-mariadb" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded select-none">
+                    <div onclick="toggleMainDbFolder('mariadb-hub', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-mariadb-hub" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-teal-400"></i>
+                        <span>community_hub</span>
+                      </div>
+                      <span class="text-[10px] text-teal-400/80 font-mono">18 表</span>
+                    </div>
+                    <div id="folderChildren-mariadb-hub" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-teal-500/20 ml-2.5">
+                      <div onclick="selectMainDbObject('mariadb', 'community_hub', 'table', 'posts')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (18)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('mariadb', 'community_hub', 'view', 'v_hot_threads')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (5)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('mariadb', 'community_hub', 'proc', 'sp_purge_spam')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400"></i><span>存储过程 (3)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('mariadb', 'community_hub', 'func', 'fn_calculate_reputation')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>函数 (4)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 连接 8: ★ ClickHouse @ 海量日志实时分析 (8123) -->
+              <div id="connGroup-clickhouse" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-clickhouse" onclick="toggleMainDbConnExpand('conn-clickhouse')" oncontextmenu="openDbConnContextMenu(event, 'conn-clickhouse', 'ClickHouse @ 海量日志实时分析 (8123)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-clickhouse" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+                    <span id="connTitle-clickhouse" class="font-medium text-slate-200 truncate text-xs">ClickHouse @ 海量日志实时分析 (8123)</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-amber-500 shrink-0 group-hover:text-amber-400">clickhouse</span>
+                </div>
+                <div id="connChildren-clickhouse" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded select-none">
+                    <div onclick="toggleMainDbFolder('ck-logs', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-ck-logs" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span>system_logs</span>
+                      </div>
+                      <span class="text-[10px] text-amber-500/80 font-mono">8 表</span>
+                    </div>
+                    <div id="folderChildren-ck-logs" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-amber-500/20 ml-2.5">
+                      <div onclick="selectMainDbObject('clickhouse', 'system_logs', 'table', 'access_log_distributed')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (MergeTree · 8)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('clickhouse', 'system_logs', 'view', 'mv_top_slow_queries')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>物化视图 (6)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('clickhouse', 'system_logs', 'dict', 'dict_geo_ip')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5 text-emerald-400"></i><span>字典 (Dictionaries · 4)</span></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3837,12 +4467,29 @@
             <!-- 连接树列表 (Redis) - 内部独立垂直滚动 -->
             <div id="mainDbTreeList-redis" class="hidden flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
               <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div onclick="selectMainDbRedisInstance('redis-tencent')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+                <div onclick="toggleMainDbFolder('redis-node-tencent', event); selectMainDbRedisInstance('redis-tencent');" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
                   <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="folderChevron-redis-node-tencent" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="key" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
                     <span class="font-medium text-slate-200 truncate text-xs">Redis @ 我的腾讯云0209</span>
                   </div>
                   <span class="font-mono text-[10px] text-slate-500 shrink-0">:6379</span>
+                </div>
+                <div id="folderChildren-redis-node-tencent" class="pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="p-1 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-rose-400"></i><span>db0 (4,210 keys)</span></span>
+                    <span class="text-[10px] text-slate-500 font-mono">1.8 MB</span>
+                  </div>
+                  <div class="pl-3.5 space-y-0.5 border-l border-rose-500/20 ml-2 text-[10px] text-slate-400 font-mono">
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• String (2.1k)</span><span>sess:*, cache:*</span></div>
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• Hash (1.2k)</span><span>user:profile:*</span></div>
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• List (520)</span><span>queue:email:*</span></div>
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• Set (380)</span><span>online:uids</span></div>
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• ZSet (110)</span><span>leaderboard:*</span></div>
+                  </div>
+                  <div class="p-1 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3 h-3 text-slate-500"></i><span>db1 (850 keys)</span></span>
+                  </div>
                 </div>
               </div>
               <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
@@ -3859,12 +4506,27 @@
             <!-- 连接树列表 (MongoDB) - 内部独立垂直滚动 -->
             <div id="mainDbTreeList-mongodb" class="hidden flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
               <div class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div onclick="selectMainDbMongoInstance('mongo-cluster')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
+                <div onclick="toggleMainDbFolder('mongo-node-cluster', event); selectMainDbMongoInstance('mongo-cluster');" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none">
                   <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="folderChevron-mongo-node-cluster" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="box" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
                     <span class="font-medium text-slate-200 truncate text-xs">MongoDB @ 生产环境集群</span>
                   </div>
                   <span class="font-mono text-[10px] text-slate-500 shrink-0">:27017</span>
+                </div>
+                <div id="folderChildren-mongo-node-cluster" class="pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="p-1 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-300">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="database" class="w-3 h-3 text-emerald-400"></i><span>ops_documents</span></span>
+                    <span class="text-[10px] text-emerald-400/80 font-mono">12 集合</span>
+                  </div>
+                  <div class="pl-3.5 space-y-0.5 border-l border-emerald-500/20 ml-2 text-[10px] text-slate-400">
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• incident_records</span><span>3,410 文档</span></div>
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• deployment_manifests</span><span>820 文档</span></div>
+                    <div class="p-0.5 hover:text-white flex items-center justify-between"><span>• ai_chat_contexts</span><span>14,500 文档</span></div>
+                  </div>
+                  <div class="p-1 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="database" class="w-3 h-3 text-slate-500"></i><span>admin (系统库)</span></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3910,7 +4572,7 @@
                   <button type="button" onclick="setMainAiSqlSample('SELECT u.user_id, u.user_name, r.role_name FROM sys_user u LEFT JOIN sys_role r ON u.role_id = r.role_id;')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 transition cursor-pointer">联表查询</button>
                   <button type="button" onclick="setMainAiSqlSample('DESCRIBE sys_user;')" class="px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 transition cursor-pointer">看表结构</button>
                 </div>
-                <span class="font-mono text-slate-500">方言: any</span>
+                <span id="mainSqlDialectBadge" class="font-mono text-slate-400">方言: mysql</span>
               </div>
             </div>
 
@@ -3920,23 +4582,32 @@
                 <span class="text-slate-400">当前库</span>
                 <select id="mainCurrentDbSelect" onchange="onMainDbSelected(this.value)" class="bg-surface-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 cursor-pointer">
                   <option value="">选择要执行的库</option>
+                  <option value="mysql" selected>mysql</option>
+                  <option value="single_cihui">single_cihui</option>
                   <option value="app_production">app_production</option>
-                  <option value="sys_auth">sys_auth</option>
+                  <option value="information_schema">information_schema</option>
+                  <option value="performance_schema">performance_schema</option>
+                  <option value="sys">sys</option>
                   <option value="core_db">core_db</option>
-                  <option value="nacos_config">nacos_config</option>
+                  <option value="analytics_db">analytics_db</option>
+                  <option value="main">main</option>
+                  <option value="FIN_CORE">FIN_CORE</option>
+                  <option value="OpsCenterDB">OpsCenterDB</option>
+                  <option value="community_hub">community_hub</option>
+                  <option value="system_logs">system_logs</option>
                 </select>
               </div>
-              <span id="mainDbUnselectedWarn" class="text-amber-400 text-[11px] flex items-center space-x-1 font-normal">
+              <span id="mainDbUnselectedWarn" class="hidden text-amber-400 text-[11px] flex items-center space-x-1 font-normal">
                 <span>未选库，SQL 可能执行失败</span>
               </span>
             </div>
 
             <!-- 右侧中间内容区域: SQL 编辑器 + 操作条 + 结果集 (内部独立滚动) -->
             <div id="mainSqlMiddleContent" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
-              <!-- SQL 编辑器模拟区域 -->
+              <!-- SQL 编辑器模拟区域 (1:1 对齐截图 select * from) -->
               <div class="bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0">
                 <div id="mainSqlLineNumbers" class="text-slate-600 select-none text-right w-5 pt-0.5 font-mono leading-relaxed">1</div>
-                <textarea id="mainSqlEditorArea" class="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed custom-scrollbar" placeholder="选凭据后再写 SQL"></textarea>
+                <textarea id="mainSqlEditorArea" class="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed custom-scrollbar" placeholder="编写或输入 SQL">select * from </textarea>
               </div>
 
               <!-- 操作条 (执行 / 解释 / 清空) - 悬浮吸附于中间区域顶部 -->
@@ -4666,19 +5337,19 @@ Filesystem      Size  Used Avail Use% Mounted on
         <!-- 4. 终端核心工作区 (主内容 + 右侧垂直工具栏) -->
         <div class="flex-1 flex overflow-hidden min-h-0 relative">
 
-          <!-- 4.1 VIEW A: ★ 快速连接视图 (对齐截图 1789913451088.png) -->
+          <!-- 4.1 VIEW A: ★ 快速连接视图 (支持 网格 / 列表 / 树形 3 种视图切换，1:1 对齐截图 media_1792974780339_0ab94bf3.png) -->
           <div id="termView-quick-connect" class="flex-1 flex flex-col p-6 overflow-y-auto custom-scrollbar justify-between">
             <div class="space-y-5">
-              <!-- 快速连接标题栏 + 搜索栏 + 视图切换 + 新建按钮 -->
+              <!-- 快速连接标题栏 + 搜索栏 + 视图切换 + 新建按钮 (1:1 严格对齐截图) -->
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80 font-sans">
                 <!-- 左侧：标题与副标题 -->
                 <div class="flex items-center space-x-2.5">
                   <i data-lucide="zap" class="w-5 h-5 text-emerald-400"></i>
                   <h2 class="text-base font-bold text-white tracking-wide">快速连接</h2>
-                  <span class="text-xs text-slate-400 font-normal">选一台服务器链接终端</span>
+                  <span class="text-xs text-slate-400 font-normal">选一台服务器新建终端</span>
                 </div>
 
-                <!-- 右侧：搜索输入框 + 宫格/列表切换 + 新建服务器 -->
+                <!-- 右侧：搜索输入框 + 宫格/列表/树形切换 + 新建服务器 -->
                 <div class="flex items-center space-x-2.5">
                   <!-- 搜索框 -->
                   <div class="relative w-64">
@@ -4686,13 +5357,16 @@ Filesystem      Size  Used Avail Use% Mounted on
                     <input id="quickConnectSearchInput" oninput="handleQuickConnectSearch(this.value)" type="text" placeholder="搜索别名 / IP / 标签..." class="w-full bg-surface-900 border border-slate-800 focus:border-emerald-500/60 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition">
                   </div>
 
-                  <!-- 视图切换 (网格 / 列表) -->
+                  <!-- 视图切换 (网格 / 列表 / 树形视图 3 态切换，严格对齐截图) -->
                   <div class="flex items-center space-x-1 bg-surface-900 p-0.5 rounded-xl border border-slate-800">
                     <button onclick="setQuickConnectLayout('grid')" id="btnQuickGrid" class="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 transition cursor-pointer" title="网格卡片视图">
                       <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
                     </button>
                     <button onclick="setQuickConnectLayout('list')" id="btnQuickList" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer" title="列表精简视图">
                       <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button onclick="setQuickConnectLayout('tree')" id="btnQuickTree" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer" title="树形层级视图">
+                      <i data-lucide="folder-tree" class="w-3.5 h-3.5"></i>
                     </button>
                   </div>
 
@@ -4704,105 +5378,280 @@ Filesystem      Size  Used Avail Use% Mounted on
                 </div>
               </div>
 
-              <!-- 我的服务器分类与数量标识 -->
-              <div class="flex items-center space-x-2 text-xs font-sans">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                <span class="font-semibold text-slate-200 text-sm">我的服务器</span>
-                <span id="quickConnectCountBadge" class="text-xs text-slate-500 font-mono">4 台</span>
+              <!-- 模式 A & B: 卡片视图 (网格 / 列表) -->
+              <div id="quickConnectCardView" class="space-y-4">
+                <!-- 我的服务器分类与数量标识 -->
+                <div class="flex items-center space-x-2 text-xs font-sans">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                  <span class="font-semibold text-slate-200 text-sm">我的服务器</span>
+                  <span id="quickConnectCountBadge" class="text-xs text-slate-500 font-mono">4 台</span>
+                </div>
+
+                <!-- 服务器卡片列表网格 (100% 对齐截图样式) -->
+                <div id="quickConnectGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 font-sans">
+                  <!-- 卡片 1: 我的腾讯云0209 (带已开 1 状态) -->
+                  <div onclick="connectToServer('prod-api-01', '我的腾讯云0209', '111.231.166.192:22')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
+                    <div class="flex items-center space-x-3 min-w-0">
+                      <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
+                        <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
+                      </div>
+                      <div class="min-w-0 space-y-1">
+                        <div class="flex items-center space-x-1.5 flex-wrap">
+                          <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[90px]" title="我的腾讯云0209">我的腾讯云...</span>
+                          <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
+                          <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">已开 1</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 font-mono truncate">root@111.231.166.192:22</p>
+                      </div>
+                    </div>
+                    <div class="shrink-0 pl-2 text-right">
+                      <span class="text-[11px] font-mono text-amber-400 font-medium">317ms</span>
+                    </div>
+                  </div>
+
+                  <!-- 卡片 2: 我的阿里云 -->
+                  <div onclick="connectToServer('prod-aliyun', '我的阿里云', '106.14.39.78:22')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
+                    <div class="flex items-center space-x-3 min-w-0">
+                      <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
+                        <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
+                      </div>
+                      <div class="min-w-0 space-y-1">
+                        <div class="flex items-center space-x-1.5 flex-wrap">
+                          <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[100px]" title="我的阿里云">我的阿里云</span>
+                          <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 font-mono truncate">root@106.14.39.78:22</p>
+                      </div>
+                    </div>
+                    <div class="shrink-0 pl-2 text-right">
+                      <span class="text-[11px] font-mono text-amber-400 font-medium">298ms</span>
+                    </div>
+                  </div>
+
+                  <!-- 卡片 3: 我的阿里云3045 -->
+                  <div onclick="connectToServer('prod-aliyun-3045', '我的阿里云3045', '8.145.62.223:22')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
+                    <div class="flex items-center space-x-3 min-w-0">
+                      <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
+                        <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
+                      </div>
+                      <div class="min-w-0 space-y-1">
+                        <div class="flex items-center space-x-1.5 flex-wrap">
+                          <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[110px]" title="我的阿里云3045">我的阿里云3045</span>
+                          <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 font-mono truncate">root@8.145.62.223:22</p>
+                      </div>
+                    </div>
+                    <div class="shrink-0 pl-2 text-right">
+                      <span class="text-[11px] font-mono text-amber-400 font-medium">320ms</span>
+                    </div>
+                  </div>
+
+                  <!-- 卡片 4: 我的香草云 -->
+                  <div onclick="connectToServer('prod-vanilla', '我的香草云', '156.226.177.226:22000')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
+                    <div class="flex items-center space-x-3 min-w-0">
+                      <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
+                        <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
+                      </div>
+                      <div class="min-w-0 space-y-1">
+                        <div class="flex items-center space-x-1.5 flex-wrap">
+                          <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[100px]" title="我的香草云">我的香草云</span>
+                          <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 font-mono truncate">root@156.226.177.226:22000</p>
+                      </div>
+                    </div>
+                    <div class="shrink-0 pl-2 text-right">
+                      <span class="text-[11px] font-mono text-amber-400 font-medium">460ms</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- 服务器卡片列表网格 (100% 对齐截图样式) -->
-              <div id="quickConnectGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 font-sans">
-                
-                <!-- 卡片 1: 我的腾讯云0209 (带已开 1 状态) -->
-                <div onclick="connectToServer('prod-api-01', '我的腾讯云0209', '111.231.166.192:22')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
-                  <div class="flex items-center space-x-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
-                      <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
-                      <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
+              <!-- 模式 C: ★ 树形视图 (Tree View，1:1 严格对齐截图 media_1792974780339_0ab94bf3.png) -->
+              <div id="quickConnectTreeView" class="hidden flex-1 flex flex-col md:flex-row gap-5 min-h-[460px] font-sans">
+                <!-- 左栏：可折叠分组与服务器层级树 -->
+                <div class="w-full md:w-80 shrink-0 flex flex-col space-y-2 select-none">
+                  <!-- 分组标题 (我的服务器 · 4) -->
+                  <div onclick="toggleQuickTreeGroup('my-servers')" class="flex items-center justify-between px-2 py-1.5 text-xs text-slate-300 hover:text-white cursor-pointer group">
+                    <div class="flex items-center space-x-2">
+                      <i id="quickTreeChevron-my-servers" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"></i>
+                      <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-400 fill-slate-400/20"></i>
+                      <span class="font-medium text-slate-200">我的服务器</span>
                     </div>
-                    <div class="min-w-0 space-y-1">
-                      <div class="flex items-center space-x-1.5 flex-wrap">
-                        <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[90px]" title="我的腾讯云0209">我的腾讯云...</span>
-                        <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
-                        <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">已开 1</span>
-                      </div>
-                      <p class="text-[11px] text-slate-400 font-mono truncate">root@111.231.166.192:22</p>
-                    </div>
+                    <span class="text-[11px] text-slate-500 font-mono bg-surface-900/80 px-1.5 py-0.5 rounded">4</span>
                   </div>
-                  <div class="shrink-0 pl-2 text-right">
-                    <span class="text-[11px] font-mono text-amber-400 font-medium">317ms</span>
+
+                  <!-- 分组列表项 (单击看属性，双击连接) -->
+                  <div id="quickTreeGroupItems-my-servers" class="space-y-1 pl-3 transition-all duration-200">
+                    <!-- 项 1: 我的腾讯云0209 (默认激活态) -->
+                    <div id="quickTreeNode-prod-api-01"
+                         onclick="selectQuickTreeNode('prod-api-01')"
+                         ondblclick="connectToServer('prod-api-01', '我的腾讯云0209', '111.231.166.192:22')"
+                         class="quick-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none bg-[#131b2e] border border-indigo-500/40 text-indigo-200 shadow-sm"
+                         title="单击查看属性，双击连接终端">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-indigo-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-white truncate">我的腾讯云0209</span>
+                          <span class="text-[11px] text-slate-400 font-mono">111.231.166.192</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-emerald-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>340ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
+
+                    <!-- 项 2: 我的阿里云 -->
+                    <div id="quickTreeNode-prod-aliyun"
+                         onclick="selectQuickTreeNode('prod-aliyun')"
+                         ondblclick="connectToServer('prod-aliyun', '我的阿里云', '106.14.39.78:22')"
+                         class="quick-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent"
+                         title="单击查看属性，双击连接终端">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-slate-200 truncate">我的阿里云</span>
+                          <span class="text-[11px] text-slate-400 font-mono">106.14.39.78</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-emerald-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>338ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
+
+                    <!-- 项 3: 我的阿里云3045 -->
+                    <div id="quickTreeNode-prod-aliyun-3045"
+                         onclick="selectQuickTreeNode('prod-aliyun-3045')"
+                         ondblclick="connectToServer('prod-aliyun-3045', '我的阿里云3045', '8.145.62.223:22')"
+                         class="quick-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent"
+                         title="单击查看属性，双击连接终端">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-slate-200 truncate">我的阿里云3045</span>
+                          <span class="text-[11px] text-slate-400 font-mono">8.145.62.223</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-emerald-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>326ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
+
+                    <!-- 项 4: 我的香草云 -->
+                    <div id="quickTreeNode-prod-vanilla"
+                         onclick="selectQuickTreeNode('prod-vanilla')"
+                         ondblclick="connectToServer('prod-vanilla', '我的香草云', '156.226.177.226:22000')"
+                         class="quick-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent"
+                         title="单击查看属性，双击连接终端">
+                      <div class="flex items-center space-x-2 min-w-0">
+                        <i data-lucide="server" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <div class="flex items-center space-x-1.5 truncate">
+                          <span class="font-medium text-slate-200 truncate">我的香草云</span>
+                          <span class="text-[11px] text-slate-400 font-mono truncate max-w-[100px]">156.226.177.226:220...</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-1.5 shrink-0 pl-1">
+                        <span class="flex items-center space-x-1 text-[11px] font-mono text-rose-400">
+                          <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                          <span>515ms</span>
+                        </span>
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400/80" title="信任策略"></i>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <!-- 卡片 2: 我的阿里云 -->
-                <div onclick="connectToServer('prod-aliyun', '我的阿里云', '106.14.39.78:22')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
-                  <div class="flex items-center space-x-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
-                      <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
-                      <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
-                    </div>
-                    <div class="min-w-0 space-y-1">
-                      <div class="flex items-center space-x-1.5 flex-wrap">
-                        <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[100px]" title="我的阿里云">我的阿里云</span>
-                        <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
+                <!-- 右栏：选中服务器详细信息卡片面板 (1:1 严格对齐截图) -->
+                <div class="flex-1 bg-[#090d16]/80 border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-sm">
+                  <div class="space-y-6">
+                    <!-- 卡片顶栏: 大图标 + 标题 + 策略徽章 + 在线状态 + 右侧快捷连接按钮 -->
+                    <div class="flex items-center justify-between pb-5 border-b border-slate-800/80">
+                      <div class="flex items-center space-x-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                          <i data-lucide="server" class="w-5 h-5"></i>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="flex items-center space-x-2">
+                            <h3 id="quickTreeDetailName" class="text-base font-bold text-white tracking-wide">我的腾讯云0209</h3>
+                            <span id="quickTreeDetailPolicyBadge" class="px-1.5 py-0.5 rounded text-[10px] bg-rose-500/15 border border-rose-500/30 text-rose-300 font-medium">信任</span>
+                          </div>
+                          <div class="flex items-center space-x-1.5 text-xs">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span id="quickTreeDetailStatusLine" class="text-emerald-400 font-mono text-[11px]">在线 · 340ms</span>
+                          </div>
+                        </div>
                       </div>
-                      <p class="text-[11px] text-slate-400 font-mono truncate">root@106.14.39.78:22</p>
+
+                      <!-- 右侧「>_ 连接」大按钮 (1:1 严格对齐截图) -->
+                      <button onclick="connectCurrentTreeServer()" id="btnQuickTreeConnect" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition cursor-pointer active:scale-98">
+                        <span class="font-mono font-bold text-sm tracking-tighter">&gt;_</span>
+                        <span>连接</span>
+                      </button>
                     </div>
-                  </div>
-                  <div class="shrink-0 pl-2 text-right">
-                    <span class="text-[11px] font-mono text-amber-400 font-medium">298ms</span>
+
+                    <!-- 详细属性列表 (1:1 严格对齐截图属性项) -->
+                    <div class="divide-y divide-slate-800/80 text-xs">
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">主机</span>
+                        <span id="quickTreeDetailHost" class="text-slate-200 font-mono">111.231.166.192:22</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">用户名</span>
+                        <span id="quickTreeDetailUser" class="text-slate-200 font-mono">root</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">分组</span>
+                        <span id="quickTreeDetailGroup" class="text-slate-200">我的服务器</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">策略</span>
+                        <span id="quickTreeDetailPolicy" class="text-slate-200">信任</span>
+                      </div>
+                      <div class="py-3 flex items-center">
+                        <span class="w-28 text-slate-400 font-medium select-none">系统</span>
+                        <span id="quickTreeDetailOS" class="text-slate-200 font-mono">Linux</span>
+                      </div>
+                      <div class="py-3 flex items-center justify-between">
+                        <div class="flex items-center">
+                          <span class="w-28 text-slate-400 font-medium select-none">在线</span>
+                          <div class="flex items-center space-x-1.5 font-mono text-[11px] text-emerald-400">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span id="quickTreeDetailOnline">在线 · 340ms</span>
+                          </div>
+                        </div>
+                        <button type="button" onclick="retestQuickTreeServer()" class="text-slate-400 hover:text-white flex items-center space-x-1 text-xs transition cursor-pointer">
+                          <i data-lucide="rotate-cw" id="quickTreeRetestIcon" class="w-3.5 h-3.5 text-slate-400"></i>
+                          <span>重测</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <!-- 卡片 3: 我的阿里云3045 -->
-                <div onclick="connectToServer('prod-aliyun-3045', '我的阿里云3045', '8.145.62.223:22')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
-                  <div class="flex items-center space-x-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
-                      <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
-                      <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
-                    </div>
-                    <div class="min-w-0 space-y-1">
-                      <div class="flex items-center space-x-1.5 flex-wrap">
-                        <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[110px]" title="我的阿里云3045">我的阿里云3045</span>
-                        <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
-                      </div>
-                      <p class="text-[11px] text-slate-400 font-mono truncate">root@8.145.62.223:22</p>
-                    </div>
-                  </div>
-                  <div class="shrink-0 pl-2 text-right">
-                    <span class="text-[11px] font-mono text-amber-400 font-medium">320ms</span>
-                  </div>
-                </div>
-
-                <!-- 卡片 4: 我的香草云 -->
-                <div onclick="connectToServer('prod-vanilla', '我的香草云', '156.226.177.226:22000')" class="quick-server-card bg-surface-900/90 hover:bg-surface-850 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm group hover:shadow-[0_0_15px_rgba(16,185,129,0.12)]">
-                  <div class="flex items-center space-x-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-center relative shrink-0 text-emerald-400 group-hover:border-emerald-500/40 transition">
-                      <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
-                      <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface-950 shadow-sm"></span>
-                    </div>
-                    <div class="min-w-0 space-y-1">
-                      <div class="flex items-center space-x-1.5 flex-wrap">
-                        <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition truncate max-w-[100px]" title="我的香草云">我的香草云</span>
-                        <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">信任</span>
-                      </div>
-                      <p class="text-[11px] text-slate-400 font-mono truncate">root@156.226.177.226:22000</p>
-                    </div>
-                  </div>
-                  <div class="shrink-0 pl-2 text-right">
-                    <span class="text-[11px] font-mono text-amber-400 font-medium">460ms</span>
-                  </div>
-                </div>
-
               </div>
             </div>
 
-            <!-- 底部操作导航指引 (100% 对齐截图 ↑↓ 选择 · 回车连接 · 直接输入即搜索) -->
+            <!-- 底部操作导航指引 (100% 对齐截图: 单击看属性 · 双击连接) -->
             <div class="shrink-0 pt-6 flex items-center justify-between text-[11px] text-slate-500 font-mono select-none">
-              <div>↑↓ 选择 · 回车连接 · 直接输入即搜索</div>
+              <div id="quickConnectBottomTip">↑↓ 选择 · 回车连接 · 直接输入即搜索</div>
               <div class="flex items-center space-x-3">
-                <span>双击卡片即刻开启终端</span>
+                <span id="quickConnectBottomSubTip">双击卡片即刻开启终端</span>
                 <span class="text-slate-600">|</span>
                 <span class="text-slate-400 font-medium">OpsSentry PTY Engine</span>
               </div>
@@ -11072,7 +11921,11 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
 
     function initSftpView() {
       renderSftpTabs();
-      renderSftpServerCards();
+      if (sftpCardView === 'tree') {
+        setSftpServerCardView('tree');
+      } else {
+        renderSftpServerCards();
+      }
       const currentTab = sftpTabs.find(t => t.id === activeSftpTabId);
       if (currentTab && !currentTab.isPicker) {
         renderSftpFilesTable();
@@ -11132,7 +11985,11 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (!tab || tab.isPicker) {
         if (quickView) quickView.classList.remove('hidden');
         if (explorerView) explorerView.classList.add('hidden');
-        renderSftpServerCards();
+        if (sftpCardView === 'tree') {
+          setSftpServerCardView('tree');
+        } else {
+          renderSftpServerCards();
+        }
       } else {
         if (quickView) quickView.classList.add('hidden');
         if (explorerView) explorerView.classList.remove('hidden');
@@ -11334,26 +12191,174 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       lucide.createIcons();
     }
 
+    let selectedSftpTreeServerId = 'prod-api-01';
+
     function filterSftpServerCards() {
       const input = document.getElementById('sftpServerSearchInput');
       const val = input ? input.value.trim() : '';
       renderSftpServerCards(val);
+
+      // 树形视图节点搜索过滤
+      const q = val.toLowerCase();
+      const treeItems = document.querySelectorAll('.sftp-tree-item');
+      treeItems.forEach(item => {
+        const txt = item.innerText.toLowerCase();
+        if (!q || txt.includes(q)) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
     }
 
     function setSftpServerCardView(mode) {
       sftpCardView = mode;
+      const cardContainer = document.getElementById('sftpServerCardViewContainer');
+      const grid = document.getElementById('sftpServerCardsGrid');
+      const treeView = document.getElementById('sftpQuickConnectTreeView');
       const gridBtn = document.getElementById('sftpCardView-grid');
       const listBtn = document.getElementById('sftpCardView-list');
-      if (gridBtn && listBtn) {
+      const treeBtn = document.getElementById('sftpCardView-tree');
+      const bottomTip = document.getElementById('sftpQuickBottomTip');
+      const bottomSubTip = document.getElementById('sftpQuickBottomSubTip');
+
+      const activeCls = 'p-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 transition cursor-pointer';
+      const inactiveCls = 'p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer';
+
+      if (mode === 'tree') {
+        if (cardContainer) cardContainer.classList.add('hidden');
+        if (treeView) treeView.classList.remove('hidden');
+
+        if (treeBtn) treeBtn.className = activeCls;
+        if (gridBtn) gridBtn.className = inactiveCls;
+        if (listBtn) listBtn.className = inactiveCls;
+
+        if (bottomTip) bottomTip.textContent = '单击看属性 · 双击连接';
+        if (bottomSubTip) bottomSubTip.textContent = '双击直接开启远程 SFTP 会话';
+
+        selectSftpTreeNode(selectedSftpTreeServerId || 'prod-api-01');
+      } else {
+        if (cardContainer) cardContainer.classList.remove('hidden');
+        if (treeView) treeView.classList.add('hidden');
+
+        if (bottomTip) bottomTip.textContent = '↑↓ 选择 · 回车连接 · 直接输入即搜索';
+        if (bottomSubTip) bottomSubTip.textContent = '双击卡片即刻连接 SFTP';
+
         if (mode === 'grid') {
-          gridBtn.className = 'p-1 rounded bg-surface-750 text-white';
-          listBtn.className = 'p-1 rounded text-slate-400 hover:text-white';
+          if (gridBtn) gridBtn.className = activeCls;
+          if (listBtn) listBtn.className = inactiveCls;
+          if (treeBtn) treeBtn.className = inactiveCls;
         } else {
-          gridBtn.className = 'p-1 rounded text-slate-400 hover:text-white';
-          listBtn.className = 'p-1 rounded bg-surface-750 text-white';
+          if (listBtn) listBtn.className = activeCls;
+          if (gridBtn) gridBtn.className = inactiveCls;
+          if (treeBtn) treeBtn.className = inactiveCls;
         }
+        filterSftpServerCards();
       }
-      filterSftpServerCards();
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // SFTP 树形视图：选中树节点
+    function selectSftpTreeNode(serverId) {
+      selectedSftpTreeServerId = serverId;
+      const s = (typeof quickConnectServers !== 'undefined' && quickConnectServers[serverId])
+        ? quickConnectServers[serverId]
+        : { id: serverId, name: serverId, ip: '111.231.166.192', port: '22', user: 'root', group: '我的服务器', policy: '信任', os: 'Linux', latency: '340ms' };
+
+      // 更新左侧列表项样式
+      document.querySelectorAll('.sftp-tree-item').forEach(el => {
+        el.className = 'sftp-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent';
+        const icon = el.querySelector('i[data-lucide="server"]');
+        if (icon) icon.className = 'w-4 h-4 text-slate-400 shrink-0';
+      });
+
+      const selectedEl = document.getElementById('sftpTreeNode-' + serverId);
+      if (selectedEl) {
+        selectedEl.className = 'sftp-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none bg-[#131b2e] border border-cyan-500/40 text-cyan-200 shadow-sm';
+        const icon = selectedEl.querySelector('i[data-lucide="server"]');
+        if (icon) icon.className = 'w-4 h-4 text-cyan-400 shrink-0';
+      }
+
+      // 更新右侧详细属性卡片
+      const nameEl = document.getElementById('sftpTreeDetailName');
+      const badgeEl = document.getElementById('sftpTreeDetailPolicyBadge');
+      const statusLineEl = document.getElementById('sftpTreeDetailStatusLine');
+      const hostEl = document.getElementById('sftpTreeDetailHost');
+      const userEl = document.getElementById('sftpTreeDetailUser');
+      const groupEl = document.getElementById('sftpTreeDetailGroup');
+      const policyEl = document.getElementById('sftpTreeDetailPolicy');
+      const osEl = document.getElementById('sftpTreeDetailOS');
+      const onlineEl = document.getElementById('sftpTreeDetailOnline');
+
+      if (nameEl) nameEl.textContent = s.name;
+      if (badgeEl) badgeEl.textContent = s.policy;
+      if (statusLineEl) statusLineEl.textContent = `在线 · ${s.latency}`;
+      if (hostEl) hostEl.textContent = `${s.ip}:${s.port}`;
+      if (userEl) userEl.textContent = s.user;
+      if (groupEl) groupEl.textContent = s.group;
+      if (policyEl) policyEl.textContent = s.policy;
+      if (osEl) osEl.textContent = s.os;
+      if (onlineEl) onlineEl.textContent = `在线 · ${s.latency}`;
+    }
+
+    // SFTP 树形视图：连接当前选中服务器
+    function connectCurrentSftpTreeServer() {
+      connectSftpByTree(selectedSftpTreeServerId || 'prod-api-01');
+    }
+
+    // SFTP 树形视图：通过树节点连接 SFTP
+    function connectSftpByTree(serverId) {
+      const s = (typeof quickConnectServers !== 'undefined' && quickConnectServers[serverId])
+        ? quickConnectServers[serverId]
+        : { id: serverId, name: serverId, ip: '111.231.166.192', port: '22', user: 'root', policy: '信任', latency: '340ms' };
+
+      const serverObj = {
+        id: s.id,
+        name: s.name,
+        host: `${s.user || 'root'}@${s.ip}:${s.port || 22}`,
+        tag: s.policy || '信任',
+        sessions: 1,
+        ping: parseInt(s.latency) || 340,
+        isTrusted: true
+      };
+      connectServerSftp(serverObj);
+    }
+
+    // SFTP 树形视图：重新测速
+    function retestSftpTreeServer() {
+      const icon = document.getElementById('sftpTreeRetestIcon');
+      if (icon) icon.classList.add('animate-spin');
+      showToast('📡 正在探测 SFTP 服务器时延...');
+      setTimeout(() => {
+        if (icon) icon.classList.remove('animate-spin');
+        const s = typeof quickConnectServers !== 'undefined' ? quickConnectServers[selectedSftpTreeServerId] : null;
+        if (s) {
+          const latencies = ['318ms', '325ms', '334ms', '340ms', '345ms'];
+          const newLat = latencies[Math.floor(Math.random() * latencies.length)];
+          s.latency = newLat;
+          const statusLineEl = document.getElementById('sftpTreeDetailStatusLine');
+          const onlineEl = document.getElementById('sftpTreeDetailOnline');
+          if (statusLineEl) statusLineEl.textContent = `在线 · ${newLat}`;
+          if (onlineEl) onlineEl.textContent = `在线 · ${newLat}`;
+        }
+        showToast('✅ SFTP 延迟已更新');
+      }, 400);
+    }
+
+    // SFTP 树形视图：折叠/展开分组
+    function toggleSftpTreeGroup(groupId) {
+      const items = document.getElementById('sftpTreeGroupItems-' + groupId);
+      const chevron = document.getElementById('sftpTreeChevron-' + groupId);
+      if (!items) return;
+      const isHidden = items.classList.contains('hidden');
+      if (isHidden) {
+        items.classList.remove('hidden');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+      } else {
+        items.classList.add('hidden');
+        if (chevron) chevron.style.transform = 'rotate(-90deg)';
+      }
     }
 
     // 右窗格独立文件数据（用于左右双栏分屏对比演示）
@@ -12264,9 +13269,65 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (dd) dd.classList.add('hidden');
     }
 
-    // 快速连接卡片搜索过滤
+    // 快速连接服务器预设数据源 (与终端会话完全对齐)
+    const quickConnectServers = {
+      'prod-api-01': {
+        id: 'prod-api-01',
+        name: '我的腾讯云0209',
+        ip: '111.231.166.192',
+        port: '22',
+        user: 'root',
+        group: '我的服务器',
+        policy: '信任',
+        os: 'Linux',
+        latency: '340ms',
+        status: 'online'
+      },
+      'prod-aliyun': {
+        id: 'prod-aliyun',
+        name: '我的阿里云',
+        ip: '106.14.39.78',
+        port: '22',
+        user: 'root',
+        group: '我的服务器',
+        policy: '信任',
+        os: 'Linux',
+        latency: '338ms',
+        status: 'online'
+      },
+      'prod-aliyun-3045': {
+        id: 'prod-aliyun-3045',
+        name: '我的阿里云3045',
+        ip: '8.145.62.223',
+        port: '22',
+        user: 'root',
+        group: '我的服务器',
+        policy: '信任',
+        os: 'Linux',
+        latency: '326ms',
+        status: 'online'
+      },
+      'prod-vanilla': {
+        id: 'prod-vanilla',
+        name: '我的香草云',
+        ip: '156.226.177.226',
+        port: '22000',
+        user: 'root',
+        group: '我的服务器',
+        policy: '信任',
+        os: 'Linux',
+        latency: '515ms',
+        status: 'online'
+      }
+    };
+
+    let selectedQuickTreeServerId = 'prod-api-01';
+    let currentQuickConnectLayout = 'grid'; // 'grid' | 'list' | 'tree'
+
+    // 快速连接卡片与树形节点搜索过滤
     function handleQuickConnectSearch(q) {
       q = (q || '').trim().toLowerCase();
+      // 1. 卡片视图搜索过滤
       const cards = document.querySelectorAll('.quick-server-card');
       let visibleCount = 0;
       cards.forEach(card => {
@@ -12280,25 +13341,152 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       });
       const badge = document.getElementById('quickConnectCountBadge');
       if (badge) badge.innerText = visibleCount + ' 台';
+
+      // 2. 树形视图节点搜索过滤
+      const treeItems = document.querySelectorAll('.quick-tree-item');
+      treeItems.forEach(item => {
+        const txt = item.innerText.toLowerCase();
+        if (!q || txt.includes(q)) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
     }
 
-    // 快速连接布局切换 (网格 vs 列表)
+    // 快速连接布局切换 (网格 vs 列表 vs 树形层级视图，1:1 对齐截图 media_1792974780339_0ab94bf3.png)
     function setQuickConnectLayout(layout) {
+      currentQuickConnectLayout = layout;
+      const cardView = document.getElementById('quickConnectCardView');
       const grid = document.getElementById('quickConnectGrid');
+      const treeView = document.getElementById('quickConnectTreeView');
       const btnGrid = document.getElementById('btnQuickGrid');
       const btnList = document.getElementById('btnQuickList');
-      if (!grid) return;
+      const btnTree = document.getElementById('btnQuickTree');
+      const bottomTip = document.getElementById('quickConnectBottomTip');
+      const bottomSubTip = document.getElementById('quickConnectBottomSubTip');
 
-      if (layout === 'grid') {
-        grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 font-sans';
-        if (btnGrid) btnGrid.className = 'p-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 transition cursor-pointer';
-        if (btnList) btnList.className = 'p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer';
+      const activeCls = 'p-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 transition cursor-pointer';
+      const inactiveCls = 'p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer';
+
+      if (layout === 'tree') {
+        // 激活树形视图 (对齐截图)
+        if (cardView) cardView.classList.add('hidden');
+        if (treeView) treeView.classList.remove('hidden');
+
+        if (btnTree) btnTree.className = activeCls;
+        if (btnGrid) btnGrid.className = inactiveCls;
+        if (btnList) btnList.className = inactiveCls;
+
+        if (bottomTip) bottomTip.textContent = '单击看属性 · 双击连接';
+        if (bottomSubTip) bottomSubTip.textContent = '先在上方开一个终端标签';
+
+        selectQuickTreeNode(selectedQuickTreeServerId || 'prod-api-01');
       } else {
-        grid.className = 'grid grid-cols-1 gap-2 font-sans';
-        if (btnList) btnList.className = 'p-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 transition cursor-pointer';
-        if (btnGrid) btnGrid.className = 'p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer';
+        // 激活网格或列表视图
+        if (cardView) cardView.classList.remove('hidden');
+        if (treeView) treeView.classList.add('hidden');
+
+        if (bottomTip) bottomTip.textContent = '↑↓ 选择 · 回车连接 · 直接输入即搜索';
+        if (bottomSubTip) bottomSubTip.textContent = '双击卡片即刻开启终端';
+
+        if (layout === 'grid') {
+          if (grid) grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 font-sans';
+          if (btnGrid) btnGrid.className = activeCls;
+          if (btnList) btnList.className = inactiveCls;
+          if (btnTree) btnTree.className = inactiveCls;
+        } else {
+          if (grid) grid.className = 'grid grid-cols-1 gap-2 font-sans';
+          if (btnList) btnList.className = activeCls;
+          if (btnGrid) btnGrid.className = inactiveCls;
+          if (btnTree) btnTree.className = inactiveCls;
+        }
       }
-      lucide.createIcons();
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 树形视图：选中树节点
+    function selectQuickTreeNode(serverId) {
+      selectedQuickTreeServerId = serverId;
+      const s = quickConnectServers[serverId] || quickConnectServers['prod-api-01'];
+
+      // 更新左侧列表项样式
+      document.querySelectorAll('.quick-tree-item').forEach(el => {
+        el.className = 'quick-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none hover:bg-surface-900/80 text-slate-300 border border-transparent';
+        const icon = el.querySelector('i[data-lucide="server"]');
+        if (icon) icon.className = 'w-4 h-4 text-slate-400 shrink-0';
+      });
+
+      const selectedEl = document.getElementById('quickTreeNode-' + serverId);
+      if (selectedEl) {
+        selectedEl.className = 'quick-tree-item flex items-center justify-between px-2.5 py-2 rounded-xl text-xs cursor-pointer transition select-none bg-[#131b2e] border border-indigo-500/40 text-indigo-200 shadow-sm';
+        const icon = selectedEl.querySelector('i[data-lucide="server"]');
+        if (icon) icon.className = 'w-4 h-4 text-indigo-400 shrink-0';
+      }
+
+      // 更新右侧详细属性卡片
+      const nameEl = document.getElementById('quickTreeDetailName');
+      const badgeEl = document.getElementById('quickTreeDetailPolicyBadge');
+      const statusLineEl = document.getElementById('quickTreeDetailStatusLine');
+      const hostEl = document.getElementById('quickTreeDetailHost');
+      const userEl = document.getElementById('quickTreeDetailUser');
+      const groupEl = document.getElementById('quickTreeDetailGroup');
+      const policyEl = document.getElementById('quickTreeDetailPolicy');
+      const osEl = document.getElementById('quickTreeDetailOS');
+      const onlineEl = document.getElementById('quickTreeDetailOnline');
+
+      if (nameEl) nameEl.textContent = s.name;
+      if (badgeEl) badgeEl.textContent = s.policy;
+      if (statusLineEl) statusLineEl.textContent = `在线 · ${s.latency}`;
+      if (hostEl) hostEl.textContent = `${s.ip}:${s.port}`;
+      if (userEl) userEl.textContent = s.user;
+      if (groupEl) groupEl.textContent = s.group;
+      if (policyEl) policyEl.textContent = s.policy;
+      if (osEl) osEl.textContent = s.os;
+      if (onlineEl) onlineEl.textContent = `在线 · ${s.latency}`;
+    }
+
+    // 树形视图：连接当前选中服务器
+    function connectCurrentTreeServer() {
+      const s = quickConnectServers[selectedQuickTreeServerId] || quickConnectServers['prod-api-01'];
+      connectToServer(s.id, s.name, `${s.ip}:${s.port}`);
+    }
+
+    // 树形视图：重新测速
+    function retestQuickTreeServer() {
+      const icon = document.getElementById('quickTreeRetestIcon');
+      if (icon) icon.classList.add('animate-spin');
+      showToast('📡 正在探测服务器时延...');
+      setTimeout(() => {
+        if (icon) icon.classList.remove('animate-spin');
+        const s = quickConnectServers[selectedQuickTreeServerId];
+        if (s) {
+          const latencies = ['318ms', '325ms', '334ms', '340ms', '345ms'];
+          const newLat = latencies[Math.floor(Math.random() * latencies.length)];
+          s.latency = newLat;
+          const statusLineEl = document.getElementById('quickTreeDetailStatusLine');
+          const onlineEl = document.getElementById('quickTreeDetailOnline');
+          if (statusLineEl) statusLineEl.textContent = `在线 · ${newLat}`;
+          if (onlineEl) onlineEl.textContent = `在线 · ${newLat}`;
+        }
+        showToast('✅ 延迟已更新');
+      }, 400);
+    }
+
+    // 树形视图：折叠/展开分组
+    function toggleQuickTreeGroup(groupId) {
+      const items = document.getElementById('quickTreeGroupItems-' + groupId);
+      const chevron = document.getElementById('quickTreeChevron-' + groupId);
+      if (!items) return;
+      const isHidden = items.classList.contains('hidden');
+      if (isHidden) {
+        items.classList.remove('hidden');
+        if (chevron) chevron.classList.remove('-rotate-90');
+      } else {
+        items.classList.add('hidden');
+        if (chevron) chevron.classList.add('-rotate-90');
+      }
     }
 
     // 分屏模式设置
@@ -18952,6 +20140,22 @@ SHOW CREATE TABLE sys_user;`;
     // 4. 左侧连接树交互
     function filterMainDbTree(keyword) {
       const kw = (keyword || '').trim().toLowerCase();
+      document.querySelectorAll('.main-db-conn-group').forEach(group => {
+        const text = group.textContent.toLowerCase();
+        if (!kw || text.includes(kw)) {
+          group.classList.remove('hidden');
+          // 如果有匹配，自动展开该连接
+          if (kw) {
+            const shortId = group.id.replace('connGroup-', '');
+            const children = document.getElementById('connChildren-' + shortId);
+            const chevron = document.getElementById('connChevron-' + shortId);
+            if (children) children.classList.remove('hidden');
+            if (chevron) chevron.classList.add('rotate-90');
+          }
+        } else {
+          group.classList.add('hidden');
+        }
+      });
       document.querySelectorAll('.main-db-item').forEach(item => {
         const text = item.textContent.toLowerCase();
         if (!kw || text.includes(kw)) {
@@ -18963,18 +20167,9 @@ SHOW CREATE TABLE sys_user;`;
     }
 
     function toggleMainDbConnExpand(connId) {
-      let children = null;
-      let chevron = null;
-      if (connId === 'conn-tencent') {
-        children = document.getElementById('connChildren-tencent');
-        chevron = document.getElementById('connChevron-tencent');
-      } else if (connId === 'conn-aliyun') {
-        children = document.getElementById('connChildren-aliyun');
-        chevron = document.getElementById('connChevron-aliyun');
-      } else if (connId === 'conn-sqlite') {
-        children = document.getElementById('connChildren-sqlite');
-        chevron = document.getElementById('connChevron-sqlite');
-      }
+      const shortId = connId.replace('conn-', '');
+      const children = document.getElementById('connChildren-' + shortId) || document.getElementById('connChildren-' + connId);
+      const chevron = document.getElementById('connChevron-' + shortId) || document.getElementById('connChevron-' + connId);
       if (!children) return;
       const isHidden = children.classList.contains('hidden');
       if (isHidden) {
@@ -18986,18 +20181,40 @@ SHOW CREATE TABLE sys_user;`;
       }
     }
 
-    function selectMainDbDatabase(server, dbName) {
-      let connDisplayName = '数据库连接';
-      if (server === 'tencent') {
-        const connTitleEl = document.getElementById('connTitle-tencent');
-        connDisplayName = connTitleEl ? connTitleEl.textContent.trim() : 'MySQL @ 我的腾讯云0209';
-      } else if (server === 'aliyun') {
-        const connTitleEl = document.getElementById('connTitle-aliyun');
-        connDisplayName = connTitleEl ? connTitleEl.textContent.trim() : 'MySQL @ 我的阿里云3045';
-      } else if (server === 'sqlite') {
-        const connTitleEl = document.getElementById('connTitle-sqlite');
-        connDisplayName = connTitleEl ? connTitleEl.textContent.trim() : 'SQLite @ 本机应用数据库';
+    function toggleMainDbFolder(folderId, event) {
+      if (event) event.stopPropagation();
+      const children = document.getElementById('folderChildren-' + folderId);
+      const chevron = document.getElementById('folderChevron-' + folderId);
+      if (!children) return;
+      const isHidden = children.classList.contains('hidden');
+      if (isHidden) {
+        children.classList.remove('hidden');
+        if (chevron) {
+          chevron.classList.add('rotate-90');
+        }
+      } else {
+        children.classList.add('hidden');
+        if (chevron) {
+          chevron.classList.remove('rotate-90');
+        }
       }
+    }
+
+    function selectMainDbDatabase(server, dbName) {
+      const serverMap = {
+        'tencent': { name: 'MySQL @ 我的腾讯云0209', dialect: 'mysql' },
+        'aliyun': { name: 'MySQL @ 我的阿里云3045', dialect: 'mysql' },
+        'postgres': { name: 'PostgreSQL @ 阿里云PG-01 (分析集群)', dialect: 'postgresql' },
+        'sqlite': { name: 'SQLite @ 本地应用数据库 (app_data.db)', dialect: 'sqlite' },
+        'oracle': { name: 'Oracle 19c @ 核心财务ERP (1521/ORCL)', dialect: 'oracle' },
+        'sqlserver': { name: 'SQL Server 2022 @ 运营数据中心 (1433)', dialect: 't-sql' },
+        'mariadb': { name: 'MariaDB @ 开源社区镜像库 (10.11)', dialect: 'mariadb' },
+        'clickhouse': { name: 'ClickHouse @ 海量日志实时分析 (8123)', dialect: 'clickhouse' }
+      };
+
+      const titleEl = document.getElementById('connTitle-' + server);
+      const connDisplayName = titleEl ? titleEl.textContent.trim() : (serverMap[server]?.name || '数据库连接');
+      const dialect = serverMap[server]?.dialect || 'mysql';
 
       const indicator = document.getElementById('mainDbConnIndicator');
       if (indicator) {
@@ -19006,8 +20223,27 @@ SHOW CREATE TABLE sys_user;`;
       const actions = document.getElementById('mainDbConnectedActions');
       if (actions) actions.classList.remove('hidden');
 
+      const dialectBadge = document.getElementById('mainSqlDialectBadge');
+      if (dialectBadge) dialectBadge.textContent = `方言: ${dialect}`;
+
       const select = document.getElementById('mainCurrentDbSelect');
-      if (select) select.value = dbName;
+      if (select) {
+        let found = false;
+        for (let opt of select.options) {
+          if (opt.value === dbName) {
+            select.value = dbName;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          const newOpt = document.createElement('option');
+          newOpt.value = dbName;
+          newOpt.textContent = dbName;
+          select.appendChild(newOpt);
+          select.value = dbName;
+        }
+      }
 
       const warn = document.getElementById('mainDbUnselectedWarn');
       if (warn) warn.classList.add('hidden');
@@ -19016,17 +20252,62 @@ SHOW CREATE TABLE sys_user;`;
       if (statusName) statusName.textContent = `${connDisplayName} · ${dbName}`;
 
       const editor = document.getElementById('mainSqlEditorArea');
-      if (editor && (!editor.value || editor.value.trim() === '')) {
-        editor.value = `-- 当前目标库: ${dbName}
-SELECT u.user_id, u.user_name, u.nick_name, u.email, u.phonenumber, u.status, u.create_time
-FROM sys_user u
-WHERE u.del_flag = '0'
-LIMIT 10;`;
+      if (editor && (!editor.value || editor.value.trim() === '' || editor.value.trim() === 'select * from')) {
+        if (dialect === 'postgresql') {
+          editor.value = `-- 目标库: ${dbName} (PostgreSQL)\nSELECT * FROM "${dbName}".public.user_events\nORDER BY created_at DESC LIMIT 10;`;
+        } else if (dialect === 'sqlite') {
+          editor.value = `-- 目标库: main (SQLite)\nSELECT * FROM main.app_config\nORDER BY key ASC LIMIT 10;`;
+        } else if (dialect === 'oracle') {
+          editor.value = `-- 目标方案: ${dbName} (Oracle PL/SQL)\nSELECT * FROM ${dbName}.GL_LEDGER_ACCOUNTS\nWHERE ROWNUM <= 10;`;
+        } else if (dialect === 't-sql') {
+          editor.value = `-- 目标库: ${dbName} (SQL Server T-SQL)\nSELECT TOP 10 * FROM ${dbName}.dbo.Dim_HostServers;`;
+        } else if (dialect === 'clickhouse') {
+          editor.value = `-- 目标库: ${dbName} (ClickHouse)\nSELECT * FROM ${dbName}.access_log_distributed\nLIMIT 10;`;
+        } else {
+          editor.value = `-- 当前目标库: ${dbName} (MySQL)\nSELECT * FROM \`${dbName}\`.sys_user\nLIMIT 10;`;
+        }
         syncMainSqlLineNumbers();
       }
 
       showToast(`✅ 已连接目标库: [${connDisplayName}] ${dbName}`);
       if (window.lucide) lucide.createIcons();
+    }
+
+    function selectMainDbObject(server, dbName, objectType, objectName) {
+      selectMainDbDatabase(server, dbName);
+
+      const typeMap = { table: '表', view: '视图', proc: '存储过程', func: '函数', matview: '物化视图', trigger: '触发器', pkg: '包', idx: '索引', seq: '序列', dict: '字典' };
+      const typeLabel = typeMap[objectType] || objectType;
+
+      const indicator = document.getElementById('mainDbConnIndicator');
+      if (indicator) {
+        indicator.innerHTML += `<span class="text-slate-500 mx-1">/</span><span class="text-sky-300 font-mono">${typeLabel}: ${objectName}</span>`;
+      }
+
+      const statusName = document.getElementById('mainDbStatusConnName');
+      if (statusName) {
+        statusName.textContent += ` · ${typeLabel}: ${objectName}`;
+      }
+
+      const editor = document.getElementById('mainSqlEditorArea');
+      if (editor) {
+        if (objectType === 'table') {
+          editor.value = `-- 数据表: ${dbName}.${objectName}\nSELECT * FROM \`${objectName}\` LIMIT 20;`;
+        } else if (objectType === 'view' || objectType === 'matview') {
+          editor.value = `-- 视图: ${dbName}.${objectName}\nSELECT * FROM \`${objectName}\` LIMIT 20;`;
+        } else if (objectType === 'proc') {
+          editor.value = `-- 存储过程: ${dbName}.${objectName}\nCALL ${objectName}();`;
+        } else if (objectType === 'func') {
+          editor.value = `-- 函数: ${dbName}.${objectName}\nSELECT ${objectName}();`;
+        } else if (objectType === 'pkg') {
+          editor.value = `-- Oracle 包调用: ${dbName}.${objectName}\nEXEC ${objectName}.RUN_REPORT();`;
+        } else {
+          editor.value = `-- 对象: ${dbName}.${objectName} (${typeLabel})\nSELECT * FROM ${objectName};`;
+        }
+        syncMainSqlLineNumbers();
+      }
+
+      showToast(`⚡ 已选中 ${typeLabel}: [${objectName}] 并载入查询模板`);
     }
 
     function selectMainDbRedisInstance(instId) {
@@ -19524,7 +20805,7 @@ LIMIT 100;`;
       if (window.lucide) lucide.createIcons();
     }
 
-    // 唤起编辑指定连接模态框 (截图 2 & SQLite 严格对齐)
+    // 唤起编辑指定连接模态框 (覆盖各类型数据库连接配置回显)
     function openDbConnectionEditModal(connId) {
       let cfg = null;
       if (connId === 'conn-tencent') {
@@ -19536,7 +20817,7 @@ LIMIT 100;`;
           sshTunnel: true,
           type: 'MySQL',
           aiTier: 'default',
-          host: '127.0.0.1',
+          host: '111.231.165.192',
           port: '3306',
           user: 'root',
           password: '••••••••',
@@ -19553,7 +20834,7 @@ LIMIT 100;`;
           sshTunnel: true,
           type: 'MySQL',
           aiTier: 'default',
-          host: '127.0.0.1',
+          host: '47.98.120.45',
           port: '3306',
           user: 'admin',
           password: '••••••••',
@@ -19561,16 +20842,101 @@ LIMIT 100;`;
           prodDbs: '',
           isProd: false
         };
+      } else if (connId === 'conn-postgres') {
+        const titleEl = document.getElementById('connTitle-postgres');
+        cfg = {
+          id: 'conn-postgres',
+          name: titleEl ? titleEl.textContent.trim() : 'PostgreSQL @ 阿里云PG-01 (分析集群)',
+          server: 'aliyun',
+          sshTunnel: true,
+          type: 'PostgreSQL',
+          aiTier: 'default',
+          host: '10.0.4.12',
+          port: '5432',
+          user: 'postgres',
+          password: '••••••••',
+          database: 'analytics_db',
+          prodDbs: '',
+          isProd: false
+        };
       } else if (connId === 'conn-sqlite') {
         const titleEl = document.getElementById('connTitle-sqlite');
         cfg = {
           id: 'conn-sqlite',
-          name: titleEl ? titleEl.textContent.trim() : 'SQLite @ 本机应用数据库',
+          name: titleEl ? titleEl.textContent.trim() : 'SQLite @ 本地应用数据库 (app_data.db)',
           server: 'local',
           sshTunnel: false,
           type: 'SQLite',
           aiTier: 'default',
           sqlitePath: 'C:\\app\\data.db',
+          prodDbs: '',
+          isProd: false
+        };
+      } else if (connId === 'conn-oracle') {
+        const titleEl = document.getElementById('connTitle-oracle');
+        cfg = {
+          id: 'conn-oracle',
+          name: titleEl ? titleEl.textContent.trim() : 'Oracle 19c @ 核心财务ERP (1521/ORCL)',
+          server: 'tencent',
+          sshTunnel: true,
+          type: 'Oracle',
+          aiTier: 'default',
+          host: '172.16.8.50',
+          port: '1521',
+          user: 'FIN_CORE',
+          password: '••••••••',
+          database: 'ORCL',
+          prodDbs: 'FIN_CORE',
+          isProd: true
+        };
+      } else if (connId === 'conn-sqlserver') {
+        const titleEl = document.getElementById('connTitle-sqlserver');
+        cfg = {
+          id: 'conn-sqlserver',
+          name: titleEl ? titleEl.textContent.trim() : 'SQL Server 2022 @ 运营数据中心 (1433)',
+          server: 'aliyun',
+          sshTunnel: true,
+          type: 'Microsoft SQL Server',
+          aiTier: 'default',
+          host: '192.168.10.88',
+          port: '1433',
+          user: 'sa',
+          password: '••••••••',
+          database: 'OpsCenterDB',
+          prodDbs: '',
+          isProd: false
+        };
+      } else if (connId === 'conn-mariadb') {
+        const titleEl = document.getElementById('connTitle-mariadb');
+        cfg = {
+          id: 'conn-mariadb',
+          name: titleEl ? titleEl.textContent.trim() : 'MariaDB @ 开源社区镜像库 (10.11)',
+          server: 'aliyun',
+          sshTunnel: false,
+          type: 'MariaDB',
+          aiTier: 'default',
+          host: '47.100.22.61',
+          port: '3306',
+          user: 'mariadb_admin',
+          password: '••••••••',
+          database: 'community_hub',
+          prodDbs: '',
+          isProd: false
+        };
+      } else if (connId === 'conn-clickhouse') {
+        const titleEl = document.getElementById('connTitle-clickhouse');
+        cfg = {
+          id: 'conn-clickhouse',
+          name: titleEl ? titleEl.textContent.trim() : 'ClickHouse @ 海量日志实时分析 (8123)',
+          server: 'tencent',
+          sshTunnel: true,
+          type: 'ClickHouse',
+          aiTier: 'default',
+          host: '10.200.5.18',
+          port: '8123',
+          user: 'default',
+          password: '••••••••',
+          database: 'system_logs',
           prodDbs: '',
           isProd: false
         };
@@ -19898,21 +21264,13 @@ LIMIT 100;`;
       closeDbConnContextMenu();
       if (!currentContextConnId) return;
 
+      const shortId = currentContextConnId.replace('conn-', '');
+
       if (action === 'reconnect') {
         showToast(`🔄 正在重新连接 [${currentContextConnName}]... 握手成功 (3.1ms)`);
-        // 自动展开子库列表
-        let children = null;
-        let chevron = null;
-        if (currentContextConnId === 'conn-tencent') {
-          children = document.getElementById('connChildren-tencent');
-          chevron = document.getElementById('connChevron-tencent');
-        } else if (currentContextConnId === 'conn-aliyun') {
-          children = document.getElementById('connChildren-aliyun');
-          chevron = document.getElementById('connChevron-aliyun');
-        } else if (currentContextConnId === 'conn-sqlite') {
-          children = document.getElementById('connChildren-sqlite');
-          chevron = document.getElementById('connChevron-sqlite');
-        }
+        // 自动展开子库/模式列表
+        const children = document.getElementById(`connChildren-${shortId}`);
+        const chevron = document.getElementById(`connChevron-${shortId}`);
         if (children && children.classList.contains('hidden')) {
           children.classList.remove('hidden');
           if (chevron) chevron.classList.add('rotate-90');
@@ -19920,6 +21278,16 @@ LIMIT 100;`;
       } else if (action === 'test') {
         if (currentContextConnId === 'conn-sqlite') {
           showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：SQLite 本地单文件读取正常 (WAL 模式，页大小 4096)`);
+        } else if (currentContextConnId === 'conn-postgres') {
+          showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：TCP 握手 4.2ms，PostgreSQL 16.2 (Debian) 已就绪`);
+        } else if (currentContextConnId === 'conn-oracle') {
+          showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：TNS 监听响应 6.1ms，Oracle Database 19c Enterprise 验证通过`);
+        } else if (currentContextConnId === 'conn-sqlserver') {
+          showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：TDS 握手 5.0ms，Microsoft SQL Server 2022 验证通过`);
+        } else if (currentContextConnId === 'conn-mariadb') {
+          showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：TCP 握手 3.5ms，MariaDB 10.11.6-MariaDB 已就绪`);
+        } else if (currentContextConnId === 'conn-clickhouse') {
+          showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：HTTP/Native 协议响应 2.9ms，ClickHouse 24.3 活跃`);
         } else {
           showToast(`⚡ 测试连接 [${currentContextConnName}] 成功：TCP 握手 3.8ms，版本 MySQL 8.0.35`);
         }
@@ -19937,10 +21305,7 @@ LIMIT 100;`;
         }
       } else if (action === 'delete') {
         if (confirm(`确定要删除连接「${currentContextConnName}」吗？相关凭据与已存会话将一并清除。`)) {
-          let group = null;
-          if (currentContextConnId === 'conn-tencent') group = document.getElementById('connGroup-tencent');
-          else if (currentContextConnId === 'conn-aliyun') group = document.getElementById('connGroup-aliyun');
-          else if (currentContextConnId === 'conn-sqlite') group = document.getElementById('connGroup-sqlite');
+          const group = document.getElementById(`connGroup-${shortId}`) || document.getElementById(currentContextConnId);
           if (group) {
             group.remove();
             showToast(`🗑️ 已删除连接: ${currentContextConnName}`);

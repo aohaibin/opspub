@@ -23,6 +23,7 @@ import {
   ArrowRight,
   ArrowUp,
   Columns2,
+  ChevronDown,
   Copy,
   Download,
   Edit2,
@@ -35,6 +36,7 @@ import {
   FolderOpen,
   FolderPlus,
   FolderSync,
+  FolderTree,
   HelpCircle,
   History,
   Home,
@@ -123,6 +125,9 @@ export default function SftpPage() {
   const [loadingServers, setLoadingServers] = useState(false);
   const [serverSearchKeyword, setServerSearchKeyword] = useState("");
   const [serverViewMode, setServerViewMode] = useState<SftpViewMode>("grid");
+  const [selectedTreeServerId, setSelectedTreeServerId] = useState<number | null>(null);
+  const [collapsedServerGroups, setCollapsedServerGroups] = useState<Record<string, boolean>>({});
+  const [connectivityByServer, setConnectivityByServer] = useState<Record<number, { loading: boolean; result?: { ok: boolean; latency_ms: number | null; message: string } }>>({});
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [sshServer, setSshServer] = useState<Server | null>(null);
   const [sshTargetPane, setSshTargetPane] = useState<"left" | "right">("left");
@@ -416,6 +421,34 @@ export default function SftpPage() {
         (s.tags && s.tags.toLowerCase().includes(kw))
     );
   }, [servers, serverSearchKeyword]);
+
+  const serverGroups = useMemo(() => {
+    const groups = new Map<string, Server[]>();
+    filteredServers.forEach((server) => {
+      const groupName = server.group?.trim() || "我的服务器";
+      groups.set(groupName, [...(groups.get(groupName) ?? []), server]);
+    });
+    return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
+  }, [filteredServers]);
+
+  const selectedTreeServer =
+    filteredServers.find((server) => server.id === selectedTreeServerId) ?? filteredServers[0] ?? null;
+
+  const handleRetestServer = async (server: Server) => {
+    setConnectivityByServer((current) => ({
+      ...current,
+      [server.id]: { ...current[server.id], loading: true },
+    }));
+    try {
+      const result = await serverApi.testConnectivity(server.hostname, server.port, server.id);
+      setConnectivityByServer((current) => ({ ...current, [server.id]: { loading: false, result } }));
+      message[result.ok ? "success" : "warning"](result.message || (result.ok ? "服务器可达" : "服务器不可达"));
+    } catch (error) {
+      const result = { ok: false, latency_ms: null, message: getErrorMessage(error) };
+      setConnectivityByServer((current) => ({ ...current, [server.id]: { loading: false, result } }));
+      message.error(result.message);
+    }
+  };
 
   const loadRemoteDirectory = useCallback(
     async (tabId: string, path: string, overrideCredentials?: SftpCredentials) => {
@@ -1139,6 +1172,15 @@ export default function SftpPage() {
               >
                 <List size={13} />
               </button>
+              <button
+                type="button"
+                onClick={() => setServerViewMode("tree")}
+                className={`p-1 rounded transition ${serverViewMode === "tree" ? "bg-surface-800 text-white" : "hover:text-white"}`}
+                title="树形视图"
+                aria-label="树形视图"
+              >
+                <FolderTree size={13} />
+              </button>
             </div>
 
             <button
@@ -1164,6 +1206,112 @@ export default function SftpPage() {
             {filteredServers.length === 0 ? (
               <div className="p-8 text-center border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500">
                 没有匹配的服务器，请更换搜索词或新建服务器
+              </div>
+            ) : serverViewMode === "tree" ? (
+              <div className="sftp-tree-view">
+                <aside className="sftp-tree-sidebar" aria-label="服务器分组">
+                  {serverGroups.map(({ name, items }) => {
+                    const collapsed = collapsedServerGroups[name] ?? false;
+                    return (
+                      <div key={name} className="sftp-tree-group">
+                        <button
+                          type="button"
+                          className="sftp-tree-group-head"
+                          onClick={() => setCollapsedServerGroups((current) => ({ ...current, [name]: !collapsed }))}
+                        >
+                          <span className="sftp-tree-group-label">
+                            <ChevronDown size={14} className={collapsed ? "-rotate-90" : ""} />
+                            <Folder size={14} />
+                            <strong>{name}</strong>
+                          </span>
+                          <span className="sftp-tree-count">{items.length}</span>
+                        </button>
+                        {!collapsed && (
+                          <div className="sftp-tree-items">
+                            {items.map((server) => {
+                              const probe = connectivityByServer[server.id]?.result;
+                              const online = probe?.ok || server.last_connection_status === "verified";
+                              return (
+                                <button
+                                  key={server.id}
+                                  type="button"
+                                  className={`sftp-tree-item ${selectedTreeServer?.id === server.id ? "active" : ""}`}
+                                  onClick={() => setSelectedTreeServerId(server.id)}
+                                  onDoubleClick={() => handleConnectServer(server, targetPane)}
+                                  title="单击查看属性，双击连接 SFTP"
+                                >
+                                  <span className="sftp-tree-item-main">
+                                    <ServerIcon size={15} />
+                                    <span className="sftp-tree-item-text">
+                                      <strong>{server.alias || server.hostname}</strong>
+                                      <em>{server.hostname}:{server.port}</em>
+                                    </span>
+                                  </span>
+                                  <span className={`sftp-tree-item-status ${online ? "online" : "pending"}`}>
+                                    <span className="sftp-tree-status-dot" />
+                                    {probe?.latency_ms != null ? `${probe.latency_ms}ms` : online ? "在线" : "未验证"}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </aside>
+                {selectedTreeServer ? (() => {
+                  const server = selectedTreeServer;
+                  const probe = connectivityByServer[server.id];
+                  const isOnline = probe?.result?.ok || server.last_connection_status === "verified";
+                  const policy = server.ai_policy || "approval";
+                  const policyLabel: Record<string, string> = {
+                    disabled: "禁用", readonly: "只读", approval: "审批", allowlist: "白名单", trusted: "信任",
+                  };
+                  return (
+                    <section className="sftp-tree-detail">
+                      <div className="sftp-tree-detail-head">
+                        <div className="sftp-tree-detail-title">
+                          <span className="sftp-tree-detail-icon"><ServerIcon size={20} /></span>
+                          <span>
+                            <span className="sftp-tree-detail-name">
+                              <strong>{server.alias || server.hostname}</strong>
+                              <em>{policyLabel[policy] || policy}</em>
+                            </span>
+                            <span className={`sftp-tree-detail-status ${isOnline ? "online" : "pending"}`}>
+                              <span className="sftp-tree-status-dot" />
+                              {probe?.result?.latency_ms != null ? `在线 · ${probe.result.latency_ms}ms` : isOnline ? "在线" : "未验证"}
+                            </span>
+                          </span>
+                        </div>
+                        <button type="button" className="sftp-tree-connect" onClick={() => handleConnectServer(server, targetPane)}>
+                          <Link size={14} />
+                          <span>连接 SFTP</span>
+                        </button>
+                      </div>
+                      <div className="sftp-tree-details">
+                        <div><span>主机</span><strong>{server.hostname}:{server.port}</strong></div>
+                        <div><span>用户名</span><strong>{server.username}</strong></div>
+                        <div><span>分组</span><strong>{server.group || "我的服务器"}</strong></div>
+                        <div><span>AI 策略</span><strong>{policyLabel[policy] || policy}</strong></div>
+                        <div><span>系统</span><strong>{server.os_type === "windows" ? "Windows" : "Linux"}</strong></div>
+                        <div className="sftp-tree-online-row">
+                          <span>在线状态</span>
+                          <strong className={isOnline ? "online" : "pending"}>{isOnline ? "在线" : "未验证"}</strong>
+                          <button type="button" onClick={() => void handleRetestServer(server)} disabled={probe?.loading}>
+                            <RefreshCw size={13} className={probe?.loading ? "animate-spin" : ""} />
+                            <span>{probe?.loading ? "检测中" : "重新检测"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                  );
+                })() : (
+                  <section className="sftp-tree-detail sftp-tree-empty">
+                    <ServerIcon size={22} />
+                    <span>没有匹配的服务器</span>
+                  </section>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">

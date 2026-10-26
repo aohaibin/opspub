@@ -58,7 +58,7 @@ export interface SftpSessionTab {
 
 export type SftpLayoutMode = "single" | "dual-h" | "dual-v" | "quad";
 
-export type SftpViewMode = "grid" | "list";
+export type SftpViewMode = "grid" | "list" | "tree";
 
 /** 默认预设的远程初始文件演示数据（完全对齐设计图 2 的 /root 目录清单） */
 export const DEFAULT_ROOT_FILES: RemoteFileItem[] = [

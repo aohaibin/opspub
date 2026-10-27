@@ -67,6 +67,16 @@ export interface DatabaseTableItem {
   tableType: string;
 }
 
+export interface DatabaseColumnItem {
+  name: string;
+  dataType: string;
+  nullable: boolean;
+  defaultValue?: string | null;
+  primaryKey: boolean;
+  autoIncrement: boolean;
+  comment?: string | null;
+}
+
 export const databaseApi = {
   list: () => invoke<DatabaseConnection[]>("list_database_connections"),
   create: (input: DatabaseConnectionInput) =>
@@ -88,6 +98,34 @@ export const databaseApi = {
     invoke<DatabaseTableItem[]>("list_database_tables", {
       connectionId,
       databaseName: databaseName || null,
+    }),
+  listColumns: (connectionId: number, databaseName: string | undefined, tableName: string) =>
+    invoke<DatabaseColumnItem[]>("list_database_columns", {
+      connectionId,
+      databaseName: databaseName || null,
+      tableName,
+    }),
+  addColumn: (input: {
+    connectionId: number;
+    databaseName?: string;
+    tableName: string;
+    name: string;
+    dataType: string;
+    nullable: boolean;
+    defaultValue?: string;
+  }) => invoke<boolean>("add_database_column", { input }),
+  dropColumn: (connectionId: number, databaseName: string | undefined, tableName: string, columnName: string) =>
+    invoke<boolean>("drop_database_column", {
+      connectionId,
+      databaseName: databaseName || null,
+      tableName,
+      columnName,
+    }),
+  tableDdl: (connectionId: number, databaseName: string | undefined, tableName: string) =>
+    invoke<string>("get_table_ddl", {
+      connectionId,
+      databaseName: databaseName || null,
+      tableName,
     }),
   redisKeys: (connectionId: number, pattern = "*", limit = 200) =>
     invoke<RedisKeyItem[]>("list_redis_keys", { connectionId, pattern, limit }),

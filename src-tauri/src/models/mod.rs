@@ -423,6 +423,36 @@ pub struct DatabaseTableItem {
     pub table_type: String,
 }
 
+/// Column metadata for a table structure view and schema operations.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseColumnItem {
+    pub name: String,
+    pub data_type: String,
+    pub nullable: bool,
+    pub default_value: Option<String>,
+    pub primary_key: bool,
+    pub auto_increment: bool,
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseColumnInput {
+    pub connection_id: i64,
+    pub database_name: Option<String>,
+    pub table_name: String,
+    pub name: String,
+    pub data_type: String,
+    #[serde(default = "default_column_nullable")]
+    pub nullable: bool,
+    pub default_value: Option<String>,
+}
+
+fn default_column_nullable() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RedisKeyItem {

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Form, Input, Modal, Select, Switch, Table, message } from "antd";
-import { save } from "@tauri-apps/plugin-dialog";
+import { open as openFile, save } from "@tauri-apps/plugin-dialog";
 import {
   Database,
   Key,
@@ -20,6 +20,13 @@ import {
   Wifi,
   X,
   Download,
+  RefreshCw,
+  RotateCw,
+  Zap,
+  Copy,
+  Trash2,
+  FileCode,
+  List,
   ChevronRight,
   Folder,
   Table2,
@@ -28,7 +35,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/client";
-import { databaseApi, type DatabaseConnection, type DatabaseTableItem, type MongoCollectionItem, type RedisKeyItem } from "@/lib/api/database";
+import { databaseApi, type DatabaseColumnItem, type DatabaseConnection, type DatabaseTableItem, type MongoCollectionItem, type RedisKeyItem } from "@/lib/api/database";
 import { fileApi } from "@/lib/api/file";
 import { serverApi } from "@/lib/api/server";
 import { useWorkbenchRuntime } from "../context";
@@ -190,6 +197,20 @@ export const DatabaseView: React.FC = () => {
   const [structureOpen, setStructureOpen] = useState(false);
   const [structureLoading, setStructureLoading] = useState(false);
   const [structureTables, setStructureTables] = useState<DatabaseTableItem[]>([]);
+  const [selectedTable, setSelectedTable] = useState<DatabaseTableItem | null>(null);
+  const [tableColumns, setTableColumns] = useState<DatabaseColumnItem[]>([]);
+  const [tableColumnsLoading, setTableColumnsLoading] = useState(false);
+  const [columnModalOpen, setColumnModalOpen] = useState(false);
+  const [columnForm] = Form.useForm();
+  const [contextMenu, setContextMenu] = useState<{
+    kind: "connection" | "database";
+    connection: DbConnectionItem;
+    databaseName?: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [createTableOpen, setCreateTableOpen] = useState(false);
+  const [createTableForm] = Form.useForm();
   const [sqlSuggestions, setSqlSuggestions] = useState<string[]>([]);
   const [activeSqlSuggestion, setActiveSqlSuggestion] = useState(0);
   const [suggestingTable, setSuggestingTable] = useState(false);
@@ -292,6 +313,19 @@ export const DatabaseView: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setContextMenu(null);
+    };
+    document.addEventListener("click", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
+
   const activeConnections = useMemo(() => {
     if (subTab === "redis") return redisConnections;
     if (subTab === "mongodb") return mongoConnections;
@@ -370,12 +404,324 @@ export const DatabaseView: React.FC = () => {
     }
   };
 
+  const handleCreateTable = async () => {
+    if (!selectedConnectionId || !selectedDb) return;
+    try {
+      const values = await createTableForm.validateFields();
+      const tableName = String(values.name).trim();
+      const columns = String(values.columns).trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(tableName)) {
+        throw new Error("表名只能包含字母、数字、下划线或 $，且不能以数字开头");
+      }
+      await databaseApi.query(Number(selectedConnectionId), `CREATE TABLE ${tableName} (${columns});`, selectedDb);
+      message.success(`表 ${tableName} 已创建`);
+      setCreateTableOpen(false);
+      createTableForm.resetFields();
+      const key = `${selectedConnectionId}:${selectedDb}`;
+      setDatabaseObjects((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      await handleLoadDatabaseObjects(selectedConnectionId, selectedDb);
+    } catch (error) {
+      if (error && typeof error === "object" && "errorFields" in error) return;
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const handleRunSqlFile = async () => {
+    if (!selectedConnectionId || !selectedDb) return;
+    try {
+      const selected = await openFile({
+        title: "选择 SQL 文件",
+        multiple: false,
+        directory: false,
+        filters: [{ name: "SQL 文件", extensions: ["sql", "txt"] }],
+      });
+      const path = Array.isArray(selected) ? selected[0] : selected;
+      if (!path) return;
+      const sql = await fileApi.readText(path);
+      if (!sql.trim()) {
+        message.warning("SQL 文件为空");
+        return;
+      }
+      updateCurrentTabSql(sql);
+      const result = await databaseApi.query(Number(selectedConnectionId), sql, selectedDb);
+      setResultColumnNames(result.columns);
+      setResultRows(result.rows.map((row) => Object.fromEntries(
+        result.columns.map((column, index) => [column, row[index] ?? ""]),
+      )));
+      setExecStats({ affected: result.affectedRows, timeMs: result.timeMs });
+      message.success(`SQL 文件执行完成，耗时 ${result.timeMs}ms`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const handleDumpDatabaseSql = async (connectionId: string, databaseName: string) => {
+    try {
+      const key = `${connectionId}:${databaseName}`;
+      let objects = databaseObjects[key];
+      if (!objects) {
+        objects = await databaseApi.listTables(Number(connectionId), databaseName);
+        setDatabaseObjects((current) => ({ ...current, [key]: objects ?? [] }));
+      }
+      const tables = objects.filter((item) => {
+        const type = item.tableType.toLowerCase();
+        return type === "table" || type === "base table" || type.includes("table");
+      });
+      if (tables.length === 0) {
+        message.info("当前数据库没有可导出的表");
+        return;
+      }
+      const definitions = await Promise.all(tables.map(async (table) => {
+        try {
+          return await databaseApi.tableDdl(Number(connectionId), databaseName, table.name);
+        } catch {
+          return `-- 无法读取表 ${table.name} 的结构`;
+        }
+      }));
+      const path = await save({
+        title: "导出数据库 SQL",
+        defaultPath: `${databaseName}-schema.sql`,
+        filters: [{ name: "SQL 文件", extensions: ["sql"] }],
+      });
+      if (!path) return;
+      await fileApi.writeText(path, `-- Database: ${databaseName}\n\n${definitions.join("\n\n")}`);
+      message.success(`数据库 SQL 已导出到 ${path}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const handleDbContextAction = async (action: string) => {
+    const current = contextMenu;
+    setContextMenu(null);
+    if (!current) return;
+    const connectionId = current.connection.id;
+    if (current.kind === "connection") {
+      setSelectedConnectionId(connectionId);
+      if (action === "reconnect") {
+        try {
+          await databaseApi.testSaved(Number(connectionId));
+          await handleLoadSqlDatabases(connectionId, true);
+          message.success("数据库连接已刷新");
+        } catch (error) {
+          message.error(getErrorMessage(error));
+        }
+      } else if (action === "test") {
+        try {
+          const result = await databaseApi.testSaved(Number(connectionId));
+          if (!result.ok) throw new Error(result.message || "数据库连接测试失败");
+          message.success(`连接测试成功${result.latencyMs == null ? "" : `，耗时 ${result.latencyMs}ms`}`);
+        } catch (error) {
+          message.error(getErrorMessage(error));
+        }
+      } else if (action === "edit") {
+        handleEditDbConnection(current.connection);
+      } else if (action === "copy") {
+        try {
+          await navigator.clipboard.writeText(current.connection.name);
+          message.success("连接名称已复制");
+        } catch (error) {
+          message.error(getErrorMessage(error));
+        }
+      } else if (action === "delete") {
+        handleDeleteConnection(current.connection);
+      }
+      return;
+    }
+
+    const databaseName = current.databaseName;
+    if (!databaseName) return;
+    setSelectedConnectionId(connectionId);
+    setSelectedDb(databaseName);
+    if (action === "search") {
+      setSelectedTable(null);
+      const engine = current.connection.type.toLowerCase();
+      const searchSql = engine === "sqlite"
+        ? "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') ORDER BY name;"
+        : engine === "oracle"
+          ? "SELECT table_name FROM user_tables ORDER BY table_name;"
+          : engine === "clickhouse"
+            ? "SHOW TABLES;"
+            : `SELECT table_name, table_type FROM information_schema.tables WHERE table_schema = '${databaseName}';`;
+      updateCurrentTabSql(`-- 在数据库 ${databaseName} 中查询\n${searchSql}`);
+      message.info("已将数据库搜索语句放入 SQL 编辑器");
+    } else if (action === "createTable") {
+      createTableForm.resetFields();
+      setCreateTableOpen(true);
+    } else if (action === "runSql") {
+      await handleRunSqlFile();
+    } else if (action === "dumpSql") {
+      await handleDumpDatabaseSql(connectionId, databaseName);
+    } else if (action === "tableList") {
+      setSelectedTable(null);
+      setTableColumns([]);
+      await handleLoadDatabaseObjects(connectionId, databaseName);
+      message.success(`已打开 ${databaseName} 的表清单`);
+    } else if (action === "copy") {
+      try {
+        await navigator.clipboard.writeText(databaseName);
+        message.success("数据库名称已复制");
+      } catch (error) {
+        message.error(getErrorMessage(error));
+      }
+    } else if (action === "refresh") {
+      const key = `${connectionId}:${databaseName}`;
+      setDatabaseObjects((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      await handleLoadDatabaseObjects(connectionId, databaseName);
+      message.success("数据库对象已刷新");
+    } else if (action === "delete") {
+      if (current.connection.type === "SQLite") {
+        message.warning("SQLite 不支持删除数据库节点，请直接管理数据库文件");
+        return;
+      }
+      Modal.confirm({
+        title: `删除数据库“${databaseName}”？`,
+        content: "该操作会执行 DROP DATABASE，数据库中的表和数据将永久删除。",
+        okText: "确认删除",
+        okButtonProps: { danger: true },
+        cancelText: "取消",
+        onOk: async () => {
+          try {
+            await databaseApi.query(Number(connectionId), `DROP DATABASE ${databaseName};`, databaseName);
+            setDatabaseOptions((current) => ({ ...current, [connectionId]: (current[connectionId] ?? []).filter((item) => item !== databaseName) }));
+            setSelectedDb("");
+            message.success(`数据库 ${databaseName} 已删除`);
+          } catch (error) {
+            message.error(getErrorMessage(error));
+          }
+        },
+      });
+    }
+  };
+
+  const handleSelectTable = async (connectionId: string, databaseName: string, table: DatabaseTableItem) => {
+    const connection = sqlConnections.find((item) => item.id === connectionId);
+    if (!connection || table.tableType.toLowerCase().includes("view") === false && table.tableType.toLowerCase() !== "table" && table.tableType.toLowerCase() !== "base table") {
+      return;
+    }
+    setSelectedConnectionId(connectionId);
+    setSelectedDb(databaseName);
+    setSelectedTable(table);
+    setTableColumns([]);
+    setTableColumnsLoading(true);
+    try {
+      const columns = await databaseApi.listColumns(Number(connectionId), databaseName, table.name);
+      setTableColumns(columns);
+      updateCurrentTabSql(`SELECT * FROM ${table.name} LIMIT 100;`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setTableColumnsLoading(false);
+    }
+  };
+
+  const refreshSelectedTable = async () => {
+    if (!selectedConnectionId || !selectedDb || !selectedTable) return;
+    await handleSelectTable(selectedConnectionId, selectedDb, selectedTable);
+  };
+
+  const handleAddColumn = async () => {
+    if (!selectedConnectionId || !selectedDb || !selectedTable) return;
+    try {
+      const values = await columnForm.validateFields();
+      await databaseApi.addColumn({
+        connectionId: Number(selectedConnectionId),
+        databaseName: selectedDb,
+        tableName: selectedTable.name,
+        name: values.name.trim(),
+        dataType: values.dataType.trim(),
+        nullable: values.nullable !== false,
+        defaultValue: values.defaultValue?.trim() || undefined,
+      });
+      message.success("字段已创建");
+      setColumnModalOpen(false);
+      columnForm.resetFields();
+      await refreshSelectedTable();
+    } catch (error) {
+      if (error && typeof error === "object" && "errorFields" in error) return;
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const handleDropColumn = (column: DatabaseColumnItem) => {
+    if (!selectedConnectionId || !selectedDb || !selectedTable) return;
+    if (column.primaryKey) {
+      message.warning("主键字段不能直接删除，请先调整表约束");
+      return;
+    }
+    Modal.confirm({
+      title: `删除字段“${column.name}”？`,
+      content: "删除字段会直接修改远端表结构，请确认已备份数据。",
+      okText: "删除字段",
+      okButtonProps: { danger: true },
+      cancelText: "取消",
+      onOk: async () => {
+        try {
+          await databaseApi.dropColumn(Number(selectedConnectionId), selectedDb, selectedTable.name, column.name);
+          message.success("字段已删除");
+          await refreshSelectedTable();
+        } catch (error) {
+          message.error(getErrorMessage(error));
+        }
+      },
+    });
+  };
+
+  const handleExportTableCsv = async () => {
+    if (!selectedConnectionId || !selectedDb || !selectedTable) return;
+    try {
+      const result = await databaseApi.query(Number(selectedConnectionId), `SELECT * FROM ${selectedTable.name};`, selectedDb);
+      const escapeCsv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+      const csv = [
+        result.columns.map(escapeCsv).join(","),
+        ...result.rows.map((row) => row.map(escapeCsv).join(",")),
+      ].join("\n");
+      const path = await save({
+        title: "导出表 CSV",
+        defaultPath: `${selectedTable.name}-${Date.now()}.csv`,
+        filters: [{ name: "CSV 文件", extensions: ["csv"] }],
+      });
+      if (!path) return;
+      await fileApi.writeText(path, `\uFEFF${csv}`);
+      message.success(`CSV 已导出到 ${path}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const handleExportTableSql = async () => {
+    if (!selectedConnectionId || !selectedDb || !selectedTable) return;
+    try {
+      const ddl = await databaseApi.tableDdl(Number(selectedConnectionId), selectedDb, selectedTable.name);
+      const path = await save({
+        title: "导出表 SQL",
+        defaultPath: `${selectedTable.name}-schema.sql`,
+        filters: [{ name: "SQL 文件", extensions: ["sql"] }],
+      });
+      if (!path) return;
+      await fileApi.writeText(path, ddl);
+      message.success(`SQL 已导出到 ${path}`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
   const toggleDatabaseNode = (connection: DbConnectionItem, databaseName: string) => {
     const key = `${connection.id}:${databaseName}`;
     const nextExpanded = !expandedDatabaseKeys[key];
     setExpandedDatabaseKeys((current) => ({ ...current, [key]: nextExpanded }));
     setSelectedConnectionId(connection.id);
     setSelectedDb(databaseName);
+    setSelectedTable(null);
+    setTableColumns([]);
     if (nextExpanded) void handleLoadDatabaseObjects(connection.id, databaseName);
   };
 
@@ -1073,6 +1419,12 @@ export const DatabaseView: React.FC = () => {
   const hasActiveConnection = Boolean(
     selectedConnection && ("dbIndex" in selectedConnection || selectedConnection.type === "MongoDB" || selectedDb),
   );
+  const selectedDatabaseTables = selectedConnectionId && selectedDb
+    ? (databaseObjects[`${selectedConnectionId}:${selectedDb}`] ?? []).filter((item) => {
+      const type = item.tableType.trim().toLowerCase();
+      return type === "table" || type === "base table" || type.includes("table");
+    })
+    : [];
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-2.5 overflow-hidden select-none">
@@ -1250,6 +1602,12 @@ export const DatabaseView: React.FC = () => {
                     <div
                       className="flex items-center gap-1.5 p-2 hover:bg-surface-800/60 cursor-pointer transition select-none"
                       onClick={() => selectConnection(conn)}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setSelectedConnectionId(conn.id);
+                        setContextMenu({ kind: "connection", connection: sqlConnection, x: event.clientX, y: event.clientY });
+                      }}
                     >
                       <button
                         type="button"
@@ -1314,6 +1672,13 @@ export const DatabaseView: React.FC = () => {
                               type="button"
                               className={`flex w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left transition hover:bg-surface-800/80 ${selectedDb === databaseName && selectedConnectionId === conn.id ? "bg-teal-500/10 text-teal-200" : "text-slate-300"}`}
                               onClick={() => toggleDatabaseNode(sqlConnection, databaseName)}
+                              onContextMenu={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setSelectedConnectionId(conn.id);
+                                setSelectedDb(databaseName);
+                                setContextMenu({ kind: "database", connection: sqlConnection, databaseName, x: event.clientX, y: event.clientY });
+                              }}
                             >
                               <ChevronRight className={`h-3 w-3 shrink-0 text-slate-500 transition-transform ${isDatabaseExpanded ? "rotate-90" : ""}`} />
                               <Folder className="h-3.5 w-3.5 shrink-0 text-teal-400" />
@@ -1356,7 +1721,7 @@ export const DatabaseView: React.FC = () => {
                                               key={`${group.key}-${item.name}`}
                                               type="button"
                                               className="flex w-full items-center justify-between rounded px-1.5 py-1 text-left text-[10px] text-slate-500 transition hover:bg-surface-800/80 hover:text-teal-300"
-                                              onClick={() => { setSelectedConnectionId(conn.id); setSelectedDb(databaseName); updateCurrentTabSql(`SELECT * FROM ${item.name} LIMIT 100;`); }}
+                                              onClick={() => void handleSelectTable(conn.id, databaseName, item)}
                                             >
                                               <span className="flex min-w-0 items-center gap-1.5 truncate">
                                                 {group.key === "view" ? <Eye className="h-3 w-3 shrink-0 text-amber-400" /> : group.key === "procedure" ? <Settings2 className="h-3 w-3 shrink-0 text-cyan-400" /> : <Table2 className="h-3 w-3 shrink-0 text-blue-400" />}
@@ -1509,6 +1874,68 @@ export const DatabaseView: React.FC = () => {
             </div>
 
             {/* SQL 编辑器与结果集独立滚动，右侧卡片本身保持原型高度 */}
+            {!selectedTable && selectedDb && selectedConnection && selectedConnection.type !== "Redis" && selectedConnection.type !== "MongoDB" && (
+              <div className="shrink-0 border-b border-slate-800 bg-surface-900/60 px-3 py-2">
+                <div className="flex items-center gap-2 mb-2 text-xs text-slate-300">
+                  <Table2 className="w-3.5 h-3.5 text-blue-400" />
+                  <span>数据库表</span>
+                  <span className="text-[10px] text-slate-500">{selectedDb}</span>
+                  <span className="ml-auto text-[10px] text-slate-500">{selectedDatabaseTables.length} 张表</span>
+                </div>
+                {selectedDatabaseTables.length === 0 ? (
+                  <div className="py-5 text-center text-xs text-slate-500">展开左侧“表”并选择一张表查看字段</div>
+                ) : (
+                  <div className="max-h-36 overflow-y-auto custom-scrollbar grid grid-cols-2 gap-1">
+                    {selectedDatabaseTables.map((table) => (
+                      <button key={table.name} type="button" onClick={() => void handleSelectTable(selectedConnectionId!, selectedDb, table)} className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-slate-300 hover:bg-surface-800 hover:text-teal-200">
+                        <Table2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span className="truncate">{table.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedTable && selectedConnection && selectedConnection.type !== "Redis" && selectedConnection.type !== "MongoDB" && (
+              <div className="shrink-0 border-b border-slate-800 bg-surface-900/60">
+                <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-slate-800/80">
+                  <div className="min-w-0 mr-auto">
+                    <div className="flex items-center gap-2 text-xs text-slate-200">
+                      <Table2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <span className="font-medium truncate">{selectedTable.name}</span>
+                      <span className="text-[10px] text-slate-500">{selectedDb}</span>
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-slate-500">{tableColumns.length} 个字段 · {displayEngineName(selectedConnection.type)}</div>
+                  </div>
+                  <Button size="small" onClick={() => { setSelectedTable(null); setTableColumns([]); }}>返回表列表</Button>
+                  <Button size="small" icon={<Table2 className="w-3 h-3" />} onClick={() => void refreshSelectedTable()}>查看结构</Button>
+                  <Button size="small" icon={<RefreshCw className="w-3 h-3" />} loading={tableColumnsLoading} onClick={() => void refreshSelectedTable()}>刷新</Button>
+                  <Button size="small" icon={<Plus className="w-3 h-3" />} onClick={() => { columnForm.resetFields(); setColumnModalOpen(true); }}>新建字段</Button>
+                  <Button size="small" icon={<Download className="w-3 h-3" />} onClick={() => void handleExportTableCsv()}>导出 CSV</Button>
+                  <Button size="small" icon={<Download className="w-3 h-3" />} onClick={() => void handleExportTableSql()}>导出 SQL</Button>
+                </div>
+                <div className="max-h-52 overflow-auto custom-scrollbar px-3 py-2">
+                  {tableColumnsLoading ? <div className="py-7 text-center text-xs text-slate-500">正在读取表结构...</div> : tableColumns.length === 0 ? <div className="py-7 text-center text-xs text-slate-500">暂无字段信息</div> : (
+                    <Table<DatabaseColumnItem>
+                      rowKey="name"
+                      size="small"
+                      pagination={false}
+                      dataSource={tableColumns}
+                      className="ops-table text-xs"
+                      columns={[
+                        { title: "字段", dataIndex: "name", key: "name", render: (value: string, column) => <span className="font-mono text-slate-200">{value}{column.primaryKey && <span className="ml-1 text-amber-400">PK</span>}</span> },
+                        { title: "类型", dataIndex: "dataType", key: "dataType", render: (value: string) => <span className="font-mono text-slate-300">{value}</span> },
+                        { title: "可空", dataIndex: "nullable", key: "nullable", render: (value: boolean) => <span className={value ? "text-emerald-400" : "text-rose-300"}>{value ? "是" : "否"}</span> },
+                        { title: "默认值", dataIndex: "defaultValue", key: "defaultValue", render: (value: string | null) => <span className="font-mono text-slate-400">{value || "-"}</span> },
+                        { title: "操作", key: "action", width: 72, render: (_: unknown, column) => <Button type="link" danger size="small" disabled={column.primaryKey} onClick={() => handleDropColumn(column)}>删除</Button> },
+                      ]}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
             {/* SQL 编辑器模拟区域 */}
             <div className="bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0 relative">
@@ -1747,6 +2174,44 @@ export const DatabaseView: React.FC = () => {
         </div>
       </div>
 
+      {contextMenu && (
+        <div
+          className="fixed z-[120] min-w-[190px] rounded-xl border border-slate-700/90 bg-[#0f172a] py-1 text-xs text-slate-200 shadow-2xl"
+          style={{
+            left: Math.min(contextMenu.x, Math.max(8, window.innerWidth - 220)),
+            top: Math.min(contextMenu.y, Math.max(8, window.innerHeight - (contextMenu.kind === "connection" ? 250 : 330))),
+          }}
+          onClick={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          {contextMenu.kind === "connection" ? (
+            <>
+              <button type="button" onClick={() => void handleDbContextAction("reconnect")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><RotateCw className="h-3.5 w-3.5 text-teal-400" />重新连接 / 刷新</button>
+              <button type="button" onClick={() => void handleDbContextAction("test")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><Zap className="h-3.5 w-3.5 text-amber-400" />测试连接</button>
+              <button type="button" onClick={() => void handleDbContextAction("edit")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><Pencil className="h-3.5 w-3.5 text-blue-400" />编辑连接</button>
+              <div className="my-1 border-t border-slate-800/80" />
+              <button type="button" onClick={() => void handleDbContextAction("copy")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><Copy className="h-3.5 w-3.5 text-slate-400" />复制连接名</button>
+              <div className="my-1 border-t border-slate-800/80" />
+              <button type="button" onClick={() => void handleDbContextAction("delete")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-rose-400 hover:bg-rose-500/10"><Trash2 className="h-3.5 w-3.5" />删除连接</button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={() => void handleDbContextAction("search")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><Search className="h-3.5 w-3.5 text-slate-400" />在此库中查询...</button>
+              <div className="my-1 border-t border-slate-800/80" />
+              <button type="button" onClick={() => void handleDbContextAction("createTable")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><Plus className="h-3.5 w-3.5 text-blue-400" />新建表</button>
+              <button type="button" onClick={() => void handleDbContextAction("runSql")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><FileCode className="h-3.5 w-3.5 text-emerald-400" />运行 SQL 文件...</button>
+              <button type="button" onClick={() => void handleDbContextAction("dumpSql")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><Download className="h-3.5 w-3.5 text-amber-400" />导出 SQL 文件...</button>
+              <button type="button" onClick={() => void handleDbContextAction("tableList")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><List className="h-3.5 w-3.5 text-purple-400" />打开表清单</button>
+              <div className="my-1 border-t border-slate-800/80" />
+              <button type="button" onClick={() => void handleDbContextAction("copy")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><Copy className="h-3.5 w-3.5 text-slate-400" />复制数据库名</button>
+              <button type="button" onClick={() => void handleDbContextAction("refresh")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-800"><RefreshCw className="h-3.5 w-3.5 text-teal-400" />刷新</button>
+              <div className="my-1 border-t border-slate-800/80" />
+              <button type="button" onClick={() => void handleDbContextAction("delete")} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-rose-400 hover:bg-rose-500/10"><Trash2 className="h-3.5 w-3.5" />删除数据库</button>
+            </>
+          )}
+        </div>
+      )}
+
       <Modal
         open={Boolean(detailConnection)}
         title="数据库连接详情"
@@ -1807,6 +2272,53 @@ export const DatabaseView: React.FC = () => {
       </Modal>
 
       {/* 查询历史 */}
+      <Modal
+        open={createTableOpen}
+        title={`新建表${selectedDb ? ` · ${selectedDb}` : ""}`}
+        okText="创建表"
+        cancelText="取消"
+        onCancel={() => setCreateTableOpen(false)}
+        onOk={() => void handleCreateTable()}
+        maskClosable={false}
+        width={520}
+      >
+        <Form form={createTableForm} layout="vertical" initialValues={{ columns: "id INTEGER PRIMARY KEY" }} className="pt-2">
+          <Form.Item name="name" label="表名" rules={[{ required: true, message: "请输入表名" }, { pattern: /^[A-Za-z_][A-Za-z0-9_$]*$/, message: "表名只能包含字母、数字、下划线或 $" }]}>
+            <Input placeholder="例如 audit_logs" />
+          </Form.Item>
+          <Form.Item name="columns" label="字段定义" rules={[{ required: true, message: "请输入字段定义" }]}>
+            <Input.TextArea rows={5} placeholder="例如 id INTEGER PRIMARY KEY, created_at TIMESTAMP NOT NULL, message TEXT" />
+          </Form.Item>
+          <div className="text-[11px] leading-relaxed text-slate-500">字段定义会按当前数据库方言执行 CREATE TABLE，请使用逗号分隔字段和约束。</div>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={columnModalOpen}
+        title={`新建字段${selectedTable ? ` · ${selectedTable.name}` : ""}`}
+        okText="创建字段"
+        cancelText="取消"
+        onCancel={() => setColumnModalOpen(false)}
+        onOk={() => void handleAddColumn()}
+        maskClosable={false}
+        width={460}
+      >
+        <Form form={columnForm} layout="vertical" initialValues={{ nullable: true }} className="pt-2">
+          <Form.Item name="name" label="字段名" rules={[{ required: true, message: "请输入字段名" }, { pattern: /^[A-Za-z_][A-Za-z0-9_$]*$/, message: "字段名只能包含字母、数字、下划线或 $" }]}>
+            <Input placeholder="例如 created_at" />
+          </Form.Item>
+          <Form.Item name="dataType" label="字段类型" rules={[{ required: true, message: "请输入字段类型" }]}>
+            <Input placeholder="例如 VARCHAR(255)、INTEGER、TIMESTAMP" />
+          </Form.Item>
+          <Form.Item name="nullable" label="允许 NULL" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item name="defaultValue" label="默认值">
+            <Input placeholder="可选，例如 0 或 CURRENT_TIMESTAMP" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
       <Modal
         open={historyOpen}
         title="SQL 执行历史"

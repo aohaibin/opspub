@@ -125,6 +125,7 @@ pub fn run() {
             commands::config::set_config,
             commands::config::delete_config,
             commands::file::write_text_file,
+            commands::file::read_text_file,
             // 服务器模块
             commands::server::list_servers,
             commands::server::list_saved_ssh_credentials,
@@ -192,6 +193,10 @@ pub fn run() {
             commands::database::execute_database_query,
             commands::database::list_sql_databases,
             commands::database::list_database_tables,
+            commands::database::list_database_columns,
+            commands::database::add_database_column,
+            commands::database::drop_database_column,
+            commands::database::get_table_ddl,
             commands::database::list_redis_keys,
             commands::database::get_redis_value,
             commands::database::list_mongo_collections,

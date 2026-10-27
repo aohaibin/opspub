@@ -2,8 +2,9 @@ use tauri::Manager;
 
 use crate::error::CommandError;
 use crate::models::{
-    DatabaseConnection, DatabaseConnectionInput, DatabaseProbeResult, DatabaseQueryRequest,
-    DatabaseQueryResult, DatabaseTableItem, MongoCollectionItem, RedisKeyItem,
+    DatabaseColumnInput, DatabaseColumnItem, DatabaseConnection, DatabaseConnectionInput,
+    DatabaseProbeResult, DatabaseQueryRequest, DatabaseQueryResult, DatabaseTableItem,
+    MongoCollectionItem, RedisKeyItem,
 };
 use crate::services::database_connection::DatabaseConnectionService;
 use crate::state::AppState;
@@ -151,6 +152,73 @@ pub async fn list_database_tables(
         code: "INTERNAL".into(),
         message: format!("数据库结构查询任务异常结束: {error}"),
     })?
+}
+
+#[tauri::command]
+pub async fn list_database_columns(
+    app: tauri::AppHandle,
+    connection_id: i64,
+    database_name: Option<String>,
+    table_name: String,
+) -> Result<Vec<DatabaseColumnItem>, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        DatabaseConnectionService::list_database_columns(
+            &state.db,
+            connection_id,
+            database_name.as_deref(),
+            &table_name,
+        ).map_err(CommandError::from)
+    }).await.map_err(database_task_error)?
+}
+
+#[tauri::command]
+pub async fn add_database_column(
+    app: tauri::AppHandle,
+    input: DatabaseColumnInput,
+) -> Result<bool, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        DatabaseConnectionService::add_database_column(&state.db, input).map_err(CommandError::from)
+    }).await.map_err(database_task_error)?
+}
+
+#[tauri::command]
+pub async fn drop_database_column(
+    app: tauri::AppHandle,
+    connection_id: i64,
+    database_name: Option<String>,
+    table_name: String,
+    column_name: String,
+) -> Result<bool, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        DatabaseConnectionService::drop_database_column(
+            &state.db,
+            connection_id,
+            database_name.as_deref(),
+            &table_name,
+            &column_name,
+        ).map_err(CommandError::from)
+    }).await.map_err(database_task_error)?
+}
+
+#[tauri::command]
+pub async fn get_table_ddl(
+    app: tauri::AppHandle,
+    connection_id: i64,
+    database_name: Option<String>,
+    table_name: String,
+) -> Result<String, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        DatabaseConnectionService::get_table_ddl(
+            &state.db,
+            connection_id,
+            database_name.as_deref(),
+            &table_name,
+        ).map_err(CommandError::from)
+    }).await.map_err(database_task_error)?
 }
 
 #[tauri::command]

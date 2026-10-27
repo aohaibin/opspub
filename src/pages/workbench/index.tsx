@@ -219,7 +219,7 @@ export default function WorkbenchPage() {
   }, [canGoForward]);
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="ops-workbench-page flex flex-col h-full w-full overflow-hidden">
       {/* 1. 顶栏控制器 */}
         <WorkbenchHeader
         currentView={currentView}

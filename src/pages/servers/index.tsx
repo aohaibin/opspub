@@ -75,7 +75,7 @@ type ProbeState = Record<number, ConnectivityResult | "testing">;
 const TAG_PILL: CSSProperties = {
   padding: "1px 6px",
   borderRadius: 4,
-  fontSize: 10,
+  fontSize: 12,
   lineHeight: "16px",
   background: "var(--bg-secondary)",
   border: "1px solid var(--border)",

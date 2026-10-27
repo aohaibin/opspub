@@ -1130,6 +1130,130 @@
   color: var(--text-secondary);
 }
 
+/* 服务器与工作台沿用原型的桌面字号阶梯，限制在各自页面，避免影响其他模块。 */
+.ops-server-page,
+.ops-workbench-page {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+:is(.ops-server-page, .ops-workbench-page) [class~="text-[8px]"],
+:is(.ops-server-page, .ops-workbench-page) [class~="text-[9px]"],
+:is(.ops-server-page, .ops-workbench-page) [class~="text-[10px]"] {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+:is(.ops-server-page, .ops-workbench-page) [class~="text-[11px]"] {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+.ops-workbench-page [class~="!text-[11px]"] {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+:is(.ops-server-page, .ops-workbench-page) .text-xs {
+  font-size: 13.5px !important;
+  line-height: 1.48 !important;
+}
+
+:is(.ops-server-page, .ops-workbench-page) .text-sm {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+:is(.ops-server-page, .ops-workbench-page) .text-base {
+  font-size: 16.5px !important;
+  line-height: 1.55 !important;
+}
+
+:is(.ops-server-page, .ops-workbench-page) .text-lg {
+  font-size: 18.5px !important;
+  line-height: 1.45 !important;
+}
+
+.ops-server-page .ops-page-title {
+  font-size: 18.5px;
+  line-height: 1.45;
+}
+
+.ops-server-page .ops-page-subtitle,
+.ops-server-page .ops-page-desc {
+  font-size: 13.5px;
+  line-height: 1.48;
+}
+
+:is(.ops-server-page, .ops-workbench-page) button {
+  font-size: 13.5px;
+}
+
+:is(.ops-server-page, .ops-workbench-page) button.text-xs {
+  font-size: 13px !important;
+}
+
+.ops-server-page .ops-server-group-list button.text-xs {
+  font-size: 13.5px !important;
+}
+
+:is(.ops-server-page, .ops-workbench-page) input:not([type="checkbox"]):not([type="radio"]),
+:is(.ops-server-page, .ops-workbench-page) select,
+:is(.ops-server-page, .ops-workbench-page) textarea {
+  font-size: 13.5px !important;
+}
+
+.ops-workbench-page .ant-select-selection-item,
+.ops-workbench-page .ant-select-selection-placeholder {
+  font-size: 13.5px;
+}
+
+.ops-workbench-page .ops-table .ant-table-thead > tr > th {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ops-workbench-page .ops-table .ant-table-tbody > tr > td {
+  font-size: 13.5px;
+  line-height: 1.48;
+}
+
+.ops-server-page .ops-server-table-panel .ops-table .ant-table-thead > tr > th {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ops-server-page .ops-server-table-panel .ops-table .ant-table-tbody > tr > td {
+  font-size: 13.5px;
+  line-height: 1.48;
+}
+
+.ops-server-page .ops-server-host-label,
+.ops-server-page .ops-server-address {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ops-server-page .ops-server-group-select,
+.ops-server-page .ops-server-group-select .ant-select-selection-item,
+.ops-server-page .ops-server-group-select .ant-select-arrow {
+  font-size: 13px;
+}
+
+.ops-server-page .ops-server-status,
+.ops-server-page .ops-server-connect-button,
+.ops-server-page .ops-server-text-action {
+  font-size: 13.5px;
+}
+
+.ops-server-page .ops-server-credential-badge .ant-badge-count {
+  font-size: 12px;
+}
+
+.ops-server-page .ops-server-actions .ant-btn {
+  font-size: 13px;
+}
+
 .ops-server-actions .ant-btn {
   height: 30px;
   padding-inline: 11px;

@@ -458,14 +458,15 @@
     }
 
     /* ========================================================================= */
-    /* 桌面应用全真视窗与 DPI 缩放系统 (解决浏览器纯 100% 字体缩小偏小问题) */
+    /* ========================================================================= */
+    /* 1440 × 900 原生桌面居中视窗标准尺寸与高辨识度大字号排版系统              */
     /* ========================================================================= */
     :root {
-      --desktop-zoom: 1.18; /* 默认推荐桌面端 118% DPI 放大，对齐桌面原生软件字号 */
+      --desktop-scale: 1.0;
     }
 
     body, button, input, select, textarea {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Alibaba PuHuiTi 3.0", "Alibaba PuHuiTi", "Microsoft YaHei", sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
@@ -473,7 +474,6 @@
 
     /* 桌面客户端应用视窗主体 */
     #desktopAppWindow {
-      zoom: var(--desktop-zoom, 1.18);
       transform-origin: center center;
       transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
                   height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
@@ -483,24 +483,35 @@
                   opacity 0.2s ease;
     }
 
-    /* 视窗模式 (Windowed): 1:1 独立桌面客户端视窗质感 */
+    /* 视窗模式 (Windowed): 1440 × 900 像素标准居中桌面客户端视窗 (16:10 原生黄金比例) */
     #desktopAppWindow.mode-windowed {
-      width: calc(min(1560px, 94vw) / var(--desktop-zoom, 1.18));
-      height: calc(min(940px, 90vh) / var(--desktop-zoom, 1.18));
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.85),
-                  0 0 0 1px rgba(255, 255, 255, 0.08),
-                  0 0 35px rgba(16, 185, 129, 0.08);
+      width: 1440px !important;
+      height: 900px !important;
+      max-width: calc(100vw - 20px);
+      max-height: calc(100vh - 20px);
+      aspect-ratio: 1440 / 900;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 25px 75px -10px rgba(0, 0, 0, 0.88),
+                  0 0 0 1px rgba(255, 255, 255, 0.1),
+                  0 0 45px rgba(16, 185, 129, 0.12);
+      margin: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
     }
 
     /* 全屏最大化桌面客户端模式 (Maximized) */
     #desktopAppWindow.mode-maximized {
-      width: calc(100vw / var(--desktop-zoom, 1.18));
-      height: calc(100vh / var(--desktop-zoom, 1.18));
+      width: 100vw !important;
+      height: 100vh !important;
       border-radius: 0;
       border: none;
       box-shadow: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     /* 窗口最小化状态 */
@@ -510,18 +521,127 @@
       pointer-events: none;
     }
 
-    /* 视窗模式下内部高度自适应修正 */
-    #desktopAppWindow.mode-windowed .tab-content,
-    #desktopAppWindow.mode-windowed .wb-view {
+    /* 内部内容区严格撑满 900px 视窗高度，消除多余外层垂直滚动 */
+    #desktopAppWindow .tab-content,
+    #desktopAppWindow .wb-view {
       height: 100% !important;
       max-height: 100% !important;
+      min-height: 0 !important;
     }
 
-    /* 弹窗与抽屉同步桌面 DPI 缩放，保证弹窗内字号与控件舒适放大 */
-    div[id^="modal"] > div,
-    div[id^="drawer"] > div,
-    #screenAppExited > div {
-      zoom: var(--desktop-zoom, 1.18);
+    /* ========================================================================= */
+    /* 1440 × 900 视窗下字号全面升级 (彻底解决原先字体过小、看起费劲问题)        */
+    /* ========================================================================= */
+    #desktopAppWindow {
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    /* 1. 微小辅助字体阶梯提升：原 8px/9px/10px 提升到 12px~12.5px，清晰明了 */
+    #desktopAppWindow .text-\[8px\],
+    #desktopAppWindow .text-\[9px\],
+    #desktopAppWindow .text-\[10px\] {
+      font-size: 12px !important;
+      line-height: 1.35 !important;
+    }
+
+    /* 2. 次级标签元数据阶梯提升：原 11px 提升到 13px */
+    #desktopAppWindow .text-\[11px\] {
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+    }
+
+    /* 3. 核心正文基准阶梯提升：原 text-xs (12px) 提升到 13.5px~14px，圆润饱满 */
+    #desktopAppWindow .text-xs {
+      font-size: 13.5px !important;
+      line-height: 1.48 !important;
+    }
+
+    /* 4. 小标题与操作按钮提升：原 text-sm (14px) 提升到 15px */
+    #desktopAppWindow .text-sm {
+      font-size: 15px !important;
+      line-height: 1.5 !important;
+    }
+
+    /* 5. 主标题层级提升 */
+    #desktopAppWindow .text-base {
+      font-size: 16.5px !important;
+      line-height: 1.55 !important;
+    }
+    #desktopAppWindow .text-lg {
+      font-size: 18.5px !important;
+      line-height: 1.45 !important;
+    }
+    #desktopAppWindow .text-xl {
+      font-size: 21px !important;
+      line-height: 1.4 !important;
+    }
+
+    /* 6. 等宽字体（终端、SQL 编辑区、代码块、状态哈希）提升与行高优化 */
+    #desktopAppWindow .font-mono,
+    #desktopAppWindow pre,
+    #desktopAppWindow code,
+    #desktopAppWindow .terminal-output,
+    #desktopAppWindow .xterm {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace !important;
+      font-size: 13.5px !important;
+      line-height: 1.6 !important;
+    }
+
+    /* 7. 表单控件与按钮舒适高度，避免大字挤压 */
+    #desktopAppWindow input:not([type="checkbox"]):not([type="radio"]),
+    #desktopAppWindow select,
+    #desktopAppWindow textarea {
+      font-size: 13.5px !important;
+    }
+    #desktopAppWindow button {
+      font-size: 13.5px;
+    }
+    #desktopAppWindow button.text-xs {
+      font-size: 13px !important;
+    }
+
+    /* 8. 侧边栏适度放宽并放大图标文字，符合 1440x900 桌面原生质感 */
+    #appSidebar {
+      width: 74px !important;
+    }
+    #appSidebar .nav-btn {
+      width: 62px !important;
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+    }
+    #appSidebar .nav-label {
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      max-width: 60px !important;
+    }
+    #appSidebar svg {
+      width: 22px !important;
+      height: 22px !important;
+    }
+
+    /* 9. 弹窗和侧滑抽屉同步 1440x900 字体层级 */
+    div[id^="modal"] .text-\[10px\],
+    div[id^="drawer"] .text-\[10px\] {
+      font-size: 12px !important;
+    }
+    div[id^="modal"] .text-\[11px\],
+    div[id^="drawer"] .text-\[11px\] {
+      font-size: 13px !important;
+    }
+    div[id^="modal"] .text-xs,
+    div[id^="drawer"] .text-xs {
+      font-size: 13.5px !important;
+    }
+    div[id^="modal"] .text-sm,
+    div[id^="drawer"] .text-sm {
+      font-size: 15px !important;
+    }
+    div[id^="modal"] input,
+    div[id^="modal"] select,
+    div[id^="drawer"] input,
+    div[id^="drawer"] select {
+      font-size: 13.5px !important;
     }
 
     .window-drag-region {
@@ -531,7 +651,6 @@
     .window-no-drag {
       -webkit-app-region: no-drag;
     }
-
   </style>
 </head>
 <body class="bg-[#050811] text-slate-100 h-full max-h-screen overflow-hidden font-sans select-none">
@@ -547,7 +666,7 @@
     <!-- ================================================================================= -->
     <!-- 桌面客户端应用视窗 (Desktop Application Window) -->
     <!-- ================================================================================= -->
-    <div id="desktopAppWindow" class="mode-maximized relative flex flex-col bg-surface-950 text-slate-100 overflow-hidden font-sans">
+    <div id="desktopAppWindow" class="mode-windowed relative flex flex-col bg-surface-950 text-slate-100 overflow-hidden font-sans">
 
       <!-- 顶部状态栏 -->
       <header class="h-14 shrink-0 glass-nav px-4 flex items-center justify-between sticky top-0 z-40 select-none">
@@ -4757,230 +4876,270 @@
       <!-- =================================================================================== -->
       <!-- VIEW 5: ★ 批量执行 (Batch Execution) - 对应截图 1 media_1789570967133.png -->
       <!-- =================================================================================== -->
-      <div id="tab-batch" class="tab-content hidden space-y-4">
-        <!-- 顶栏标题 -->
-        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-          <div>
-            <h1 class="text-base font-bold text-white flex items-center space-x-2">
-              <i data-lucide="layers-3" class="w-5 h-5 text-emerald-400"></i>
-              <span>批量执行 (Batch Command Runner)</span>
-            </h1>
-            <p class="text-xs text-slate-400 mt-0.5">一条命令发往多台机器；每台独立超时，失败可重试，全流程不可篡改审计</p>
+      <div id="tab-batch" class="tab-content hidden h-full flex flex-col p-4 space-y-3 overflow-hidden select-none">
+        
+        <!-- 顶栏标题区 (100% 对齐截图：左侧叠层图标+标题+副标题，右侧刷新与执行按钮) -->
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800/80 shrink-0">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-sm">
+              <i data-lucide="layers" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h1 class="text-base font-bold text-white tracking-wide flex items-center space-x-2">
+                <span>批量执行</span>
+              </h1>
+              <p class="text-xs text-slate-400 mt-0.5">一条命令发往多台机器；以服务器主账号执行，每台独立超时、失败可即停，全过程写审计</p>
+            </div>
           </div>
 
           <div class="flex items-center space-x-2">
-            <button onclick="resetBatchForm()" class="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-400 hover:text-white border border-slate-700 text-xs" title="重置表单">
-              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <!-- 刷新重置按钮 -->
+            <button type="button" onclick="resetBatchForm()" class="p-2 rounded-xl bg-surface-900 hover:bg-surface-800 text-slate-400 hover:text-white border border-slate-800 transition cursor-pointer shadow-sm" title="重置命令与执行结果">
+              <i data-lucide="rotate-cw" class="w-4 h-4"></i>
             </button>
-            <button onclick="startBatchExecution()" id="btnStartBatch" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition cursor-pointer">
-              <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
-              <span id="btnStartBatchText">开始批量执行 (1)</span>
+            <!-- 开始批量执行按钮 (未勾选时禁用灰色，勾选后蓝色高亮) -->
+            <button type="button" id="btnStartBatch" onclick="startBatchExecution()" class="px-4 py-2 rounded-xl bg-surface-850 text-slate-500 border border-slate-800 text-xs font-semibold flex items-center space-x-1.5 transition cursor-not-allowed select-none" disabled>
+              <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+              <span id="btnStartBatchText">开始批量执行 (0)</span>
             </button>
           </div>
         </div>
 
-        <!-- 顶部 AI 生成命令提效栏 (截图 1 亮点) -->
-        <div class="glass-card p-4 rounded-xl border border-emerald-500/30 bg-gradient-to-r from-surface-900 via-surface-900 to-emerald-950/20 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-              <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
-              <span class="font-bold text-xs text-white">用一句话说你要发什么，AI 帮你写命令</span>
-              <span class="text-xs text-slate-400">（例：查看磁盘占用，排除 tmpfs）</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <span class="text-[10px] text-slate-400">已选 OS:</span>
-              <span class="px-2 py-0.5 rounded bg-surface-950 text-[10px] text-emerald-300 font-mono border border-slate-800">Linux</span>
-            </div>
-          </div>
-
-          <!-- 自然语言输入与生成按钮 -->
-          <div class="flex items-center space-x-2">
-            <input id="batchAiInput" type="text" placeholder="输入自然语言运维意图，如：巡检磁盘空间排除临时目录，或统计占用内存前10的进程..." class="flex-1 bg-surface-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-            <button onclick="generateBatchCommandFromAI()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow flex items-center space-x-1.5 transition shrink-0 cursor-pointer">
-              <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
-              <span>✨ AI 生成</span>
+        <!-- 命令配置大卡片 (100% 对齐截图：AI输入行、试试快捷芯片、命令多行框、模式底栏) -->
+        <div class="p-3.5 rounded-2xl bg-surface-900/90 border border-slate-800/90 shadow-md space-y-2.5 shrink-0">
+          <!-- 1. AI 辅助提示词与生成按钮 -->
+          <div class="flex items-center space-x-2 bg-surface-950/90 border border-slate-800/80 rounded-xl px-3 py-1.5 focus-within:border-blue-500/80 transition">
+            <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400 shrink-0"></i>
+            <input id="batchAiInput" type="text" placeholder="用一句话描述要做什么，AI 帮你写命令（例：查看磁盘占用、排除 tmpfs）" class="flex-1 bg-transparent border-0 text-xs text-slate-200 placeholder-slate-500 focus:outline-none py-1">
+            <button type="button" onclick="generateBatchCommandFromAI()" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-medium flex items-center space-x-1.5 transition shrink-0 cursor-pointer shadow-sm">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>AI 生成</span>
             </button>
           </div>
 
-          <!-- 推荐快捷词胶囊 (截图 1 真实芯片) -->
-          <div class="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs">
-            <span class="text-[10px] text-slate-500">试试:</span>
-            <button onclick="setBatchPrompt('巡检: 磁盘 / 内存 / 负载', 'df -h -x tmpfs -x devtmpfs && free -h && uptime')" class="px-2 py-0.5 rounded-full bg-surface-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700 text-[10px] transition">巡检: 磁盘 / 内存 / 负载</button>
-            <button onclick="setBatchPrompt('nginx 状态', 'systemctl status nginx --no-pager')" class="px-2 py-0.5 rounded-full bg-surface-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700 text-[10px] transition">nginx 状态</button>
-            <button onclick="setBatchPrompt('TCP TOP 10 CPU 进程', 'ps aux --sort=-%cpu | head -n 11')" class="px-2 py-0.5 rounded-full bg-surface-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700 text-[10px] transition">TCP TOP 10 CPU 进程</button>
-            <button onclick="setBatchPrompt('最近 50 行日志', 'journalctl -n 50 --no-pager')" class="px-2 py-0.5 rounded-full bg-surface-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700 text-[10px] transition">最近 50 行日志</button>
-            <button onclick="setBatchPrompt('端口占用', 'ss -tulpn')" class="px-2 py-0.5 rounded-full bg-surface-800 hover:bg-emerald-600/30 hover:text-emerald-300 text-slate-300 border border-slate-700 text-[10px] transition">端口占用</button>
-          </div>
-        </div>
-
-        <!-- 命令编辑与并发控制条 (截图 1 核心) -->
-        <div class="glass-card p-3.5 rounded-xl border border-slate-800 space-y-3">
-          <div class="space-y-1">
-            <div class="flex items-center justify-between text-xs text-slate-400">
-              <span>单条命令（如 uptime / docker ps / systemctl status nginx）；发送多行脚本请前往脚本库工作台</span>
-              <div class="flex items-center space-x-2 text-[11px]">
-                <button onclick="alert('已从模板库调取常用安全排查片段')" class="text-slate-400 hover:text-white flex items-center space-x-1"><i data-lucide="file-code" class="w-3 h-3"></i><span>片段</span></button>
-                <button onclick="alert('已将当前命令存为常用片段')" class="text-slate-400 hover:text-white flex items-center space-x-1"><i data-lucide="save" class="w-3 h-3"></i><span>存为片段</span></button>
-              </div>
-            </div>
-            <textarea id="batchCommandInput" rows="2" class="w-full bg-surface-950 border border-slate-700 rounded-lg p-2.5 font-mono text-xs text-emerald-400 focus:outline-none focus:border-emerald-500 leading-relaxed">df -h -x tmpfs -x devtmpfs && uptime</textarea>
+          <!-- 2. 试试快捷词芯片 (完全还原截图文案与顺序) -->
+          <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="text-slate-400 text-xs pl-0.5">试试:</span>
+            <button type="button" onclick="setBatchPrompt('巡检: 磁盘+内存+负载', 'df -h -x tmpfs -x devtmpfs && free -h && uptime')" class="px-2.5 py-1 rounded-lg bg-surface-950 hover:bg-surface-800 hover:text-blue-300 text-slate-300 border border-slate-800 text-xs transition cursor-pointer">巡检: 磁盘+内存+负载</button>
+            <button type="button" onclick="setBatchPrompt('nginx 状态', 'systemctl status nginx --no-pager')" class="px-2.5 py-1 rounded-lg bg-surface-950 hover:bg-surface-800 hover:text-blue-300 text-slate-300 border border-slate-800 text-xs transition cursor-pointer">nginx 状态</button>
+            <button type="button" onclick="setBatchPrompt('TOP 10 CPU 进程', 'ps aux --sort=-%cpu | head -n 11')" class="px-2.5 py-1 rounded-lg bg-surface-950 hover:bg-surface-800 hover:text-blue-300 text-slate-300 border border-slate-800 text-xs transition cursor-pointer">TOP 10 CPU 进程</button>
+            <button type="button" onclick="setBatchPrompt('最近 50 行日志', 'journalctl -n 50 --no-pager')" class="px-2.5 py-1 rounded-lg bg-surface-950 hover:bg-surface-800 hover:text-blue-300 text-slate-300 border border-slate-800 text-xs transition cursor-pointer">最近 50 行日志</button>
+            <button type="button" onclick="setBatchPrompt('端口占用', 'ss -tulpn')" class="px-2.5 py-1 rounded-lg bg-surface-950 hover:bg-surface-800 hover:text-blue-300 text-slate-300 border border-slate-800 text-xs transition cursor-pointer">端口占用</button>
           </div>
 
-          <!-- 执行模式与超时控制条 (截图 1 真实控件) -->
-          <div class="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-800 text-xs">
+          <!-- 3. 单条命令输入框 -->
+          <div class="relative">
+            <textarea id="batchCommandInput" oninput="onBatchCommandChange()" rows="2" placeholder="单条命令（如 uptime / docker ps / systemctl status nginx）；想跑多行脚本请用终端工作台。" class="w-full bg-surface-950/90 border border-slate-800 rounded-xl p-3 font-mono text-xs text-emerald-400 placeholder-slate-500 focus:outline-none focus:border-blue-500 leading-relaxed resize-none"></textarea>
+          </div>
+
+          <!-- 4. 执行模式与参数配置底栏 (完全还原截图：模式并发、单台超时30、失败即停开关+问号、片段、存为片段) -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs">
             <div class="flex items-center space-x-4">
-              <div class="flex items-center space-x-2">
-                <span class="text-slate-400">模式:</span>
-                <div class="flex items-center space-x-1 bg-surface-900 p-0.5 rounded-lg border border-slate-800">
-                  <button id="modeConcurrency" onclick="setBatchMode('concurrent')" class="px-2.5 py-1 rounded bg-emerald-600 text-white font-medium">并发 (上限 10)</button>
-                  <button id="modeRolling" onclick="setBatchMode('rolling')" class="px-2.5 py-1 rounded text-slate-400 hover:text-white">滚动批次</button>
-                  <button id="modeSerial" onclick="setBatchMode('serial')" class="px-2.5 py-1 rounded text-slate-400 hover:text-white">串行</button>
+              <!-- 模式 -->
+              <div class="flex items-center space-x-1.5">
+                <span class="text-slate-400">模式</span>
+                <div class="flex items-center space-x-0.5 bg-surface-950 p-0.5 rounded-lg border border-slate-800">
+                  <button type="button" id="modeBtnConcurrent" onclick="setBatchMode('concurrent')" class="px-2.5 py-1 rounded-md bg-surface-800 text-blue-300 border border-blue-500/40 font-medium transition cursor-pointer shadow-sm">并发 (上限 10)</button>
+                  <button type="button" id="modeBtnRolling" onclick="setBatchMode('rolling')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition cursor-pointer">滚动批次</button>
+                  <button type="button" id="modeBtnSerial" onclick="setBatchMode('serial')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition cursor-pointer">串行</button>
                 </div>
               </div>
 
+              <!-- 单台超时 -->
               <div class="flex items-center space-x-1.5">
-                <span class="text-slate-400">单台超时(秒):</span>
-                <input type="number" value="30" class="w-16 bg-surface-950 border border-slate-700 rounded px-2 py-0.5 text-xs text-white font-mono">
+                <span class="text-slate-400">单台超时(秒)</span>
+                <input type="number" id="batchTimeoutInput" value="30" min="1" max="600" class="w-14 bg-surface-950 border border-slate-800 rounded-lg px-2 py-1 text-center font-mono text-xs text-white focus:outline-none focus:border-blue-500">
               </div>
 
-              <div class="flex items-center space-x-2">
-                <span class="text-slate-400 select-none">失败即停:</span>
-                <label class="relative inline-flex items-center cursor-pointer select-none" title="开启后任一主机执行返回非0将立即中断后续执行">
-                  <input type="checkbox" id="chkBatchFailStop" onchange="onBatchFailStopToggle(this.checked)" class="sr-only peer" checked>
-                  <div class="w-7 h-4 bg-surface-800 border border-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-teal-500 peer-checked:border-teal-500"></div>
-                </label>
-                <span id="labelBatchFailStop" class="text-[11px] text-teal-400 font-medium select-none">已开启</span>
+              <!-- 失败即停 (截图为未开启状态) -->
+              <div class="flex items-center space-x-1.5 select-none">
+                <span class="text-slate-400">失败即停</span>
+                <button type="button" id="btnToggleFailStop" onclick="toggleBatchFailStop()" class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-surface-800 transition-colors duration-200 ease-in-out focus:outline-none" title="开启后任一机器执行失败立即中止后续机器">
+                  <span id="dotToggleFailStop" class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-slate-400 transition duration-200 ease-in-out translate-x-0.5 mt-0.5"></span>
+                </button>
+                <span class="text-slate-500 hover:text-slate-300 cursor-help" title="开启后，只要有任何一台机器执行返回状态码非0，将立即中止后续未执行的机器">?</span>
               </div>
             </div>
 
-            <div class="text-[11px] text-slate-500">
-              <span>物理阻断高危 rm -rf / 等致命黑名单</span>
+            <!-- 右侧片段与存为片段 -->
+            <div class="flex items-center space-x-2">
+              <button type="button" onclick="showToast('已打开常用运维片段库')" class="px-2.5 py-1 rounded-lg bg-surface-950 hover:bg-surface-800 text-slate-400 hover:text-white border border-slate-800 text-xs flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                <span>片段</span>
+              </button>
+              <button type="button" onclick="saveBatchAsSnippet()" class="px-2.5 py-1 rounded-lg bg-surface-950 hover:bg-surface-800 text-slate-400 hover:text-white border border-slate-800 text-xs flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                <span>存为片段</span>
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- 主体区域：左侧主机多选树 + 右侧执行控制与输出看板 (截图 1 布局) -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <!-- 左侧主机多选勾选树 -->
-          <div class="glass-card p-3 rounded-xl lg:col-span-1 space-y-3 select-none">
-            <div class="relative">
-              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
-              <input type="text" placeholder="搜索别名 / 主机 / 标签..." class="w-full bg-surface-950 border border-slate-700 rounded-lg pl-8 pr-2 py-1 text-xs text-slate-200">
+        <!-- 主体区域：左侧主机树 + 右侧执行看板 (100% 对齐截图布局) -->
+        <div class="flex-1 grid grid-cols-12 gap-3 min-h-0 overflow-hidden">
+          
+          <!-- 左侧服务器选择面板 (宽占 4 列，圆角卡片) -->
+          <div class="col-span-12 lg:col-span-4 h-full flex flex-col p-3 rounded-2xl bg-surface-900/60 border border-slate-800/80 overflow-hidden shadow-sm">
+            <!-- 搜索框 -->
+            <div class="relative shrink-0 mb-2">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5"></i>
+              <input type="text" id="batchHostSearchInput" oninput="filterBatchHosts(this.value)" placeholder="搜别名 / 主机 / 标签..." class="w-full bg-surface-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
             </div>
 
-            <div class="space-y-2 text-xs">
-              <div class="flex items-center justify-between text-slate-400 pb-1 border-b border-slate-800">
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" onchange="toggleSelectAllBatch(this.checked)" class="rounded bg-surface-800 border-slate-700">
-                  <span class="font-bold text-white">全选</span>
-                </label>
-                <span id="batchSelectedCountLabel" class="font-mono text-emerald-400 font-semibold">1 / 4</span>
+            <!-- 全选行 -->
+            <div class="flex items-center justify-between py-1.5 px-2 hover:bg-surface-850/60 rounded-xl transition cursor-pointer shrink-0 select-none" onclick="toggleSelectAllBatchHosts()">
+              <div class="flex items-center space-x-2.5">
+                <div id="batchSelectAllIcon" class="w-4 h-4 rounded-full border border-slate-600 bg-surface-950 flex items-center justify-center transition">
+                  <div class="w-2 h-2 rounded-full bg-blue-500 hidden" id="batchSelectAllDot"></div>
+                </div>
+                <span class="text-xs font-medium text-slate-200">全选</span>
+              </div>
+              <span id="batchSelectSummary" class="text-xs font-mono text-slate-400">0/4</span>
+            </div>
+
+            <!-- 分组树形节点与服务器列表 (精准还原截图 4 台服务器) -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar mt-1 space-y-1">
+              <!-- 分组标题行 -->
+              <div class="flex items-center justify-between py-1 px-1.5 select-none cursor-pointer" onclick="toggleBatchHostGroup()">
+                <div class="flex items-center space-x-1.5">
+                  <i id="batchGroupChevron" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform"></i>
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span class="text-xs font-medium text-blue-400">我的服务器</span>
+                </div>
+                <span id="batchGroupCount" class="text-xs font-mono text-slate-500">0/4</span>
               </div>
 
-              <!-- 分组: 我的服务器 -->
-              <div class="space-y-1">
-                <div class="text-[11px] text-slate-500 font-semibold flex items-center justify-between">
-                  <span>我的服务器</span>
-                  <span>1/4</span>
+              <!-- 4台服务器清单 -->
+              <div id="batchHostListContainer" class="space-y-1 pl-2">
+                <!-- 主机 1: 腾讯云 -->
+                <div class="batch-host-item flex items-center justify-between p-2 rounded-xl hover:bg-surface-850/80 transition cursor-pointer select-none group" data-host-id="host-1" data-name="我的腾讯云0209" data-ip="111.231.166.192" onclick="toggleBatchHostSelect('host-1')">
+                  <div class="flex items-start space-x-2.5 overflow-hidden">
+                    <div id="chk-host-1" class="batch-host-checkbox w-4 h-4 rounded-full border border-slate-600 bg-surface-950 flex items-center justify-center shrink-0 mt-0.5 transition">
+                      <div class="w-2 h-2 rounded-full bg-blue-500 hidden"></div>
+                    </div>
+                    <div class="truncate">
+                      <div class="flex items-center space-x-1.5">
+                        <span class="text-xs font-medium text-slate-200 truncate">我的腾讯云0209</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      </div>
+                      <div class="text-xs font-mono text-slate-400 truncate">root@111.231.166.192:22</div>
+                    </div>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); toggleHostStar('host-1')" class="text-slate-600 hover:text-amber-400 p-1 shrink-0 transition" title="收藏服务器">
+                    <i id="star-host-1" data-lucide="star" class="w-3.5 h-3.5"></i>
+                  </button>
                 </div>
 
-                <div class="space-y-1 pl-1">
-                  <!-- 主机 1 -->
-                  <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-surface-850 cursor-pointer bg-emerald-950/20 border border-emerald-500/20">
-                    <input type="checkbox" checked onchange="updateBatchSelectCount()" class="batch-host-chk mt-0.5 rounded bg-surface-800 border-slate-700">
-                    <div class="truncate">
-                      <div class="text-white font-medium flex items-center space-x-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                        <span class="truncate">我的腾讯云0209</span>
-                      </div>
-                      <div class="text-[10px] text-slate-500 font-mono">192.168.1.102:22</div>
+                <!-- 主机 2: 阿里云 1 -->
+                <div class="batch-host-item flex items-center justify-between p-2 rounded-xl hover:bg-surface-850/80 transition cursor-pointer select-none group" data-host-id="host-2" data-name="我的阿里云" data-ip="106.14.39.78" onclick="toggleBatchHostSelect('host-2')">
+                  <div class="flex items-start space-x-2.5 overflow-hidden">
+                    <div id="chk-host-2" class="batch-host-checkbox w-4 h-4 rounded-full border border-slate-600 bg-surface-950 flex items-center justify-center shrink-0 mt-0.5 transition">
+                      <div class="w-2 h-2 rounded-full bg-blue-500 hidden"></div>
                     </div>
-                  </label>
+                    <div class="truncate">
+                      <div class="flex items-center space-x-1.5">
+                        <span class="text-xs font-medium text-slate-200 truncate">我的阿里云</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      </div>
+                      <div class="text-xs font-mono text-slate-400 truncate">root@106.14.39.78:22</div>
+                    </div>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); toggleHostStar('host-2')" class="text-slate-600 hover:text-amber-400 p-1 shrink-0 transition" title="收藏服务器">
+                    <i id="star-host-2" data-lucide="star" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
 
-                  <!-- 主机 2 -->
-                  <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-surface-850 cursor-pointer">
-                    <input type="checkbox" onchange="updateBatchSelectCount()" class="batch-host-chk mt-0.5 rounded bg-surface-800 border-slate-700">
-                    <div class="truncate">
-                      <div class="text-slate-300 font-medium flex items-center space-x-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                        <span class="truncate">我的阿里云 (PG库)</span>
-                      </div>
-                      <div class="text-[10px] text-slate-500 font-mono">10.0.0.88:54322</div>
+                <!-- 主机 3: 阿里云 2 -->
+                <div class="batch-host-item flex items-center justify-between p-2 rounded-xl hover:bg-surface-850/80 transition cursor-pointer select-none group" data-host-id="host-3" data-name="我的阿里云3045" data-ip="8.145.62.223" onclick="toggleBatchHostSelect('host-3')">
+                  <div class="flex items-start space-x-2.5 overflow-hidden">
+                    <div id="chk-host-3" class="batch-host-checkbox w-4 h-4 rounded-full border border-slate-600 bg-surface-950 flex items-center justify-center shrink-0 mt-0.5 transition">
+                      <div class="w-2 h-2 rounded-full bg-blue-500 hidden"></div>
                     </div>
-                  </label>
+                    <div class="truncate">
+                      <div class="flex items-center space-x-1.5">
+                        <span class="text-xs font-medium text-slate-200 truncate">我的阿里云3045</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      </div>
+                      <div class="text-xs font-mono text-slate-400 truncate">root@8.145.62.223:22</div>
+                    </div>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); toggleHostStar('host-3')" class="text-slate-600 hover:text-amber-400 p-1 shrink-0 transition" title="收藏服务器">
+                    <i id="star-host-3" data-lucide="star" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
 
-                  <!-- 主机 3 -->
-                  <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-surface-850 cursor-pointer">
-                    <input type="checkbox" onchange="updateBatchSelectCount()" class="batch-host-chk mt-0.5 rounded bg-surface-800 border-slate-700">
-                    <div class="truncate">
-                      <div class="text-slate-300 font-medium flex items-center space-x-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                        <span class="truncate">香港边缘网关</span>
-                      </div>
-                      <div class="text-[10px] text-slate-500 font-mono">47.242.8.19:22</div>
+                <!-- 主机 4: 香草云 -->
+                <div class="batch-host-item flex items-center justify-between p-2 rounded-xl hover:bg-surface-850/80 transition cursor-pointer select-none group" data-host-id="host-4" data-name="我的香草云" data-ip="156.226.177.226" onclick="toggleBatchHostSelect('host-4')">
+                  <div class="flex items-start space-x-2.5 overflow-hidden">
+                    <div id="chk-host-4" class="batch-host-checkbox w-4 h-4 rounded-full border border-slate-600 bg-surface-950 flex items-center justify-center shrink-0 mt-0.5 transition">
+                      <div class="w-2 h-2 rounded-full bg-blue-500 hidden"></div>
                     </div>
-                  </label>
-
-                  <!-- 主机 4 -->
-                  <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-surface-850 cursor-pointer">
-                    <input type="checkbox" onchange="updateBatchSelectCount()" class="batch-host-chk mt-0.5 rounded bg-surface-800 border-slate-700">
                     <div class="truncate">
-                      <div class="text-slate-300 font-medium flex items-center space-x-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
-                        <span class="truncate">Win构建机01</span>
+                      <div class="flex items-center space-x-1.5">
+                        <span class="text-xs font-medium text-slate-200 truncate">我的香草云</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
                       </div>
-                      <div class="text-[10px] text-slate-500 font-mono">10.0.2.15:22</div>
+                      <div class="text-xs font-mono text-slate-400 truncate">root@156.226.177.226:22000</div>
                     </div>
-                  </label>
+                  </div>
+                  <button type="button" onclick="event.stopPropagation(); toggleHostStar('host-4')" class="text-slate-600 hover:text-amber-400 p-1 shrink-0 transition" title="收藏服务器">
+                    <i id="star-host-4" data-lucide="star" class="w-3.5 h-3.5"></i>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 右侧执行结果面板 (未运行时空状态 vs 运行时终端卡片网格) -->
-          <div class="glass-card rounded-xl lg:col-span-4 p-4 border border-slate-800 flex flex-col min-h-[380px]">
-            <!-- 空状态提示 (截图 1 经典空状态) -->
-            <div id="batchEmptyState" class="flex-1 flex flex-col items-center justify-center text-center space-y-3 p-8">
-              <div class="w-12 h-12 rounded-2xl bg-surface-900 border border-slate-800 flex items-center justify-center text-slate-500">
-                <i data-lucide="list-checks" class="w-6 h-6"></i>
+          <!-- 右侧执行看板 (占 8 列，居中空状态 vs 运行结果卡片) -->
+          <div class="col-span-12 lg:col-span-8 h-full flex flex-col p-4 rounded-2xl bg-surface-900/60 border border-slate-800/80 overflow-hidden relative shadow-sm">
+            
+            <!-- 1. 经典空状态 (100% 像素级对齐截图：圆形方形居中图标 + 尚未运行 + 引导说明) -->
+            <div id="batchEmptyState" class="h-full flex flex-col items-center justify-center text-center space-y-3.5 select-none animate-in fade-in duration-150">
+              <div class="w-12 h-12 rounded-2xl bg-surface-800/90 border border-slate-750 flex items-center justify-center text-slate-300 shadow-md">
+                <i data-lucide="list-checks" class="w-6 h-6 text-slate-300"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white">尚未运行批量命令</h3>
-                <p class="text-xs text-slate-400 mt-1">勾选左侧服务器 → 编写命令或用 AI 生成 → 点击右上角 [开始批量执行]</p>
+                <h3 class="text-base font-bold text-white tracking-wide">尚未运行</h3>
+                <p class="text-xs text-slate-400 mt-1.5">勾选左侧服务器 → 写好命令 → 点击右上角 [开始批量执行]</p>
               </div>
             </div>
 
-            <!-- 执行结果视图 (点击执行后动态展示) -->
-            <div id="batchResultsContainer" class="hidden space-y-3">
-              <div class="flex items-center justify-between pb-2 border-b border-slate-800 text-xs">
+            <!-- 2. 执行中动画状态 -->
+            <div id="batchRunningState" class="hidden h-full flex flex-col items-center justify-center space-y-4 select-none animate-in fade-in duration-150">
+              <div class="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-lg animate-spin">
+                <i data-lucide="loader-2" class="w-6 h-6"></i>
+              </div>
+              <div class="text-center">
+                <h3 class="text-base font-bold text-white tracking-wide">正在批量下发命令...</h3>
+                <p id="batchRunningSubtext" class="text-xs text-slate-400 mt-1 font-mono">并发通道就绪 · 正在连接目标机器 0/4</p>
+              </div>
+            </div>
+
+            <!-- 3. 运行完成终端结果面板 (动态展示所选主机的真实执行回显) -->
+            <div id="batchResultsContainer" class="hidden h-full flex flex-col space-y-3 overflow-hidden animate-in fade-in duration-200">
+              <!-- 顶部汇总栏 -->
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0 text-xs">
                 <div class="flex items-center space-x-3">
                   <span class="font-bold text-white flex items-center space-x-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                    <span>执行完成 (已下发 1 台目标)</span>
+                    <span id="batchResultHeaderSummary">执行完成 (已下发 4 台目标)</span>
                   </span>
-                  <span class="text-slate-400 font-mono">总耗时: 640ms · 成功: 1 · 失败: 0</span>
+                  <span id="batchResultStats" class="text-slate-400 font-mono text-xs">总耗时: 420ms · 成功: 4 · 失败: 0</span>
                 </div>
-                <button onclick="alert('已重新下发全部选中主机')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-[11px] flex items-center space-x-1">
-                  <i data-lucide="rotate-cw" class="w-3 h-3"></i>
-                  <span>重新执行</span>
-                </button>
+                <div class="flex items-center space-x-2">
+                  <button type="button" onclick="startBatchExecution()" class="px-2.5 py-1 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center space-x-1 cursor-pointer transition">
+                    <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                    <span>重新执行</span>
+                  </button>
+                  <button type="button" onclick="resetBatchForm()" class="px-2.5 py-1 rounded-lg bg-surface-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs cursor-pointer transition">
+                    <span>清空结果</span>
+                  </button>
+                </div>
               </div>
 
-              <!-- 主机执行卡片 1 -->
-              <div class="rounded-xl border border-slate-800 bg-surface-900/90 overflow-hidden text-xs">
-                <div class="p-2.5 bg-surface-950 border-b border-slate-800 flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
-                    <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold">EXIT 0</span>
-                    <span class="font-bold text-white font-mono">prod-api-01 (192.168.1.102)</span>
-                  </div>
-                  <span class="text-slate-400 font-mono text-[11px]">耗时 480ms</span>
-                </div>
-                <div class="p-3 bg-black font-mono text-emerald-400 text-xs overflow-x-auto leading-relaxed">
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/vda1        99G   19G   76G  20% /
-/dev/vdb1       200G   45G  146G  24% /data
- 22:50:18 up 14 days,  6:48,  2 users,  load average: 0.15, 0.22, 0.18
-                </div>
+              <!-- 主机卡片滚动容器 -->
+              <div id="batchResultsList" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+                <!-- 动态由 JS 填充 -->
               </div>
             </div>
 
@@ -8662,16 +8821,16 @@ Filesystem      Size  Used Avail Use% Mounted on
 <div id="desktopScaleController" class="fixed bottom-3 right-4 z-50 flex items-center space-x-2 p-1.5 bg-surface-900/95 backdrop-blur-md border border-slate-700/90 rounded-2xl shadow-2xl text-xs select-none transition-all duration-200">
   <div class="flex items-center space-x-1.5 px-2 text-slate-400 font-medium">
     <i data-lucide="monitor" class="w-3.5 h-3.5 text-teal-400"></i>
-    <span class="text-[11px] font-semibold text-slate-200">桌面端显示</span>
+    <span class="text-[11px] font-semibold text-slate-200">桌面视窗</span>
   </div>
 
-  <!-- 视窗 / 全屏 切换 -->
+  <!-- 1440x900 居中视窗 / 全屏 切换 -->
   <div class="flex items-center space-x-1 p-0.5 bg-surface-950 rounded-xl border border-slate-800 text-[11px]">
-    <button type="button" onclick="setDesktopWindowMode('windowed')" id="modeBtnWindowed" class="px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300">
-      <i data-lucide="app-window" class="w-3 h-3"></i>
-      <span>视窗</span>
+    <button type="button" onclick="setDesktopWindowMode('windowed')" id="modeBtnWindowed" class="px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300 shadow-sm" title="切换为 1440 × 900 像素标准居中桌面视窗 (推荐默认)">
+      <i data-lucide="app-window" class="w-3.5 h-3.5"></i>
+      <span class="font-bold">1440 × 900 居中 (默认)</span>
     </button>
-    <button type="button" onclick="setDesktopWindowMode('maximized')" id="modeBtnMaximized" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1">
+    <button type="button" onclick="setDesktopWindowMode('maximized')" id="modeBtnMaximized" class="px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1" title="切换为全屏沉浸最大化模式">
       <i data-lucide="maximize" class="w-3 h-3"></i>
       <span>全屏</span>
     </button>
@@ -8679,14 +8838,13 @@ Filesystem      Size  Used Avail Use% Mounted on
 
   <div class="h-4 w-px bg-slate-800"></div>
 
-  <!-- DPI 缩放比例切换 -->
+  <!-- 字号微调挡位 -->
   <div class="flex items-center space-x-1 p-0.5 bg-surface-950 rounded-xl border border-slate-800 text-[11px] font-mono">
-    <span class="text-[10px] text-slate-500 pl-1 font-sans">DPI缩放:</span>
-    <button type="button" onclick="setDesktopZoom(1.0)" id="zoomBtn-100" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">100%</button>
-    <button type="button" onclick="setDesktopZoom(1.10)" id="zoomBtn-110" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">110%</button>
-    <button type="button" onclick="setDesktopZoom(1.18)" id="zoomBtn-118" class="px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 font-bold transition cursor-pointer" title="推荐桌面比例：字体清晰放大，解决网页纯100%字体偏小问题">118% 推荐</button>
-    <button type="button" onclick="setDesktopZoom(1.25)" id="zoomBtn-125" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">125%</button>
-    <button type="button" onclick="setDesktopZoom(1.35)" id="zoomBtn-135" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer">135%</button>
+    <span class="text-[10px] text-slate-400 pl-1 font-sans">字阶微调:</span>
+    <button type="button" onclick="setDesktopScale(0.95)" id="zoomBtn-95" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="紧凑字号">紧凑</button>
+    <button type="button" onclick="setDesktopScale(1.0)" id="zoomBtn-100" class="px-2.5 py-0.5 rounded bg-teal-500/25 text-teal-300 border border-teal-500/40 font-bold transition cursor-pointer" title="1440×900 推荐：舒适大字排版，高辨识度">饱满大字 (标准)</button>
+    <button type="button" onclick="setDesktopScale(1.08)" id="zoomBtn-108" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="适合高分屏放大">大号 +8%</button>
+    <button type="button" onclick="setDesktopScale(1.15)" id="zoomBtn-115" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="超大辨识度">特大 +15%</button>
   </div>
 
   <!-- 折叠小按钮 -->
@@ -11664,7 +11822,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       // 终端、SFTP 与新版工作台界面无外层包边卡片，直顶顶部与左侧
       const mainEl = document.getElementById('appMainContent') || document.querySelector('main');
       if (mainEl) {
-        if (tabId === 'tab-terminal' || tabId === 'tab-sftp' || tabId === 'tab-workbench' || tabId === 'tab-database' || tabId === 'tab-settings') {
+        if (tabId === 'tab-terminal' || tabId === 'tab-sftp' || tabId === 'tab-workbench' || tabId === 'tab-database' || tabId === 'tab-settings' || tabId === 'tab-batch') {
           mainEl.classList.remove('p-5', 'space-y-5', 'overflow-y-auto');
           mainEl.classList.add('p-0', 'overflow-hidden');
         } else {
@@ -11744,81 +11902,348 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     // ==========================================
     // 批量执行交互逻辑 (截图 1)
     // ==========================================
+    // ==========================================
+    // 批量执行模块交互逻辑 (100% 对齐截图)
+    // ==========================================
+    let batchSelectedHosts = new Set();
+    let currentBatchMode = 'concurrent';
+    let isBatchFailStop = false;
+    let isBatchGroupCollapsed = false;
+
+    // 所有服务器基础数据 (精准对齐截图 4 台服务器)
+    const allBatchHosts = [
+      { id: 'host-1', name: '我的腾讯云0209', ip: '111.231.166.192', port: 22, user: 'root', os: 'Linux', isStarred: false },
+      { id: 'host-2', name: '我的阿里云', ip: '106.14.39.78', port: 22, user: 'root', os: 'Linux', isStarred: false },
+      { id: 'host-3', name: '我的阿里云3045', ip: '8.145.62.223', port: 22, user: 'root', os: 'Linux', isStarred: false },
+      { id: 'host-4', name: '我的香草云', ip: '156.226.177.226', port: 22000, user: 'root', os: 'Linux', isStarred: false }
+    ];
+
     function setBatchPrompt(title, cmd) {
-      document.getElementById('batchAiInput').value = title;
-      document.getElementById('batchCommandInput').value = cmd;
+      const aiInput = document.getElementById('batchAiInput');
+      const cmdInput = document.getElementById('batchCommandInput');
+      if (aiInput) aiInput.value = title;
+      if (cmdInput) cmdInput.value = cmd;
+      onBatchCommandChange();
+      showToast(`⚡ 已载入预设命令: ${title}`);
+    }
+
+    function onBatchCommandChange() {
+      updateBatchStartButtonState();
     }
 
     function generateBatchCommandFromAI() {
       const q = document.getElementById('batchAiInput').value.trim();
+      const cmdInput = document.getElementById('batchCommandInput');
       if (!q) {
-        alert('请输入想要执行的批量运维意图');
+        showToast('请输入想要执行的运维意图，例如：巡检磁盘、排除 tmpfs');
         return;
       }
       if (q.includes('磁盘') || q.includes('tmpfs')) {
-        document.getElementById('batchCommandInput').value = 'df -h -x tmpfs -x devtmpfs';
+        cmdInput.value = 'df -h -x tmpfs -x devtmpfs';
       } else if (q.includes('nginx') || q.includes('状态')) {
-        document.getElementById('batchCommandInput').value = 'systemctl is-active nginx && nginx -t';
-      } else if (q.includes('内存') || q.includes('进程')) {
-        document.getElementById('batchCommandInput').value = 'ps -eo pid,user,%cpu,%mem,command --sort=-%cpu | head -n 10';
+        cmdInput.value = 'systemctl status nginx --no-pager';
+      } else if (q.includes('进程') || q.includes('cpu')) {
+        cmdInput.value = 'ps aux --sort=-%cpu | head -n 11';
+      } else if (q.includes('日志')) {
+        cmdInput.value = 'journalctl -n 50 --no-pager';
+      } else if (q.includes('端口') || q.includes('占用')) {
+        cmdInput.value = 'ss -tulpn';
       } else {
-        document.getElementById('batchCommandInput').value = `uptime && free -m && uname -a`;
+        cmdInput.value = `uptime && free -h && df -h`;
       }
-      alert('✨ AI 已根据意图生成优化的 Linux 运维指令！');
-    }
-
-    function updateBatchSelectCount() {
-      const chks = document.querySelectorAll('.batch-host-chk');
-      let count = 0;
-      chks.forEach(c => { if(c.checked) count++; });
-      document.getElementById('batchSelectedCountLabel').innerText = `${count} / 4`;
-      document.getElementById('btnStartBatchText').innerText = `开始批量执行 (${count})`;
-    }
-
-    function toggleSelectAllBatch(checked) {
-      document.querySelectorAll('.batch-host-chk').forEach(c => c.checked = checked);
-      updateBatchSelectCount();
+      onBatchCommandChange();
+      showToast('✨ AI 已根据自然语言意图生成执行命令！');
     }
 
     function setBatchMode(mode) {
-      ['modeConcurrency', 'modeRolling', 'modeSerial'].forEach(id => {
-        const b = document.getElementById(id);
-        b.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white';
+      currentBatchMode = mode;
+      const btnCon = document.getElementById('modeBtnConcurrent');
+      const btnRol = document.getElementById('modeBtnRolling');
+      const btnSer = document.getElementById('modeBtnSerial');
+      
+      [btnCon, btnRol, btnSer].forEach(b => {
+        if (b) b.className = 'px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition cursor-pointer';
       });
-      if (mode === 'concurrent') document.getElementById('modeConcurrency').className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium';
-      if (mode === 'rolling') document.getElementById('modeRolling').className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium';
-      if (mode === 'serial') document.getElementById('modeSerial').className = 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium';
+
+      if (mode === 'concurrent' && btnCon) {
+        btnCon.className = 'px-2.5 py-1 rounded-md bg-surface-800 text-blue-300 border border-blue-500/40 font-medium transition cursor-pointer shadow-sm';
+        showToast('已切换为并发执行模式 (上限 10 台并发)');
+      } else if (mode === 'rolling' && btnRol) {
+        btnRol.className = 'px-2.5 py-1 rounded-md bg-surface-800 text-blue-300 border border-blue-500/40 font-medium transition cursor-pointer shadow-sm';
+        showToast('已切换为滚动批次执行模式 (逐批次平滑推进)');
+      } else if (mode === 'serial' && btnSer) {
+        btnSer.className = 'px-2.5 py-1 rounded-md bg-surface-800 text-blue-300 border border-blue-500/40 font-medium transition cursor-pointer shadow-sm';
+        showToast('已切换为串行执行模式 (单台逐一排队执行)');
+      }
     }
 
-    function onBatchFailStopToggle(checked) {
-      const lbl = document.getElementById('labelBatchFailStop');
-      if (lbl) {
-        lbl.textContent = checked ? '已开启' : '已关闭';
-        lbl.className = checked ? 'text-[11px] text-teal-400 font-medium select-none' : 'text-[11px] text-slate-500 select-none';
+    function toggleBatchFailStop() {
+      isBatchFailStop = !isBatchFailStop;
+      const btn = document.getElementById('btnToggleFailStop');
+      const dot = document.getElementById('dotToggleFailStop');
+      if (btn && dot) {
+        if (isBatchFailStop) {
+          btn.className = 'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-blue-500 bg-blue-600 transition-colors duration-200 ease-in-out focus:outline-none';
+          dot.className = 'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white transition duration-200 ease-in-out translate-x-3.5 mt-0.5';
+          showToast('失败即停已开启：任一目标报错将立即中断后续执行');
+        } else {
+          btn.className = 'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border border-slate-700 bg-surface-800 transition-colors duration-200 ease-in-out focus:outline-none';
+          dot.className = 'pointer-events-none inline-block h-3 w-3 transform rounded-full bg-slate-400 transition duration-200 ease-in-out translate-x-0.5 mt-0.5';
+          showToast('失败即停已关闭：每台机器将独立执行至超时或结束');
+        }
       }
-      showToast(checked ? '失败即停已开启：任一目标报错将自动中止后续批次' : '失败即停已关闭：所有目标将继续独立执行');
+    }
+
+    function toggleBatchHostSelect(hostId) {
+      if (batchSelectedHosts.has(hostId)) {
+        batchSelectedHosts.delete(hostId);
+      } else {
+        batchSelectedHosts.add(hostId);
+      }
+      renderBatchHostCheckboxes();
+    }
+
+    function toggleSelectAllBatchHosts() {
+      if (batchSelectedHosts.size === allBatchHosts.length) {
+        batchSelectedHosts.clear();
+      } else {
+        allBatchHosts.forEach(h => batchSelectedHosts.add(h.id));
+      }
+      renderBatchHostCheckboxes();
+    }
+
+    function renderBatchHostCheckboxes() {
+      const total = allBatchHosts.length;
+      const count = batchSelectedHosts.size;
+
+      // 更新每台机器的复选框
+      allBatchHosts.forEach(h => {
+        const chk = document.getElementById(`chk-${h.id}`);
+        if (chk) {
+          const dot = chk.querySelector('div');
+          if (batchSelectedHosts.has(h.id)) {
+            chk.className = 'batch-host-checkbox w-4 h-4 rounded-full border border-blue-500 bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5 transition';
+            if (dot) dot.classList.remove('hidden');
+          } else {
+            chk.className = 'batch-host-checkbox w-4 h-4 rounded-full border border-slate-600 bg-surface-950 flex items-center justify-center shrink-0 mt-0.5 transition';
+            if (dot) dot.classList.add('hidden');
+          }
+        }
+      });
+
+      // 更新全选框
+      const allIcon = document.getElementById('batchSelectAllIcon');
+      const allDot = document.getElementById('batchSelectAllDot');
+      if (allIcon && allDot) {
+        if (count === total && total > 0) {
+          allIcon.className = 'w-4 h-4 rounded-full border border-blue-500 bg-blue-500/20 flex items-center justify-center transition';
+          allDot.classList.remove('hidden');
+        } else {
+          allIcon.className = 'w-4 h-4 rounded-full border border-slate-600 bg-surface-950 flex items-center justify-center transition';
+          allDot.classList.add('hidden');
+        }
+      }
+
+      // 更新计数文案
+      const summary = document.getElementById('batchSelectSummary');
+      const groupCount = document.getElementById('batchGroupCount');
+      if (summary) summary.textContent = `${count}/${total}`;
+      if (groupCount) groupCount.textContent = `${count}/${total}`;
+
+      updateBatchStartButtonState();
+    }
+
+    function updateBatchStartButtonState() {
+      const count = batchSelectedHosts.size;
+      const btn = document.getElementById('btnStartBatch');
+      const btnText = document.getElementById('btnStartBatchText');
+      const cmd = document.getElementById('batchCommandInput')?.value.trim();
+
+      if (btnText) btnText.textContent = `开始批量执行 (${count})`;
+
+      if (btn) {
+        if (count > 0 && cmd) {
+          btn.disabled = false;
+          btn.className = 'px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-lg shadow-blue-600/30 select-none active:scale-95';
+        } else {
+          btn.disabled = true;
+          btn.className = 'px-4 py-2 rounded-xl bg-surface-850 text-slate-500 border border-slate-800 text-xs font-semibold flex items-center space-x-1.5 transition cursor-not-allowed select-none';
+        }
+      }
+    }
+
+    function toggleBatchHostGroup() {
+      isBatchGroupCollapsed = !isBatchGroupCollapsed;
+      const list = document.getElementById('batchHostListContainer');
+      const icon = document.getElementById('batchGroupChevron');
+      if (!list || !icon) return;
+      if (isBatchGroupCollapsed) {
+        list.classList.add('hidden');
+        icon.classList.add('-rotate-90');
+      } else {
+        list.classList.remove('hidden');
+        icon.classList.remove('-rotate-90');
+      }
+    }
+
+    function toggleHostStar(hostId) {
+      const host = allBatchHosts.find(h => h.id === hostId);
+      if (!host) return;
+      host.isStarred = !host.isStarred;
+      const icon = document.getElementById(`star-${hostId}`);
+      if (icon) {
+        if (host.isStarred) {
+          icon.setAttribute('class', 'w-3.5 h-3.5 fill-amber-400 text-amber-400');
+          showToast(`⭐ 已收藏主机: ${host.name}`);
+        } else {
+          icon.setAttribute('class', 'w-3.5 h-3.5 text-slate-600');
+          showToast(`已取消收藏: ${host.name}`);
+        }
+      }
+    }
+
+    function filterBatchHosts(keyword) {
+      const q = keyword.trim().toLowerCase();
+      const items = document.querySelectorAll('.batch-host-item');
+      items.forEach(el => {
+        const name = (el.getAttribute('data-name') || '').toLowerCase();
+        const ip = (el.getAttribute('data-ip') || '').toLowerCase();
+        if (name.includes(q) || ip.includes(q)) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    function saveBatchAsSnippet() {
+      const cmd = document.getElementById('batchCommandInput')?.value.trim();
+      if (!cmd) {
+        showToast('当前无可用命令，请先在命令框输入或生成命令');
+        return;
+      }
+      showToast('💾 已将当前命令保存至「常用排查片段」！');
     }
 
     function startBatchExecution() {
-      const cmd = document.getElementById('batchCommandInput').value.trim();
+      const cmd = document.getElementById('batchCommandInput')?.value.trim();
       if (!cmd) {
         showToast('请输入要批量下发的命令');
         return;
       }
-      const failStop = document.getElementById('chkBatchFailStop')?.checked ?? true;
-      document.getElementById('batchEmptyState').classList.add('hidden');
-      document.getElementById('batchResultsContainer').classList.remove('hidden');
-      showToast(`🚀 正在下发批量命令 (失败即停: ${failStop ? '已开启' : '已关闭'})，安全黑名单规则校验通过！`);
+      if (batchSelectedHosts.size === 0) {
+        showToast('请在左侧勾选至少一台目标服务器');
+        return;
+      }
+
+      const emptyState = document.getElementById('batchEmptyState');
+      const runningState = document.getElementById('batchRunningState');
+      const resultsContainer = document.getElementById('batchResultsContainer');
+      const runningSubtext = document.getElementById('batchRunningSubtext');
+
+      if (emptyState) emptyState.classList.add('hidden');
+      if (resultsContainer) resultsContainer.classList.add('hidden');
+      if (runningState) runningState.classList.remove('hidden');
+
+      if (runningSubtext) {
+        runningSubtext.textContent = `正在建立 ${batchSelectedHosts.size} 条 SSH 并发隧道 · 校验黑名单规则...`;
+      }
+
+      showToast(`🚀 正在下发批量命令至 ${batchSelectedHosts.size} 台主机...`);
+
+      // 模拟并发执行完成
+      setTimeout(() => {
+        if (runningState) runningState.classList.add('hidden');
+        if (resultsContainer) resultsContainer.classList.remove('hidden');
+        renderBatchResults(cmd);
+        showToast('✅ 批量执行已完成！全过程已写入防篡改审计日志。');
+      }, 700);
+    }
+
+    function renderBatchResults(cmd) {
+      const list = document.getElementById('batchResultsList');
+      const headerSummary = document.getElementById('batchResultHeaderSummary');
+      const stats = document.getElementById('batchResultStats');
+      if (!list) return;
+
+      const selected = allBatchHosts.filter(h => batchSelectedHosts.has(h.id));
+      if (headerSummary) headerSummary.textContent = `执行完成 (已下发 ${selected.length} 台目标)`;
+      if (stats) stats.textContent = `总耗时: ${Math.floor(280 + Math.random() * 150)}ms · 成功: ${selected.length} · 失败: 0`;
+
+      let cardsHtml = '';
+      selected.forEach((host, idx) => {
+        const cost = Math.floor(180 + Math.random() * 220);
+        let outputContent = '';
+        if (cmd.includes('df -h') || cmd.includes('磁盘')) {
+          outputContent = `Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda1        99G   19G   76G  20% /
+/dev/vdb1       200G   45G  146G  24% /data
+${new Date().toLocaleTimeString()} up 18 days, 14:20, 2 users, load average: 0.12, 0.18, 0.15`;
+        } else if (cmd.includes('nginx')) {
+          outputContent = `● nginx.service - A high performance web server and a reverse proxy server
+   Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset: enabled)
+   Active: active (running) since Mon 2026-10-26 08:00:12 CST; 18h ago
+  Process: 1245 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+ Main PID: 1248 (nginx)`;
+        } else if (cmd.includes('ps aux') || cmd.includes('CPU')) {
+          outputContent = `USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root      1892  4.2  1.8 845210 148200 ?       Ssl  08:10   2:15 /usr/bin/dockerd
+mysql     2140  2.8  8.4 2145890 684200 ?      Sl   08:12   1:42 /usr/sbin/mysqld
+redis     1650  0.8  0.6 124500  48200 ?       Ssl  08:10   0:35 redis-server *:6379`;
+        } else if (cmd.includes('ss -tulpn') || cmd.includes('端口')) {
+          outputContent = `Netid  State   Recv-Q  Send-Q   Local Address:Port   Peer Address:Port  Process
+tcp    LISTEN  0       128            0.0.0.0:22          0.0.0.0:*      users:(("sshd",pid=1024,fd=3))
+tcp    LISTEN  0       511            0.0.0.0:80          0.0.0.0:*      users:(("nginx",pid=1248,fd=6))
+tcp    LISTEN  0       128          127.0.0.1:3306        0.0.0.0:*      users:(("mysqld",pid=2140,fd=24))`;
+        } else {
+          outputContent = `Linux ${host.name} 5.15.0-105-generic #115-Ubuntu SMP x86_64
+${new Date().toLocaleTimeString()} up 22 days, 1 user, load average: 0.08, 0.12, 0.09
+free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
+        }
+
+        cardsHtml += `<div class="rounded-xl border border-slate-800 bg-surface-950/80 overflow-hidden text-xs shadow-sm">
+          <div class="px-3 py-2 bg-surface-900 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold">EXIT 0</span>
+              <span class="font-bold text-slate-200">${host.name}</span>
+              <span class="text-slate-500 font-mono text-[11px]">(${host.ip})</span>
+            </div>
+            <div class="flex items-center space-x-3 text-slate-400 font-mono text-xs">
+              <span>耗时 ${cost}ms</span>
+              <button type="button" onclick="showToast('已复制 ${host.name} 执行结果')" class="text-slate-500 hover:text-white transition" title="复制结果">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+          <div class="p-3 bg-[#0a0d14] font-mono text-emerald-400 text-xs overflow-x-auto leading-relaxed select-text">
+            <pre class="m-0">${outputContent}</pre>
+          </div>
+        </div>`;
+      });
+
+      list.innerHTML = cardsHtml;
+      if (window.lucide) lucide.createIcons();
     }
 
     function resetBatchForm() {
-      document.getElementById('batchEmptyState').classList.remove('hidden');
-      document.getElementById('batchResultsContainer').classList.add('hidden');
+      const emptyState = document.getElementById('batchEmptyState');
+      const runningState = document.getElementById('batchRunningState');
+      const resultsContainer = document.getElementById('batchResultsContainer');
+      const cmdInput = document.getElementById('batchCommandInput');
+      const aiInput = document.getElementById('batchAiInput');
+
+      if (emptyState) emptyState.classList.remove('hidden');
+      if (runningState) runningState.classList.add('hidden');
+      if (resultsContainer) resultsContainer.classList.add('hidden');
+      if (cmdInput) cmdInput.value = '';
+      if (aiInput) aiInput.value = '';
+
+      batchSelectedHosts.clear();
+      renderBatchHostCheckboxes();
+      showToast('🔄 已重置批量执行表单并清空输出');
+      if (window.lucide) lucide.createIcons();
     }
 
-    // ==========================================
-    // 部署管理交互逻辑 (截图 2)
-    // ==========================================
     function triggerDeployMock(targetName) {
       alert(`🚀 正在触发部署目标 [${targetName}]...\n1. 检查远端运行环境\n2. 推送构建产物至 /releases/20260917_0845\n3. 执行原子软链 symlink 切换\n4. 健康检查检测 200 OK，发布成功！`);
     }
@@ -18038,30 +18463,42 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     // ==========================================
     // 桌面端全真视窗管理与 DPI 缩放系统 (解决浏览器纯 100% 字体缩小偏小问题)
     // ==========================================
-    let currentDesktopZoom = 1.18;
+    let currentDesktopScale = 1.0;
     let currentDesktopWindowMode = 'windowed';
     let isScaleControllerCollapsed = false;
 
-    function setDesktopZoom(scale) {
-      currentDesktopZoom = parseFloat(scale);
-      document.documentElement.style.setProperty('--desktop-zoom', currentDesktopZoom);
-      localStorage.setItem('ops_desktop_zoom', currentDesktopZoom);
+    function setDesktopScale(scale) {
+      currentDesktopScale = parseFloat(scale);
+      const win = document.getElementById('desktopAppWindow');
+      if (win) {
+        if (Math.abs(currentDesktopScale - 1.0) < 0.01) {
+          win.style.zoom = '';
+        } else {
+          win.style.zoom = currentDesktopScale;
+        }
+      }
+      localStorage.setItem('ops_desktop_scale', currentDesktopScale);
 
       // 更新按钮高亮
-      const zoomLevels = [1.0, 1.10, 1.18, 1.25, 1.35];
-      zoomLevels.forEach(z => {
-        const idKey = Math.round(z * 100);
+      const scaleLevels = [0.95, 1.0, 1.08, 1.15];
+      scaleLevels.forEach(s => {
+        const idKey = Math.round(s * 100);
         const btn = document.getElementById(`zoomBtn-${idKey}`);
         if (btn) {
-          if (Math.abs(z - currentDesktopZoom) < 0.02) {
-            btn.className = 'px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 font-bold transition cursor-pointer';
+          if (Math.abs(s - currentDesktopScale) < 0.02) {
+            btn.className = 'px-2.5 py-0.5 rounded bg-teal-500/25 text-teal-300 border border-teal-500/40 font-bold transition cursor-pointer shadow-sm';
           } else {
             btn.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer';
           }
         }
       });
 
-      showToast(`🔍 桌面 DPI 缩放已调整为 ${Math.round(currentDesktopZoom * 100)}% (字号与控件自适应放大)`);
+      showToast(`🔍 视窗字阶缩放已设为 ${Math.round(currentDesktopScale * 100)}% (标准 1440×900 饱满排版)`);
+    }
+
+    // 兼容原有的 setDesktopZoom 调用
+    function setDesktopZoom(zoom) {
+      setDesktopScale(zoom);
     }
 
     function setDesktopWindowMode(mode) {
@@ -18080,20 +18517,20 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         if (badge) badge.textContent = '全屏最大化';
         if (dock) dock.classList.add('hidden');
         if (btnWin) btnWin.className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1';
-        if (btnMax) btnMax.className = 'px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300';
+        if (btnMax) btnMax.className = 'px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300 shadow-sm';
         if (maxIcon) maxIcon.innerHTML = '<i data-lucide="minimize-2" class="w-3 h-3"></i>';
         localStorage.setItem('ops_desktop_window_mode', 'maximized');
-        showToast('⛶ 已切换为最大化沉浸桌面客户端视图');
+        showToast('⛶ 已切换为全屏最大化沉浸视窗');
       } else {
         win.classList.remove('mode-maximized');
         win.classList.add('mode-windowed');
-        if (badge) badge.textContent = '视窗模式';
+        if (badge) badge.textContent = '1440 × 900 居中';
         if (dock) dock.classList.remove('hidden');
-        if (btnWin) btnWin.className = 'px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300';
+        if (btnWin) btnWin.className = 'px-2.5 py-1 rounded-lg font-medium transition cursor-pointer flex items-center space-x-1 bg-surface-800 text-teal-300 shadow-sm';
         if (btnMax) btnMax.className = 'px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition cursor-pointer flex items-center space-x-1';
         if (maxIcon) maxIcon.innerHTML = '<i data-lucide="square" class="w-3 h-3"></i>';
         localStorage.setItem('ops_desktop_window_mode', 'windowed');
-        showToast('🖥 已切换为桌面视窗模式 (带独立原生窗口边框与阴影)');
+        showToast('🖥 已恢复 1440 × 900 原生桌面标准居中视窗');
       }
       if (window.lucide) lucide.createIcons();
     }
@@ -18119,7 +18556,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (dock) {
         dock.classList.remove('hidden');
       }
-      showToast('🗕 窗口已最小化至底栏，点击下方 Dock 图标即可快速还原窗口');
+      showToast('🗕 窗口已最小化至底栏，点击下方 Dock 图标即可快速还原视窗');
     }
 
     function restoreWindow() {
@@ -18127,7 +18564,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (win) {
         win.classList.remove('is-minimized');
       }
-      showToast('🗗 窗口已还原');
+      showToast('🗗 窗口已还原为 1440 × 900 标准居中视窗');
     }
 
     function toggleScaleControllerCollapse() {
@@ -18162,43 +18599,41 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       el.textContent = `${h}:${m}`;
     }
 
-    // 页面初始化时恢复桌面偏好与绑定全局缩放快捷键
+    // 页面初始化：默认采用 1440 × 900 居中原生视窗
     (function initDesktopEnvironment() {
-      // 恢复缩放
-      const savedZoom = localStorage.getItem('ops_desktop_zoom');
-      if (savedZoom) {
-        currentDesktopZoom = parseFloat(savedZoom);
-        document.documentElement.style.setProperty('--desktop-zoom', currentDesktopZoom);
+      // 恢复微调比例
+      const savedScale = localStorage.getItem('ops_desktop_scale');
+      if (savedScale) {
+        currentDesktopScale = parseFloat(savedScale);
+        setDesktopScale(currentDesktopScale);
       } else {
-        document.documentElement.style.setProperty('--desktop-zoom', 1.18);
+        setDesktopScale(1.0);
       }
-      // 恢复模式 (默认全屏沉浸视窗)
-      const savedMode = localStorage.getItem('ops_desktop_window_mode');
-      if (savedMode === 'windowed') {
-        setTimeout(() => setDesktopWindowMode('windowed'), 50);
-      } else {
-        setTimeout(() => setDesktopWindowMode('maximized'), 50);
-      }
+
+      // 严格保证默认以 1440 × 900 居中原生视窗启动 (清除旧的拉伸全屏缓存)
+      localStorage.setItem('ops_desktop_window_mode', 'windowed');
+      setDesktopWindowMode('windowed');
+
       // 启动时钟
       setTimeout(() => {
         updateDesktopClock();
         setInterval(updateDesktopClock, 1000);
       }, 100);
 
-      // 全局缩放快捷键监听
+      // 全局快捷键监听
       window.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
           if (e.key === '=' || e.key === '+') {
             e.preventDefault();
-            const next = Math.min(1.35, +(currentDesktopZoom + 0.05).toFixed(2));
-            setDesktopZoom(next);
+            const next = Math.min(1.25, +(currentDesktopScale + 0.05).toFixed(2));
+            setDesktopScale(next);
           } else if (e.key === '-' || e.key === '_') {
             e.preventDefault();
-            const next = Math.max(1.0, +(currentDesktopZoom - 0.05).toFixed(2));
-            setDesktopZoom(next);
+            const next = Math.max(0.9, +(currentDesktopScale - 0.05).toFixed(2));
+            setDesktopScale(next);
           } else if (e.key === '0') {
             e.preventDefault();
-            setDesktopZoom(1.18);
+            setDesktopScale(1.0);
           }
         }
       });

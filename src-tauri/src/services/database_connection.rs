@@ -17,8 +17,9 @@ use tokio_util::compat::TokioAsyncWriteCompatExt;
 use crate::database::Database;
 use crate::error::AppError;
 use crate::models::{
-    DatabaseConnection, DatabaseConnectionInput, DatabaseProbeResult, DatabaseQueryRequest,
-    DatabaseQueryResult, DatabaseTableItem, MongoCollectionItem, RedisKeyItem,
+    DatabaseColumnInput, DatabaseColumnItem, DatabaseConnection, DatabaseConnectionInput,
+    DatabaseProbeResult, DatabaseQueryRequest, DatabaseQueryResult, DatabaseTableItem,
+    MongoCollectionItem, RedisKeyItem,
 };
 use crate::models::{TerminalOpenRequest, WorkbenchCommandResult};
 use crate::services::server::ServerService;
@@ -421,6 +422,144 @@ impl DatabaseConnectionService {
                 })
             })
             .collect())
+    }
+
+    /// Return column metadata for a table. Identifier values are validated before they are
+    /// interpolated because SQL drivers cannot bind table or column names as parameters.
+    pub fn list_database_columns(
+        db: &Database,
+        id: i64,
+        database_name: Option<&str>,
+        table_name: &str,
+    ) -> Result<Vec<DatabaseColumnItem>, AppError> {
+        let connection = get_connection(db, id)?;
+        validate_identifier(table_name)?;
+        let engine = normalize_engine(&connection.engine);
+        let database = database_name.filter(|value| !value.trim().is_empty());
+        let query = match engine.as_str() {
+            "sqlite" => format!(
+                "PRAGMA table_info('{}')",
+                table_name.replace('\'', "''")
+            ),
+            "mysql" | "mariadb" => format!(
+                "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_KEY, EXTRA, COLUMN_COMMENT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = {} ORDER BY ORDINAL_POSITION",
+                sql_literal(table_name)
+            ),
+            "postgresql" => format!(
+                "SELECT c.column_name, c.data_type, c.is_nullable, c.column_default, CASE WHEN EXISTS (SELECT 1 FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema WHERE tc.constraint_type = 'PRIMARY KEY' AND kcu.table_schema = c.table_schema AND kcu.table_name = c.table_name AND kcu.column_name = c.column_name) THEN 'YES' ELSE 'NO' END, '', '' FROM information_schema.columns c WHERE c.table_schema = 'public' AND c.table_name = {} ORDER BY c.ordinal_position",
+                sql_literal(table_name)
+            ),
+            "oracle" => format!(
+                "SELECT c.COLUMN_NAME, c.DATA_TYPE, c.NULLABLE, c.DATA_DEFAULT, CASE WHEN EXISTS (SELECT 1 FROM user_cons_columns ucc JOIN user_constraints uc ON uc.CONSTRAINT_NAME = ucc.CONSTRAINT_NAME WHERE uc.CONSTRAINT_TYPE = 'P' AND ucc.TABLE_NAME = c.TABLE_NAME AND ucc.COLUMN_NAME = c.COLUMN_NAME) THEN 'YES' ELSE 'NO' END, '', cmt.COMMENTS FROM user_tab_columns c LEFT JOIN user_col_comments cmt ON cmt.TABLE_NAME = c.TABLE_NAME AND cmt.COLUMN_NAME = c.COLUMN_NAME WHERE c.TABLE_NAME = UPPER({}) ORDER BY c.COLUMN_ID",
+                sql_literal(table_name)
+            ),
+            "sqlserver" => format!(
+                "SELECT c.name, t.name, CASE WHEN c.is_nullable = 1 THEN 'YES' ELSE 'NO' END, dc.definition, CASE WHEN pk.column_id IS NULL THEN 'NO' ELSE 'YES' END, '', '' FROM sys.columns c JOIN sys.types t ON c.user_type_id = t.user_type_id LEFT JOIN sys.default_constraints dc ON c.default_object_id = dc.object_id LEFT JOIN (SELECT ic.object_id, ic.column_id FROM sys.indexes i JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id WHERE i.is_primary_key = 1) pk ON pk.object_id = c.object_id AND pk.column_id = c.column_id WHERE c.object_id = OBJECT_ID({}) ORDER BY c.column_id",
+                sql_literal(table_name)
+            ),
+            "clickhouse" => format!("DESCRIBE TABLE {}", quote_identifier(&engine, table_name)?),
+            _ => return Err(AppError::InvalidInput("当前数据库暂不支持表结构查看".into())),
+        };
+        let (columns, rows, _) = if engine == "sqlite" {
+            execute_sqlite_query(&connection, &query)?
+        } else if is_mysql_engine(&connection.engine) {
+            execute_mysql_query(db, &connection, get_password(id)?.as_deref(), &query, database)?
+        } else if is_oracle_engine(&connection.engine) || is_sqlserver_engine(&connection.engine) {
+            execute_native_sql_query(db, &connection, get_password(id)?.as_deref(), &query, database)?
+        } else {
+            let command = build_sql_command(&connection, get_password(id)?.as_deref(), &query, database)?;
+            let output = execute_remote(db, connection.server_id, command)?;
+            if output.exit_code != 0 {
+                return Err(AppError::Custom(database_command_error(&output.stderr, output.exit_code)));
+            }
+            let (columns, rows) = parse_tabular_output(&output.stdout, &query);
+            (columns, rows, 0)
+        };
+        let index = |name: &str| columns.iter().position(|value| value.eq_ignore_ascii_case(name));
+        let name_index = index("name").or_else(|| index("column_name")).unwrap_or(1);
+        let type_index = index("type").or_else(|| index("data_type")).unwrap_or(2);
+        let nullable_index = index("notnull").or_else(|| index("is_nullable")).unwrap_or(3);
+        let default_index = index("dflt_value").or_else(|| index("column_default"));
+        let pk_index = index("pk").or_else(|| index("column_key"));
+        let extra_index = index("extra");
+        let comment_index = index("column_comment").or_else(|| index("comments"));
+        Ok(rows.into_iter().filter_map(|row| {
+            let name = row.get(name_index)?.trim().to_string();
+            if name.is_empty() { return None; }
+            let nullable_value = row.get(nullable_index).map(String::as_str).unwrap_or("YES");
+            let primary_value = pk_index.and_then(|i| row.get(i)).map(String::as_str).unwrap_or("NO");
+            let extra = extra_index.and_then(|i| row.get(i)).map(String::as_str).unwrap_or("");
+            Some(DatabaseColumnItem {
+                name,
+                data_type: row.get(type_index).cloned().unwrap_or_else(|| "TEXT".into()),
+                nullable: !matches!(nullable_value.trim().to_ascii_uppercase().as_str(), "NO" | "0"),
+                default_value: default_index.and_then(|i| row.get(i)).cloned().filter(|v| !v.trim().is_empty()),
+                primary_key: matches!(primary_value.trim().to_ascii_uppercase().as_str(), "YES" | "PRI" | "1"),
+                auto_increment: extra.to_ascii_lowercase().contains("auto_increment") || extra.to_ascii_lowercase().contains("identity"),
+                comment: comment_index.and_then(|i| row.get(i)).cloned().filter(|v| !v.trim().is_empty()),
+            })
+        }).collect())
+    }
+
+    pub fn add_database_column(db: &Database, input: DatabaseColumnInput) -> Result<bool, AppError> {
+        let connection = get_connection(db, input.connection_id)?;
+        validate_identifier(&input.table_name)?;
+        validate_identifier(&input.name)?;
+        validate_type(&input.data_type)?;
+        if input.name.eq_ignore_ascii_case("rowid") {
+            return Err(AppError::InvalidInput("字段名不可使用 rowid".into()));
+        }
+        let engine = normalize_engine(&connection.engine);
+        let table = quote_identifier(&engine, &input.table_name)?;
+        let column = quote_identifier(&engine, &input.name)?;
+        let nullable = if input.nullable { "NULL" } else { "NOT NULL" };
+        let default_clause = input.default_value.as_deref().filter(|v| !v.trim().is_empty())
+            .map(|v| format!(" DEFAULT {}", sql_literal(v))).unwrap_or_default();
+        let sql = match engine.as_str() {
+            "oracle" => format!("ALTER TABLE {table} ADD ({column} {} {nullable}{default_clause})", input.data_type.trim()),
+            _ => format!("ALTER TABLE {table} ADD COLUMN {column} {} {nullable}{default_clause}", input.data_type.trim()),
+        };
+        Self::execute_schema_change(db, &connection, sql, input.database_name.as_deref())
+    }
+
+    pub fn drop_database_column(
+        db: &Database,
+        connection_id: i64,
+        database_name: Option<&str>,
+        table_name: &str,
+        column_name: &str,
+    ) -> Result<bool, AppError> {
+        let connection = get_connection(db, connection_id)?;
+        validate_identifier(table_name)?;
+        validate_identifier(column_name)?;
+        let engine = normalize_engine(&connection.engine);
+        let sql = format!("ALTER TABLE {} DROP COLUMN {}", quote_identifier(&engine, table_name)?, quote_identifier(&engine, column_name)?);
+        Self::execute_schema_change(db, &connection, sql, database_name)
+    }
+
+    pub fn get_table_ddl(db: &Database, connection_id: i64, database_name: Option<&str>, table_name: &str) -> Result<String, AppError> {
+        let connection = get_connection(db, connection_id)?;
+        validate_identifier(table_name)?;
+        let columns = Self::list_database_columns(db, connection_id, database_name, table_name)?;
+        if columns.is_empty() { return Err(AppError::NotFound(format!("表 {} 没有字段", table_name))); }
+        let engine = normalize_engine(&connection.engine);
+        let definitions = columns.iter().map(|column| {
+            let mut definition = format!("{} {}", quote_identifier(&engine, &column.name).unwrap_or_else(|_| column.name.clone()), column.data_type);
+            if !column.nullable { definition.push_str(" NOT NULL"); }
+            if let Some(default) = &column.default_value { definition.push_str(&format!(" DEFAULT {}", default)); }
+            if column.auto_increment { definition.push_str(if engine == "mysql" || engine == "mariadb" { " AUTO_INCREMENT" } else { " GENERATED BY DEFAULT AS IDENTITY" }); }
+            definition
+        }).collect::<Vec<_>>();
+        let primary = columns.iter().filter(|column| column.primary_key).map(|column| quote_identifier(&engine, &column.name).unwrap_or_else(|_| column.name.clone())).collect::<Vec<_>>();
+        let mut ddl = format!("CREATE TABLE {} (\n  {}", quote_identifier(&engine, table_name)?, definitions.join(",\n  "));
+        if !primary.is_empty() { ddl.push_str(&format!(",\n  PRIMARY KEY ({})", primary.join(", "))); }
+        ddl.push_str("\n);");
+        Ok(ddl)
+    }
+
+    fn execute_schema_change(db: &Database, connection: &DatabaseConnection, sql: String, database_name: Option<&str>) -> Result<bool, AppError> {
+        let result = Self::execute_query(db, DatabaseQueryRequest { connection_id: connection.id, sql, database_name: database_name.map(str::to_string) })?;
+        Ok(result.affected_rows > 0 || result.columns.is_empty())
     }
 
     pub fn list_redis_keys(
@@ -847,6 +986,46 @@ fn redis_auth(password: Option<&str>) -> String {
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+fn validate_identifier(value: &str) -> Result<(), AppError> {
+    let value = value.trim();
+    if value.is_empty()
+        || value.len() > 128
+        || !value.chars().all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '$' | '.'))
+    {
+        return Err(AppError::InvalidInput("表名和字段名只能包含字母、数字、下划线或点".into()));
+    }
+    Ok(())
+}
+
+fn validate_type(value: &str) -> Result<(), AppError> {
+    let value = value.trim();
+    if value.is_empty() || value.len() > 128 || value.contains(';') || value.contains('\0') {
+        return Err(AppError::InvalidInput("字段类型无效".into()));
+    }
+    if !value.chars().all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '(' | ')' | ',' | ' ' | '[' | ']')) {
+        return Err(AppError::InvalidInput("字段类型包含不支持的字符".into()));
+    }
+    Ok(())
+}
+
+fn sql_literal(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+fn quote_identifier(engine: &str, value: &str) -> Result<String, AppError> {
+    validate_identifier(value)?;
+    let quote = match engine {
+        "mysql" | "mariadb" => '`',
+        "sqlserver" => '[',
+        _ => '"',
+    };
+    if quote == '[' {
+        Ok(format!("[{}]", value.replace(']', "]]")))
+    } else {
+        Ok(format!("{quote}{}{quote}", value.replace(quote, &format!("{quote}{quote}"))))
+    }
 }
 
 fn display_database_engine(engine: &str) -> &'static str {

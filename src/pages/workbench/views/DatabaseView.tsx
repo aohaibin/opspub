@@ -124,6 +124,17 @@ function displayEngineName(engine: string): string {
   return engine;
 }
 
+const SQL_ENGINE_GROUP_ORDER = ["MySQL", "PostgreSQL", "Oracle", "SQLite", "Microsoft SQL Server", "MariaDB", "ClickHouse"];
+const SQL_ENGINE_GROUP_STYLES: Record<string, { icon: string; badge: string; rail: string }> = {
+  MySQL: { icon: "text-amber-400", badge: "border-amber-500/30 bg-amber-500/10 text-amber-300", rail: "border-amber-500/40" },
+  PostgreSQL: { icon: "text-indigo-400", badge: "border-indigo-500/30 bg-indigo-500/10 text-indigo-300", rail: "border-indigo-500/40" },
+  Oracle: { icon: "text-rose-400", badge: "border-rose-500/30 bg-rose-500/10 text-rose-300", rail: "border-rose-500/40" },
+  SQLite: { icon: "text-sky-400", badge: "border-sky-500/30 bg-sky-500/10 text-sky-300", rail: "border-sky-500/40" },
+  "Microsoft SQL Server": { icon: "text-blue-400", badge: "border-blue-500/30 bg-blue-500/10 text-blue-300", rail: "border-blue-500/40" },
+  MariaDB: { icon: "text-teal-400", badge: "border-teal-500/30 bg-teal-500/10 text-teal-300", rail: "border-teal-500/40" },
+  ClickHouse: { icon: "text-orange-400", badge: "border-orange-500/30 bg-orange-500/10 text-orange-300", rail: "border-orange-500/40" },
+};
+
 function isLoopbackHost(host: string): boolean {
   const normalized = host.trim().toLowerCase().replace(/^\[|\]$/g, "");
   return normalized === "localhost" || normalized === "::1" || /^127(?:\.\d{1,3}){3}$/.test(normalized);
@@ -183,6 +194,7 @@ export const DatabaseView: React.FC = () => {
   const [serverFilter, setServerFilter] = useState("all");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [expandedConnectionIds, setExpandedConnectionIds] = useState<Record<string, boolean>>({});
+  const [expandedSqlEngineGroups, setExpandedSqlEngineGroups] = useState<Record<string, boolean>>({ MySQL: true });
   const [historyOpen, setHistoryOpen] = useState(false);
   const [snippetsOpen, setSnippetsOpen] = useState(false);
   const [queryHistory, setQueryHistory] = useState<Array<{ sql: string; createdAt: string }>>([]);
@@ -348,6 +360,24 @@ export const DatabaseView: React.FC = () => {
       return matchesServer && matchesQuery;
     });
   }, [activeConnections, filterText, server, serverFilter]);
+
+  const sqlConnectionGroups = useMemo(() => {
+    const groups = new Map<string, Array<DbConnectionItem | RedisConnectionItem>>();
+    filteredConnections.forEach((connection) => {
+      const engine = displayEngineName(connection.type);
+      groups.set(engine, [...(groups.get(engine) ?? []), connection]);
+    });
+    return [...groups.entries()]
+      .sort(([left], [right]) => {
+        const leftIndex = SQL_ENGINE_GROUP_ORDER.indexOf(left);
+        const rightIndex = SQL_ENGINE_GROUP_ORDER.indexOf(right);
+        if (leftIndex < 0 && rightIndex < 0) return left.localeCompare(right);
+        if (leftIndex < 0) return 1;
+        if (rightIndex < 0) return -1;
+        return leftIndex - rightIndex;
+      })
+      .map(([engine, connections]) => ({ engine, connections }));
+  }, [filteredConnections]);
 
   const selectedConnection = useMemo(
     () => activeConnections.find((connection) => connection.id === selectedConnectionId) ?? null,
@@ -1416,9 +1446,13 @@ export const DatabaseView: React.FC = () => {
     void handleExportCsv();
   };
 
-  const hasActiveConnection = Boolean(
-    selectedConnection && ("dbIndex" in selectedConnection || selectedConnection.type === "MongoDB" || selectedDb),
-  );
+  // 连接信息与库选择是两个独立层级，选中连接后就应显示连接名称和地址。
+  const hasActiveConnection = Boolean(selectedConnection);
+  const selectedConnectionEndpoint = selectedConnection
+    ? selectedConnection.type === "SQLite"
+      ? selectedConnection.host
+      : `${selectedConnection.host}:${selectedConnection.port}`
+    : "";
   const selectedDatabaseTables = selectedConnectionId && selectedDb
     ? (databaseObjects[`${selectedConnectionId}:${selectedDb}`] ?? []).filter((item) => {
       const type = item.tableType.trim().toLowerCase();
@@ -1485,13 +1519,24 @@ export const DatabaseView: React.FC = () => {
       </div>
 
       {/* 当前连接状态栏：连接树未选中时保持原型中的引导提示 */}
-      <div className="flex items-center justify-between px-1 text-xs shrink-0">
+      <div className="flex items-center justify-between gap-3 px-1 text-xs shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           {hasActiveConnection && selectedConnection ? (
             <>
-              <span className={`font-medium truncate ${selectedConnection.type === "Redis" ? "text-rose-400" : selectedConnection.type === "MongoDB" ? "text-emerald-400" : "text-teal-400"}`}>
-                {displayEngineName(selectedConnection.type)} @ {selectedConnection.server}
-              </span>
+              <span className={`h-2 w-2 rounded-full shrink-0 ${selectedConnection.type === "Redis" ? "bg-rose-400" : selectedConnection.type === "MongoDB" ? "bg-emerald-400" : "bg-teal-400"}`} />
+              <div className="min-w-0 leading-tight">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className={`font-medium truncate ${selectedConnection.type === "Redis" ? "text-rose-400" : selectedConnection.type === "MongoDB" ? "text-emerald-400" : "text-teal-400"}`} title={selectedConnection.name}>
+                    {selectedConnection.name || `${displayEngineName(selectedConnection.type)} @ ${selectedConnection.server}`}
+                  </span>
+                  <span className="shrink-0 rounded border border-slate-700 bg-surface-950/70 px-1 py-0.5 font-mono text-[9px] text-slate-500">
+                    {displayEngineName(selectedConnection.type)}
+                  </span>
+                </div>
+                <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500" title={`${selectedConnection.server} · ${selectedConnectionEndpoint}`}>
+                  {selectedConnection.server} · {selectedConnectionEndpoint}
+                </div>
+              </div>
               <span className="text-slate-500 mx-1">/</span>
               <span className="text-slate-200 font-medium truncate">
                 {"dbIndex" in selectedConnection ? `DB${selectedConnection.dbIndex}` : selectedConnection.type === "MongoDB" ? (selectedConnection.database || "admin") : (selectedDb || "未选库")}
@@ -1566,7 +1611,7 @@ export const DatabaseView: React.FC = () => {
               />
               <Search className="w-3 h-3 text-slate-500 absolute left-2 top-2 pointer-events-none" />
             </div>
-            <div className="px-1 text-[10px] leading-relaxed text-slate-500">
+            <div className="px-1 text-[11px] leading-relaxed text-slate-400">
               支持按连接名、服务器、主机和数据库类型实时过滤
             </div>
 
@@ -1588,13 +1633,37 @@ export const DatabaseView: React.FC = () => {
               </div>
             ) : (
               /* 连接树列表 */
-              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-1.5 text-xs">
-                {filteredConnections.map((conn) => {
-                  const sqlConnection = conn as DbConnectionItem;
-                  const isSelected = selectedConnectionId === conn.id;
-                  const isExpanded = Boolean(expandedConnectionIds[conn.id]);
-                  const connectionDatabases = databaseOptions[conn.id] ?? [];
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-2 text-xs">
+                {sqlConnectionGroups.map(({ engine, connections }) => {
+                  const isEngineExpanded = Boolean(expandedSqlEngineGroups[engine]);
+                  const engineStyle = SQL_ENGINE_GROUP_STYLES[engine] ?? {
+                    icon: "text-slate-400",
+                    badge: "border-slate-700 bg-surface-950/70 text-slate-400",
+                    rail: "border-slate-700/60",
+                  };
                   return (
+                    <section key={engine} className="space-y-1.5">
+                      <button
+                        type="button"
+                        aria-expanded={isEngineExpanded}
+                        onClick={() => setExpandedSqlEngineGroups((current) => ({ ...current, [engine]: !current[engine] }))}
+                        className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-800 bg-surface-900/80 px-2.5 py-2 text-left transition hover:border-slate-700 hover:bg-surface-850"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <ChevronRight className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isEngineExpanded ? "rotate-90" : ""}`} />
+                          <Database className={`h-4 w-4 shrink-0 ${engineStyle.icon}`} />
+                          <span className="truncate text-[13px] font-semibold tracking-wide text-slate-200">{engine}</span>
+                        </span>
+                        <span className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] font-medium ${engineStyle.badge}`}>{connections.length}</span>
+                      </button>
+                      {isEngineExpanded && (
+                        <div className={`ml-3 space-y-1.5 border-l-2 py-1 pl-3 ${engineStyle.rail}`}>
+                          {connections.map((conn) => {
+                            const sqlConnection = conn as DbConnectionItem;
+                            const isSelected = selectedConnectionId === conn.id;
+                            const isExpanded = Boolean(expandedConnectionIds[conn.id]);
+                            const connectionDatabases = databaseOptions[conn.id] ?? [];
+                            return (
                   <div
                     key={conn.id}
                     className={`rounded-lg border overflow-hidden transition ${isSelected ? "border-teal-500/50 bg-teal-500/10" : "border-slate-800 bg-surface-900/40"}`}
@@ -1621,46 +1690,16 @@ export const DatabaseView: React.FC = () => {
                       >
                           <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                       </button>
-                      {conn.type === "SQLite" ? <div className="w-5 h-5 rounded-md border border-sky-400/50 bg-sky-500/10 text-sky-300 flex items-center justify-center text-[9px] font-bold shrink-0">S</div> : <Database className={`w-4 h-4 shrink-0 ${conn.type === "PostgreSQL" ? "text-indigo-400" : conn.type === "Oracle" ? "text-rose-400" : conn.type === "Microsoft SQL Server" ? "text-blue-400" : "text-amber-400"}`} />}
+                      {conn.type === "SQLite" ? <div className="w-5 h-5 rounded-md border border-sky-400/50 bg-sky-500/10 text-sky-300 flex items-center justify-center text-[10px] font-bold shrink-0">S</div> : <Database className={`w-4 h-4 shrink-0 ${engineStyle.icon}`} />}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-medium truncate text-slate-200 text-xs">{conn.name || `${displayEngineName(conn.type)} @ ${conn.server}`}</span>
-                          <span className="shrink-0 rounded border border-slate-700 bg-surface-950/70 px-1 py-0.5 font-mono text-[9px] text-slate-500">{displayEngineName(conn.type)}</span>
-                        </div>
-                        <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500" title={`${conn.server} · ${conn.host}:${conn.port}`}>
-                          {conn.server} · {conn.type === "SQLite" ? conn.host : `${conn.host}:${conn.port}`}
-                        </div>
+                        <span className="block truncate text-[13px] font-semibold text-slate-100" title={conn.name}>{conn.name || `${displayEngineName(conn.type)} @ ${conn.server}`}</span>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        {conn.sshTunnel && <span className="rounded border border-cyan-500/20 bg-cyan-500/10 px-1 py-0.5 text-[9px] text-cyan-300">SSH</span>}
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" title="已保存连接" />
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {conn.sshTunnel && <span className="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300">SSH</span>}
+                        <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${engineStyle.badge}`}>{engine.toLowerCase()}</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={(event) => { event.stopPropagation(); setDetailConnection(conn); }}
-                        className="ml-1 px-1 text-slate-500 hover:text-teal-300"
-                        aria-label="查看连接详情"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => { event.stopPropagation(); handleEditDbConnection(conn); }}
-                        className="px-1 text-slate-500 hover:text-blue-300"
-                        aria-label="编辑连接"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => { event.stopPropagation(); handleDeleteConnection(conn); }}
-                        className="ml-2 px-1 text-slate-600 hover:text-rose-400"
-                        aria-label="删除连接"
-                      >
-                        ×
-                      </button>
                     </div>
-                    {isExpanded && <div className="border-t border-slate-800/60 bg-surface-950/40 px-2 pb-2 pt-1.5 text-slate-400 text-[11px]">
+                    {isExpanded && <div className="border-t border-slate-800/60 bg-surface-950/40 px-2 pb-2 pt-1.5 text-slate-300 text-xs">
                       {connectionDatabases.map((databaseName) => {
                         const databaseKey = `${conn.id}:${databaseName}`;
                         const isDatabaseExpanded = Boolean(expandedDatabaseKeys[databaseKey]);
@@ -1705,7 +1744,7 @@ export const DatabaseView: React.FC = () => {
                                       <button
                                         type="button"
                                         onClick={() => toggleObjectGroup(databaseKey, group.key)}
-                                        className="flex w-full items-center justify-between rounded px-1.5 py-1.5 text-left text-[10px] text-slate-300 transition hover:bg-surface-800/80 hover:text-white"
+                                        className="flex w-full items-center justify-between rounded px-1.5 py-1.5 text-left text-[11px] font-medium text-slate-300 transition hover:bg-surface-800/80 hover:text-white"
                                       >
                                         <span className="flex min-w-0 items-center gap-1.5">
                                           <ChevronRight className={`h-3 w-3 shrink-0 text-slate-500 transition-transform ${isGroupExpanded ? "rotate-90" : ""}`} />
@@ -1715,19 +1754,19 @@ export const DatabaseView: React.FC = () => {
                                       </button>
                                       {isGroupExpanded && (
                                         <div className="ml-4 border-l border-slate-700/50 pl-1.5">
-                                          {group.items.length === 0 && <div className="px-1.5 py-1 text-[10px] text-slate-600">暂无对象</div>}
+                                          {group.items.length === 0 && <div className="px-1.5 py-1 text-[11px] text-slate-500">暂无对象</div>}
                                           {group.items.map((item) => (
                                             <button
                                               key={`${group.key}-${item.name}`}
                                               type="button"
-                                              className="flex w-full items-center justify-between rounded px-1.5 py-1 text-left text-[10px] text-slate-500 transition hover:bg-surface-800/80 hover:text-teal-300"
+                                              className="flex w-full items-center justify-between rounded px-1.5 py-1 text-left text-[11px] text-slate-400 transition hover:bg-surface-800/80 hover:text-teal-300"
                                               onClick={() => void handleSelectTable(conn.id, databaseName, item)}
                                             >
                                               <span className="flex min-w-0 items-center gap-1.5 truncate">
                                                 {group.key === "view" ? <Eye className="h-3 w-3 shrink-0 text-amber-400" /> : group.key === "procedure" ? <Settings2 className="h-3 w-3 shrink-0 text-cyan-400" /> : <Table2 className="h-3 w-3 shrink-0 text-blue-400" />}
                                                 <span className="truncate">{item.name}</span>
                                               </span>
-                                              <span className="ml-2 shrink-0 font-mono text-[9px] text-slate-600">{item.tableType}</span>
+                                              <span className="ml-2 shrink-0 font-mono text-[10px] text-slate-500">{item.tableType}</span>
                                             </button>
                                           ))}
                                         </div>
@@ -1740,13 +1779,18 @@ export const DatabaseView: React.FC = () => {
                           </div>
                         );
                       })}
-                      {databaseLoading[conn.id] && <div className="py-1 text-slate-500">正在加载数据库…</div>}
+                      {databaseLoading[conn.id] && <div className="py-1 text-slate-400">正在加载数据库…</div>}
                       {!databaseLoading[conn.id] && (databaseOptions[conn.id] ?? []).length === 0 && (
                         <button type="button" onClick={() => void handleLoadSqlDatabases(conn.id)} className="py-1 text-slate-500 hover:text-teal-300">加载数据库列表</button>
                       )}
                     </div>}
                   </div>
-                );
+                            );
+                          })}
+                        </div>
+                      )}
+                    </section>
+                  );
                 })}
               </div>
             )}
@@ -2159,7 +2203,7 @@ export const DatabaseView: React.FC = () => {
         <div className="flex items-center space-x-3 font-mono min-w-0">
           <span className="flex items-center space-x-1.5 text-slate-300 truncate">
             <span className={`w-1.5 h-1.5 rounded-full ${selectedConnection ? "bg-emerald-400" : "bg-slate-600"}`} />
-            <span className="truncate">{selectedConnection ? `${selectedConnection.type} @ ${selectedConnection.server}` : "未选择数据库连接"}</span>
+            <span className="truncate" title={selectedConnection?.name}>{selectedConnection ? selectedConnection.name || `${displayEngineName(selectedConnection.type)} @ ${selectedConnection.server}` : "未选择数据库连接"}</span>
           </span>
           {selectedConnection && <>
             <span>·</span>

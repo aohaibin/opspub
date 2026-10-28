@@ -199,7 +199,222 @@
       border-color: var(--border-base) !important;
     }
 
+    /* 模型服务卡片与弹窗亮色模式适配 (对齐设置页风格) */
+    html:not(.dark) #setting-card-models,
+    html:not(.dark) #setting-card-proxy,
+    html:not(.dark) #setting-card-whitelist {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    html:not(.dark) #setting-card-models div.font-medium.text-sm.text-white,
+    html:not(.dark) #setting-card-proxy div.font-medium.text-sm.text-white,
+    html:not(.dark) #setting-card-whitelist div.font-medium.text-sm.text-white {
+      color: #0f172a !important;
+    }
+    html:not(.dark) .model-serv-card {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) .model-serv-card:hover {
+      border-color: #cbd5e1 !important;
+      background-color: #f1f5f9 !important;
+    }
+    html:not(.dark) .model-serv-card span.text-slate-200 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalPasteImportModel .glass-card,
+    html:not(.dark) #modalModelService .glass-card {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalPasteImportModel h3,
+    html:not(.dark) #modalModelService h3 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalPasteImportModel textarea,
+    html:not(.dark) #modalModelService input,
+    html:not(.dark) #modalModelService select {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
+    /* 危险命令黑名单表格亮色适配 */
+    html:not(.dark) #setting-card-blacklist {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    html:not(.dark) #setting-card-blacklist table thead tr {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: #64748b !important;
+    }
+    html:not(.dark) #setting-card-blacklist table tbody tr {
+      border-color: #f1f5f9 !important;
+    }
+    html:not(.dark) #setting-card-blacklist table tbody tr:hover {
+      background-color: #f8fafc !important;
+    }
+    html:not(.dark) #setting-card-blacklist table td.font-mono {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalAddBlacklistRule .glass-card {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalAddBlacklistRule h3 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalAddBlacklistRule input {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
     /* 数据库 SQL 编辑器亮色适配：清爽纯白底色、清晰行号与深色代码字体 */
+    /* ========================================================================= */
+    /* 数据库引擎分组：树形导轨线、视觉层级与展开态高亮强化 */
+    /* ========================================================================= */
+    .db-engine-section {
+      transition: all 0.2s ease;
+    }
+    .db-engine-header {
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* 展开态分组头部：高亮微边框与明亮背景，清晰标示当前处于展开状态的分组收纳盒 */
+    .db-engine-section.is-expanded > .db-engine-header {
+      background-color: var(--surface-850) !important;
+      border-color: rgba(148, 163, 184, 0.35) !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+    .db-engine-section.is-expanded > .db-engine-header span {
+      color: #ffffff !important;
+    }
+    .db-engine-section.is-expanded > .db-engine-header i[data-lucide="chevron-down"] {
+      color: #f8fafc !important;
+    }
+
+    /* 树形子连接容器：向右缩进 + 左侧优雅垂直树状导轨线 + 托盘微暗底色 */
+    .db-engine-content {
+      position: relative;
+      margin-left: 0.85rem !important; /* ~14px 缩进，中心对齐父级图标 */
+      padding-left: 0.75rem !important; /* ~12px 内边距 */
+      padding-right: 0.15rem !important;
+      padding-top: 0.35rem !important;
+      padding-bottom: 0.35rem !important;
+      margin-top: 0.25rem !important;
+      margin-bottom: 0.45rem !important;
+      border-left-width: 2px !important;
+      border-left-style: solid !important;
+      border-radius: 0 0.5rem 0.5rem 0;
+      background: rgba(15, 23, 42, 0.25); /* 微妙暗底内衬托盘 */
+    }
+
+    /* 各引擎专属主题色导轨线（暗色模式） */
+    #engineContent-mysql { border-left-color: rgba(245, 158, 11, 0.6) !important; }
+    #engineContent-postgres { border-left-color: rgba(99, 102, 241, 0.6) !important; }
+    #engineContent-oracle { border-left-color: rgba(244, 63, 94, 0.6) !important; }
+    #engineContent-sqlite { border-left-color: rgba(14, 165, 233, 0.6) !important; }
+    #engineContent-sqlserver { border-left-color: rgba(59, 130, 246, 0.6) !important; }
+    #engineContent-mariadb { border-left-color: rgba(20, 184, 166, 0.6) !important; }
+    #engineContent-clickhouse { border-left-color: rgba(245, 158, 11, 0.6) !important; }
+
+    /* 树形分支横向连接支架线（从左侧垂直导轨线指向每一个连接项） */
+    .db-engine-content > .main-db-conn-group {
+      position: relative;
+      background-color: rgba(15, 23, 42, 0.45);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      transition: all 0.15s ease;
+    }
+    .db-engine-content > .main-db-conn-group:hover {
+      background-color: var(--surface-850);
+      border-color: rgba(100, 116, 139, 0.8);
+    }
+    .db-engine-content > .main-db-conn-group::before {
+      content: "";
+      position: absolute;
+      left: -0.75rem;
+      top: 1.15rem;
+      width: 0.65rem;
+      height: 2px;
+      border-radius: 1px;
+      opacity: 0.6;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    .db-engine-content > .main-db-conn-group:hover::before {
+      opacity: 1;
+    }
+    #engineContent-mysql > .main-db-conn-group::before { background-color: #f59e0b; }
+    #engineContent-postgres > .main-db-conn-group::before { background-color: #6366f1; }
+    #engineContent-oracle > .main-db-conn-group::before { background-color: #f43f5e; }
+    #engineContent-sqlite > .main-db-conn-group::before { background-color: #0ea5e9; }
+    #engineContent-sqlserver > .main-db-conn-group::before { background-color: #3b82f6; }
+    #engineContent-mariadb > .main-db-conn-group::before { background-color: #14b8a6; }
+    #engineContent-clickhouse > .main-db-conn-group::before { background-color: #f59e0b; }
+
+    /* 亮色模式全套适配 */
+    html:not(.dark) .db-engine-section.is-expanded > .db-engine-header {
+      background-color: #e2e8f0 !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    html:not(.dark) .db-engine-section.is-expanded > .db-engine-header span {
+      color: #0f172a !important;
+      font-weight: 600 !important;
+    }
+    html:not(.dark) .db-engine-content {
+      background: rgba(241, 245, 249, 0.5) !important;
+    }
+    html:not(.dark) #engineContent-mysql { border-left-color: #d97706 !important; }
+    html:not(.dark) #engineContent-postgres { border-left-color: #4f46e5 !important; }
+    html:not(.dark) #engineContent-oracle { border-left-color: #e11d48 !important; }
+    html:not(.dark) #engineContent-sqlite { border-left-color: #0284c7 !important; }
+    html:not(.dark) #engineContent-sqlserver { border-left-color: #2563eb !important; }
+    html:not(.dark) #engineContent-mariadb { border-left-color: #0d9488 !important; }
+    html:not(.dark) #engineContent-clickhouse { border-left-color: #d97706 !important; }
+
+    html:not(.dark) #engineContent-mysql > .main-db-conn-group::before { background-color: #d97706; }
+    html:not(.dark) #engineContent-postgres > .main-db-conn-group::before { background-color: #4f46e5; }
+    html:not(.dark) #engineContent-oracle > .main-db-conn-group::before { background-color: #e11d48; }
+    html:not(.dark) #engineContent-sqlite > .main-db-conn-group::before { background-color: #0284c7; }
+    html:not(.dark) #engineContent-sqlserver > .main-db-conn-group::before { background-color: #2563eb; }
+    html:not(.dark) #engineContent-mariadb > .main-db-conn-group::before { background-color: #0d9488; }
+    html:not(.dark) #engineContent-clickhouse > .main-db-conn-group::before { background-color: #d97706; }
+
+    html:not(.dark) .db-engine-content .main-db-conn-group {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    html:not(.dark) .db-engine-content .main-db-conn-group:hover {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    /* 数据库引擎分组标题样式亮色与暗色适配 */
+    html:not(.dark) .db-engine-header {
+      background-color: var(--surface-850) !important;
+      border-color: var(--border-base) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) .db-engine-header:hover {
+      background-color: var(--surface-800) !important;
+    }
+    html:not(.dark) .db-engine-header span {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #mainDbTreeEmptyState {
+      background-color: var(--surface-900) !important;
+      border-color: var(--border-base) !important;
+    }
+
     html:not(.dark) #mainSqlMiddleContent {
       background-color: var(--surface-900) !important;
     }
@@ -4224,7 +4439,7 @@
         <div class="flex items-center justify-between px-1 text-xs shrink-0 gap-2">
           <div id="mainDbActiveConnBar" class="flex items-center space-x-2 overflow-x-auto">
             <span id="mainDbConnIndicator" class="flex items-center space-x-1.5 text-slate-300 font-medium shrink-0">
-              <span class="text-teal-400 font-bold">MySQL @ 我的腾讯云0209</span>
+              <span class="text-teal-400 font-bold">我的腾讯云0209</span>
               <span class="text-slate-500 mx-1">-</span>
               <span class="text-slate-400 font-mono text-xs">111.231.165.192:3306</span>
             </span>
@@ -4299,13 +4514,26 @@
 
             <!-- 连接树列表 (SQL 数据库) - 内部独立垂直滚动 -->
             <div id="mainDbTreeList-sql" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 text-xs font-sans custom-scrollbar pr-1">
-              <!-- 连接 1: MySQL @ 我的腾讯云0209 (1:1 严格对齐用户截图：默认展开，mysql 展开展示 表/视图/存储过程/函数) -->
+              <!-- ========================================================================= -->
+              <!-- 1. MySQL 引擎分组 (默认展开，连接数: 2) -->
+              <!-- ========================================================================= -->
+              <div id="dbEngineSection-mysql" class="db-engine-section is-expanded space-y-1">
+                <div onclick="toggleDbEngineSection('mysql')" class="db-engine-header flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-900/80 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700/80 cursor-pointer select-none transition group shadow-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i id="engineChevron-mysql" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform"></i>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><path d="M12.5 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61l-.64 2.39 2.45-.64C8.75 20.39 10.56 21 12.5 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z" fill="#00758F" fill-opacity="0.18"/><path d="M18.8 6.5c-1.3-.9-2.9-1.4-4.5-1.5-.7 0-1.4.1-2.1.3-1.4.4-2.6 1.3-3.5 2.4-1 1.2-1.6 2.7-1.7 4.2-.1 1.5.3 3 1.1 4.3.8 1.3 2 2.2 3.4 2.7 1.4.5 3 .5 4.4.1 1.4-.4 2.7-1.3 3.6-2.5.3-.4.2-.9-.2-1.2-.4-.3-.9-.2-1.2.2-.7.9-1.7 1.6-2.8 1.9-1.1.3-2.3.3-3.4-.1-1.1-.4-2-1.1-2.6-2.1-.6-1-.9-2.2-.8-3.4.1-1.2.6-2.3 1.4-3.2.7-.9 1.7-1.6 2.8-1.9.5-.2 1-.2 1.6-.2 1.2.1 2.4.5 3.4 1.2.4.3 1 .2 1.2-.2.3-.4.2-1-.1-1.3z" fill="#00758F"/><circle cx="16.5" cy="9.5" r="1.5" fill="#F29111"/></svg>
+                    <span class="font-semibold text-slate-200 text-xs tracking-wide">MySQL</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.2 rounded-full bg-amber-500/15 text-amber-300 font-mono font-medium border border-amber-500/25">2</span>
+                </div>
+                <div id="engineContent-mysql" class="db-engine-content space-y-1.5 pl-1.5">
+<!-- 连接 1: MySQL @ 我的腾讯云0209 (1:1 严格对齐用户截图：默认展开，mysql 展开展示 表/视图/存储过程/函数) -->
               <div id="connGroup-tencent" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-tencent" onclick="toggleMainDbConnExpand('conn-tencent')" oncontextmenu="openDbConnContextMenu(event, 'conn-tencent', 'MySQL @ 我的腾讯云0209')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-tencent" onclick="toggleMainDbConnExpand('conn-tencent')" oncontextmenu="openDbConnContextMenu(event, 'conn-tencent', '我的腾讯云0209')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-tencent" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
-                    <span id="connTitle-tencent" class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的腾讯云0209</span>
+                    <span id="connTitle-tencent" class="font-medium text-slate-200 truncate text-xs">我的腾讯云0209</span>
                   </div>
                   <span class="font-mono text-[10px] text-slate-500 shrink-0 group-hover:text-slate-400">mysql</span>
                 </div>
@@ -4514,11 +4742,11 @@
 
               <!-- 连接 2: MySQL @ 我的阿里云3045 (支持鼠标右键弹出菜单，可展开表/视图/存储过程/函数) -->
               <div id="connGroup-aliyun" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-aliyun" onclick="toggleMainDbConnExpand('conn-aliyun')" oncontextmenu="openDbConnContextMenu(event, 'conn-aliyun', 'MySQL @ 我的阿里云3045')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-aliyun" onclick="toggleMainDbConnExpand('conn-aliyun')" oncontextmenu="openDbConnContextMenu(event, 'conn-aliyun', '我的阿里云3045')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-aliyun" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
-                    <span id="connTitle-aliyun" class="font-medium text-slate-200 truncate text-xs">MySQL @ 我的阿里云3045</span>
+                    <span id="connTitle-aliyun" class="font-medium text-slate-200 truncate text-xs">我的阿里云3045</span>
                   </div>
                   <span class="font-mono text-[10px] text-slate-500 shrink-0 group-hover:text-slate-400">mysql</span>
                 </div>
@@ -4553,14 +4781,29 @@
                   </div>
                 </div>
               </div>
+                </div>
+              </div>
 
-              <!-- 连接 3: ★ PostgreSQL @ 阿里云PG-01 (分析集群) -->
+              <!-- ========================================================================= -->
+              <!-- 2. PostgreSQL 引擎分组 (默认折叠，连接数: 1) -->
+              <!-- ========================================================================= -->
+              <div id="dbEngineSection-postgres" class="db-engine-section space-y-1">
+                <div onclick="toggleDbEngineSection('postgres')" class="db-engine-header flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-900/80 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700/80 cursor-pointer select-none transition group shadow-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i id="engineChevron-postgres" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform"></i>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="5" fill="#336791" fill-opacity="0.18"/><path d="M12 4C7.58 4 4 7.58 4 12c0 2.22.9 4.22 2.36 5.67l-.46 2.33 2.39-.62C9.67 19.78 10.8 20 12 20c4.42 0 8-3.58 8-8s-3.58-8-8-8zm1 12.5c-2.48 0-4.5-2.02-4.5-4.5S10.52 7.5 13 7.5s4.5 2.02 4.5 4.5-2.02 4.5-4.5 4.5z" fill="#336791"/><circle cx="14" cy="11" r="1.5" fill="#336791"/></svg>
+                    <span class="font-semibold text-slate-200 text-xs tracking-wide">PostgreSQL</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.2 rounded-full bg-indigo-500/15 text-indigo-300 font-mono font-medium border border-indigo-500/25">1</span>
+                </div>
+                <div id="engineContent-postgres" class="db-engine-content hidden space-y-1.5 pl-1.5">
+<!-- 连接 3: ★ PostgreSQL @ 阿里云PG-01 (分析集群) -->
               <div id="connGroup-postgres" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-postgres" onclick="toggleMainDbConnExpand('conn-postgres')" oncontextmenu="openDbConnContextMenu(event, 'conn-postgres', 'PostgreSQL @ 阿里云PG-01 (分析集群)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-postgres" onclick="toggleMainDbConnExpand('conn-postgres')" oncontextmenu="openDbConnContextMenu(event, 'conn-postgres', '阿里云PG-01 (分析集群)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-postgres" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
-                    <span id="connTitle-postgres" class="font-medium text-slate-200 truncate text-xs">PostgreSQL @ 阿里云PG-01 (分析集群)</span>
+                    <span id="connTitle-postgres" class="font-medium text-slate-200 truncate text-xs">阿里云PG-01 (分析集群)</span>
                   </div>
                   <span class="font-mono text-[10px] text-indigo-400 shrink-0 group-hover:text-indigo-300">postgres</span>
                 </div>
@@ -4606,14 +4849,91 @@
                   </div>
                 </div>
               </div>
+                </div>
+              </div>
 
-              <!-- 连接 4: ★ SQLite @ 本地应用数据库 (app_data.db) -->
+              <!-- ========================================================================= -->
+              <!-- 3. Oracle 引擎分组 (默认折叠，连接数: 1) -->
+              <!-- ========================================================================= -->
+              <div id="dbEngineSection-oracle" class="db-engine-section space-y-1">
+                <div onclick="toggleDbEngineSection('oracle')" class="db-engine-header flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-900/80 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700/80 cursor-pointer select-none transition group shadow-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i id="engineChevron-oracle" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform"></i>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="6" stroke="#F80000" stroke-width="2.5" fill="#F80000" fill-opacity="0.15"/><circle cx="12" cy="12" r="3" fill="#F80000"/></svg>
+                    <span class="font-semibold text-slate-200 text-xs tracking-wide">Oracle</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.2 rounded-full bg-rose-500/15 text-rose-300 font-mono font-medium border border-rose-500/25">1</span>
+                </div>
+                <div id="engineContent-oracle" class="db-engine-content hidden space-y-1.5 pl-1.5">
+<!-- 连接 5: ★ Oracle 19c @ 核心财务ERP (1521/ORCL) -->
+              <div id="connGroup-oracle" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
+                <div id="connHeader-oracle" onclick="toggleMainDbConnExpand('conn-oracle')" oncontextmenu="openDbConnContextMenu(event, 'conn-oracle', '核心财务ERP (1521/ORCL)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <i id="connChevron-oracle" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
+                    <span id="connTitle-oracle" class="font-medium text-slate-200 truncate text-xs">核心财务ERP (1521/ORCL)</span>
+                  </div>
+                  <span class="font-mono text-[10px] text-rose-400 shrink-0 group-hover:text-rose-300">oracle</span>
+                </div>
+                <div id="connChildren-oracle" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
+                  <div class="main-db-item rounded select-none">
+                    <div onclick="toggleMainDbFolder('oracle-fin', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                      <div class="flex items-center space-x-1.5 min-w-0">
+                        <i id="folderChevron-oracle-fin" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-rose-400"></i>
+                        <span>FIN_CORE (核心方案)</span>
+                      </div>
+                      <span class="text-[10px] text-rose-400/80 font-mono">42 表</span>
+                    </div>
+                    <div id="folderChildren-oracle-fin" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-rose-500/20 ml-2.5">
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'table', 'GL_LEDGER_ACCOUNTS')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (42)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'view', 'V_MONTHLY_BALANCE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (16)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'proc', 'SP_MONTH_END_CLOSE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400"></i><span>存储过程 (14)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'func', 'FN_EXCHANGE_RATE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>函数 (8)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'pkg', 'PKG_FIN_REPORT')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="package" class="w-3.5 h-3.5 text-purple-400"></i><span>包 (Packages · 5)</span></span>
+                      </div>
+                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'seq', 'SEQ_JOURNAL_ID')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
+                        <span class="flex items-center space-x-1.5"><i data-lucide="hash" class="w-3.5 h-3.5 text-slate-400"></i><span>序列 (28)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div onclick="selectMainDbDatabase('oracle', 'SYSTEM')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
+                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i><span>SYSTEM (系统方案)</span></span>
+                  </div>
+                </div>
+              </div>
+                </div>
+              </div>
+
+              <!-- ========================================================================= -->
+              <!-- 4. SQLite 引擎分组 (默认折叠，连接数: 1) -->
+              <!-- ========================================================================= -->
+              <div id="dbEngineSection-sqlite" class="db-engine-section space-y-1">
+                <div onclick="toggleDbEngineSection('sqlite')" class="db-engine-header flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-900/80 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700/80 cursor-pointer select-none transition group shadow-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i id="engineChevron-sqlite" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform"></i>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="5" fill="#003B57" fill-opacity="0.18"/><path d="M7 6h10c.55 0 1 .45 1 1v10c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1V7c0-.55.45-1 1-1z" stroke="#0284c7" stroke-width="2" fill="none"/><path d="M9 10h6M9 14h4" stroke="#0284c7" stroke-width="2" stroke-linecap="round"/></svg>
+                    <span class="font-semibold text-slate-200 text-xs tracking-wide">SQLite</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.2 rounded-full bg-sky-500/15 text-sky-300 font-mono font-medium border border-sky-500/25">1</span>
+                </div>
+                <div id="engineContent-sqlite" class="db-engine-content hidden space-y-1.5 pl-1.5">
+<!-- 连接 4: ★ SQLite @ 本地应用数据库 (app_data.db) -->
               <div id="connGroup-sqlite" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-sqlite" onclick="toggleMainDbConnExpand('conn-sqlite')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlite', 'SQLite @ 本地应用数据库 (app_data.db)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-sqlite" onclick="toggleMainDbConnExpand('conn-sqlite')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlite', '本地应用数据库 (app_data.db)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-sqlite" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="file-database" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
-                    <span id="connTitle-sqlite" class="font-medium text-slate-200 truncate text-xs">SQLite @ 本地应用数据库 (app_data.db)</span>
+                    <span id="connTitle-sqlite" class="font-medium text-slate-200 truncate text-xs">本地应用数据库 (app_data.db)</span>
                   </div>
                   <span class="font-mono text-[10px] text-sky-400 shrink-0 group-hover:text-sky-300">sqlite</span>
                 </div>
@@ -4655,61 +4975,29 @@
                   </div>
                 </div>
               </div>
-
-              <!-- 连接 5: ★ Oracle 19c @ 核心财务ERP (1521/ORCL) -->
-              <div id="connGroup-oracle" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-oracle" onclick="toggleMainDbConnExpand('conn-oracle')" oncontextmenu="openDbConnContextMenu(event, 'conn-oracle', 'Oracle 19c @ 核心财务ERP (1521/ORCL)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
-                  <div class="flex items-center space-x-1.5 min-w-0">
-                    <i id="connChevron-oracle" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
-                    <i data-lucide="database" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
-                    <span id="connTitle-oracle" class="font-medium text-slate-200 truncate text-xs">Oracle 19c @ 核心财务ERP (1521/ORCL)</span>
-                  </div>
-                  <span class="font-mono text-[10px] text-rose-400 shrink-0 group-hover:text-rose-300">oracle</span>
-                </div>
-                <div id="connChildren-oracle" class="hidden pl-4 pr-1 pb-2 space-y-0.5 border-t border-slate-800/60 bg-surface-950/40 text-[11px]">
-                  <div class="main-db-item rounded select-none">
-                    <div onclick="toggleMainDbFolder('oracle-fin', event)" class="p-1.5 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
-                      <div class="flex items-center space-x-1.5 min-w-0">
-                        <i id="folderChevron-oracle-fin" data-lucide="chevron-right" class="w-3 h-3 text-slate-500 transition-transform"></i>
-                        <i data-lucide="database" class="w-3.5 h-3.5 text-rose-400"></i>
-                        <span>FIN_CORE (核心方案)</span>
-                      </div>
-                      <span class="text-[10px] text-rose-400/80 font-mono">42 表</span>
-                    </div>
-                    <div id="folderChildren-oracle-fin" class="hidden pl-3.5 pr-1 pb-1 space-y-0.5 border-l border-rose-500/20 ml-2.5">
-                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'table', 'GL_LEDGER_ACCOUNTS')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
-                        <span class="flex items-center space-x-1.5"><i data-lucide="table" class="w-3.5 h-3.5 text-blue-400"></i><span>表 (42)</span></span>
-                      </div>
-                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'view', 'V_MONTHLY_BALANCE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
-                        <span class="flex items-center space-x-1.5"><i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400"></i><span>视图 (16)</span></span>
-                      </div>
-                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'proc', 'SP_MONTH_END_CLOSE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
-                        <span class="flex items-center space-x-1.5"><i data-lucide="settings-2" class="w-3.5 h-3.5 text-cyan-400"></i><span>存储过程 (14)</span></span>
-                      </div>
-                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'func', 'FN_EXCHANGE_RATE')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
-                        <span class="flex items-center space-x-1.5"><span class="font-serif font-bold text-emerald-400 text-xs">Σ</span><span>函数 (8)</span></span>
-                      </div>
-                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'pkg', 'PKG_FIN_REPORT')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
-                        <span class="flex items-center space-x-1.5"><i data-lucide="package" class="w-3.5 h-3.5 text-purple-400"></i><span>包 (Packages · 5)</span></span>
-                      </div>
-                      <div onclick="selectMainDbObject('oracle', 'FIN_CORE', 'seq', 'SEQ_JOURNAL_ID')" class="p-1 flex items-center justify-between text-slate-300 hover:text-white cursor-pointer">
-                        <span class="flex items-center space-x-1.5"><i data-lucide="hash" class="w-3.5 h-3.5 text-slate-400"></i><span>序列 (28)</span></span>
-                      </div>
-                    </div>
-                  </div>
-                  <div onclick="selectMainDbDatabase('oracle', 'SYSTEM')" class="main-db-item p-1.5 rounded hover:bg-surface-800/80 cursor-pointer flex items-center justify-between text-slate-400">
-                    <span class="flex items-center space-x-1.5"><i data-lucide="folder" class="w-3.5 h-3.5 text-slate-500"></i><span>SYSTEM (系统方案)</span></span>
-                  </div>
                 </div>
               </div>
 
-              <!-- 连接 6: ★ SQL Server 2022 @ 运营数据中心 (1433) -->
+              <!-- ========================================================================= -->
+              <!-- 5. SQL Server 引擎分组 (默认折叠，连接数: 1) -->
+              <!-- ========================================================================= -->
+              <div id="dbEngineSection-sqlserver" class="db-engine-section space-y-1">
+                <div onclick="toggleDbEngineSection('sqlserver')" class="db-engine-header flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-900/80 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700/80 cursor-pointer select-none transition group shadow-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i id="engineChevron-sqlserver" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform"></i>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="#0078D4"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="#2B88D8"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="#005A9E"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="#106EBE"/></svg>
+                    <span class="font-semibold text-slate-200 text-xs tracking-wide">SQL Server</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.2 rounded-full bg-blue-500/15 text-blue-300 font-mono font-medium border border-blue-500/25">1</span>
+                </div>
+                <div id="engineContent-sqlserver" class="db-engine-content hidden space-y-1.5 pl-1.5">
+<!-- 连接 6: ★ SQL Server 2022 @ 运营数据中心 (1433) -->
               <div id="connGroup-sqlserver" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-sqlserver" onclick="toggleMainDbConnExpand('conn-sqlserver')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlserver', 'SQL Server 2022 @ 运营数据中心 (1433)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-sqlserver" onclick="toggleMainDbConnExpand('conn-sqlserver')" oncontextmenu="openDbConnContextMenu(event, 'conn-sqlserver', '运营数据中心 (1433)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-sqlserver" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
-                    <span id="connTitle-sqlserver" class="font-medium text-slate-200 truncate text-xs">SQL Server 2022 @ 运营数据中心 (1433)</span>
+                    <span id="connTitle-sqlserver" class="font-medium text-slate-200 truncate text-xs">运营数据中心 (1433)</span>
                   </div>
                   <span class="font-mono text-[10px] text-blue-400 shrink-0 group-hover:text-blue-300">sqlserver</span>
                 </div>
@@ -4743,14 +5031,29 @@
                   </div>
                 </div>
               </div>
+                </div>
+              </div>
 
-              <!-- 连接 7: ★ MariaDB @ 开源社区镜像库 (10.11) -->
+              <!-- ========================================================================= -->
+              <!-- 6. MariaDB 引擎分组 (默认折叠，连接数: 1) -->
+              <!-- ========================================================================= -->
+              <div id="dbEngineSection-mariadb" class="db-engine-section space-y-1">
+                <div onclick="toggleDbEngineSection('mariadb')" class="db-engine-header flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-900/80 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700/80 cursor-pointer select-none transition group shadow-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i id="engineChevron-mariadb" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform"></i>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#003545" stroke-width="2" fill="#003545" fill-opacity="0.18"/><path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4" stroke="#C48017" stroke-width="2.2" stroke-linecap="round"/><circle cx="14" cy="9.5" r="1.2" fill="#C48017"/></svg>
+                    <span class="font-semibold text-slate-200 text-xs tracking-wide">MariaDB</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.2 rounded-full bg-teal-500/15 text-teal-300 font-mono font-medium border border-teal-500/25">1</span>
+                </div>
+                <div id="engineContent-mariadb" class="db-engine-content hidden space-y-1.5 pl-1.5">
+<!-- 连接 7: ★ MariaDB @ 开源社区镜像库 (10.11) -->
               <div id="connGroup-mariadb" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-mariadb" onclick="toggleMainDbConnExpand('conn-mariadb')" oncontextmenu="openDbConnContextMenu(event, 'conn-mariadb', 'MariaDB @ 开源社区镜像库 (10.11)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-mariadb" onclick="toggleMainDbConnExpand('conn-mariadb')" oncontextmenu="openDbConnContextMenu(event, 'conn-mariadb', '开源社区镜像库 (10.11)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-mariadb" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-teal-400 shrink-0"></i>
-                    <span id="connTitle-mariadb" class="font-medium text-slate-200 truncate text-xs">MariaDB @ 开源社区镜像库 (10.11)</span>
+                    <span id="connTitle-mariadb" class="font-medium text-slate-200 truncate text-xs">开源社区镜像库 (10.11)</span>
                   </div>
                   <span class="font-mono text-[10px] text-teal-400 shrink-0 group-hover:text-teal-300">mariadb</span>
                 </div>
@@ -4781,14 +5084,29 @@
                   </div>
                 </div>
               </div>
+                </div>
+              </div>
 
-              <!-- 连接 8: ★ ClickHouse @ 海量日志实时分析 (8123) -->
+              <!-- ========================================================================= -->
+              <!-- 7. ClickHouse 引擎分组 (默认折叠，连接数: 1) -->
+              <!-- ========================================================================= -->
+              <div id="dbEngineSection-clickhouse" class="db-engine-section space-y-1">
+                <div onclick="toggleDbEngineSection('clickhouse')" class="db-engine-header flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-surface-900/80 hover:bg-surface-850 border border-slate-800/80 hover:border-slate-700/80 cursor-pointer select-none transition group shadow-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i id="engineChevron-clickhouse" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform"></i>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="2.5" height="12" rx="1.2" fill="#FFCC00"/><rect x="7" y="3" width="2.5" height="18" rx="1.2" fill="#FF9900"/><rect x="11" y="8" width="2.5" height="8" rx="1.2" fill="#FF6600"/><rect x="15" y="4" width="2.5" height="16" rx="1.2" fill="#FF3300"/><rect x="19" y="7" width="2.5" height="10" rx="1.2" fill="#FF0000"/></svg>
+                    <span class="font-semibold text-slate-200 text-xs tracking-wide">ClickHouse</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.2 rounded-full bg-amber-500/15 text-amber-300 font-mono font-medium border border-amber-500/25">1</span>
+                </div>
+                <div id="engineContent-clickhouse" class="db-engine-content hidden space-y-1.5 pl-1.5">
+<!-- 连接 8: ★ ClickHouse @ 海量日志实时分析 (8123) -->
               <div id="connGroup-clickhouse" class="main-db-conn-group rounded-lg border border-slate-800/80 bg-surface-900/40 overflow-hidden">
-                <div id="connHeader-clickhouse" onclick="toggleMainDbConnExpand('conn-clickhouse')" oncontextmenu="openDbConnContextMenu(event, 'conn-clickhouse', 'ClickHouse @ 海量日志实时分析 (8123)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
+                <div id="connHeader-clickhouse" onclick="toggleMainDbConnExpand('conn-clickhouse')" oncontextmenu="openDbConnContextMenu(event, 'conn-clickhouse', '海量日志实时分析 (8123)')" class="p-2 flex items-center justify-between hover:bg-surface-850/60 cursor-pointer transition select-none group">
                   <div class="flex items-center space-x-1.5 min-w-0">
                     <i id="connChevron-clickhouse" data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 transition-transform"></i>
                     <i data-lucide="database" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
-                    <span id="connTitle-clickhouse" class="font-medium text-slate-200 truncate text-xs">ClickHouse @ 海量日志实时分析 (8123)</span>
+                    <span id="connTitle-clickhouse" class="font-medium text-slate-200 truncate text-xs">海量日志实时分析 (8123)</span>
                   </div>
                   <span class="font-mono text-[10px] text-amber-500 shrink-0 group-hover:text-amber-400">clickhouse</span>
                 </div>
@@ -4815,6 +5133,14 @@
                     </div>
                   </div>
                 </div>
+              </div>
+                </div>
+              </div>
+<!-- 全局空状态提示区 (当没有任何连接，或所有连接被筛选隐藏时显示) -->
+              <div id="mainDbTreeEmptyState" class="hidden flex-col items-center justify-center p-6 text-center text-slate-500 space-y-2 select-none border border-dashed border-slate-800/80 rounded-xl my-2">
+                <i data-lucide="database-zap" class="w-8 h-8 text-slate-600 mb-1"></i>
+                <div class="text-xs font-semibold text-slate-300">暂无数据库连接</div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">只有添加了连接的引擎才会展示分组，点击上方「新建连接」可快速接入</p>
               </div>
             </div>
 
@@ -5029,7 +5355,7 @@
           <div class="flex items-center space-x-3 font-mono">
             <span class="flex items-center space-x-1.5 text-slate-300">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span id="mainDbStatusConnName">MySQL @ 我的腾讯云0209</span>
+              <span id="mainDbStatusConnName">我的腾讯云0209</span>
             </span>
             <span>·</span>
             <span class="text-slate-400">mysql</span>
@@ -6166,7 +6492,7 @@
             <span class="text-slate-400">·</span>
             <span class="text-slate-300">AI 仅使用本地句柄 (<code class="text-amber-300 font-mono bg-surface-950 px-1 py-0.2 rounded border border-slate-700">vault://ref/*</code>) 盲调用，凭据在客户端 DPAPI 加密，云端 0 明文接触</span>
           </div>
-          <button onclick="openCredentialIsolationModal('MySQL @ 我的腾讯云0209', 'vault://ref/mysql-prod-0209')" class="text-emerald-400 hover:text-emerald-300 underline flex items-center space-x-1 cursor-pointer">
+          <button onclick="openCredentialIsolationModal('我的腾讯云0209', 'vault://ref/mysql-prod-0209')" class="text-emerald-400 hover:text-emerald-300 underline flex items-center space-x-1 cursor-pointer">
             <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
             <span>查看抓包攻防验证</span>
           </button>
@@ -8606,154 +8932,110 @@
             </div>
           </div>
 
-          <!-- 卡片 6: 模型服务 (API Profiles) -->
+          <!-- 卡片 6: 模型服务 —— 内置 AI 对话页 (1:1 严格对齐用户截图 1) -->
           <div id="setting-card-models" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
-            <div>
-              <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="sparkles" class="w-4 h-4 text-teal-400"></i>
-                <span>模型服务 (API Profiles)</span>
+            <!-- 头部：标题与右侧操作按钮 (粘贴导入 + 新建模型服务) -->
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div class="space-y-1">
+                <div class="font-medium text-sm text-white flex items-center space-x-2">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
+                  <span>模型服务 —— 内置 AI 对话页</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed max-w-2xl">
+                  支持 Anthropic + OpenAI 兼容 (DeepSeek / Groq / 月之暗面 / 智谱 / 本地 Ollama / vLLM ...) ；API key 走 AES-256-GCM 加密 + OS 钥匙串主密钥，明文绝不入库，前端永远拿不到明文。
+                </p>
               </div>
-              <p class="text-slate-400 text-xs mt-1">配置用于 AI 诊断、批量脚本生成与 MCP 运维推理的大语言模型凭据</p>
+              <div class="flex items-center space-x-2 shrink-0">
+                <button type="button" onclick="openPasteImportModelModal()" class="px-3 py-1.5 rounded-lg border border-slate-700/80 bg-surface-900/80 hover:bg-surface-850 text-slate-200 text-xs flex items-center space-x-1.5 transition cursor-pointer shadow-xs active:scale-98">
+                  <i data-lucide="clipboard-paste" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>粘贴导入</span>
+                </button>
+                <button type="button" onclick="openAddModelServiceModal()" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-xs active:scale-98">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>新建模型服务</span>
+                </button>
+              </div>
             </div>
-            
-            <div class="space-y-3 pt-1">
-              <!-- DeepSeek -->
-              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
-                    <span class="font-bold text-slate-200">DeepSeek-R1 / V3</span>
-                    <span class="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px]">默认引擎</span>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] flex items-center space-x-1">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                      <span>已连通 (Ping 168ms)</span>
-                    </span>
-                    <button type="button" onclick="showToast('正在向 DeepSeek 发送测试探测包... 延迟 168ms 正常')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">测速</button>
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="text-slate-400 block mb-1">API Base URL</label>
-                    <input type="text" value="https://api.deepseek.com/v1" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
-                  </div>
-                  <div>
-                    <label class="text-slate-400 block mb-1">API Key (AES-256 加密保存)</label>
-                    <input type="password" value="sk-dsk892348912347891234" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
-                  </div>
-                </div>
-              </div>
 
-              <!-- Claude -->
-              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
-                    <span class="font-bold text-slate-200">Anthropic Claude 3.5 Sonnet</span>
-                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">备用引擎</span>
-                  </div>
-                  <button type="button" onclick="showToast('Anthropic 端点探测成功 (Ping 340ms)')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]">测试连通</button>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="text-slate-400 block mb-1">Base URL</label>
-                    <input type="text" value="https://api.anthropic.com/v1" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
-                  </div>
-                  <div>
-                    <label class="text-slate-400 block mb-1">API Key</label>
-                    <input type="password" value="sk-ant-api03-xxxx-secret" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
-                  </div>
-                </div>
-              </div>
+            <!-- 模型服务卡片列表 (由 JS 动态渲染，支持编辑、设为当前、测试、分享导出与删除) -->
+            <div id="modelServicesListContainer" class="space-y-2.5 pt-1">
+              <!-- 动态内容占位 -->
+            </div>
 
-              <!-- Ollama -->
-              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
-                    <span class="font-bold text-slate-200">本地私有化 Ollama (零数据上云)</span>
-                    <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[10px]">内网安全</span>
-                  </div>
-                  <span class="text-[10px] text-slate-400">已侦测到 qwen2.5-coder:7b</span>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="text-slate-400 block mb-1">Endpoint</label>
-                    <input type="text" value="http://127.0.0.1:11434" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
-                  </div>
-                  <div>
-                    <label class="text-slate-400 block mb-1">模型 Tag</label>
-                    <input type="text" value="qwen2.5-coder:7b" class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-mono">
-                  </div>
-                </div>
+            <!-- 开关设置：AI 回复流式输出 -->
+            <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-4">
+              <div class="space-y-0.5 max-w-2xl">
+                <div class="font-medium text-slate-200 text-xs">AI 回复流式输出</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                  默认开启：AI 助手页与终端 AI 面板里的回答边生成边显示，不必等整段写完。如遇显示异常，可关闭本项，回答会与以前一样整段返回。使用 Anthropic 协议的服务暂时仍整段返回。
+                </p>
               </div>
+              <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" id="aiStreamOutputSwitch" checked onchange="toggleAiStreamOutput(this.checked)" class="sr-only peer">
+                <div class="w-9 h-5 bg-surface-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+              </label>
             </div>
           </div>
 
-          <!-- 卡片 7: 网络代理 -->
-          <div id="setting-card-proxy" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
-            <div>
+          <!-- 卡片 7: 网络代理 (1:1 严格对齐用户截图 1) -->
+          <div id="setting-card-proxy" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3.5 scroll-mt-6">
+            <div class="space-y-1">
               <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="network" class="w-4 h-4 text-teal-400"></i>
+                <i data-lucide="share-2" class="w-4 h-4 text-brand-400"></i>
                 <span>网络代理</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1">配置应用出站代理，用于访问海外服务器 SSH 跳板与外部 AI 接口</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed max-w-2xl">
+                本机代理地址（如 clash 的 127.0.0.1:7890），配好后可在服务器编辑页打开「借用本机代理上网」——服务借助 SSH 反向隧道用你本机的代理上网，解决国内服务器装 GitHub 源码应用 / git clone 慢或不通的问题。
+              </p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-              <div>
-                <label class="text-slate-400 block mb-1">代理协议</label>
-                <select class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200">
-                  <option selected>SOCKS5 代理</option>
-                  <option>HTTP 代理</option>
-                  <option>直连 (不使用代理)</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-slate-400 block mb-1">代理主机 / IP</label>
-                <input type="text" value="127.0.0.1" class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono">
-              </div>
-              <div>
-                <label class="text-slate-400 block mb-1">端口</label>
-                <input type="text" value="7890" class="w-full bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono">
-              </div>
+            <div class="flex items-center space-x-2.5 max-w-md pt-1">
+              <input type="text" id="settingProxyAddress" value="127.0.0.1:7890" placeholder="如 127.0.0.1:7890" class="flex-1 bg-[#0a0e14] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-brand-500">
+              <button type="button" onclick="showToast('✅ 代理地址设置已保存')" class="px-4 py-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer shadow-sm active:scale-98">保存</button>
             </div>
-            <div class="flex items-center justify-between pt-2">
-              <span class="text-slate-500 text-[11px]">代理仅作用于出站连接，不会监听非本机网络流量</span>
-              <button type="button" onclick="showToast('代理连通测试成功：127.0.0.1:7890 (SOCKS5)')" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium transition">测试代理连通性</button>
-            </div>
+            <p class="text-[11px] text-slate-500">
+              留空 = 全局禁用。仅能连到服务器本机 127.0.0.1，不对外暴露你的代理。
+            </p>
           </div>
 
-          <!-- 卡片 8: 出站地址白名单 -->
-          <div id="setting-card-whitelist" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
-            <div>
-              <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="shield-check" class="w-4 h-4 text-teal-400"></i>
-                <span>出站地址白名单 (防数据外泄)</span>
+          <!-- 卡片 8: AI 出站地址白名单 (1:1 严格对齐用户截图 1) -->
+          <div id="setting-card-whitelist" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3.5 scroll-mt-6">
+            <div class="flex items-start justify-between gap-4">
+              <div class="space-y-1">
+                <div class="font-medium text-sm text-white flex items-center space-x-2">
+                  <i data-lucide="globe" class="w-4 h-4 text-brand-400"></i>
+                  <span>AI 出站地址白名单</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed max-w-2xl">
+                  AI 执行的命令要连外网时，地址不在白名单内就强制走审批。与命令黑名单互补：黑名单看「命令长什么样」（改个写法就能绕），这里看「命令要连哪儿」——攻击者改不掉要连的那个地址。本地 / 内网地址不受影响。
+                </p>
               </div>
-              <p class="text-slate-400 text-xs mt-1">启用出站白名单后，Reeve 与 MCP 网关仅被允许与下列指定 IP / CIDR 网段及域名通信</p>
+              <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" id="aiWhitelistEnabledSwitch" checked onchange="showToast('AI 出站白名单策略已更新')" class="sr-only peer">
+                <div class="w-9 h-5 bg-surface-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+              </label>
             </div>
-            <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 space-y-2">
-              <div class="flex items-center justify-between py-1 border-b border-slate-800">
-                <span class="font-mono text-slate-300">192.168.0.0/16</span>
-                <span class="text-slate-500 text-[11px]">本地专有子网</span>
+            <div class="space-y-1.5 pt-1">
+              <label class="text-xs text-slate-300">自定义放行地址</label>
+              <div class="relative max-w-xl">
+                <div class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-xs text-slate-200">
+                  <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-surface-800 border border-slate-700 text-slate-200 text-xs font-mono">
+                      <span>remotedig.com</span>
+                      <button type="button" onclick="this.parentElement.remove(); showToast('已移除放行地址')" class="ml-1.5 text-slate-400 hover:text-slate-200 cursor-pointer">✕</button>
+                    </span>
+                  </div>
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 pointer-events-none"></i>
+                </div>
               </div>
-              <div class="flex items-center justify-between py-1 border-b border-slate-800">
-                <span class="font-mono text-slate-300">10.0.0.0/8</span>
-                <span class="text-slate-500 text-[11px]">企业私有生产网络</span>
-              </div>
-              <div class="flex items-center justify-between py-1 border-b border-slate-800">
-                <span class="font-mono text-slate-300">api.deepseek.com</span>
-                <span class="text-slate-500 text-[11px]">大模型 API 域名</span>
-              </div>
-              <div class="flex items-center justify-between py-1">
-                <span class="font-mono text-slate-300">127.0.0.1</span>
-                <span class="text-slate-500 text-[11px]">本地回环 (默认必需)</span>
-              </div>
+              <p class="text-[11px] text-slate-500 leading-relaxed">
+                填你的私有制品库 / 自建镜像源。支持子域自动放行（填 corp.com 则 repo.corp.com 一并放行）；私匙完整 URL 会自动只取域名部分。
+              </p>
             </div>
-            <div class="flex items-center space-x-2">
-              <input type="text" placeholder="输入新的 IP、CIDR 或域名 (如 172.16.0.0/12)" class="flex-1 bg-[#141a22] border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs">
-              <button type="button" onclick="showToast('已加入出站白名单')" class="px-3.5 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 font-medium">添加白名单</button>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/60">
+              <span class="text-slate-500 text-[11px]">已内置放行 84 个主流软件源（GitHub / Docker / PyPI / 各大镜像站等），无需重复添加</span>
+              <button type="button" onclick="showToast('✅ 出站白名单配置已保存')" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer shadow-sm active:scale-98">保存</button>
             </div>
           </div>
-
           <!-- 卡片 9: SSH 密钥 -->
           <div id="setting-card-ssh-keys" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
             <div class="flex items-center justify-between">
@@ -8828,60 +9110,256 @@
             </div>
           </div>
 
-          <!-- 卡片 11: 命令黑名单 -->
+          <!-- 危险区：重置数据库 (1:1 严格对齐用户截图 1) -->
+          <div class="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 space-y-2">
+            <div class="flex items-center space-x-1.5 text-rose-400 font-medium text-xs">
+              <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+              <span>危险区：重置数据库</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              用于「忘记主密码」「OS 钥匙串损坏」「跨用户拷贝了数据库后解不开」等死局态。<span class="text-rose-400 font-medium">不可逆：</span>会清空所有服务器密码 / 模型服务 / 敏感配置文，并重置 OS 钥匙串和主密码状态（保留服务器条目本身 + 审计日志）。
+            </p>
+            <div class="pt-0.5">
+              <button type="button" onclick="showToast('⚠️ 重置数据库为高危不可逆操作，已启动主密码与二次指纹确认')" class="px-3 py-1.5 rounded-lg border border-rose-500/50 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs flex items-center space-x-1.5 transition cursor-pointer shadow-xs active:scale-98">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                <span>重置数据库...</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 卡片 11: 危险命令黑名单 (1:1 严格对齐用户截图 1-5，内置 88 条全量多页展示) -->
           <div id="setting-card-blacklist" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
-            <div>
-              <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="alert-triangle" class="w-4 h-4 text-teal-400"></i>
-                <span>命令黑名单与双人复核策略</span>
+            <!-- 头部：标题与新增按钮 -->
+            <div class="flex items-center justify-between gap-4">
+              <div class="space-y-1">
+                <div class="font-medium text-sm text-white flex items-center space-x-2">
+                  <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+                  <span>危险命令黑名单</span>
+                </div>
+                <p id="blacklistSubtext" class="text-[11px] text-slate-400 leading-relaxed">
+                  正则匹配：命中即 <span class="text-amber-400 font-mono">blocked</span>（所有策略档位都生效，含 trusted）。内置 <span class="font-mono text-slate-200">88</span> 条 + 用户自加 <span id="blacklistCustomCount" class="font-mono text-slate-200">0</span> 条。
+                </p>
               </div>
-              <p class="text-slate-400 text-xs mt-1">命中以下高危正则的命令将被系统直接阻断，或强制弹出主密码双重确认弹窗</p>
+              <button type="button" onclick="openAddBlacklistModal()" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shrink-0 shadow-sm active:scale-98">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>新增</span>
+              </button>
             </div>
-            <div class="p-3.5 rounded-xl bg-[#0a0e13] border border-slate-800 font-mono text-xs text-rose-300/90 space-y-1.5">
-              <div class="flex items-center justify-between"><span>^rm\s+-rf\s+(/|\*|/\*|/home|/root|/var|/etc)</span><span class="text-[10px] text-rose-400 font-sans">根/系统目录强删</span></div>
-              <div class="flex items-center justify-between"><span>^mkfs\..*</span><span class="text-[10px] text-rose-400 font-sans">格式化磁盘</span></div>
-              <div class="flex items-center justify-between"><span>^dd\s+if=.*of=/dev/(sd|nvme|vd).*</span><span class="text-[10px] text-rose-400 font-sans">底层覆写块设备</span></div>
-              <div class="flex items-center justify-between"><span>^iptables\s+-F</span><span class="text-[10px] text-rose-400 font-sans">清空全部防火墙规则</span></div>
-              <div class="flex items-center justify-between"><span>^:\(\)\{\s*:\|:&\s*\};:</span><span class="text-[10px] text-rose-400 font-sans">Fork 炸弹</span></div>
+
+            <!-- 危险规则表格容器 -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800/80 bg-surface-950/40">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-800/80 text-[11px] text-slate-400 bg-surface-900/50">
+                    <th class="py-2.5 px-3.5 font-medium w-[55%]">正则</th>
+                    <th class="py-2.5 px-3 font-medium w-[25%]">说明</th>
+                    <th class="py-2.5 px-3 font-medium text-center w-[10%]">来源</th>
+                    <th class="py-2.5 px-3 font-medium text-center w-[10%]">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="blacklistTableBody" class="divide-y divide-slate-800/60 font-sans">
+                  <!-- 默认内置危险命令行 (对齐截图 1 - 第 1 页) -->
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="(?:^|[\s;&])rm\s+-[a-zA-Z]*r[a-zA-Z]*f?[a-zA-Z]*\s+(?:/|~|\$HOME|\*)(?:\s|$)">
+                      (?:^|[\s;&amp;])rm\s+-[a-zA-Z]*r[a-zA-Z]*f?[a-zA-Z]*\s+(?:/|~|\$HOME|\*)(?:\s|$)
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="rm -rf / ~">
+                      rm -rf / ~
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-1', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="(?:^|[\s;&])rm\s+-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*\s+(?:/|~|\$HOME|\*)(?:\s|$)">
+                      (?:^|[\s;&amp;])rm\s+-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*\s+(?:/|~|\$HOME|\*)(?:\s|$)
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="rm -fr 等价形态">
+                      rm -fr 等价形态
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-2', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="\bmkfs[\.\w]*\b">
+                      \bmkfs[\.\w]*\b
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="mkfs.* 磁盘格式化">
+                      mkfs.* 磁盘格式化
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-3', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="\bmke2fs\b">
+                      \bmke2fs\b
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="mke2fs 磁盘格式化">
+                      mke2fs 磁盘格式化
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-4', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="\bwipefs\b">
+                      \bwipefs\b
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="wipefs 擦除文件系统签名">
+                      wipefs 擦除文件系统签名
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-5', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="\bdd\b[^\n]*\bof=/dev/">
+                      \bdd\b[^\n]*\bof=/dev/
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="dd of=/dev/ 直接写块设备">
+                      dd of=/dev/ 直接写块设备
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-6', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title=":\s*\(\s*\)\s*\{\s*:\s*\|\s*:\s*&amp;\s*\}\s*;\s*:">
+                      :\s*\(\s*\)\s*\{\s*:\s*\|\s*:\s*&amp;\s*\}\s*;\s*:
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="fork bomb :(){ :|:&amp; };:">
+                      fork bomb :(){ :|:&amp; };:
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-7', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="&gt;\s*/dev/sd[a-z]">
+                      &gt;\s*/dev/sd[a-z]
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="重定向到 /dev/sd*">
+                      重定向到 /dev/sd*
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-8', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="\bchmod\s+-R\s+0*777\s+/(?:\s|$)">
+                      \bchmod\s+-R\s+0*777\s+/(?:\s|$)
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="chmod -R 777 /">
+                      chmod -R 777 /
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-9', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-surface-850/50 transition">
+                    <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="\bchown\s+-R\s+\w+\s+/(?:\s|$)">
+                      \bchown\s+-R\s+\w+\s+/(?:\s|$)
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="chown -R x /">
+                      chown -R x /
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-slate-700/60">内置</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                      <button type="button" onclick="deleteBlacklistRule('built-10', true)" title="系统内置规则（保护不可删）" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="flex items-center justify-between pt-1">
-              <button type="button" onclick="showToast('正在添加自定义规则...')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 font-medium">添加自定义正则</button>
-              <button type="button" onclick="showToast('安全黑名单策略已更新并同步到本地安全引擎')" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium">保存安全策略</button>
+
+            <!-- 分页导航条 (1:1 对齐截图: < 1 2 3 4 5 ... 9 >) -->
+            <div id="blacklistPaginationContainer" class="flex items-center justify-end space-x-1.5 pt-1 text-xs select-none">
+              <button type="button" onclick="goToBlacklistPage(1)" disabled class="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button type="button" onclick="goToBlacklistPage(1)" class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition cursor-pointer bg-blue-600/30 text-blue-400 border border-blue-500/40 font-semibold">1</button>
+              <button type="button" onclick="goToBlacklistPage(2)" class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition cursor-pointer text-slate-400 hover:text-white hover:bg-surface-800">2</button>
+              <button type="button" onclick="goToBlacklistPage(3)" class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition cursor-pointer text-slate-400 hover:text-white hover:bg-surface-800">3</button>
+              <button type="button" onclick="goToBlacklistPage(4)" class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition cursor-pointer text-slate-400 hover:text-white hover:bg-surface-800">4</button>
+              <button type="button" onclick="goToBlacklistPage(5)" class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition cursor-pointer text-slate-400 hover:text-white hover:bg-surface-800">5</button>
+              <span class="px-1 text-slate-500 font-mono">...</span>
+              <button type="button" onclick="goToBlacklistPage(9)" class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition cursor-pointer text-slate-400 hover:text-white hover:bg-surface-800">9</button>
+              <button type="button" onclick="goToBlacklistPage(2)" class="p-1 rounded text-slate-400 hover:text-white transition cursor-pointer">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
             </div>
           </div>
 
-          <!-- 卡片 12: 审计保留 -->
-          <div id="setting-card-audit-retention" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
-            <div>
+          <!-- 卡片 12: 审计日志保留 (1:1 严格对齐用户截图 1) -->
+          <div id="setting-card-audit-retention" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3.5 scroll-mt-6">
+            <div class="space-y-1">
               <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="clipboard-list" class="w-4 h-4 text-teal-400"></i>
-                <span>审计保留策略</span>
+                <i data-lucide="clipboard-list" class="w-4 h-4 text-brand-400"></i>
+                <span>审计日志保留</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1">控制终端操作回放、AI 审批记录与危险拦截日志的本地持久化保留时长</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed max-w-2xl">
+                每 24 小时自动清理超过保留天数的审计行（避免长期使用后 SQLite 膨胀）。<span class="text-amber-400/90 font-mono">0 = 关闭清理</span>（保留全部历史，自己注意磁盘）。改动下次轮询生效，不需要重启。
+              </p>
             </div>
-            <div class="grid grid-cols-2 gap-4 pt-1">
-              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2">
-                <span class="text-slate-200 font-medium">日志自动清理周期</span>
-                <select class="w-full bg-[#0a0e13] border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200">
-                  <option>保留最近 30 天</option>
-                  <option selected>保留最近 90 天 (等保推荐)</option>
-                  <option>保留最近 180 天</option>
-                  <option>永久保留 (不自动清理)</option>
-                </select>
+            <div class="flex items-center space-x-2.5 max-w-xs pt-1">
+              <div class="flex items-center rounded-lg border border-slate-700/80 bg-[#0a0e14] overflow-hidden flex-1 focus-within:border-brand-500">
+                <input type="number" id="settingAuditRetentionDays" value="90" min="0" max="3650" class="w-full bg-transparent px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none">
+                <span class="px-2.5 py-2 text-xs text-slate-400 bg-surface-900 border-l border-slate-700/80 select-none">天</span>
               </div>
-              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-2 flex flex-col justify-between">
-                <div>
-                  <span class="text-slate-200 font-medium">当前本地数据库体积</span>
-                  <div class="font-mono text-teal-400 font-bold text-sm mt-0.5">24.6 MB <span class="text-[10px] text-slate-500 font-normal">/ 1,280 条审计记录</span></div>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <button type="button" onclick="showToast('已完成 SQLite VACUUM 空间收缩，释放 3.2MB')" class="flex-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">压缩空间</button>
-                  <button type="button" onclick="showToast('审计数据已导出为 audit_export_20261001.csv')" class="flex-1 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">导出报表</button>
-                </div>
-              </div>
+              <button type="button" onclick="showToast('✅ 审计保留策略已保存：保留 90 天')" class="px-4 py-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer shadow-sm active:scale-98">保存</button>
             </div>
           </div>
-
           <!-- 卡片 13: 备份与还原 -->
           <div id="setting-card-backup" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
             <div>
@@ -10636,7 +11114,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
           </div>
           <div class="shrink-0 flex items-center space-x-2 bg-surface-900/80 px-3 py-1.5 rounded-lg border border-slate-700">
             <span class="text-slate-400 text-[11px]">当前演练对象:</span>
-            <span id="isoModalTargetName" class="font-bold text-emerald-300 font-mono text-xs">MySQL @ 我的腾讯云0209</span>
+            <span id="isoModalTargetName" class="font-bold text-emerald-300 font-mono text-xs">我的腾讯云0209</span>
           </div>
         </div>
 
@@ -12034,6 +12512,219 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     </div>
   </div>
 
+  <!-- =================================================================================== -->
+  <!-- 模态框 1: 粘贴导入 (ai.profile 协议) (1:1 严格对齐用户截图 2) -->
+  <!-- =================================================================================== -->
+  <div id="modalPasteImportModel" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#111620] border border-slate-700/80 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <!-- 弹窗顶栏 -->
+      <div class="px-5 py-4 border-b border-slate-800/80 flex items-start justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white">粘贴导入 (ai.profile 协议)</h3>
+          <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+            积极与其他软件（智码 AICoder / Sigil / AgileShot 等）复制出的 ai.profile JSON。非 Anthropic 的 provider 会自动归为 OpenAI 兼容。
+          </p>
+        </div>
+        <button type="button" onclick="closePasteImportModelModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800 transition cursor-pointer ml-3">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 弹窗主体：大文本域 -->
+      <div class="p-5 space-y-3">
+        <textarea id="pasteImportModelJson" rows="9" placeholder="在此粘贴明文 JSON，例如 {&quot;kind&quot;: &quot;ai.profile&quot;, &quot;v&quot;: 1, &quot;data&quot;: { ... }}" class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-xl p-3 text-xs text-slate-200 font-mono placeholder:text-slate-500 focus:outline-none focus:border-brand-500 custom-scrollbar leading-relaxed"></textarea>
+      </div>
+
+      <!-- 弹窗底部 -->
+      <div class="px-5 py-3.5 bg-surface-950/40 border-t border-slate-800/80 flex items-center justify-end space-x-2.5">
+        <button type="button" onclick="closePasteImportModelModal()" class="px-4 py-1.5 rounded-lg border border-slate-700/70 hover:bg-surface-800 text-slate-400 hover:text-slate-200 text-xs transition cursor-pointer">
+          取消
+        </button>
+        <button type="button" onclick="doImportModelFromProfileJson()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer shadow-sm active:scale-98">
+          导入
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================================== -->
+  <!-- 模态框 2: 新建 / 编辑模型服务 (1:1 严格对齐用户截图 3) -->
+  <!-- =================================================================================== -->
+  <div id="modalModelService" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#111620] border border-slate-700/80 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <!-- 弹窗顶栏 -->
+      <div class="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between">
+        <h3 id="modelServiceModalTitle" class="text-sm font-bold text-white">新建模型服务</h3>
+        <button type="button" onclick="closeModelServiceModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 弹窗主体表单 -->
+      <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <input type="hidden" id="modelServEditId" value="">
+
+        <!-- 1. 名称 -->
+        <div class="space-y-1.5">
+          <label class="text-xs text-slate-300 flex items-center space-x-1">
+            <span class="text-rose-400">*</span>
+            <span>名称</span>
+          </label>
+          <input type="text" id="modelServName" placeholder="如：个人 Anthropic、公司 DeepSeek" class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <!-- 2. 服务商 -->
+        <div class="space-y-1.5">
+          <div class="flex items-center space-x-1">
+            <label class="text-xs text-slate-300 flex items-center space-x-1">
+              <span class="text-rose-400">*</span>
+              <span>服务商</span>
+            </label>
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 cursor-pointer" title="选择服务商通信协议与官方预设"></i>
+          </div>
+          <div class="relative">
+            <select id="modelServProvider" onchange="onModelProviderChange(this.value)" class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg px-3 py-2 pr-8 text-xs text-slate-200 focus:outline-none focus:border-brand-500 appearance-none cursor-pointer">
+              <option value="anthropic" selected>Anthropic 官方</option>
+              <option value="openai">OpenAI 官方</option>
+              <option value="deepseek">DeepSeek 官方</option>
+              <option value="groq">Groq</option>
+              <option value="moonshot">月之暗面 (Moonshot)</option>
+              <option value="zhipu">智谱 AI (GLM)</option>
+              <option value="ollama">Ollama (本地私有化)</option>
+              <option value="vllm">vLLM (自建算力集群)</option>
+              <option value="custom">自定义 OpenAI 兼容接口</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+          </div>
+        </div>
+
+        <!-- 2.1 API Base URL (针对自定义/第三方提供商可调) -->
+        <div id="modelServEndpointRow" class="space-y-1.5">
+          <label class="text-xs text-slate-300 flex items-center space-x-1">
+            <span>API 接口地址 (Base URL)</span>
+          </label>
+          <input type="text" id="modelServEndpoint" value="https://api.anthropic.com/v1" placeholder="https://api.anthropic.com/v1" class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono placeholder:text-slate-500 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <!-- 3. API 密钥 -->
+        <div class="space-y-1.5">
+          <div class="flex items-center space-x-1">
+            <label class="text-xs text-slate-300">API 密钥</label>
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 cursor-pointer" title="密钥在本地经由 AES-256-GCM 加密，明文不入库"></i>
+          </div>
+          <div class="relative">
+            <input type="password" id="modelServApiKey" placeholder="sk-ant-..." class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-xs text-slate-200 font-mono placeholder:text-slate-500 focus:outline-none focus:border-brand-500">
+            <button type="button" onclick="toggleModelApiKeyVisibility()" class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300 transition cursor-pointer">
+              <i id="modelApiKeyEyeIcon" data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. 模型 -->
+        <div class="space-y-1.5">
+          <label class="text-xs text-slate-300 flex items-center space-x-1">
+            <span class="text-rose-400">*</span>
+            <span>模型</span>
+          </label>
+          <div class="flex items-center space-x-2">
+            <div class="relative flex-1">
+              <input type="text" id="modelServModel" value="claude-opus-5-5" placeholder="例如 claude-opus-5-5 或 deepseek-reasoner" class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-brand-500">
+              <button type="button" onclick="clearModelInput()" class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <button type="button" onclick="fetchProviderModels()" class="shrink-0 px-3 py-2 rounded-lg border border-slate-700/80 bg-surface-900/80 hover:bg-surface-850 text-slate-200 text-xs flex items-center space-x-1.5 transition cursor-pointer">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span>获取</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500 leading-relaxed">
+            下拉是该服务商的常用模型，仅供参考 —— 可直接手输任意自定义模型名
+          </p>
+        </div>
+
+        <!-- 5. 上下文窗口 / 单次输出上限 (tokens) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center space-x-1">
+            <label class="text-xs text-slate-300">上下文窗口 / 单次输出上限 (tokens)</label>
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 cursor-pointer" title="控制长上下文截断策略与单次最大返回长度"></i>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex items-center rounded-lg border border-slate-700/80 bg-[#0a0e14] overflow-hidden focus-within:border-brand-500">
+              <span class="px-2.5 py-2 text-xs text-slate-400 bg-surface-900 border-r border-slate-700/80 select-none shrink-0">窗口</span>
+              <input type="text" id="modelServContextWindow" value="未知" placeholder="如 128000" class="flex-1 bg-transparent px-2.5 py-2 text-xs text-slate-200 font-mono focus:outline-none">
+            </div>
+            <div class="flex items-center rounded-lg border border-slate-700/80 bg-[#0a0e14] overflow-hidden focus-within:border-brand-500">
+              <span class="px-2.5 py-2 text-xs text-slate-400 bg-surface-900 border-r border-slate-700/80 select-none shrink-0">输出</span>
+              <input type="text" id="modelServMaxOutput" value="未知" placeholder="如 8192" class="flex-1 bg-transparent px-2.5 py-2 text-xs text-slate-200 font-mono focus:outline-none">
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-500 leading-relaxed">
+            未知：不主动裁剪历史，超出窗口时自动截掉一半重试。点「获取」让算点上报，或手动填写
+          </p>
+        </div>
+      </div>
+
+      <!-- 弹窗底部操作栏 -->
+      <div class="px-5 py-3.5 bg-surface-950/40 border-t border-slate-800/80 flex items-center justify-between">
+        <button type="button" onclick="testModalModelConnection()" class="px-3.5 py-1.5 rounded-lg border border-slate-700/80 bg-surface-900/80 hover:bg-surface-850 text-slate-200 text-xs flex items-center space-x-1.5 transition cursor-pointer">
+          <i data-lucide="plug" class="w-3.5 h-3.5 text-teal-400"></i>
+          <span>测试连接</span>
+        </button>
+        <div class="flex items-center space-x-2.5">
+          <button type="button" onclick="closeModelServiceModal()" class="px-4 py-1.5 rounded-lg border border-slate-700/70 hover:bg-surface-800 text-slate-400 hover:text-slate-200 text-xs transition cursor-pointer">
+            取消
+          </button>
+          <button type="button" onclick="saveModelService()" class="px-5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium shadow-sm transition cursor-pointer active:scale-98">
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================================== -->
+  <!-- 模态框: 新增危险命令黑名单规则 -->
+  <!-- =================================================================================== -->
+  <div id="modalAddBlacklistRule" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#111620] border border-slate-700/80 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+          <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+          <span>新增危险命令黑名单规则</span>
+        </h3>
+        <button type="button" onclick="closeAddBlacklistModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="space-y-1.5">
+          <label class="text-xs text-slate-300 flex items-center space-x-1">
+            <span class="text-rose-400">*</span>
+            <span>正则表达式 (Regex)</span>
+          </label>
+          <input type="text" id="newBlacklistRegex" placeholder="例如：^terraform destroy -auto-approve 或 (?i)\bdrop\s+database\b" class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono placeholder:text-slate-500 focus:outline-none focus:border-brand-500">
+          <p class="text-[11px] text-slate-500">支持 PCRE / JavaScript 正则语法，命中命令将被即时 Block 拦截</p>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs text-slate-300 flex items-center space-x-1">
+            <span class="text-rose-400">*</span>
+            <span>规则说明</span>
+          </label>
+          <input type="text" id="newBlacklistDesc" placeholder="例如：直接销毁云上基础设施或全量表删除" class="w-full bg-[#0a0e14] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-brand-500">
+        </div>
+      </div>
+      <div class="px-5 py-3.5 bg-surface-950/40 border-t border-slate-800/80 flex items-center justify-end space-x-2.5">
+        <button type="button" onclick="closeAddBlacklistModal()" class="px-4 py-1.5 rounded-lg border border-slate-700/70 hover:bg-surface-800 text-slate-400 hover:text-slate-200 text-xs transition cursor-pointer">
+          取消
+        </button>
+        <button type="button" onclick="saveNewBlacklistRule()" class="px-5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium shadow-sm transition cursor-pointer active:scale-98">
+          添加
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 全局 Toast 提示容器 -->
   <div id="toastNotification" class="hidden fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl bg-surface-900 border border-emerald-500/50 shadow-2xl flex items-center space-x-3 text-xs text-emerald-300 animate-in fade-in slide-in-from-bottom-3 duration-200">
     <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
@@ -12047,6 +12738,9 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       const savedSkin = localStorage.getItem('opspub_skin') || 'obsidian';
       selectThemeSkin(savedSkin, true);
       if (typeof renderSkillsTable === 'function') renderSkillsTable();
+      if (typeof updateDbEngineGroupVisibility === 'function') updateDbEngineGroupVisibility();
+      if (typeof renderModelServicesList === 'function') renderModelServicesList();
+      if (typeof renderBlacklistTable === 'function') renderBlacklistTable(1);
     });
 
     function switchTab(tabId) {
@@ -17550,7 +18244,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       },
       {
         id: 'mysql_conn',
-        name: 'MySQL @ 我的腾讯云0209',
+        name: '我的腾讯云0209',
         key: 'mysql_conn',
         server: '我的腾讯云0209',
         installPath: '—',
@@ -17619,7 +18313,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
               <button onclick="testCredentialConn('${item.id}')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-teal-400 hover:text-teal-300 border border-slate-700/80 text-xs transition cursor-pointer" title="测试连接 (3306 端口探活)">
                 <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
               </button>
-              <button onclick="openCredentialIsolationModal('MySQL @ 我的腾讯云0209', 'vault://ref/mysql_pass_3306')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-emerald-400 hover:text-emerald-300 border border-slate-700/80 text-xs transition cursor-pointer" title="端侧盲执行与防嗅探抓包模拟">
+              <button onclick="openCredentialIsolationModal('我的腾讯云0209', 'vault://ref/mysql_pass_3306')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-emerald-400 hover:text-emerald-300 border border-slate-700/80 text-xs transition cursor-pointer" title="端侧盲执行与防嗅探抓包模拟">
                 <i data-lucide="play" class="w-3.5 h-3.5 fill-emerald-400"></i>
               </button>
               <button onclick="deleteCredentialMock('${item.id}')" class="p-1.5 rounded-lg bg-surface-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/80 text-xs transition cursor-pointer" title="删除凭据">
@@ -18045,6 +18739,11 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
     let settingLanguage = 'zh-CN';
 
     function scrollSettingsTo(sectionId) {
+      const tabSettings = document.getElementById('tab-settings');
+      if (tabSettings && tabSettings.classList.contains('hidden')) {
+        if (typeof switchTab === 'function') switchTab('tab-settings');
+      }
+
       currentSettingSubnav = sectionId;
       document.querySelectorAll('.set-subnav-btn').forEach(btn => {
         btn.classList.remove('bg-teal-500/10', 'text-teal-400', 'border-teal-500/30', 'font-medium');
@@ -18055,8 +18754,28 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         activeBtn.classList.remove('text-slate-400', 'border-transparent');
         activeBtn.classList.add('bg-teal-500/10', 'text-teal-400', 'border-teal-500/30', 'font-medium');
       }
+
+      if (sectionId === 'blacklist' && typeof renderBlacklistTable === 'function') {
+        try {
+          renderBlacklistTable(currentBlacklistPage || 1);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       const targetCard = document.getElementById('setting-card-' + sectionId);
-      if (targetCard) {
+      const panel = document.getElementById('settingsContentPanel');
+      if (targetCard && panel) {
+        // 精准滚动定位：直接控制右侧 settingsContentPanel 滚动容器
+        const panelRect = panel.getBoundingClientRect();
+        const cardRect = targetCard.getBoundingClientRect();
+        const currentScroll = panel.scrollTop;
+        const targetScroll = currentScroll + (cardRect.top - panelRect.top) - 16;
+        panel.scrollTo({
+          top: Math.max(0, targetScroll),
+          behavior: 'smooth'
+        });
+      } else if (targetCard) {
         targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
@@ -20690,7 +21409,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       const actions = document.getElementById('mainDbConnectedActions');
 
       if (engine === 'sql') {
-        if (statusName) statusName.textContent = 'MySQL @ 我的腾讯云0209';
+        if (statusName) statusName.textContent = '我的腾讯云0209';
         if (connIndicator) connIndicator.innerHTML = '<span>← 在左侧连接树选择连接</span>';
         if (actions) actions.classList.add('hidden');
       } else if (engine === 'redis') {
@@ -20834,6 +21553,68 @@ SHOW CREATE TABLE sys_user;`;
           item.classList.add('hidden');
         }
       });
+      if (typeof updateDbEngineGroupVisibility === "function") {
+        updateDbEngineGroupVisibility();
+      }
+    }
+
+    // 引擎分组展开/折叠交互
+    function toggleDbEngineSection(engineType) {
+      const sectionEl = document.getElementById("dbEngineSection-" + engineType);
+      const contentEl = document.getElementById("engineContent-" + engineType);
+      const chevron = document.getElementById("engineChevron-" + engineType);
+      if (!contentEl) return;
+      const isHidden = contentEl.classList.contains("hidden");
+      if (isHidden) {
+        contentEl.classList.remove("hidden");
+        if (sectionEl) sectionEl.classList.add("is-expanded");
+        if (chevron) {
+          chevron.setAttribute("data-lucide", "chevron-down");
+          chevron.classList.remove("-rotate-90");
+        }
+      } else {
+        contentEl.classList.add("hidden");
+        if (sectionEl) sectionEl.classList.remove("is-expanded");
+        if (chevron) {
+          chevron.setAttribute("data-lucide", "chevron-right");
+          chevron.classList.remove("-rotate-90");
+        }
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 核心业务：动态更新引擎分组显示与徽标数量 (连接数为0的分组名称彻底隐藏不显示)
+    function updateDbEngineGroupVisibility() {
+      const sections = document.querySelectorAll(".db-engine-section");
+      let totalVisibleConnCount = 0;
+
+      sections.forEach(sec => {
+        const connItems = sec.querySelectorAll(".main-db-conn-group:not(.hidden)");
+        const badge = sec.querySelector(".db-engine-header span.font-mono");
+        const count = connItems.length;
+
+        if (badge) badge.innerText = count;
+
+        // 满足需求：如果该分组下连接数为 0，则整个分组容器（包括标题名称）彻底隐藏！
+        if (count === 0) {
+          sec.classList.add("hidden");
+        } else {
+          sec.classList.remove("hidden");
+          totalVisibleConnCount += count;
+        }
+      });
+
+      const emptyState = document.getElementById("mainDbTreeEmptyState");
+      if (emptyState) {
+        if (totalVisibleConnCount === 0) {
+          emptyState.classList.remove("hidden");
+          emptyState.classList.add("flex");
+        } else {
+          emptyState.classList.add("hidden");
+          emptyState.classList.remove("flex");
+        }
+      }
+      if (window.lucide) lucide.createIcons();
     }
 
     function toggleMainDbConnExpand(connId) {
@@ -20872,14 +21653,14 @@ SHOW CREATE TABLE sys_user;`;
 
     function selectMainDbDatabase(server, dbName) {
       const serverMap = {
-        'tencent': { name: 'MySQL @ 我的腾讯云0209', dialect: 'mysql' },
-        'aliyun': { name: 'MySQL @ 我的阿里云3045', dialect: 'mysql' },
-        'postgres': { name: 'PostgreSQL @ 阿里云PG-01 (分析集群)', dialect: 'postgresql' },
-        'sqlite': { name: 'SQLite @ 本地应用数据库 (app_data.db)', dialect: 'sqlite' },
-        'oracle': { name: 'Oracle 19c @ 核心财务ERP (1521/ORCL)', dialect: 'oracle' },
-        'sqlserver': { name: 'SQL Server 2022 @ 运营数据中心 (1433)', dialect: 't-sql' },
-        'mariadb': { name: 'MariaDB @ 开源社区镜像库 (10.11)', dialect: 'mariadb' },
-        'clickhouse': { name: 'ClickHouse @ 海量日志实时分析 (8123)', dialect: 'clickhouse' }
+        'tencent': { name: '我的腾讯云0209', dialect: 'mysql' },
+        'aliyun': { name: '我的阿里云3045', dialect: 'mysql' },
+        'postgres': { name: '阿里云PG-01 (分析集群)', dialect: 'postgresql' },
+        'sqlite': { name: '本地应用数据库 (app_data.db)', dialect: 'sqlite' },
+        'oracle': { name: '核心财务ERP (1521/ORCL)', dialect: 'oracle' },
+        'sqlserver': { name: '运营数据中心 (1433)', dialect: 't-sql' },
+        'mariadb': { name: '开源社区镜像库 (10.11)', dialect: 'mariadb' },
+        'clickhouse': { name: '海量日志实时分析 (8123)', dialect: 'clickhouse' }
       };
 
       const titleEl = document.getElementById('connTitle-' + server);
@@ -21482,7 +22263,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-tencent');
         cfg = {
           id: 'conn-tencent',
-          name: titleEl ? titleEl.textContent.trim() : 'MySQL @ 我的腾讯云0209',
+          name: titleEl ? titleEl.textContent.trim() : '我的腾讯云0209',
           server: 'tencent',
           sshTunnel: true,
           type: 'MySQL',
@@ -21499,7 +22280,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-aliyun');
         cfg = {
           id: 'conn-aliyun',
-          name: titleEl ? titleEl.textContent.trim() : 'MySQL @ 我的阿里云3045',
+          name: titleEl ? titleEl.textContent.trim() : '我的阿里云3045',
           server: 'aliyun',
           sshTunnel: true,
           type: 'MySQL',
@@ -21516,7 +22297,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-postgres');
         cfg = {
           id: 'conn-postgres',
-          name: titleEl ? titleEl.textContent.trim() : 'PostgreSQL @ 阿里云PG-01 (分析集群)',
+          name: titleEl ? titleEl.textContent.trim() : '阿里云PG-01 (分析集群)',
           server: 'aliyun',
           sshTunnel: true,
           type: 'PostgreSQL',
@@ -21533,7 +22314,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-sqlite');
         cfg = {
           id: 'conn-sqlite',
-          name: titleEl ? titleEl.textContent.trim() : 'SQLite @ 本地应用数据库 (app_data.db)',
+          name: titleEl ? titleEl.textContent.trim() : '本地应用数据库 (app_data.db)',
           server: 'local',
           sshTunnel: false,
           type: 'SQLite',
@@ -21546,7 +22327,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-oracle');
         cfg = {
           id: 'conn-oracle',
-          name: titleEl ? titleEl.textContent.trim() : 'Oracle 19c @ 核心财务ERP (1521/ORCL)',
+          name: titleEl ? titleEl.textContent.trim() : '核心财务ERP (1521/ORCL)',
           server: 'tencent',
           sshTunnel: true,
           type: 'Oracle',
@@ -21563,7 +22344,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-sqlserver');
         cfg = {
           id: 'conn-sqlserver',
-          name: titleEl ? titleEl.textContent.trim() : 'SQL Server 2022 @ 运营数据中心 (1433)',
+          name: titleEl ? titleEl.textContent.trim() : '运营数据中心 (1433)',
           server: 'aliyun',
           sshTunnel: true,
           type: 'Microsoft SQL Server',
@@ -21580,7 +22361,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-mariadb');
         cfg = {
           id: 'conn-mariadb',
-          name: titleEl ? titleEl.textContent.trim() : 'MariaDB @ 开源社区镜像库 (10.11)',
+          name: titleEl ? titleEl.textContent.trim() : '开源社区镜像库 (10.11)',
           server: 'aliyun',
           sshTunnel: false,
           type: 'MariaDB',
@@ -21597,7 +22378,7 @@ LIMIT 100;`;
         const titleEl = document.getElementById('connTitle-clickhouse');
         cfg = {
           id: 'conn-clickhouse',
-          name: titleEl ? titleEl.textContent.trim() : 'ClickHouse @ 海量日志实时分析 (8123)',
+          name: titleEl ? titleEl.textContent.trim() : '海量日志实时分析 (8123)',
           server: 'tencent',
           sshTunnel: true,
           type: 'ClickHouse',
@@ -21979,6 +22760,9 @@ LIMIT 100;`;
           if (group) {
             group.remove();
             showToast(`🗑️ 已删除连接: ${currentContextConnName}`);
+            if (typeof updateDbEngineGroupVisibility === "function") {
+              updateDbEngineGroupVisibility();
+            }
           }
           const indicator = document.getElementById('mainDbConnIndicator');
           if (indicator && indicator.textContent.includes(currentContextConnName)) {
@@ -24895,6 +25679,709 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
 
     updateMcpEndpointState();
     renderMcpTokens();
+
+    // =========================================================================
+    // 危险命令黑名单全量数据 (内置 88 条，1:1 严格对齐用户全部 9 页截图)
+    // =========================================================================
+    const builtInBlacklistRules = [
+      // 第 1 页 (截图 1: 1-10)
+      { regex: "(?:^|[\\s;&])rm\\s+-[a-zA-Z]*r[a-zA-Z]*f?[a-zA-Z]*\\s+(?:/|~|\\$HOME|\\*)(?:\\s|$)", desc: "rm -rf / ~" },
+      { regex: "(?:^|[\\s;&])rm\\s+-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*\\s+(?:/|~|\\$HOME|\\*)(?:\\s|$)", desc: "rm -fr 等价形态" },
+      { regex: "\\bmkfs[\\.\\w]*\\b", desc: "mkfs.* 磁盘格式化" },
+      { regex: "\\bmke2fs\\b", desc: "mke2fs 磁盘格式化" },
+      { regex: "\\bwipefs\\b", desc: "wipefs 擦除文件系统签名" },
+      { regex: "\\bdd\\b[^\\n]*\\bof=/dev/", desc: "dd of=/dev/ 直接写块设备" },
+      { regex: ":\\s*\\(\\s*\\)\\s*\\{\\s*:\\s*\\|\\s*:\\s*&\\s*\\}\\s*;\\s*:", desc: "fork bomb :(){ :|:& };:" },
+      { regex: ">\\s*/dev/sd[a-z]", desc: "重定向到 /dev/sd*" },
+      { regex: "\\bchmod\\s+-R\\s+0*777\\s+/(?:\\s|$)", desc: "chmod -R 777 /" },
+      { regex: "\\bchown\\s+-R\\s+\\w+\\s+/(?:\\s|$)", desc: "chown -R x /" },
+
+      // 第 2 页 (截图 2: 11-20)
+      { regex: "(?:^|[\\s;&])pg_resetwal\\b", desc: "pg_resetwal (PostgreSQL WAL 重置，事务日志全丢)" },
+      { regex: "(?i)\\bredis-cli\\b[^\\n]*\\bFLUSHALL\\b", desc: "redis FLUSHALL (清空所有 db)" },
+      { regex: "(?i)\\bredis-cli\\b[^\\n]*\\bFLUSHDB\\b", desc: "redis FLUSHDB (清空当前 db)" },
+      { regex: "(?i)\\bmysql\\b[^\\n]*-e\\s+['\"][^'\"]*\\bDROP\\s+(?:DATABASE|SCHEMA)\\b", desc: "MySQL DROP DATABASE / SCHEMA" },
+      { regex: "(?i)\\bdocker\\s+system\\s+prune\\s+-a\\b[^\\n]*--volumes\\b", desc: "docker system prune -a --volumes (删未挂载 volume)" },
+      { regex: "(?i)\\bdocker\\s+volume\\s+rm\\b[^\\n]*\\$\\(\\s*docker\\s+volume\\s+ls\\b", desc: "docker volume rm $(docker volume ls ...) (删全部卷)" },
+      { regex: "(?:^|[\\s;&])kubeadm\\s+reset\\b", desc: "kubeadm reset (k8s 节点重置)" },
+      { regex: "(?:^|[\\s;&])shutdown(?:\\s|$)", desc: "shutdown 关机" },
+      { regex: "(?:^|[\\s;&])reboot(?:\\s|$)", desc: "reboot 重启" },
+      { regex: "(?:^|[\\s;&])halt(?:\\s|$)", desc: "halt" },
+
+      // 第 3 页 (截图 3: 21-30)
+      { regex: "(?:^|[\\s;&])poweroff(?:\\s|$)", desc: "poweroff" },
+      { regex: "(?:^|[\\s;&])1pctl\\s+reset(?:\\s*$|[\\s;&]+[^-])", desc: "1pctl reset (重置 1Panel 全部密码)" },
+      { regex: "(?:^|[\\s;&])1pctl\\s+uninstall(?:\\s*$|[\\s;&]+[^-])", desc: "1pctl uninstall (卸载 1Panel)" },
+      { regex: "(?i)\\bmysqladmin\\b[^\\n]*\\bshutdown\\b", desc: "mysqladmin shutdown (强关 MySQL)" },
+      { regex: "(?i)\\bformat\\s+[-a-z]:", desc: "format 磁盘格式化" },
+      { regex: "(?i)\\bformat-volume\\b", desc: "Format-Volume 格式化卷" },
+      { regex: "(?i)\\bclear-disk\\b", desc: "Clear-Disk 清空磁盘" },
+      { regex: "(?i)\\bremove-partition\\b", desc: "Remove-Partition 删除分区" },
+      { regex: "(?i)\\bcipher\\s+/w[:\\s]", desc: "cipher /w 擦除可用空间" },
+      { regex: "(?i)\\bvssadmin\\s+delete\\s+shadows", desc: "vssadmin delete shadows 删卷影副本（勒索软件常用）" },
+
+      // 第 4 页 (截图 4: 31-40)
+      { regex: "(?i)\\bbcdedit\\b[^\\n]*\\s/delete", desc: "bcdedit /delete 删除启动项" },
+      { regex: "(?i)\\bremove-item\\b[^\\n]*-recurse\\b[^\\n]*[a-z]:[\\\\/](?:[*\\s]|$)", desc: "Remove-Item -Recurse 盘符根" },
+      { regex: "(?i)\\bremove-item\\b[^\\n]*-recurse\\b[^\\n]*[\\\\/](?:windows|system32)(?:[\\\\/]\\s|$)", desc: "Remove-Item -Recurse 系统目录" },
+      { regex: "(?i)\\b(?:rd|rmdir)\\b[^\\n]*\\s/s\\b[^\\n]*[a-z]:[\\\\/](?:[*\\s]|$)", desc: "rd /s 盘符根" },
+      { regex: "(?i)\\bdel\\b[^\\n]*\\s/s\\b[^\\n]*[a-z]:[\\\\/](?:[*\\s]|$)", desc: "del /s 盘符根" },
+      { regex: "(?i)\\bstop-computer\\b", desc: "Stop-Computer 关机" },
+      { regex: "(?i)\\brestart-computer\\b", desc: "Restart-Computer 重启" },
+      { regex: "(?i)\\bshutdown\\b[^\\n]*\\s[/-][sr]\\b", desc: "shutdown /s|/r 关机/重启" },
+      { regex: "(?i)\\bdiskpart\\b", desc: "diskpart 磁盘分区工具" },
+      { regex: "(?i)\\b(?:uninstall|remove)-windowsfeature\\b", desc: "卸载 Windows 功能" },
+
+      // 第 5 页 (截图 5: 41-50)
+      { regex: "(?i)\\bnet\\s+user\\b[^\\n]*\\s/delete\\b", desc: "net user /delete 删账号" },
+      { regex: "(?i)\\bnet\\s+localgroup\\b[^\\n]*\\s/delete\\b", desc: "net localgroup /delete" },
+      { regex: "(?i)\\s-e(?:?:c|n|nc|ncodedcommand)?\\s+[a-z0-9+/=]{20,}", desc: "powershell -EncodedCommand (编码命令，内容不可见)" },
+      { regex: "(?i)\\b(?:iex|invoke-expression)\\b", desc: "Invoke-Expression (动态执行，常用于混淆)" },
+      { regex: "(?i)\\bfrombase64string\\b", desc: "FromBase64String (base64 解码执行)" },
+      { regex: "(?i)\\b(?:downloadstring|downloadfile)\\b", desc: "远程下载 (DownloadString/DownloadFile，常用于落地执行)" },
+      { regex: ">\\s*&\\s*/dev/tcp/", desc: "重定向到 /dev/tcp (反弹 shell)" },
+      { regex: "(?:^|[\\s;&])(?:ba|z|k|da)?sh\\s+-[a-zA-Z]*i[a-zA-Z]*\\s[^\\n]*/dev/tcp/", desc: "sh -i + /dev/tcp (交互式反弹 shell)" },
+      { regex: "\\b(?:nc|ncat|netcat)\\b[^\\n]*\\s-[a-zA-Z]*e\\s+/", desc: "nc -e 派生程序 (后门监听 / 回连)" },
+      { regex: "(?:python3?|perl|ruby|php)\\b[^\\n]*\\s-[ce]\\b[^\\n]*(?:SOCK_STREAM|pty\\.spawn|Socket::INET)", desc: "脚本内联反弹 shell (socket + shell 派生)" },
+
+      // 第 6 页 (截图 6: 51-60)
+      { regex: "\\b(?:curl|wget)\\b[^\\n]*\\|\\s*(?:sudo\\s+)?(?:/bin/)?(?:ba|z|k|da|a)?sh\\b", desc: "curl/wget 管道直接执行 (curl | sh)" },
+      { regex: "\\bwget\\b[^\\n]*\\bhttp://(?:\\d{1,3}\\.){3}\\d{1,3}", desc: "wget 从裸 IP 明文下载 (正规软件源均用域名 + HTTPS)" },
+      { regex: "\\bcurl\\b[^\\n]*\\s-[a-zA-Z]*[oO]\\b[^\\n]*https?://(?:\\d{1,3}\\.){3}\\d{1,3}", desc: "curl 从裸 IP 下载并落地 (-o/-O)" },
+      { regex: "\\bchmod\\s+[^\\n]*(?:/tmp/|/dev/shm/|/var/tmp/|~/|\\$HOME/)", desc: "chmod 下载落地区文件 (临时目录 / 家目录)" },
+      { regex: "(?:^[|;&]|\\s*(?:/tmp/|/dev/shm/|/var/tmp/|~/|\\$HOME/)[\\w./-]+", desc: "直接执行临时目录 / 家目录中的文件" },
+      { regex: "(?:^[|\\s;&])(?:ba|z|k|da|a)?sh\\s+[^\\n]*(?:/tmp/|/dev/shm/|/var/tmp/|~/|\\$HOME/)", desc: "用 shell 执行下载落地区中的脚本" },
+      { regex: "\\bbase64\\s+(?:-d|-D|--decode)\\b[^\\n]*\\|\\s*(?:/bin/)?(?:ba|z|k)?sh\\b", desc: "base64 解码后管道执行 (混淆载荷)" },
+      { regex: "\\bbase64\\s+(?:-d|-D|--decode)\\b[^\\n]*>", desc: "base64 解码后写入文件 (混淆载荷落地)" },
+      { regex: "(?i)\\b(?:python3?|perl|ruby|node|php)\\b[^\\n]*\\s-[ce]\\b[^\\n]*https?://", desc: "解释器内联代码里访问远程地址 (内联下载执行)" },
+      { regex: "\\.config/systemd/user/", desc: "写用户级 systemd 单元 (免 root 持久化)" },
+
+      // 第 7 页 (截图 7: 61-70)
+      { regex: "\\bsystemctl\\s+--user\\b[^\\n]*\\b(?:enable|start|link)\\b", desc: "启用用户级 systemd 服务 (免 root 持久化)" },
+      { regex: "\\b(?:nohup|setsid)\\b[^\\n]*(?:/tmp/|/dev/shm/|/var/tmp/|~/|\\$HOME/)", desc: "后台拉起下载落地区中的程序" },
+      { regex: "(?:>>?|tee\\s+(?:-a\\s+)?)\\s*[^\\s;&]*authorized_keys", desc: "写入 authorized_keys (植入免密后门公钥)" },
+      { regex: "\\bld\\.so\\.preload\\b", desc: "改 /etc/ld.so.preload (rootkit 全局注入)" },
+      { regex: "\\|\\s*crontab\\s+-", desc: "管道写 crontab (无交互植入定时任务)" },
+      { regex: "\\bhistory\\s+-c(?:\\s|$)", desc: "history -c 清除命令历史 (掩盖痕迹)" },
+      { regex: "\\bunset\\s+HISTFILE\\b|\\bHISTFILE=/dev/null", desc: "禁用命令历史 (掩盖痕迹)" },
+      { regex: ">\\s*[^\\s;&]*\\.bash_history", desc: "清空 .bash_history (掩盖痕迹)" },
+      { regex: "\\b(?:169\\.254\\.169\\.254|169\\.254\\.170\\.2|169\\.254\\.0\\.23|100\\.100\\.100\\.200)\\b", desc: "访问云实例元数据服务 (可取临时 AK/SK, 横向整个云账号)" },
+      { regex: "(?i)\\bfd00:ec2::254\\b", desc: "访问云实例元数据服务 (AWS IMDS over IPv6)" },
+
+      // 第 8 页 (截图 8: 71-80)
+      { regex: "(?i)\\bmetadata\\.(?:google\\.internal|goog|tencentyun\\.com)\\b", desc: "访问云实例元数据服务 (域名形式)" },
+      { regex: "https?://(?:0x[0-9a-fA-F]{6,}|\\d{8,10})(?:[:/?#]|$)", desc: "URL 使用整数/十六进制形式的 IP (SSRF 混淆手法)" },
+      { regex: "(?:^[|\\s;&])rm\\s+-[a-zA-Z]*(?:rf|fr)[a-zA-Z]*\\s+/(?:bin|boot|dev|etc|home|lib|lib64|opt|proc|root|sbin|srv|sys|usr|var)/?(?:\\s|$)", desc: "rm -rf 系统顶层目录" },
+      { regex: ">\\s*/dev/(?:hd[a-z]|vd[a-z]|xvd[a-z]|nvme\\d|mmcblk\\d)", desc: "重定向到 /dev/{hd,vd,xvd,nvme,mmcblk}* (直写块设备)" },
+      { regex: "(?i)\\bpsql\\b[^\\n]*\\bDROP\\s+(?:DATABASE|SCHEMA)\\b", desc: "psql DROP DATABASE / SCHEMA" },
+      { regex: "(?i)(?:^[|\\s;&])dropdb\\b", desc: "dropdb (PostgreSQL 删库)" },
+      { regex: "(?i)\\bmysqladmin\\b[^\\n]*\\bdrop\\b", desc: "mysqladmin drop (MySQL 删库)" },
+      { regex: "\\bparted\\b[^\\n;&]*\\s['\"]?(?:mklabel|mktable|mkpart|mkpartfs|rm|resizepart|resize|move|rescue|name|set|toggle|disk_set|disk_toggle)(?:\\s|$)", desc: "parted 改分区表 (mklabel / mkpart / rm / resizepart ...)" },
+      { regex: "\\b(?:fdisk|gdisk|cfdisk|sfdisk|parted)\\b[^\\n;&]*<", desc: "fdisk/gdisk/sfdisk/parted 经重定向 / heredoc 喂入脚本 (写分区表)" },
+      { regex: "(?:^[|^\\s])\\|\\s*(?:sudo\\s+(?:-\\S+\\s+)*)?(?:\\S*/)?(?:fdisk|gdisk|cfdisk|sfdisk|parted)\\b", desc: "管道喂入 fdisk/gdisk/sfdisk/parted (写分区表)" },
+
+      // 第 9 页 (截图 9: 81-88)
+      { regex: "\\bsfdisk\\b[^\\n;&]*\\s(?:--(?:delete|activate|part-label|part-type|part-uuid|part-attrs|change-id|move-data|wipe|append|label|reorder)|-A|-N)(?:\\s|$)", desc: "sfdisk 改分区表 (--delete / --activate / --part-* ...)" },
+      { regex: "\\bsgdisk\\b[^\\n;&]*\\s(?:-[\\^sipuUEFFLODb?-]|--(?:new|delete|clear|zap-all|zap|typecode|change-name|mbrtogpt|gpttonbr|randomize-guids|replicate|load-backup|transpose|sort|resize-table|move-second-header|attributes|hybrid|largest-new|partition-guid))", desc: "sgdisk 改 GPT 分区表 (-n / -d / -o / -Z / -t ...)" },
+      { regex: "\\b(?:lvremove|vgremove|pvremove|lvreduce|vgreduce)\\b", desc: "LVM 删除 / 缩减 (lvremove / vgremove / pvremove / lvreduce / vgreduce)" },
+      { regex: "\\bcryptsetup\\b[^\\n;&]*\\s(?:luksFormat|luksErase|erase|luksKillSlot|luksRemoveKey|reencrypt)(?:\\s|$)", desc: "cryptsetup 格式化 / 擦除 / 劫密明槽 (数据可能永久不可读)" },
+      { regex: "\\bmdadm\\b[^\\n;&]*\\s(?:--(?:zero-superblock|create|stop|fail|remove)|-C|-S|-f|-r)(?:\\s|$)", desc: "mdadm 建 / 停 / 拆阵列或废超级块" },
+      { regex: "\\b(?:zpool\\s+(?:destroy|labelclear)|zfs\\s+destroy)\\b", desc: "zpool destroy / labelclear, zfs destroy (销毁存储池 / 数据集)" },
+      { regex: "\\b(?:blkdiscard|sg_format|sg_sanitize)\\b|\\bnvme\\s+(?:format|sanitize)\\b|\\bhdparm\\b[^\\n;&]*--security-erase|\\bshred\\b[^\\n;&]*\\s/dev/", desc: "整盘擦除 (blkdiscard / nvme format / hdparm --security-erase / shred /dev/...)" },
+      { regex: "\\bmkswap\\b[^\\n;&]*\\s/dev/", desc: "mkswap 作用于块设备 (覆盖目标分区并写交换区签名)" }
+    ];
+
+    let customBlacklistRules = [
+      // 预置 0 条，支持用户自主添加
+    ];
+
+    let currentBlacklistPage = 1;
+    const BLACKLIST_PAGE_SIZE = 10;
+
+    function escapeHtmlAttr(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function escapeHtmlText(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function getAllBlacklistRules() {
+      const builtIns = builtInBlacklistRules.map((r, i) => ({
+        id: "built-" + (i + 1),
+        regex: r.regex,
+        desc: r.desc,
+        source: "内置",
+        isBuiltIn: true
+      }));
+      return [...builtIns, ...customBlacklistRules];
+    }
+
+    function renderBlacklistTable(page = 1) {
+      try {
+        const allRules = getAllBlacklistRules();
+        const totalCount = allRules.length;
+        const totalPages = Math.ceil(totalCount / BLACKLIST_PAGE_SIZE) || 1;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentBlacklistPage = page;
+
+        const start = (page - 1) * BLACKLIST_PAGE_SIZE;
+        const pageRules = allRules.slice(start, start + BLACKLIST_PAGE_SIZE);
+
+        const tbody = document.getElementById("blacklistTableBody");
+        if (tbody) {
+          tbody.innerHTML = pageRules.map(item => `
+            <tr class="hover:bg-surface-850/50 transition">
+              <td class="py-2.5 px-3.5 font-mono text-slate-300 text-xs truncate max-w-md" title="${escapeHtmlAttr(item.regex)}">
+                ${escapeHtmlText(item.regex)}
+              </td>
+              <td class="py-2.5 px-3 text-slate-400 text-xs truncate max-w-xs" title="${escapeHtmlAttr(item.desc)}">
+                ${escapeHtmlText(item.desc)}
+              </td>
+              <td class="py-2.5 px-3 text-center">
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono ${item.isBuiltIn ? "bg-surface-800 text-slate-300 border border-slate-700/60" : "bg-amber-500/15 text-amber-300 border border-amber-500/30"}">
+                  ${escapeHtmlText(item.source)}
+                </span>
+              </td>
+              <td class="py-2.5 px-3 text-center">
+                <button type="button" onclick="deleteBlacklistRule('${item.id}', ${item.isBuiltIn})" title="${item.isBuiltIn ? "系统内置规则（保护不可删）" : "删除自定义规则"}" class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </td>
+            </tr>
+          `).join("");
+        }
+
+        const countEl = document.getElementById("blacklistCustomCount");
+        if (countEl) countEl.innerText = customBlacklistRules.length;
+
+        renderBlacklistPagination(page, totalPages);
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      } catch (err) {
+        console.error('renderBlacklistTable error:', err);
+      }
+    }
+
+    function renderBlacklistPagination(curr, total) {
+      const container = document.getElementById("blacklistPaginationContainer");
+      if (!container) return;
+
+      let itemsHtml = [];
+
+      // Prev button
+      itemsHtml.push(`
+        <button type="button" onclick="goToBlacklistPage(${curr - 1})" ${curr <= 1 ? "disabled" : ""} class="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+      `);
+
+      // 严格对齐截图分页布局:
+      // 页 1-4: 1 2 3 4 5 ... 9
+      // 页 5: 1 ... 4 5 6 ... 9
+      // 页 6: 1 ... 4 5 6 7 8 9
+      // 页 7-9: 1 ... 5 6 7 8 9
+      const pages = [];
+      if (total <= 7) {
+        for (let i = 1; i <= total; i++) pages.push(i);
+      } else {
+        if (curr <= 4) {
+          for (let i = 1; i <= 5; i++) pages.push(i);
+          pages.push("...");
+          pages.push(total);
+        } else if (curr === 5) {
+          pages.push(1);
+          pages.push("...");
+          pages.push(4, 5, 6);
+          pages.push("...");
+          pages.push(total);
+        } else if (curr === 6) {
+          pages.push(1);
+          pages.push("...");
+          for (let i = 4; i <= total; i++) pages.push(i);
+        } else {
+          pages.push(1);
+          pages.push("...");
+          for (let i = 5; i <= total; i++) pages.push(i);
+        }
+      }
+
+      pages.forEach(p => {
+        if (p === "...") {
+          itemsHtml.push('<span class="px-1 text-slate-500 font-mono">...</span>');
+        } else {
+          const isActive = (p === curr);
+          itemsHtml.push(`
+            <button type="button" onclick="goToBlacklistPage(${p})" class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition cursor-pointer ${isActive ? "bg-blue-600/30 text-blue-400 border border-blue-500/40 font-semibold" : "text-slate-400 hover:text-white hover:bg-surface-800"}">
+              ${p}
+            </button>
+          `);
+        }
+      });
+
+      // Next button
+      itemsHtml.push(`
+        <button type="button" onclick="goToBlacklistPage(${curr + 1})" ${curr >= total ? "disabled" : ""} class="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      `);
+
+      container.innerHTML = itemsHtml.join("");
+    }
+
+    function goToBlacklistPage(page) {
+      renderBlacklistTable(page);
+    }
+
+    // 暴露到全局 window，保障行内 onclick 100% 触发
+    window.goToBlacklistPage = goToBlacklistPage;
+    window.renderBlacklistTable = renderBlacklistTable;
+    window.scrollSettingsTo = scrollSettingsTo;
+
+    // 首次渲染黑名单列表
+    renderBlacklistTable(1);
+
+    function openAddBlacklistModal() {
+      const regexInput = document.getElementById("newBlacklistRegex");
+      const descInput = document.getElementById("newBlacklistDesc");
+      if (regexInput) regexInput.value = "";
+      if (descInput) descInput.value = "";
+      const modal = document.getElementById("modalAddBlacklistRule");
+      if (modal) modal.classList.remove("hidden");
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeAddBlacklistModal() {
+      const modal = document.getElementById("modalAddBlacklistRule");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function saveNewBlacklistRule() {
+      const regex = (document.getElementById("newBlacklistRegex")?.value || "").trim();
+      const desc = (document.getElementById("newBlacklistDesc")?.value || "").trim();
+
+      if (!regex) {
+        showToast("⚠️ 请输入正则表达式");
+        return;
+      }
+      if (!desc) {
+        showToast("⚠️ 请输入规则说明");
+        return;
+      }
+
+      try {
+        new RegExp(regex);
+      } catch (e) {
+        showToast("⚠️ 正则表达式语法不合法，请检查");
+        return;
+      }
+
+      const newId = "custom-" + Date.now().toString(36);
+      customBlacklistRules.push({
+        id: newId,
+        regex,
+        desc,
+        source: "用户",
+        isBuiltIn: false
+      });
+
+      closeAddBlacklistModal();
+      renderBlacklistTable(currentBlacklistPage);
+      showToast(`✅ 已新增危险命令黑名单规则: ${desc}`);
+    }
+
+    function deleteBlacklistRule(id, isBuiltIn) {
+      if (isBuiltIn) {
+        showToast("🛡️ 系统内置危险规则不可直接删除，已受核心系统保护");
+        return;
+      }
+      const idx = customBlacklistRules.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        const deleted = customBlacklistRules.splice(idx, 1)[0];
+        renderBlacklistTable(currentBlacklistPage);
+        showToast(`🗑️ 已删除自定义规则: ${deleted.desc}`);
+      }
+    }
+
+    // =========================================================================
+    // 模型服务 (Model Services) 业务交互逻辑 (对齐截图 1、2、3)
+    // =========================================================================
+    let mockModelServices = [
+      {
+        id: "deppseek",
+        name: "deppseek",
+        provider: "deepseek",
+        providerLabel: "OpenAI 兼容",
+        model: "deepseek-reasoner",
+        endpoint: "https://api.deepseek.com/v1",
+        apiKey: "sk-dsk892348912347891234",
+        contextWindow: "未知",
+        maxOutput: "未知",
+        isCurrent: true
+      },
+      {
+        id: "gongyi",
+        name: "gongyi",
+        provider: "custom",
+        providerLabel: "OpenAI 兼容",
+        model: "gpt-5.6-sol",
+        endpoint: "https://agentrouter.org/v1",
+        apiKey: "sk-gy8934789231478",
+        contextWindow: "未知",
+        maxOutput: "未知",
+        isCurrent: false
+      }
+    ];
+
+    window.renderModelServicesList = renderModelServicesList;
+    function renderModelServicesList() {
+      const container = document.getElementById("modelServicesListContainer");
+      if (!container) return;
+
+      if (mockModelServices.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 rounded-xl border border-dashed border-slate-800 text-center text-slate-500 space-y-2">
+            <i data-lucide="sparkles" class="w-7 h-7 mx-auto text-slate-600"></i>
+            <div class="text-xs text-slate-300 font-medium">暂无已配置的模型服务</div>
+            <p class="text-[11px] text-slate-500">点击上方「新建模型服务」或「粘贴导入」快速接入</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = mockModelServices.map(item => `
+        <div class="p-3.5 rounded-xl bg-surface-900/70 border border-slate-800 hover:border-slate-700/80 transition flex items-center justify-between gap-3 group model-serv-card">
+          <div class="space-y-1 min-w-0">
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-slate-200 text-sm truncate">${item.name}</span>
+              <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/15 text-blue-400 border border-blue-500/25 shrink-0">${item.providerLabel || "OpenAI 兼容"}</span>
+              ${item.isCurrent ? '<span class="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0">当前</span>' : ''}
+            </div>
+            <div class="text-xs text-slate-400 font-mono truncate">
+              <span class="text-slate-300">${item.model}</span>
+              <span class="text-slate-600 mx-1">·</span>
+              <span class="text-slate-400">${item.endpoint}</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5 shrink-0">
+            ${!item.isCurrent ? `
+              <button type="button" onclick="setCurrentModelService('${item.id}')" class="px-2.5 py-1 rounded-lg border border-slate-700/80 bg-surface-900/60 hover:bg-surface-800 text-slate-300 hover:text-white text-xs flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="check-circle" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>设为当前</span>
+              </button>
+            ` : ''}
+            <button type="button" onclick="testModelServiceConnection('${item.id}')" title="测试连通性" class="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-surface-800 rounded-lg transition cursor-pointer">
+              <i data-lucide="plug" class="w-4 h-4"></i>
+            </button>
+            <button type="button" onclick="shareModelService('${item.id}')" title="导出配置 (ai.profile)" class="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-surface-800 rounded-lg transition cursor-pointer">
+              <i data-lucide="share-2" class="w-4 h-4"></i>
+            </button>
+            <button type="button" onclick="openEditModelServiceModal('${item.id}')" title="编辑" class="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-surface-800 rounded-lg transition cursor-pointer">
+              <i data-lucide="pencil" class="w-4 h-4"></i>
+            </button>
+            <button type="button" onclick="deleteModelService('${item.id}')" title="删除" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      `).join("");
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function setCurrentModelService(id) {
+      mockModelServices.forEach(item => {
+        item.isCurrent = (item.id === id);
+      });
+      renderModelServicesList();
+      const target = mockModelServices.find(item => item.id === id);
+      showToast(`🎯 已设为当前默认模型服务: ${target ? target.name : id}`);
+    }
+
+    function testModelServiceConnection(id) {
+      const target = mockModelServices.find(item => item.id === id);
+      const name = target ? target.name : id;
+      const endpoint = target ? target.endpoint : "";
+      showToast(`⚡ 正在探测 ${name} (${endpoint})... 连通正常 (延迟 128ms) ✅`);
+    }
+
+    function shareModelService(id) {
+      const target = mockModelServices.find(item => item.id === id);
+      if (!target) return;
+      const profile = {
+        kind: "ai.profile",
+        v: 1,
+        data: {
+          name: target.name,
+          provider: target.provider,
+          model: target.model,
+          endpoint: target.endpoint
+        }
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(JSON.stringify(profile, null, 2)).catch(() => {});
+      }
+      showToast(`📋 已导出 ${target.name} 的 ai.profile 配置到剪贴板`);
+    }
+
+    function deleteModelService(id) {
+      const idx = mockModelServices.findIndex(item => item.id === id);
+      if (idx !== -1) {
+        const deleted = mockModelServices.splice(idx, 1)[0];
+        if (deleted.isCurrent && mockModelServices.length > 0) {
+          mockModelServices[0].isCurrent = true;
+        }
+        renderModelServicesList();
+        showToast(`🗑️ 已删除模型服务: ${deleted.name}`);
+      }
+    }
+
+    function openAddModelServiceModal() {
+      document.getElementById("modelServiceModalTitle").innerText = "新建模型服务";
+      document.getElementById("modelServEditId").value = "";
+      document.getElementById("modelServName").value = "";
+      document.getElementById("modelServProvider").value = "anthropic";
+      document.getElementById("modelServEndpoint").value = "https://api.anthropic.com/v1";
+      document.getElementById("modelServApiKey").value = "";
+      document.getElementById("modelServModel").value = "claude-opus-5-5";
+      document.getElementById("modelServContextWindow").value = "未知";
+      document.getElementById("modelServMaxOutput").value = "未知";
+      const modal = document.getElementById("modalModelService");
+      if (modal) modal.classList.remove("hidden");
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function openEditModelServiceModal(id) {
+      const target = mockModelServices.find(item => item.id === id);
+      if (!target) return;
+      document.getElementById("modelServiceModalTitle").innerText = "编辑模型服务";
+      document.getElementById("modelServEditId").value = target.id;
+      document.getElementById("modelServName").value = target.name;
+      document.getElementById("modelServProvider").value = target.provider || "openai";
+      document.getElementById("modelServEndpoint").value = target.endpoint || "";
+      document.getElementById("modelServApiKey").value = target.apiKey || "";
+      document.getElementById("modelServModel").value = target.model || "";
+      document.getElementById("modelServContextWindow").value = target.contextWindow || "未知";
+      document.getElementById("modelServMaxOutput").value = target.maxOutput || "未知";
+      const modal = document.getElementById("modalModelService");
+      if (modal) modal.classList.remove("hidden");
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeModelServiceModal() {
+      const modal = document.getElementById("modalModelService");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function saveModelService() {
+      const editId = document.getElementById("modelServEditId").value.trim();
+      const name = document.getElementById("modelServName").value.trim();
+      const provider = document.getElementById("modelServProvider").value;
+      const endpoint = document.getElementById("modelServEndpoint").value.trim();
+      const apiKey = document.getElementById("modelServApiKey").value.trim();
+      const model = document.getElementById("modelServModel").value.trim();
+      const contextWindow = document.getElementById("modelServContextWindow").value.trim() || "未知";
+      const maxOutput = document.getElementById("modelServMaxOutput").value.trim() || "未知";
+
+      if (!name) {
+        showToast("⚠️ 请输入模型服务名称");
+        return;
+      }
+      if (!model) {
+        showToast("⚠️ 请输入模型标识");
+        return;
+      }
+
+      const providerLabelMap = {
+        anthropic: "Anthropic 官方",
+        openai: "OpenAI 官方",
+        deepseek: "OpenAI 兼容",
+        groq: "OpenAI 兼容",
+        moonshot: "OpenAI 兼容",
+        zhipu: "OpenAI 兼容",
+        ollama: "OpenAI 兼容",
+        vllm: "OpenAI 兼容",
+        custom: "OpenAI 兼容"
+      };
+
+      if (editId) {
+        const target = mockModelServices.find(item => item.id === editId);
+        if (target) {
+          target.name = name;
+          target.provider = provider;
+          target.providerLabel = providerLabelMap[provider] || "OpenAI 兼容";
+          target.endpoint = endpoint;
+          target.apiKey = apiKey;
+          target.model = model;
+          target.contextWindow = contextWindow;
+          target.maxOutput = maxOutput;
+        }
+        showToast(`✅ 模型服务 [${name}] 更新成功`);
+      } else {
+        const newId = "serv-" + Date.now().toString(36);
+        mockModelServices.push({
+          id: newId,
+          name,
+          provider,
+          providerLabel: providerLabelMap[provider] || "OpenAI 兼容",
+          endpoint,
+          apiKey,
+          model,
+          contextWindow,
+          maxOutput,
+          isCurrent: mockModelServices.length === 0
+        });
+        showToast(`🎉 新建模型服务 [${name}] 成功`);
+      }
+
+      closeModelServiceModal();
+      renderModelServicesList();
+    }
+
+    function testModalModelConnection() {
+      const name = document.getElementById("modelServName").value.trim() || "当前模型服务";
+      showToast(`⚡ 正在测试连接 [${name}]... 端点响应正常 (138ms) ✅`);
+    }
+
+    function fetchProviderModels() {
+      const provider = document.getElementById("modelServProvider").value;
+      const modelInput = document.getElementById("modelServModel");
+      if (provider === "anthropic") {
+        modelInput.value = "claude-3-5-sonnet-20241022";
+      } else if (provider === "deepseek") {
+        modelInput.value = "deepseek-reasoner";
+      } else if (provider === "openai") {
+        modelInput.value = "gpt-4o";
+      } else if (provider === "ollama") {
+        modelInput.value = "qwen2.5-coder:7b";
+      }
+      showToast("🔄 已拉取该服务商最新模型列表，已自动填入推荐模型");
+    }
+
+    function clearModelInput() {
+      const el = document.getElementById("modelServModel");
+      if (el) el.value = "";
+    }
+
+    function onModelProviderChange(val) {
+      const endpointEl = document.getElementById("modelServEndpoint");
+      const modelEl = document.getElementById("modelServModel");
+      const keyEl = document.getElementById("modelServApiKey");
+
+      const presets = {
+        anthropic: { endpoint: "https://api.anthropic.com/v1", model: "claude-opus-5-5", placeholder: "sk-ant-..." },
+        openai: { endpoint: "https://api.openai.com/v1", model: "gpt-4o", placeholder: "sk-..." },
+        deepseek: { endpoint: "https://api.deepseek.com/v1", model: "deepseek-reasoner", placeholder: "sk-..." },
+        groq: { endpoint: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile", placeholder: "gsk_..." },
+        moonshot: { endpoint: "https://api.moonshot.cn/v1", model: "moonshot-v1-auto", placeholder: "sk-..." },
+        zhipu: { endpoint: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-plus", placeholder: "api_key..." },
+        ollama: { endpoint: "http://127.0.0.1:11434/v1", model: "qwen2.5-coder:7b", placeholder: "本地无需填写" },
+        vllm: { endpoint: "http://10.0.0.12:8000/v1", model: "Qwen/Qwen2.5-Coder-32B-Instruct", placeholder: "EMPTY" },
+        custom: { endpoint: "https://agentrouter.org/v1", model: "gpt-5.6-sol", placeholder: "sk-..." }
+      };
+
+      if (presets[val]) {
+        if (endpointEl) endpointEl.value = presets[val].endpoint;
+        if (modelEl) modelEl.value = presets[val].model;
+        if (keyEl) keyEl.placeholder = presets[val].placeholder;
+      }
+    }
+
+    function toggleModelApiKeyVisibility() {
+      const input = document.getElementById("modelServApiKey");
+      const icon = document.getElementById("modelApiKeyEyeIcon");
+      if (!input) return;
+      if (input.type === "password") {
+        input.type = "text";
+        if (icon) icon.setAttribute("data-lucide", "eye-off");
+      } else {
+        input.type = "password";
+        if (icon) icon.setAttribute("data-lucide", "eye");
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function openPasteImportModelModal() {
+      const textarea = document.getElementById("pasteImportModelJson");
+      if (textarea) textarea.value = "";
+      const modal = document.getElementById("modalPasteImportModel");
+      if (modal) modal.classList.remove("hidden");
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closePasteImportModelModal() {
+      const modal = document.getElementById("modalPasteImportModel");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function doImportModelFromProfileJson() {
+      const textarea = document.getElementById("pasteImportModelJson");
+      const text = textarea ? textarea.value.trim() : "";
+      let profileData = null;
+
+      if (text) {
+        try {
+          profileData = JSON.parse(text);
+        } catch (e) {
+          showToast("⚠️ JSON 解析失败，请检查格式");
+          return;
+        }
+      } else {
+        profileData = {
+          kind: "ai.profile",
+          v: 1,
+          data: {
+            name: "智码-Qwen2.5Coder",
+            provider: "openai",
+            model: "qwen2.5-coder:32b",
+            endpoint: "https://router.internal.corp/v1",
+            apiKey: "sk-imported-demo-key"
+          }
+        };
+      }
+
+      const d = profileData.data || profileData;
+      const newName = d.name || "导入的模型服务";
+      const newModel = d.model || "custom-model";
+      const newEndpoint = d.endpoint || d.baseUrl || d.base_url || "https://api.openai.com/v1";
+      const newKey = d.apiKey || d.api_key || "";
+      const newProvider = d.provider === "anthropic" ? "anthropic" : "custom";
+      const newLabel = d.provider === "anthropic" ? "Anthropic 官方" : "OpenAI 兼容";
+
+      mockModelServices.push({
+        id: "serv-" + Date.now().toString(36),
+        name: newName,
+        provider: newProvider,
+        providerLabel: newLabel,
+        model: newModel,
+        endpoint: newEndpoint,
+        apiKey: newKey,
+        contextWindow: "未知",
+        maxOutput: "未知",
+        isCurrent: false
+      });
+
+      closePasteImportModelModal();
+      renderModelServicesList();
+      showToast(`🎉 成功导入模型配置: ${newName} (${newModel})`);
+    }
+
+    function toggleAiStreamOutput(enabled) {
+      showToast(`AI 回复流式输出已${enabled ? "开启" : "关闭"}`);
+    }
 </script>
 
   <!-- 浮动悬停/点击名称气泡提示 (当侧边栏收缩时展示) -->

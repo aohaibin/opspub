@@ -3,16 +3,21 @@ import { ConfigProvider } from "antd";
 import { StyleProvider } from "@ant-design/cssinjs";
 import GlobalNativeTooltip from "@/components/GlobalNativeTooltip";
 import zhCN from "antd/locale/zh_CN";
+import enUS from "antd/locale/en_US";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useAppStore } from "@/store";
 import { useSshSessionStore } from "@/store/ssh";
 import { getAntdTheme } from "@/theme/antdTheme";
 import { AppRouter } from "@/Router";
+import { configApi } from "@/lib/api";
+import { useSettingsStore } from "@/store/settings";
 
 function App() {
   const appTheme = useAppStore((s) => s.theme);
   const skin = useAppStore((s) => s.skin);
   const hydrateCredentials = useSshSessionStore((s) => s.hydrateCredentials);
+  const hydrateSettings = useSettingsStore((s) => s.hydrate);
+  const language = useSettingsStore((s) => s.language);
   const [credentialsReady, setCredentialsReady] = useState(false);
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
@@ -36,6 +41,12 @@ function App() {
       active = false;
     };
   }, [hydrateCredentials]);
+
+  useEffect(() => {
+    void configApi.getAll().then((configs) => {
+      hydrateSettings(Object.fromEntries(configs.map(({ key, value }) => [key, value])));
+    }).catch(() => undefined);
+  }, [hydrateSettings]);
 
   useEffect(() => {
     if (appTheme !== "system") return;
@@ -66,7 +77,7 @@ function App() {
     // 层顺序由 src/styles/global.css 首行的 @layer 声明决定（antd 排在 utilities 之前），
     // 否则 antd 层会被追加到序列末尾，Tailwind 工具类照样覆盖不了。
     <StyleProvider layer>
-      <ConfigProvider locale={zhCN} theme={antdTheme}>
+      <ConfigProvider locale={language === "en-US" ? enUS : zhCN} theme={antdTheme}>
         <ErrorBoundary>
           {credentialsReady ? (
             <AppRouter />

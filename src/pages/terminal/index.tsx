@@ -44,6 +44,7 @@ import {
 } from "@/lib/api/terminal";
 import { useAppStore } from "@/store/app";
 import { useSshSessionStore } from "@/store/ssh";
+import { useSettingsStore } from "@/store/settings";
 import type {
   Server,
   ServerPayload,
@@ -1050,6 +1051,7 @@ function TerminalDrawer({
   onFontSizeChange: (value: number) => void;
   onOpenSftp: () => void;
 }) {
+  const terminalTheme = useSettingsStore((state) => state.terminalTheme);
   const titles: Record<DrawerTab, string> = {
     monitor: "主机实时探针",
     commands: "常用快捷命令",
@@ -1138,7 +1140,7 @@ function TerminalDrawer({
               <strong>{fontSize.toFixed(1).replace(/\.0$/, "")}px</strong>
               <Slider min={12} max={20} step={0.5} value={fontSize} onChange={onFontSizeChange} />
             </div>
-            <div><span>颜色方案</span><strong>OpsPub Dark</strong></div>
+            <div><span>颜色方案</span><strong>{terminalTheme === "high-contrast" ? "High Contrast" : "OpsPub Dark"}</strong></div>
           </div>
         )}
         {tab === "history" && (

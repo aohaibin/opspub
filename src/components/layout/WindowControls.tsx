@@ -7,10 +7,11 @@ import { configApi } from "@/lib/api";
 import { terminalApi } from "@/lib/api/terminal";
 import { sftpApi } from "@/lib/api/sftp";
 import { useSettingsStore } from "@/store";
+import { SETTINGS_KEYS } from "@/store/settings";
 
 type CloseBehavior = "ask" | "minimize" | "exit";
 type CloseChoice = Exclude<CloseBehavior, "ask">;
-const CONFIG_KEY_CLOSE_BEHAVIOR = "ui.close_behavior";
+const CONFIG_KEY_CLOSE_BEHAVIOR = SETTINGS_KEYS.closeBehavior;
 
 function getAppWindow(): Window | null {
   try {

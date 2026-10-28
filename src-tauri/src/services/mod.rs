@@ -6,6 +6,7 @@ pub mod credential;
 pub mod database_connection;
 pub mod deployment;
 pub mod mcp;
+pub mod model_service;
 pub mod server;
 pub mod sftp;
 pub mod sensitive;

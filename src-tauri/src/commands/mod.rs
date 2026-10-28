@@ -6,6 +6,7 @@ pub mod database;
 pub mod deployment;
 pub mod file;
 pub mod mcp;
+pub mod model_service;
 pub mod server;
 pub mod sftp;
 pub mod sensitive;

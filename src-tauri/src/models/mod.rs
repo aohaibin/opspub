@@ -7,6 +7,84 @@ pub struct AppConfig {
     pub value: String,
 }
 
+/// 模型服务配置正文。API key 不在此结构中，单独保存在系统凭据管理器。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelProfile {
+    pub id: String,
+    pub name: String,
+    pub preset_key: Option<String>,
+    pub protocol: String,
+    pub base_url: String,
+    pub model: String,
+    pub extra: std::collections::HashMap<String, String>,
+    pub enabled: bool,
+    pub updated_at: String,
+}
+
+/// 前端列表使用的模型服务摘要，永不返回 API key。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelProfileSummary {
+    pub id: String,
+    pub name: String,
+    pub preset_key: Option<String>,
+    pub protocol: String,
+    pub base_url: String,
+    pub model: String,
+    pub extra: std::collections::HashMap<String, String>,
+    pub enabled: bool,
+    pub has_api_key: bool,
+    pub updated_at: String,
+}
+
+/// 新建或编辑模型服务的入参。api_key 只在本次 IPC 调用中传输。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelProfileInput {
+    pub id: Option<String>,
+    pub name: String,
+    pub preset_key: Option<String>,
+    pub protocol: String,
+    pub base_url: String,
+    pub model: String,
+    #[serde(default)]
+    pub extra: std::collections::HashMap<String, String>,
+    pub api_key: Option<String>,
+    #[serde(default = "default_enabled")]
+    pub enabled: bool,
+}
+
+fn default_enabled() -> bool { true }
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelVerifyOutcome {
+    pub ok: bool,
+    pub result: Option<ai_profile::client::VerifyOk>,
+    pub error: Option<ai_profile::VerifyError>,
+    pub actionable: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelImportResult {
+    pub name: String,
+    pub preset_key: Option<String>,
+    pub protocol: String,
+    pub base_url: String,
+    pub model: String,
+    pub model_fallback: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelImportBatchResult {
+    pub profiles: Vec<ModelImportResult>,
+    pub skipped: usize,
+    pub bundle: bool,
+}
+
 /// 系统信息
 #[derive(Debug, Clone, Serialize)]
 pub struct SystemInfo {

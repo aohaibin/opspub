@@ -1,4 +1,5 @@
 use crate::database::Database;
+use ai_profile::client::Verifier;
 use crate::services::mcp::McpServerManager;
 use crate::services::sftp::SftpManager;
 use crate::services::terminal::TerminalManager;
@@ -9,15 +10,17 @@ pub struct AppState {
     pub terminals: TerminalManager,
     pub sftps: SftpManager,
     pub mcp: McpServerManager,
+    pub verifier: Verifier,
 }
 
 impl AppState {
-    pub fn new(db: Database) -> Self {
+    pub fn new(db: Database, verifier: Verifier) -> Self {
         Self {
             db,
             terminals: TerminalManager::default(),
             sftps: SftpManager::default(),
             mcp: McpServerManager::default(),
+            verifier,
         }
     }
 }

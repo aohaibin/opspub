@@ -1,4 +1,19 @@
 export type { AppConfig } from "./config";
+export type {
+  ModelKind,
+  ModelProtocol,
+  ModelOption,
+  ModelExtraField,
+  ModelPreset,
+  ModelVendor,
+  ModelProfile,
+  ModelProfileInput,
+  ModelVerifyResult,
+  ModelVerifyError,
+  ModelVerifyOutcome,
+  ModelImportResult,
+  ModelImportBatchResult,
+} from "./model-service";
 export type { SystemInfo } from "./system";
 export type {
   Server,

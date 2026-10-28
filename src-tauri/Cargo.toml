@@ -19,6 +19,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
+ai-profile = { version = "0.1", features = ["chat", "client"] }
 tauri-plugin-opener = "2"
 tauri-plugin-store = "2"
 tauri-plugin-log = "2"
@@ -36,6 +37,7 @@ chrono = { version = "0.4", features = ["serde"] }
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-autostart = "2"
 # 禁止多开：dev/prod 因 identifier 分流各占一个实例锁，可同时各开一个；重复启动唤回已有窗口
 tauri-plugin-single-instance = "2"
 

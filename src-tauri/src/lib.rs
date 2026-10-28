@@ -50,6 +50,11 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .args(["--opspub-autostart"])
+                .build(),
+        )
         // ─── 插件注册 ───────────────────────────────
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -85,10 +90,29 @@ pub fn run() {
             let db = database::Database::init(&db_path_str)
                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
+            let verifier = ai_profile::client::Verifier::new()
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
             log::info!("数据库初始化完成: {}", db_path_str);
 
             // 注册全局状态
-            app.manage(AppState::new(db));
+            app.manage(AppState::new(db, verifier));
+
+            // 只有系统启动器传入专用参数，且用户启用了启动后最小化时才隐藏主窗口。
+            let started_by_autostart = std::env::args().any(|arg| arg == "--opspub-autostart");
+            let start_minimized = app
+                .state::<AppState>()
+                .db
+                .get_config("ui.start_minimized")
+                .ok()
+                .flatten()
+                .as_deref()
+                == Some("true");
+            if started_by_autostart && start_minimized {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
 
             // MCP HTTP 端点只绑定本机回环地址，应用启动时即准备好给 stdio 适配器转发。
             let mcp_app = app.handle().clone();
@@ -124,6 +148,14 @@ pub fn run() {
             commands::config::get_config,
             commands::config::set_config,
             commands::config::delete_config,
+            commands::model_service::list_model_vendors,
+            commands::model_service::get_model_preset,
+            commands::model_service::list_model_profiles,
+            commands::model_service::save_model_profile,
+            commands::model_service::delete_model_profile,
+            commands::model_service::export_model_profile,
+            commands::model_service::verify_model_service,
+            commands::model_service::import_model_profiles,
             commands::file::write_text_file,
             commands::file::read_text_file,
             // 服务器模块

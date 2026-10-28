@@ -207,7 +207,7 @@ export const BackupView: React.FC = () => {
             <span className="text-xs text-slate-400">
               备份这台服务器上的数据，产物存放在该机{" "}
               <code className="text-brand-300 font-mono px-1.5 py-0.5 rounded bg-surface-900 border border-slate-800 text-[11px]">
-                ~/.opssentry/backups/
+                ~/.opspub/backups/
               </code>
             </span>
           </div>
@@ -414,7 +414,7 @@ export const BackupView: React.FC = () => {
               </div>
             }
           >
-            <Input placeholder="s3:my-bucket/opssentry-backups" />
+            <Input placeholder="s3:my-bucket/opspub-backups" />
           </Form.Item>
 
           {/* 8. 保留份数 & 启用 */}

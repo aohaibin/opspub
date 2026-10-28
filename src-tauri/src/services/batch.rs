@@ -34,9 +34,9 @@ fn validate_command(command: &str, timeout_secs: u32) -> Result<(), AppError> {
             "只能执行长度不超过 4096 的单行命令".into(),
         ));
     }
-    if !(1..=300).contains(&timeout_secs) {
+    if !(1..=600).contains(&timeout_secs) {
         return Err(AppError::InvalidInput(
-            "单台超时须在 1 到 300 秒之间".into(),
+            "单台超时须在 1 到 600 秒之间".into(),
         ));
     }
 
@@ -136,6 +136,7 @@ mod tests {
     fn validates_single_line_and_timeout() {
         assert!(validate_command("uptime\nwhoami", 30).is_err());
         assert!(validate_command("uptime", 0).is_err());
-        assert!(validate_command("uptime", 301).is_err());
+        assert!(validate_command("uptime", 600).is_ok());
+        assert!(validate_command("uptime", 601).is_err());
     }
 }

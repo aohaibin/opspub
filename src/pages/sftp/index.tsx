@@ -158,6 +158,9 @@ export default function SftpPage() {
   const restoredDirectoryIdsRef = useRef(new Set<string>());
   const [activeTabId, setActiveTabId] = useState<string>("picker");
   const [secondaryTabId, setSecondaryTabId] = useState<string | null>(null);
+  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+  const [dragOverTabId, setDragOverTabId] = useState<string | null>(null);
+  const [dragOverSide, setDragOverSide] = useState<"left" | "right" | null>(null);
 
   // 分屏模式（单栏 / 左右分屏）
   const [layoutMode, setLayoutMode] = useState<SftpLayoutMode>("single");
@@ -632,6 +635,49 @@ export default function SftpPage() {
     };
     setTabs((prev) => [...prev, newPickerTab]);
     setActiveTabId(newPickerTab.id);
+  };
+
+  const handleTabDragStart = (event: React.DragEvent<HTMLDivElement>, tabId: string) => {
+    setDraggingTabId(tabId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", tabId);
+  };
+
+  const handleTabDragOver = (event: React.DragEvent<HTMLDivElement>, tabId: string) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (!draggingTabId || draggingTabId === tabId) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    setDragOverTabId(tabId);
+    setDragOverSide(event.clientX - rect.left < rect.width / 2 ? "left" : "right");
+  };
+
+  const handleTabDrop = (event: React.DragEvent<HTMLDivElement>, targetTabId: string) => {
+    event.preventDefault();
+    const sourceTabId = draggingTabId;
+    const side = dragOverSide;
+    setDraggingTabId(null);
+    setDragOverTabId(null);
+    setDragOverSide(null);
+    if (!sourceTabId || sourceTabId === targetTabId) return;
+
+    setTabs((current) => {
+      const sourceIndex = current.findIndex((tab) => tab.id === sourceTabId);
+      const targetIndex = current.findIndex((tab) => tab.id === targetTabId);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+      const next = [...current];
+      const [moved] = next.splice(sourceIndex, 1);
+      const adjustedTargetIndex = next.findIndex((tab) => tab.id === targetTabId);
+      const insertIndex = side === "right" ? adjustedTargetIndex + 1 : adjustedTargetIndex;
+      next.splice(Math.max(0, insertIndex), 0, moved);
+      return next;
+    });
+  };
+
+  const handleTabDragEnd = () => {
+    setDraggingTabId(null);
+    setDragOverTabId(null);
+    setDragOverSide(null);
   };
 
   // 确认全部关闭
@@ -1872,11 +1918,11 @@ export default function SftpPage() {
   };
 
   return (
-    <div className="ops-page flex flex-col h-full overflow-hidden select-none bg-[#090d16] text-slate-200 font-sans">
+    <div className="ops-page ops-sftp-page flex flex-col h-full overflow-hidden select-none bg-[var(--bg-primary)] text-slate-200 font-sans">
       {/* ========================================================================= */}
       {/* 1. 顶栏 Header：文件传输标题 + 右上角分栏切换按钮（严格跟随主题色走） */}
       {/* ========================================================================= */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-slate-800/80 bg-surface-950/80 backdrop-blur-md">
+      <div className="ops-sftp-header shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-slate-800/80 bg-surface-950/80 backdrop-blur-md">
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
             <span className="p-1 rounded bg-[var(--accent,#0d9488)]/15 text-[var(--accent,#0d9488)]">
@@ -1928,7 +1974,7 @@ export default function SftpPage() {
       {/* ========================================================================= */}
       {/* 2. 标签栏 (Tab Bar)：多标签管理 + 主题色激活下边框 + 全部关闭 (X) 按钮 */}
       {/* ========================================================================= */}
-      <div className="shrink-0 flex items-center justify-between px-3 py-1 bg-surface-950 border-b border-slate-800/60 text-xs">
+      <div className="ops-sftp-tabs shrink-0 flex items-center justify-between px-3 py-1 bg-surface-950 border-b border-slate-800/60 text-xs">
         <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
             const isActive = tab.id === activeTabId;
@@ -1937,14 +1983,25 @@ export default function SftpPage() {
             return (
               <div
                 key={tab.id}
+                draggable
                 onClick={() => setActiveTabId(tab.id)}
-                className={`group flex items-center space-x-1.5 px-3 py-1 rounded-t-lg transition cursor-pointer select-none text-[11px] font-medium border-t-2 ${
+                onDragStart={(event) => handleTabDragStart(event, tab.id)}
+                onDragOver={(event) => handleTabDragOver(event, tab.id)}
+                onDragLeave={() => {
+                  if (dragOverTabId === tab.id) {
+                    setDragOverTabId(null);
+                    setDragOverSide(null);
+                  }
+                }}
+                onDrop={(event) => handleTabDrop(event, tab.id)}
+                onDragEnd={handleTabDragEnd}
+                className={`sftp-session-tab group flex items-center space-x-1.5 px-3 py-1.5 rounded-t-lg transition cursor-pointer select-none text-[11px] font-medium border-t-2 ${
                   isActive
                     ? isPicker
                       ? "bg-surface-900 border-cyan-400 text-cyan-300"
                       : "bg-surface-900 border-[var(--accent,#0d9488)] text-[var(--accent-hover,#2dd4bf)] font-semibold"
                     : "bg-surface-950/60 border-transparent text-slate-400 hover:text-slate-200 hover:bg-surface-900/40"
-                }`}
+                } ${isActive ? (isPicker ? "sftp-session-tab-picker-active" : "sftp-session-tab-active") : ""} ${draggingTabId === tab.id ? "sftp-session-tab-dragging" : ""} ${dragOverTabId === tab.id && dragOverSide === "left" ? "sftp-session-tab-drop-left" : ""} ${dragOverTabId === tab.id && dragOverSide === "right" ? "sftp-session-tab-drop-right" : ""}`}
               >
                 {isPicker ? (
                   <Zap size={12} className="text-cyan-400 shrink-0" />
@@ -1999,7 +2056,7 @@ export default function SftpPage() {
       {/* ========================================================================= */}
       {/* 3. 主视口内容区：支持单栏模式 / 左右双栏分屏模式 */}
       {/* ========================================================================= */}
-      <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+      <div className="ops-sftp-main flex-1 flex flex-col min-h-0 relative overflow-hidden">
         {layoutMode === "dual-h" ? (
           /* 左右双栏分屏视图 */
           <div className="flex-1 grid grid-cols-2 gap-2.5 p-2.5 min-h-0 overflow-hidden">

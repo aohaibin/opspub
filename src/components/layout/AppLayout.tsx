@@ -2,7 +2,7 @@
  * 应用外壳：顶栏 + 左侧导航轨 + 内容区。
  *
  * 严格对齐原型 docs/remote-ops-ai-prototype.html 的 header + aside#appSidebar：
- *   顶栏左  —— OpsSentry Logo + 品牌名 + 本地安全模式提示
+ *   顶栏左  —— OpsPub Logo + 品牌名 + 本地安全模式提示
  *   顶栏右  —— 版本徽标 / AI 操作锁 / 皮肤调色盘 / 告警铃 / 窗口三键
  *   主体    —— 68px 图标导轨 + 右侧内容区
  *
@@ -88,7 +88,7 @@ export function AppLayout() {
             >
               <img
                 src="/logo.png"
-                alt="OpsSentry Logo"
+                alt="OpsPub Logo"
                 width={28}
                 height={28}
                 style={{ display: "block", objectFit: "contain" }}
@@ -102,7 +102,7 @@ export function AppLayout() {
                 color: "var(--text-primary)",
               }}
             >
-              OpsSentry
+              OpsPub
             </span>
             <span style={{ color: "var(--text-muted)" }}>|</span>
             <span

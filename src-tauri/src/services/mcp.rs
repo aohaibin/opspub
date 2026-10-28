@@ -25,6 +25,8 @@ use crate::services::copilot::CopilotService;
 
 const TOKEN_SERVICE: &str = "com.opsentr.yunwei.mcp";
 const TOKEN_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S";
+const MCP_CONFIG_KEY: &str = "opspub";
+const LEGACY_MCP_CONFIG_KEY: &str = "opssentry";
 
 pub struct McpService;
 
@@ -350,11 +352,11 @@ fn probe_http_endpoint(port: u16) -> bool {
         return false;
     }
     let response = String::from_utf8_lossy(&response);
-    response.starts_with("HTTP/1.1 200") && response.contains("ops-sentry-mcp")
+    response.starts_with("HTTP/1.1 200") && response.contains("opspub-mcp")
 }
 
 async fn mcp_health() -> impl IntoResponse {
-    Json(serde_json::json!({ "ok": true, "service": "ops-sentry-mcp" }))
+    Json(serde_json::json!({ "ok": true, "service": "opspub-mcp" }))
 }
 
 async fn mcp_rpc(
@@ -437,7 +439,7 @@ fn handle_rpc(app: &tauri::AppHandle, auth: Option<McpAuth>, request: Value) -> 
             }
             serde_json::json!({
             "jsonrpc": "2.0", "id": id,
-            "result": { "protocolVersion": "2024-11-05", "capabilities": { "tools": {} }, "serverInfo": { "name": "OpsSentry MCP", "version": "0.1.0" } }
+            "result": { "protocolVersion": "2024-11-05", "capabilities": { "tools": {} }, "serverInfo": { "name": "OpsPub MCP", "version": "0.1.0" } }
             })
         }
         "ping" => {
@@ -641,9 +643,9 @@ fn stdio_launcher_path(app: &tauri::AppHandle) -> String {
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_else(|_| {
             if cfg!(windows) {
-                "OpsSentry AI.exe".into()
+                "OpsPub AI.exe".into()
             } else {
-                "OpsSentry AI".into()
+                "OpsPub AI".into()
             }
         })
 }
@@ -698,7 +700,7 @@ pub fn run_stdio_proxy(token: &str, port: u16) -> Result<(), String> {
     Ok(())
 }
 
-/// 注入时保留客户端已有配置，只替换 OpsSentry 这一项。
+/// 注入时保留客户端已有配置，只替换 OpsPub 这一项；旧版键名会自动迁移。
 fn merge_client_config(
     existing: &str,
     generated: &str,
@@ -721,29 +723,36 @@ fn merge_client_config(
         let generated_server = generated_value
             .get(key)
             .and_then(Value::as_object)
-            .and_then(|servers| servers.get("opssentry"))
+            .and_then(|servers| servers.get(MCP_CONFIG_KEY))
             .cloned()
-            .ok_or_else(|| AppError::InvalidInput("生成的 MCP 配置缺少 opssentry 节点".into()))?;
+            .ok_or_else(|| AppError::InvalidInput("生成的 MCP 配置缺少 opspub 节点".into()))?;
         let servers = target
             .entry(key)
             .or_insert_with(|| Value::Object(Default::default()));
         let servers = servers
             .as_object_mut()
             .ok_or_else(|| AppError::InvalidInput(format!("{key} 必须是 JSON 对象")))?;
-        servers.insert("opssentry".into(), generated_server);
+        servers.insert(MCP_CONFIG_KEY.into(), generated_server);
+        servers.remove(LEGACY_MCP_CONFIG_KEY);
         return serde_json::to_string_pretty(&current).map_err(AppError::from);
     }
 
+    let section = format!("[mcp_servers.{MCP_CONFIG_KEY}]");
+    let legacy_section = format!("[mcp_servers.{LEGACY_MCP_CONFIG_KEY}]");
     if existing
         .lines()
-        .any(|line| line.trim() == "[mcp_servers.opssentry]")
+        .any(|line| line.trim() == section || line.trim() == legacy_section)
     {
         let mut output = Vec::new();
         let mut replacing = false;
+        let mut inserted = false;
         for line in existing.lines() {
-            if line.trim() == "[mcp_servers.opssentry]" {
+            if line.trim() == section || line.trim() == legacy_section {
                 replacing = true;
-                output.extend(generated.lines().map(str::to_string));
+                if !inserted {
+                    output.extend(generated.lines().map(str::to_string));
+                    inserted = true;
+                }
                 continue;
             }
             if replacing && line.starts_with('[') {
@@ -752,6 +761,9 @@ fn merge_client_config(
             } else if !replacing {
                 output.push(line.to_string());
             }
+        }
+        if !inserted {
+            output.extend(generated.lines().map(str::to_string));
         }
         return Ok(output.join("\n") + "\n");
     }
@@ -774,9 +786,9 @@ fn render_config(
         .map_err(|e| AppError::Custom(format!("无法定位用户主目录: {e}")))?;
     let launcher = std::env::current_exe().unwrap_or_else(|_| {
         PathBuf::from(if cfg!(windows) {
-            "OpsSentry AI.exe"
+            "OpsPub AI.exe"
         } else {
-            "OpsSentry AI"
+            "OpsPub AI"
         })
     });
     let port = McpService::runtime_status(&app.state::<crate::state::AppState>().mcp)?
@@ -784,10 +796,10 @@ fn render_config(
         .ok_or_else(|| AppError::InvalidInput("请先启动 MCP HTTP 端点，再生成客户端配置".into()))?;
     let port_arg = port.to_string();
     let (path, format, content) = match client {
-        "claude" => (home.join(".claude.json"), "JSON".into(), serde_json::json!({"mcpServers":{"opssentry":{"command":launcher,"args":["--mcp-stdio","--token",secret,"--port",port_arg]}}}).to_string()),
-        "cursor" => (home.join(".cursor").join("mcp.json"), "JSON".into(), serde_json::json!({"mcpServers":{"opssentry":{"command":launcher,"args":["--mcp-stdio","--token",secret,"--port",port_arg]}}}).to_string()),
-        "opencode" => (home.join(".config").join("opencode").join("opencode.json"), "JSON".into(), serde_json::json!({"mcp":{"opssentry":{"type":"local","command":[launcher,"--mcp-stdio","--token",secret,"--port",port_arg]}}}).to_string()),
-        "codex" => (home.join(".codex").join("config.toml"), "TOML".into(), format!("[mcp_servers.opssentry]\ncommand = \"{}\"\nargs = [\"--mcp-stdio\", \"--token\", \"{}\", \"--port\", \"{}\"]\n", launcher.to_string_lossy().replace('\\', "\\\\"), secret, port)),
+        "claude" => (home.join(".claude.json"), "JSON".into(), serde_json::json!({"mcpServers":{(MCP_CONFIG_KEY):{"command":launcher,"args":["--mcp-stdio","--token",secret,"--port",port_arg]}}}).to_string()),
+        "cursor" => (home.join(".cursor").join("mcp.json"), "JSON".into(), serde_json::json!({"mcpServers":{(MCP_CONFIG_KEY):{"command":launcher,"args":["--mcp-stdio","--token",secret,"--port",port_arg]}}}).to_string()),
+        "opencode" => (home.join(".config").join("opencode").join("opencode.json"), "JSON".into(), serde_json::json!({"mcp":{(MCP_CONFIG_KEY):{"type":"local","command":[launcher,"--mcp-stdio","--token",secret,"--port",port_arg]}}}).to_string()),
+        "codex" => (home.join(".codex").join("config.toml"), "TOML".into(), format!("[mcp_servers.{MCP_CONFIG_KEY}]\ncommand = \"{}\"\nargs = [\"--mcp-stdio\", \"--token\", \"{}\", \"--port\", \"{}\"]\n", launcher.to_string_lossy().replace('\\', "\\\\"), secret, port)),
         _ => return Err(AppError::InvalidInput("不支持的 MCP 客户端类型".into())),
     };
     Ok((path, format, content))
@@ -824,13 +836,27 @@ mod tests {
     fn json_config_merge_preserves_other_servers() {
         let existing =
             r#"{"mcpServers":{"other":{"command":"other"},"opssentry":{"command":"old"}}}"#;
-        let generated =
-            r#"{"mcpServers":{"opssentry":{"command":"new","args":["--port","18180"]}}}"#;
+        let generated = r#"{"mcpServers":{"opspub":{"command":"new","args":["--port","18180"]}}}"#;
         let merged = merge_client_config(existing, generated, "claude", "JSON");
         assert!(merged.is_ok());
         let value: Value = serde_json::from_str(&merged.unwrap_or_default()).unwrap_or(Value::Null);
         assert_eq!(value["mcpServers"]["other"]["command"], "other");
-        assert_eq!(value["mcpServers"]["opssentry"]["command"], "new");
+        assert_eq!(value["mcpServers"][MCP_CONFIG_KEY]["command"], "new");
+        assert!(value["mcpServers"].get(LEGACY_MCP_CONFIG_KEY).is_none());
+    }
+
+    #[test]
+    fn toml_config_merge_migrates_legacy_key_once() {
+        let existing = "[mcp_servers.opssentry]\ncommand = \"old\"\n\n[mcp_servers.other]\ncommand = \"keep\"\n\n[mcp_servers.opspub]\ncommand = \"stale\"\n";
+        let generated = "[mcp_servers.opspub]\ncommand = \"new\"\n";
+        let merged = merge_client_config(existing, generated, "codex", "TOML");
+
+        assert!(merged.is_ok());
+        let merged = merged.unwrap_or_default();
+        assert_eq!(merged.matches("[mcp_servers.opspub]").count(), 1);
+        assert!(!merged.contains("[mcp_servers.opssentry]"));
+        assert!(merged.contains("[mcp_servers.other]\ncommand = \"keep\""));
+        assert!(merged.contains("[mcp_servers.opspub]\ncommand = \"new\""));
     }
 
     #[test]

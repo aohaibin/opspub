@@ -203,7 +203,7 @@ export const MODULES: ModuleDef[] = [
     navLabel: "MCP接入",
     title: "MCP 接入中心 (Model Context Protocol)",
     subtitle: "Claude Code / Codex / Cursor",
-    desc: "把 OpsSentry 暴露的 MCP 服务提供给 Claude Code / Codex / Cursor / OpenCode；一键注入 stdio sidecar、HTTP 暴露供外部 AI 远程调用受控运维能力",
+    desc: "把 OpsPub 暴露的 MCP 服务提供给 Claude Code / Codex / Cursor / OpenCode；一键注入 stdio sidecar、HTTP 暴露供外部 AI 远程调用受控运维能力",
     capabilities: [
       "MCP 端点状态与测试连接",
       "stdio sidecar 一键注入到各客户端配置",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { Empty, Input, Slider, Spin, message } from "antd";
 import { listen } from "@tauri-apps/api/event";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -11,13 +11,11 @@ import {
   Columns2,
   Copy,
   Download,
-  Eraser,
   Folder,
   FolderTree,
   Grid2X2,
   LayoutGrid,
   List,
-  Maximize2,
   PanelRight,
   Plus,
   Radio,
@@ -99,6 +97,11 @@ export default function TerminalPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sessions, setSessions] = useState<TerminalSessionInfo[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [quickTabs, setQuickTabs] = useState<string[]>(["quick-1"]);
+  const [activeQuickTabId, setActiveQuickTabId] = useState("quick-1");
+  const [tabOrder, setTabOrder] = useState<string[]>(["quick:quick-1"]);
+  const [draggingTab, setDraggingTab] = useState<string | null>(null);
+  const nextQuickTabId = useRef(2);
   const [terminalOutputs, setTerminalOutputs] = useState<Record<string, string>>({});
   const [sessionMessages, setSessionMessages] = useState<Record<string, string>>({});
   const [sshServer, setSshServer] = useState<Server | null>(null);
@@ -106,7 +109,7 @@ export default function TerminalPage() {
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("ai");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [fontSize, setFontSize] = useState(13);
+  const [fontSize, setFontSize] = useState(13.5);
   const lineBuffersRef = useRef(new Map<string, string>());
   const setActiveServerId = useAppStore((state) => state.setActiveServerId);
   const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
@@ -141,6 +144,10 @@ export default function TerminalPage() {
     void terminalApi.list().then((restored) => {
       if (disposed) return;
       setSessions(restored);
+      if (restored.length > 0) {
+        setQuickTabs([]);
+        setTabOrder(restored.map((session) => `session:${session.sessionId}`));
+      }
       setTerminalOutputs(Object.fromEntries(restored.map((session) => [session.sessionId, session.output ?? ""])));
       setSessionMessages(Object.fromEntries(restored.map((session) => [session.sessionId, session.message ?? ""])));
       const preferredServerId = routeServerId ?? useAppStore.getState().activeServerId;
@@ -230,6 +237,15 @@ export default function TerminalPage() {
     setSessions((current) => current.some((item) => item.sessionId === session.sessionId)
       ? current.map((item) => item.sessionId === session.sessionId ? session : item)
       : [...current, session]);
+    const replaceQuickTab = activeSessionId === null ? activeQuickTabId : null;
+    if (replaceQuickTab) setQuickTabs((current) => current.filter((id) => id !== replaceQuickTab));
+    setTabOrder((current) => {
+      const withoutActiveQuick = replaceQuickTab
+        ? current.filter((key) => key !== `quick:${replaceQuickTab}`)
+        : current;
+      const sessionKey = `session:${session.sessionId}`;
+      return withoutActiveQuick.includes(sessionKey) ? withoutActiveQuick : [...withoutActiveQuick, sessionKey];
+    });
     setTerminalOutputs((current) => ({ ...current, [session.sessionId]: session.output ?? current[session.sessionId] ?? "" }));
     setSessionMessages((current) => ({
       ...current,
@@ -238,7 +254,7 @@ export default function TerminalPage() {
     setActiveSessionId(session.sessionId);
     setActiveServerId(server.id);
     await loadServers();
-  }, [loadServers, setActiveServerId]);
+  }, [activeQuickTabId, activeSessionId, loadServers, setActiveServerId]);
 
   const openConnection = (server: Server) => {
     setDropdownOpen(false);
@@ -326,9 +342,71 @@ export default function TerminalPage() {
     lineBuffersRef.current.delete(sessionId);
     if (activeSessionId === sessionId) {
       const next = remaining[0] ?? null;
-      setActiveSessionId(next?.sessionId ?? null);
-      setActiveServerId(next?.serverId ?? null);
+      if (next) {
+        setActiveSessionId(next.sessionId);
+        setActiveServerId(next.serverId);
+      } else if (quickTabs.length > 0) {
+        setActiveSessionId(null);
+        setActiveQuickTabId(quickTabs[quickTabs.length - 1]);
+        setActiveServerId(null);
+      } else {
+        const quickId = `quick-${nextQuickTabId.current++}`;
+        setQuickTabs([quickId]);
+        setActiveQuickTabId(quickId);
+        setTabOrder([`quick:${quickId}`]);
+        setActiveSessionId(null);
+        setActiveServerId(null);
+      }
     }
+    setTabOrder((current) => current.filter((key) => key !== `session:${sessionId}`));
+  };
+
+  const createQuickTab = () => {
+    const quickId = `quick-${nextQuickTabId.current++}`;
+    setQuickTabs((current) => [...current, quickId]);
+    setTabOrder((current) => [...current, `quick:${quickId}`]);
+    setActiveQuickTabId(quickId);
+    setActiveSessionId(null);
+    setActiveServerId(null);
+  };
+
+  const closeQuickTab = (quickId: string) => {
+    const remainingQuickTabs = quickTabs.filter((id) => id !== quickId);
+    setQuickTabs(remainingQuickTabs);
+    setTabOrder((current) => current.filter((key) => key !== `quick:${quickId}`));
+    if (activeSessionId !== null || activeQuickTabId !== quickId) return;
+
+    const nextQuickId = remainingQuickTabs[0];
+    if (nextQuickId) {
+      setActiveQuickTabId(nextQuickId);
+      setActiveServerId(null);
+      return;
+    }
+    const nextSession = sessions[0];
+    if (nextSession) {
+      setActiveSessionId(nextSession.sessionId);
+      setActiveServerId(nextSession.serverId);
+      return;
+    }
+    const fallbackId = `quick-${nextQuickTabId.current++}`;
+    setQuickTabs([fallbackId]);
+    setActiveQuickTabId(fallbackId);
+    setTabOrder([`quick:${fallbackId}`]);
+  };
+
+  const reorderTab = (targetKey: string, event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!draggingTab || draggingTab === targetKey) return;
+    setTabOrder((current) => {
+      const from = current.indexOf(draggingTab);
+      const to = current.indexOf(targetKey);
+      if (from < 0 || to < 0) return current;
+      const next = [...current];
+      next.splice(from, 1);
+      next.splice(to, 0, draggingTab);
+      return next;
+    });
+    setDraggingTab(null);
   };
 
   const recordInputHistory = (sessionId: string, data: string) => {
@@ -377,11 +455,6 @@ export default function TerminalPage() {
       return;
     }
     writeToSession(activeSession.sessionId, `${value}${execute ? "\r" : ""}`);
-  };
-
-  const clearActiveTerminal = () => {
-    if (!activeSessionId) return;
-    setTerminalOutputs((current) => ({ ...current, [activeSessionId]: "" }));
   };
 
   return (
@@ -448,45 +521,50 @@ export default function TerminalPage() {
 
         <div className="ops-terminal-tabs">
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto custom-scrollbar">
-            {sessions.map((session) => {
-              const server = servers.find((item) => item.id === session.serverId);
-              if (!server) return null;
+            {tabOrder.map((tabKey) => {
+              const [kind, id] = tabKey.split(":");
+              if (kind === "quick") {
+                if (!quickTabs.includes(id)) return null;
+                return (
+                  <button
+                    key={tabKey}
+                    type="button"
+                    draggable
+                    className={`ops-terminal-tab ops-terminal-quick-tab tab-draggable ${activeSessionId === null && activeQuickTabId === id ? "active" : ""} ${draggingTab === tabKey ? "dragging" : ""}`}
+                    onClick={() => { setActiveSessionId(null); setActiveQuickTabId(id); setActiveServerId(null); }}
+                    onDragStart={() => setDraggingTab(tabKey)}
+                    onDragOver={(event) => reorderTab(tabKey, event)}
+                    onDragEnd={() => setDraggingTab(null)}
+                  >
+                    <Zap size={13} />
+                    <span>快速连接</span>
+                    <X size={12} onClick={(event) => { event.stopPropagation(); closeQuickTab(id); }} />
+                  </button>
+                );
+              }
+              const session = sessions.find((item) => item.sessionId === id);
+              const server = session ? servers.find((item) => item.id === session.serverId) : null;
+              if (!session || !server) return null;
               return (
                 <button
-                  key={session.sessionId}
+                  key={tabKey}
                   type="button"
-                  className={`ops-terminal-tab ${activeSessionId === session.sessionId ? "active" : ""}`}
-                  onClick={() => {
-                    setActiveSessionId(session.sessionId);
-                    setActiveServerId(session.serverId);
-                  }}
+                  draggable
+                  className={`ops-terminal-tab tab-draggable ${activeSessionId === session.sessionId ? "active" : ""} ${draggingTab === tabKey ? "dragging" : ""}`}
+                  onClick={() => { setActiveSessionId(session.sessionId); setActiveServerId(session.serverId); }}
+                  onDragStart={() => setDraggingTab(tabKey)}
+                  onDragOver={(event) => reorderTab(tabKey, event)}
+                  onDragEnd={() => setDraggingTab(null)}
                 >
-                  <Circle
-                    size={8}
-                    fill={session.status === "connected" ? "var(--success)" : "var(--danger)"}
-                    color={session.status === "connected" ? "var(--success)" : "var(--danger)"}
-                  />
+                  <Circle size={8} fill={session.status === "connected" ? "var(--success)" : "var(--danger)"} color={session.status === "connected" ? "var(--success)" : "var(--danger)"} />
                   <span>{server.alias}</span>
                   <X size={12} onClick={(event) => { event.stopPropagation(); closeSession(session.sessionId); }} />
                 </button>
               );
             })}
-            <button
-              type="button"
-              className={`ops-terminal-tab ops-terminal-quick-tab ${activeSessionId === null ? "active" : ""}`}
-              onClick={() => setActiveSessionId(null)}
-            >
-              <Zap size={13} />
-              <span>快速连接</span>
-            </button>
-            <button type="button" className="ops-terminal-new-tab" title="新建终端连接" onClick={() => setActiveSessionId(null)}>
+            <button type="button" className="ops-terminal-new-tab" title="新建终端连接" onClick={createQuickTab}>
               <Plus size={14} />
             </button>
-          </div>
-          <div className="ops-terminal-pane-actions">
-            <button type="button" title="左右双分屏" onClick={() => setSplitMode("dual-h")}><Columns2 size={14} /></button>
-            <button type="button" title="最大化当前窗格" onClick={() => setSplitMode("single")}><Maximize2 size={14} /></button>
-            <button type="button" title="清空当前终端显示" onClick={clearActiveTerminal}><Eraser size={14} /></button>
           </div>
         </div>
 
@@ -503,6 +581,7 @@ export default function TerminalPage() {
             {activeSessionId === null ? (
               <QuickConnectView
                 servers={filteredServers}
+                sessions={sessions}
                 loading={loading}
                 search={search}
                 layout={layout}
@@ -585,6 +664,7 @@ export default function TerminalPage() {
 
 function QuickConnectView({
   servers,
+  sessions,
   loading,
   search,
   layout,
@@ -594,6 +674,7 @@ function QuickConnectView({
   onCreate,
 }: {
   servers: Server[];
+  sessions: TerminalSessionInfo[];
   loading: boolean;
   search: string;
   layout: "grid" | "list" | "tree";
@@ -602,27 +683,39 @@ function QuickConnectView({
   onOpen: (server: Server) => void;
   onCreate: () => void;
 }) {
+  // 使用真实会话状态展示已打开数量，避免把历史认证当作当前连接。
+  const openSessionCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    sessions.forEach((session) => {
+      if (session.status === "connected") {
+        counts.set(session.serverId, (counts.get(session.serverId) ?? 0) + 1);
+      }
+    });
+    return counts;
+  }, [sessions]);
+
   return (
     <div className="ops-terminal-quick custom-scrollbar">
       <div className="ops-terminal-quick-head">
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div className="ops-terminal-quick-intro">
           <Zap size={19} style={{ color: "var(--nav-active-icon)" }} />
           <h2>快速连接</h2>
-          <span>选一台服务器连接终端</span>
+          <span className="ops-terminal-quick-subtitle">选一台服务器新建终端</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="ops-terminal-quick-actions">
           <Input
             value={search}
             onChange={(event) => onSearch(event.target.value)}
             prefix={<Search size={14} />}
             placeholder="搜索别名 / IP / 标签..."
+            aria-label="搜索服务器别名、IP、标签或分组"
             className="ops-terminal-search"
             allowClear
           />
-          <div className="ops-terminal-view-toggle">
-            <button type="button" className={layout === "grid" ? "active" : ""} title="网格卡片视图" onClick={() => onLayout("grid")}><LayoutGrid size={14} /></button>
-            <button type="button" className={layout === "list" ? "active" : ""} title="列表精简视图" onClick={() => onLayout("list")}><List size={14} /></button>
-            <button type="button" className={layout === "tree" ? "active" : ""} title="树形层级视图" onClick={() => onLayout("tree")}><FolderTree size={14} /></button>
+          <div className="ops-terminal-view-toggle" role="group" aria-label="服务器显示方式">
+            <button type="button" className={layout === "grid" ? "active" : ""} aria-pressed={layout === "grid"} title="网格卡片视图" onClick={() => onLayout("grid")}><LayoutGrid size={14} /></button>
+            <button type="button" className={layout === "list" ? "active" : ""} aria-pressed={layout === "list"} title="列表精简视图" onClick={() => onLayout("list")}><List size={14} /></button>
+            <button type="button" className={layout === "tree" ? "active" : ""} aria-pressed={layout === "tree"} title="树形层级视图" onClick={() => onLayout("tree")}><FolderTree size={14} /></button>
           </div>
           <button type="button" className="ops-terminal-create-button" onClick={onCreate}>
             <Plus size={14} />
@@ -633,7 +726,7 @@ function QuickConnectView({
 
       <div className="ops-terminal-server-heading">
         <span><Circle size={8} fill="var(--success)" color="var(--success)" /> 我的服务器</span>
-        <span>{servers.length} 台</span>
+        <span className="ops-terminal-server-count" aria-live="polite">{servers.length} 台</span>
       </div>
 
       {loading && servers.length === 0 ? <Spin /> : servers.length === 0 ? (
@@ -642,43 +735,46 @@ function QuickConnectView({
         <TerminalServerTree servers={servers} onOpen={onOpen} />
       ) : (
         <div className={layout === "grid" ? "ops-terminal-server-grid" : "ops-terminal-server-list"}>
-          {servers.map((server) => <ServerCard key={server.id} server={server} compact={layout === "list"} onOpen={onOpen} />)}
+          {servers.map((server) => <ServerCard key={server.id} server={server} openCount={openSessionCounts.get(server.id) ?? 0} compact={layout === "list"} onOpen={onOpen} />)}
         </div>
       )}
 
       <div className="ops-terminal-hints">
-        <span>↑↓ 选择 · 回车连接 · 直接输入即搜索</span>
-        <span>双击卡片开启终端 · OpsSentry PTY Engine</span>
+        <span>{layout === "tree" ? "单击查看属性 · 双击服务器或点击连接开启终端" : "点击服务器开启终端 · 支持搜索别名 / IP / 标签 / 分组"}</span>
+        <span>已有会话保持连接，可通过顶部标签切换</span>
       </div>
     </div>
   );
 }
 
-function ServerCard({ server, compact, onOpen }: { server: Server; compact: boolean; onOpen: (server: Server) => void }) {
+function ServerCard({ server, compact, openCount, onOpen }: { server: Server; compact: boolean; openCount: number; onOpen: (server: Server) => void }) {
   const policy = AI_POLICY_META[server.ai_policy as keyof typeof AI_POLICY_META];
+  const status = openCount > 0 ? "connected" : server.last_connection_status === "verified" ? "verified" : "pending";
+  const alias = server.alias || server.hostname;
   return (
     <button
       type="button"
       className={`ops-terminal-server-card ${compact ? "compact" : ""}`}
       onClick={() => onOpen(server)}
-      onDoubleClick={() => onOpen(server)}
+      aria-label={`连接 ${alias}，${server.hostname}:${server.port}`}
     >
       <span className="ops-terminal-server-icon">
         <ServerIcon size={compact ? 17 : 20} />
-        <span />
+        <span data-status={status} />
       </span>
       <span className="ops-terminal-server-info">
         <span className="ops-terminal-server-title">
-          <strong>{server.alias}</strong>
-          <em>{policy?.label ?? server.ai_policy}</em>
+          <strong title={alias}>{alias}</strong>
+          <em title={policy?.hint} data-policy={server.ai_policy}>{policy?.short ?? policy?.label ?? server.ai_policy}</em>
+          {openCount > 0 && <span className="ops-terminal-server-session-count">已开 {openCount}</span>}
         </span>
-        <span className="ops-terminal-server-address">{server.username}@{server.hostname}:{server.port}</span>
-        <span className="ops-terminal-server-meta">
+        <span className="ops-terminal-server-address" title={`${server.username}@${server.hostname}:${server.port}`}>{server.username}@{server.hostname}:{server.port}</span>
+        {compact && <span className="ops-terminal-server-meta" title={server.group || "未分组"}>
           {OS_TYPE_LABEL[server.os_type as keyof typeof OS_TYPE_LABEL] ?? server.os_type}
           {server.group ? ` · ${server.group}` : ""}
-        </span>
+        </span>}
       </span>
-      <span className="ops-terminal-server-latency">{server.last_connection_status === "verified" ? "已认证" : "待验证"}</span>
+      <span className="ops-terminal-server-latency" data-status={status}>{openCount > 0 ? "已连接" : server.last_connection_status === "verified" ? "已认证" : "待验证"}</span>
     </button>
   );
 }
@@ -1039,10 +1135,10 @@ function TerminalDrawer({
             <div><span>字符编码</span><strong>UTF-8</strong></div>
             <div className="ops-terminal-font-setting">
               <span>字号</span>
-              <strong>{fontSize}px</strong>
-              <Slider min={11} max={20} step={1} value={fontSize} onChange={onFontSizeChange} />
+              <strong>{fontSize.toFixed(1).replace(/\.0$/, "")}px</strong>
+              <Slider min={12} max={20} step={0.5} value={fontSize} onChange={onFontSizeChange} />
             </div>
-            <div><span>颜色方案</span><strong>OpsSentry Dark</strong></div>
+            <div><span>颜色方案</span><strong>OpsPub Dark</strong></div>
           </div>
         )}
         {tab === "history" && (

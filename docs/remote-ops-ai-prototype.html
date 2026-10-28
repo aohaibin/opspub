@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpsSentry AI — 受控远程运维与智能环境诊断平台</title>
+  <title>OpsPub AI — 受控远程运维与智能环境诊断平台</title>
   <link rel="icon" type="image/png" href="./logo.png">
   <!-- TailwindCSS 3.4 CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -105,8 +105,8 @@
       --glass-nav: rgba(255, 255, 255, 0.95);
       --border-base: rgba(203, 213, 225, 0.85);
       --border-subtle: rgba(226, 232, 240, 0.9);
-      --scrollbar-thumb: #cbd5e1;
-      --scrollbar-track: #f1f5f9;
+      --scrollbar-thumb: rgba(148, 163, 184, 0.45);
+      --scrollbar-track: transparent;
     }
 
     html[data-skin="warm"] {
@@ -122,8 +122,8 @@
       --glass-nav: rgba(255, 255, 255, 0.95);
       --border-base: rgba(253, 230, 138, 0.85);
       --border-subtle: rgba(254, 243, 199, 0.9);
-      --scrollbar-thumb: #fde68a;
-      --scrollbar-track: #fffbeb;
+      --scrollbar-thumb: rgba(180, 160, 140, 0.45);
+      --scrollbar-track: transparent;
     }
 
     html[data-skin="aurora"] {
@@ -139,8 +139,8 @@
       --glass-nav: rgba(255, 255, 255, 0.95);
       --border-base: rgba(153, 246, 228, 0.85);
       --border-subtle: rgba(204, 251, 241, 0.9);
-      --scrollbar-thumb: #99f6e4;
-      --scrollbar-track: #f0fdfa;
+      --scrollbar-thumb: rgba(180, 170, 130, 0.45);
+      --scrollbar-track: transparent;
     }
 
     /* 亮色模式通用覆盖 */
@@ -185,18 +185,204 @@
       background-color: var(--surface-850) !important;
     }
 
+    /* ========================================================================= */
+    /* 亮色模式深色背景全面洗白与高质感适配 (消除所有突兀黑底、深灰底与硬编码色块) */
+    /* ========================================================================= */
+    html:not(.dark) .bg-\[\#090d16\],
+    html:not(.dark) .bg-\[\#090d16\]\/30,
+    html:not(.dark) .bg-\[\#090d16\]\/70,
+    html:not(.dark) .bg-\[\#090d16\]\/80,
+    html:not(.dark) .bg-\[\#0d1117\],
+    html:not(.dark) .bg-\[\#0f172a\] {
+      background-color: var(--surface-900) !important;
+      color: #0f172a !important;
+      border-color: var(--border-base) !important;
+    }
+
+    /* 数据库 SQL 编辑器亮色适配：清爽纯白底色、清晰行号与深色代码字体 */
+    html:not(.dark) #mainSqlMiddleContent {
+      background-color: var(--surface-900) !important;
+    }
+    html:not(.dark) #mainSqlMiddleContent div.bg-surface-950,
+    html:not(.dark) #mainSqlMiddleContent div.bg-\[\#090d16\] {
+      background-color: var(--surface-900) !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #mainSqlLineNumbers {
+      color: #94a3b8 !important;
+      border-right: 1px solid var(--border-base) !important;
+      padding-right: 8px !important;
+    }
+    html:not(.dark) #mainSqlEditorArea {
+      background-color: transparent !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #mainSqlEditorArea::placeholder {
+      color: #94a3b8 !important;
+    }
+
+    /* 数据库空结果集占位区：微润柔和浅底，告别脏灰黑 */
+    html:not(.dark) #mainSqlEmptyResultArea {
+      background-color: var(--surface-850) !important;
+      border-top: 1px solid var(--border-base) !important;
+    }
+    html:not(.dark) #mainSqlEmptyResultArea i {
+      color: #94a3b8 !important;
+    }
+    html:not(.dark) #mainSqlEmptyResultArea span {
+      color: #64748b !important;
+    }
+
+    /* 数据库执行结果集表格亮色适配 */
+    html:not(.dark) #mainSqlResultContainer {
+      background-color: var(--surface-900) !important;
+    }
+    html:not(.dark) #mainSqlResultContainer > div:first-child {
+      background-color: var(--surface-850) !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #mainSqlResultContainer thead {
+      background-color: var(--surface-850) !important;
+    }
+    html:not(.dark) #mainSqlResultContainer thead th {
+      color: #475569 !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #mainSqlResultTbody tr {
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #mainSqlResultTbody td {
+      color: #1e293b !important;
+    }
+    html:not(.dark) #mainSqlResultTbody tr:hover {
+      background-color: var(--surface-850) !important;
+    }
+
+    /* 数据库操作条 (执行/解释/清空) 与底部全局状态栏 */
+    html:not(.dark) #mainSqlMiddleContent > div.sticky {
+      background-color: var(--surface-900) !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #tab-database div.bg-surface-950\/80 {
+      background-color: var(--surface-900) !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #tab-database div.bg-surface-950\/80 span.text-slate-300 {
+      color: #0f172a !important;
+    }
+
+    /* 批量执行命令输入框与输出卡片亮色适配 */
+    html:not(.dark) #batchCommandInput {
+      background-color: var(--surface-900) !important;
+      color: #0f172a !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #batchCommandInput::placeholder {
+      color: #94a3b8 !important;
+    }
+    html:not(.dark) .batch-term-container {
+      background-color: var(--surface-900) !important;
+      color: #0f172a !important;
+      border-color: var(--border-base) !important;
+    }
+
+    /* 工作台文件编辑器与底部控制台亮色适配 */
+    html:not(.dark) #wbFileBottomTerminal,
+    html:not(.dark) div.bg-\[\#0d1117\] {
+      background-color: var(--surface-900) !important;
+      border-color: var(--border-base) !important;
+    }
+
+    /* 弹窗代码预览块 (pre) 亮色优雅卡片底 */
+    html:not(.dark) pre.bg-black,
+    html:not(.dark) pre.bg-\[\#0d1117\] {
+      background-color: var(--surface-850) !important;
+      color: #047857 !important;
+      border-color: var(--border-base) !important;
+    }
+
+    /* 弹窗遮罩层在亮色下采用现代柔和微透暗调，避免突兀死黑 */
+    html:not(.dark) .fixed.bg-black\/80,
+    html:not(.dark) .fixed.bg-black\/70,
+    html:not(.dark) .fixed.bg-black\/75,
+    html:not(.dark) .fixed.bg-black\/85 {
+      background-color: rgba(15, 23, 42, 0.45) !important;
+    }
+
+    /* ========================================================================= */
+    /* 亮色模式透明极简滚动条 (彻底告别黑色深色轨道，对标 macOS / Ant Design 胶囊滑块) */
+    /* ========================================================================= */
+    html:not(.dark),
+    html:not(.dark) body,
+    html:not(.dark) * {
+      scrollbar-width: thin !important;
+      scrollbar-color: var(--scrollbar-thumb, rgba(100, 116, 139, 0.32)) transparent !important;
+    }
+    html:not(.dark) ::-webkit-scrollbar,
+    html:not(.dark) *::-webkit-scrollbar,
+    html:not(.dark) .custom-scrollbar::-webkit-scrollbar {
+      width: 6px !important;
+      height: 6px !important;
+    }
+    html:not(.dark) ::-webkit-scrollbar-track,
+    html:not(.dark) *::-webkit-scrollbar-track,
+    html:not(.dark) .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent !important;
+    }
+    html:not(.dark) ::-webkit-scrollbar-thumb,
+    html:not(.dark) *::-webkit-scrollbar-thumb,
+    html:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb, rgba(100, 116, 139, 0.28)) !important;
+      border-radius: 9999px !important;
+      border: 1px solid transparent !important;
+      background-clip: padding-box !important;
+      transition: background-color 0.2s ease;
+    }
+    html:not(.dark) ::-webkit-scrollbar-thumb:hover,
+    html:not(.dark) *::-webkit-scrollbar-thumb:hover,
+    html:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.55) !important;
+    }
+    html:not(.dark) ::-webkit-scrollbar-corner {
+      background: transparent !important;
+    }
+
+    /* 左侧 Dock 侧边栏无感滚动条 (默认不占视觉空间，Hover 时才优雅浮现) */
+    #appSidebar .custom-scrollbar {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    #appSidebar .custom-scrollbar::-webkit-scrollbar {
+      width: 0px !important;
+      display: none !important;
+    }
+    #appSidebar:hover .custom-scrollbar {
+      scrollbar-width: thin !important;
+    }
+    #appSidebar:hover .custom-scrollbar::-webkit-scrollbar {
+      width: 4px !important;
+      display: block !important;
+    }
+
+    /* 暗色模式滚动条规范 (深色系) */
+    html.dark,
+    html.dark body,
+    html.dark * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb, #334155) var(--scrollbar-track, #0f172a);
+    }
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
-    ::-webkit-scrollbar-track {
+    html.dark ::-webkit-scrollbar-track {
       background: var(--scrollbar-track, #0f172a);
     }
-    ::-webkit-scrollbar-thumb {
+    html.dark ::-webkit-scrollbar-thumb {
       background: var(--scrollbar-thumb, #334155);
-      border-radius: 3px;
+      border-radius: 4px;
     }
-    ::-webkit-scrollbar-thumb:hover {
+    html.dark ::-webkit-scrollbar-thumb:hover {
       filter: brightness(1.2);
     }
     .glass-card {
@@ -264,22 +450,24 @@
       overscroll-behavior: contain;
     }
     .custom-scrollbar {
-      scrollbar-width: thin;
-      scrollbar-color: #334155 #0f172a;
       overscroll-behavior: contain;
     }
-    .custom-scrollbar::-webkit-scrollbar {
+    html.dark .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb, #334155) var(--scrollbar-track, #0f172a);
+    }
+    html.dark .custom-scrollbar::-webkit-scrollbar {
       width: 5px;
       height: 5px;
     }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: #0f172a;
+    html.dark .custom-scrollbar::-webkit-scrollbar-track {
+      background: var(--scrollbar-track, #0f172a);
     }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #334155;
+    html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb, #334155);
       border-radius: 4px;
     }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
       background: #475569;
     }
 
@@ -445,16 +633,63 @@
       contain: content;
     }
     /* 消除滚动容器内 backdrop-filter 导致的重绘风暴，恢复 60/120fps 原生流畅滚动 */
-    #wbMainContentContainer .glass-card {
+    html.dark #wbMainContentContainer .glass-card {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
       background: rgba(15, 23, 42, 0.88) !important;
     }
-    #wbMainContentContainer .backdrop-blur-sm,
-    #wbMainContentContainer .backdrop-blur-md {
+    html.dark #wbMainContentContainer .backdrop-blur-sm,
+    html.dark #wbMainContentContainer .backdrop-blur-md {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
       background: rgba(15, 23, 42, 0.95) !important;
+    }
+
+    /* 亮色模式下工作台主内容与全部卡片高级纯净白底适配 (彻底消灭深黑蓝大卡片) */
+    html:not(.dark) #wbMainContentContainer {
+      background-color: var(--surface-950) !important;
+    }
+    html:not(.dark) .glass-card,
+    html:not(.dark) #wbMainContentContainer .glass-card {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: #ffffff !important;
+      border: 1px solid var(--border-base) !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+    }
+    html:not(.dark) #wbMainContentContainer .backdrop-blur-sm,
+    html:not(.dark) #wbMainContentContainer .backdrop-blur-md {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: #ffffff !important;
+      border-color: var(--border-base) !important;
+    }
+
+    /* 工作台概览仪表盘底槽与图表背景亮色适配 */
+    html:not(.dark) #wbView-overview circle[stroke="#1e293b"] {
+      stroke: #e2e8f0 !important;
+    }
+    html:not(.dark) #wbView-overview div.bg-surface-950\/70,
+    html:not(.dark) #wbView-overview div.bg-surface-950\/90 {
+      background-color: var(--surface-850) !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) #wbView-overview span.text-white {
+      color: #0f172a !important;
+    }
+
+    /* 桌面悬浮控制器亮色模式毛玻璃白底 */
+    html:not(.dark) #desktopScaleController {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+    }
+    html:not(.dark) #desktopScaleController div.bg-surface-950 {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #desktopScaleController span.text-slate-200 {
+      color: #0f172a !important;
     }
 
     /* ========================================================================= */
@@ -672,8 +907,8 @@
       <header class="h-14 shrink-0 glass-nav px-4 flex items-center justify-between sticky top-0 z-40 select-none">
     <!-- 左侧：Logo 与品牌区 -->
     <div class="flex items-center space-x-2">
-      <img src="./logo.png" alt="OpsSentry Logo" class="w-7 h-7 object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]">
-      <span class="font-bold text-sm text-white tracking-wide">OpsSentry</span>
+      <img src="./logo.png" alt="OpsPub Logo" class="w-7 h-7 object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]">
+      <span class="font-bold text-sm text-white tracking-wide">OpsPub</span>
       <span class="text-slate-600 text-xs select-none">|</span>
       <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">本地安全模式 · MCP 仅监听 127.0.0.1</span>
     </div>
@@ -1470,7 +1705,7 @@
           </div>
 
           <!-- 右侧多子视图容器 (滚动区域) -->
-          <div id="wbMainContentContainer" class="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-4 pb-12 bg-[#090d16]/70 ">
+          <div id="wbMainContentContainer" class="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-4 pb-12 bg-surface-950 ">
             
             <!-- ========================================================================= -->
             <!-- 子视图 1: 概览 (1:1 对齐截图 1 media_1790092807056.png) -->
@@ -1943,7 +2178,7 @@
               <!-- 提示栏 (所有网站子标签共用) -->
               <div class="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 flex items-center space-x-2">
                 <i data-lucide="info" class="w-4 h-4 shrink-0 text-cyan-400"></i>
-                <span>复用 1Panel 的 OpenResty —— OpsSentry 在它里面建反代站，与 1Panel 已有站点共存、互不影响。<code class="ml-2 px-1.5 py-0.5 rounded bg-surface-900 font-mono text-[11px] text-slate-300">1panel-openresty-y3bX 1panel/openresty:1.27.1.2-5-1-focal</code></span>
+                <span>复用 1Panel 的 OpenResty —— OpsPub 在它里面建反代站，与 1Panel 已有站点共存、互不影响。<code class="ml-2 px-1.5 py-0.5 rounded bg-surface-900 font-mono text-[11px] text-slate-300">1panel-openresty-y3bX 1panel/openresty:1.27.1.2-5-1-focal</code></span>
               </div>
 
               <!-- ========================================================================= -->
@@ -1965,13 +2200,13 @@
                   </div>
                 </div>
 
-                <!-- OpsSentry 托管站点表格容器 (当有自建站点时展示) -->
+                <!-- OpsPub 托管站点表格容器 (当有自建站点时展示) -->
                 <div id="wbManagedSitesContainer" class="hidden glass-card rounded-xl border border-teal-500/30 overflow-hidden bg-surface-900/80 shadow-lg">
                   <div class="p-3 bg-surface-950/80 border-b border-slate-800 flex items-center justify-between text-xs">
                     <div class="flex items-center space-x-2">
                       <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                      <span class="font-semibold text-white">OpsSentry 管理的站点 (<span id="wbManagedSiteCount">0</span>)</span>
-                      <span class="text-slate-500 text-[11px]">· 由 OpsSentry 全生命周期托管，支持配置反向代理与静态托管</span>
+                      <span class="font-semibold text-white">OpsPub 管理的站点 (<span id="wbManagedSiteCount">0</span>)</span>
+                      <span class="text-slate-500 text-[11px]">· 由 OpsPub 全生命周期托管，支持配置反向代理与静态托管</span>
                     </div>
                   </div>
                   <table class="w-full text-left text-xs border-collapse">
@@ -1997,7 +2232,7 @@
                   <div class="w-12 h-12 rounded-2xl bg-surface-900 flex items-center justify-center text-slate-500">
                     <i data-lucide="file-code" class="w-6 h-6"></i>
                   </div>
-                  <div class="text-xs text-slate-400">还没有 OpsSentry 管理的站点（点「新建站点」添加反向代理或静态托管站点）</div>
+                  <div class="text-xs text-slate-400">还没有 OpsPub 管理的站点（点「新建站点」添加反向代理或静态托管站点）</div>
                 </div>
 
                 <!-- 1Panel 已有站点 (38) 卡片折叠区 -->
@@ -2348,7 +2583,7 @@
                   </div>
 
                   <!-- SQL 编辑器模拟区域 -->
-                  <div class="flex-1 bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[160px] flex space-x-3">
+                  <div class="flex-1 bg-surface-950 p-3 font-mono text-xs text-slate-200 min-h-[160px] flex space-x-3">
                     <div class="text-slate-600 select-none text-right w-5 pt-0.5">1</div>
                     <textarea id="wbSqlEditorArea" class="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed" placeholder="选库后再写 SQL"></textarea>
                   </div>
@@ -2409,7 +2644,7 @@
                           </tr>
                           <tr class="hover:bg-surface-850/40">
                             <td class="py-1.5 px-3 text-slate-400">2</td>
-                            <td class="py-1.5 px-3 text-teal-300 font-medium">ops_sentry</td>
+                            <td class="py-1.5 px-3 text-teal-300 font-medium">opspub</td>
                             <td class="py-1.5 px-3">ops_lead</td>
                             <td class="py-1.5 px-3"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 font-sans">正常</span></td>
                             <td class="py-1.5 px-3 text-slate-400">2026-09-02 11:22:31</td>
@@ -2761,7 +2996,7 @@
                   <div class="flex items-center space-x-2">
                     <h2 class="text-sm font-bold text-white">数据备份</h2>
                     <span class="text-xs text-slate-400">
-                      备份这台服务器上的数据，产物存放在该机 <code class="text-brand-300 font-mono bg-surface-900 px-1.5 py-0.5 rounded border border-slate-800">~/.opssentry/backups/</code>
+                      备份这台服务器上的数据，产物存放在该机 <code class="text-brand-300 font-mono bg-surface-900 px-1.5 py-0.5 rounded border border-slate-800">~/.opspub/backups/</code>
                     </span>
                   </div>
                 </div>
@@ -3636,7 +3871,7 @@
                 </div>
 
                 <!-- 右栏：选中服务器详细信息卡片面板 (与终端树形视图属性卡片完全一致) -->
-                <div class="flex-1 bg-[#090d16]/80 border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-sm">
+                <div class="flex-1 bg-surface-900/90 border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-sm">
                   <div class="space-y-6">
                     <!-- 卡片顶栏: 大图标 + 标题 + 策略徽章 + 在线状态 + 右侧快捷连接按钮 -->
                     <div class="flex items-center justify-between pb-5 border-b border-slate-800/80">
@@ -3710,7 +3945,7 @@
               <div class="flex items-center space-x-3">
                 <span id="sftpQuickBottomSubTip">双击卡片即刻连接 SFTP</span>
                 <span class="text-slate-600">|</span>
-                <span class="text-slate-400 font-medium">OpsSentry SFTP Engine</span>
+                <span class="text-slate-400 font-medium">OpsPub SFTP Engine</span>
               </div>
             </div>
           </div>
@@ -4724,7 +4959,7 @@
             <!-- 右侧中间内容区域: SQL 编辑器 + 操作条 + 结果集 (内部独立滚动) -->
             <div id="mainSqlMiddleContent" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
               <!-- SQL 编辑器模拟区域 (1:1 对齐截图 select * from) -->
-              <div class="bg-[#090d16] p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0">
+              <div class="bg-surface-950 p-3 font-mono text-xs text-slate-200 min-h-[140px] flex space-x-3 shrink-0 border-b border-slate-800/80">
                 <div id="mainSqlLineNumbers" class="text-slate-600 select-none text-right w-5 pt-0.5 font-mono leading-relaxed">1</div>
                 <textarea id="mainSqlEditorArea" class="flex-1 bg-transparent border-0 resize-none focus:outline-none text-slate-200 placeholder:text-slate-600 font-mono text-xs leading-relaxed custom-scrollbar" placeholder="编写或输入 SQL">select * from </textarea>
               </div>
@@ -4781,7 +5016,7 @@
               </div>
 
               <!-- 默认未执行时的空状态占位区 (完全对齐截图 1 底部留白) -->
-              <div id="mainSqlEmptyResultArea" class="flex-1 bg-[#090d16]/30 flex flex-col items-center justify-center text-slate-600 text-xs min-h-[160px] select-none py-10">
+              <div id="mainSqlEmptyResultArea" class="flex-1 bg-surface-950/40 flex flex-col items-center justify-center text-slate-500 text-xs min-h-[160px] select-none py-10">
                 <i data-lucide="terminal" class="w-7 h-7 text-slate-700/60 mb-2"></i>
                 <span class="text-slate-500">点击「执行」后在此查看 SQL 返回数据</span>
               </div>
@@ -5738,7 +5973,7 @@
                 </div>
 
                 <!-- 右栏：选中服务器详细信息卡片面板 (1:1 严格对齐截图) -->
-                <div class="flex-1 bg-[#090d16]/80 border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-sm">
+                <div class="flex-1 bg-surface-900/90 border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-sm">
                   <div class="space-y-6">
                     <!-- 卡片顶栏: 大图标 + 标题 + 策略徽章 + 在线状态 + 右侧快捷连接按钮 -->
                     <div class="flex items-center justify-between pb-5 border-b border-slate-800/80">
@@ -5812,7 +6047,7 @@
               <div class="flex items-center space-x-3">
                 <span id="quickConnectBottomSubTip">双击卡片即刻开启终端</span>
                 <span class="text-slate-600">|</span>
-                <span class="text-slate-400 font-medium">OpsSentry PTY Engine</span>
+                <span class="text-slate-400 font-medium">OpsPub PTY Engine</span>
               </div>
             </div>
           </div>
@@ -6067,7 +6302,7 @@
           <div id="mcpEndpointLastTest" class="text-[11px] text-slate-500">尚未测试端点</div>
         </div>
 
-        <div class="space-y-2"><div class="flex items-center justify-between text-xs"><span class="font-bold text-white flex items-center space-x-1.5"><i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i><span>一键接入 AI 客户端</span></span><span class="text-slate-500 text-[11px]">写入前自动备份，只注入 opssentry 节点</span></div>
+        <div class="space-y-2"><div class="flex items-center justify-between text-xs"><span class="font-bold text-white flex items-center space-x-1.5"><i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i><span>一键接入 AI 客户端</span></span><span class="text-slate-500 text-[11px]">写入前自动备份，只注入 opspub 节点</span></div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div class="glass-card p-4 rounded-xl border border-slate-800 space-y-2.5"><div class="flex items-center justify-between"><div class="flex items-center space-x-2"><div class="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-xs">C</div><div><span class="font-bold text-xs text-white">Claude Code</span><span id="mcpClientStateClaude" class="ml-1 text-[10px] text-slate-500">未注入</span></div></div><div class="flex gap-1"><button onclick="previewMcpClient('claude')" class="px-2 py-1 rounded bg-surface-800 text-slate-300 text-xs">预览</button><button onclick="injectMcpClient('claude')" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black text-xs font-medium">一键注入</button></div></div><div class="text-[11px] text-slate-400">本地全局配置 · ~/.claude.json</div></div>
             <div class="glass-card p-4 rounded-xl border border-slate-800 space-y-2.5"><div class="flex items-center justify-between"><div class="flex items-center space-x-2"><div class="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">X</div><div><span class="font-bold text-xs text-white">Codex</span><span id="mcpClientStateCodex" class="ml-1 text-[10px] text-slate-500">未注入</span></div></div><div class="flex gap-1"><button onclick="previewMcpClient('codex')" class="px-2 py-1 rounded bg-surface-800 text-slate-300 text-xs">预览</button><button onclick="injectMcpClient('codex')" class="px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black text-xs font-medium">一键注入</button></div></div><div class="text-[11px] text-slate-400">TOML 全局配置 · ~/.codex/config.toml</div></div>
@@ -6915,7 +7150,7 @@
               <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <div class="flex items-center space-x-2 text-xs font-bold text-white">
                   <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
-                  <span>OpsSentry AI 治理建议</span>
+                  <span>OpsPub AI 治理建议</span>
                 </div>
                 <span class="px-2 py-0.5 rounded text-[10px] bg-brand-500/20 text-brand-300 border border-brand-500/30 font-semibold font-mono">3项就绪</span>
               </div>
@@ -8803,9 +9038,9 @@
 
 <!-- 底部系统托盘 / 桌面 Dock (视窗模式下可见，最小化后可点击还原) -->
 <div id="desktopOSDock" class="hidden fixed bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-3 px-4 py-1.5 bg-surface-900/80 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl transition duration-200">
-  <button type="button" onclick="restoreWindow()" class="relative flex items-center space-x-2 px-3 py-1 rounded-xl bg-surface-800/90 hover:bg-surface-700 text-slate-200 border border-slate-600/60 transition cursor-pointer group" title="OpsSentry 桌面客户端 · 点击还原视窗">
+  <button type="button" onclick="restoreWindow()" class="relative flex items-center space-x-2 px-3 py-1 rounded-xl bg-surface-800/90 hover:bg-surface-700 text-slate-200 border border-slate-600/60 transition cursor-pointer group" title="OpsPub 桌面客户端 · 点击还原视窗">
     <img src="./logo.png" alt="Logo" class="w-5 h-5 object-contain">
-    <span class="text-xs font-semibold">OpsSentry</span>
+    <span class="text-xs font-semibold">OpsPub</span>
     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
   </button>
   <div class="h-3.5 w-px bg-slate-700"></div>
@@ -9511,7 +9746,7 @@
         <span class="font-bold text-sm text-white">确认移除服务器资产</span>
       </div>
       <div class="p-5 space-y-3 text-xs text-slate-300">
-        <p>您即将从 OpsSentry 资产清单中解除纳管以下服务器：</p>
+        <p>您即将从 OpsPub 资产清单中解除纳管以下服务器：</p>
         <div id="deleteConfirmTargetList" class="p-3 rounded-xl bg-surface-950 border border-slate-800 font-mono text-rose-300 text-xs max-h-32 overflow-y-auto">
           <!-- 动态填充要删除的主机 -->
         </div>
@@ -9699,7 +9934,7 @@
       </div>
       <div class="p-5 space-y-3.5 text-xs text-slate-200 leading-relaxed max-h-[70vh] overflow-y-auto custom-scrollbar">
         <p class="text-slate-300">
-          OpsSentry AI 无需在受控 Windows 上安装任何专有 Agent。您只需在受控 Windows 上以管理员权限运行 PowerShell 即可一键启用原生 OpenSSH Server：
+          OpsPub AI 无需在受控 Windows 上安装任何专有 Agent。您只需在受控 Windows 上以管理员权限运行 PowerShell 即可一键启用原生 OpenSSH Server：
         </p>
 
         <div class="space-y-1.5">
@@ -9723,7 +9958,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
 
         <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 space-y-1 text-slate-400 text-[11px]">
           <div class="text-white font-semibold">💡 验证连接：</div>
-          <p>配置完成后，在 OpsSentry 点击「新增服务器」，选择 Windows 平台，输入该机器 IP 和当前 Windows 登录凭据（例如 <code>builder@10.0.2.15</code>），点击「连通性测试」即可完成即时纳管！</p>
+          <p>配置完成后，在 OpsPub 点击「新增服务器」，选择 Windows 平台，输入该机器 IP 和当前 Windows 登录凭据（例如 <code>builder@10.0.2.15</code>），点击「连通性测试」即可完成即时纳管！</p>
         </div>
       </div>
       <div class="p-4 border-t border-slate-800 flex justify-end space-x-2 bg-surface-950/60">
@@ -9825,7 +10060,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
 
         <!-- 数字签名与审计结论 -->
         <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
-          <span>巡检引擎: OpsSentry SRE Copilot v2.4 (SHA-256 安全签名通过)</span>
+          <span>巡检引擎: OpsPub SRE Copilot v2.4 (SHA-256 安全签名通过)</span>
           <span class="text-emerald-400 font-mono">✔ 已记录至本地防篡改审计库</span>
         </div>
       </div>
@@ -10428,7 +10663,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
               <div><span class="text-purple-400">POST</span> /v1/chat/completions HTTP/1.1</div>
               <div><span class="text-slate-400">Host:</span> api.anthropic.com</div>
               <div><span class="text-slate-400">Content-Type:</span> application/json</div>
-              <div><span class="text-slate-400">User-Agent:</span> Tauri-OpsSentry/2.4.0 (Windows NT 10.0; Win64; x64)</div>
+              <div><span class="text-slate-400">User-Agent:</span> Tauri-OpsPub/2.4.0 (Windows NT 10.0; Win64; x64)</div>
               <div class="text-slate-500 pt-1">--- JSON Payload ---</div>
               <div class="text-emerald-300 pl-2">{</div>
               <div class="pl-4 text-slate-300">"role": "assistant",</div>
@@ -11176,7 +11411,7 @@ New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (
             <span>异地推送 (rclone)</span>
             <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-600/70 text-[10px] text-slate-400 hover:text-brand-300 hover:border-brand-400/60 cursor-pointer ml-1 select-none transition" title="rclone 格式的目标路径，如 s3:my-bucket/path">?</span>
           </label>
-          <input type="text" id="backupRcloneRemoteInput" placeholder="s3:my-bucket/opssentry-backups"
+          <input type="text" id="backupRcloneRemoteInput" placeholder="s3:my-bucket/opspub-backups"
                  class="w-full bg-surface-950/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition">
           <div class="text-[11px] text-slate-400/90 mt-1.5 flex flex-wrap items-center gap-1.5 leading-relaxed">
             <span>留空 = 只存本机。</span>
@@ -11809,7 +12044,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
       switchTab('tab-servers');
-      const savedSkin = localStorage.getItem('ops_sentry_skin') || 'obsidian';
+      const savedSkin = localStorage.getItem('opspub_skin') || 'obsidian';
       selectThemeSkin(savedSkin, true);
       if (typeof renderSkillsTable === 'function') renderSkillsTable();
     });
@@ -14120,7 +14355,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
               <div class="space-y-1">
                 <label class="text-slate-400">配色主题</label>
                 <select class="w-full bg-surface-950 border border-slate-800 rounded-lg p-1.5 text-slate-200">
-                  <option>OpsSentry Dark (默认)</option>
+                  <option>OpsPub Dark (默认)</option>
                   <option>Dracula</option>
                   <option>Nord Dark</option>
                   <option>OneDark Pro</option>
@@ -14915,7 +15150,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         });
       }
 
-      const mdReport = `# 服务器健康巡检与风险合规诊断报告\n- 报告编号: #INSP-20261005-${Math.floor(1000 + Math.random() * 9000)}\n- 巡检主机: ${profile.name} - ${profile.ip}\n- 巡检时间: ${new Date().toLocaleString('zh-CN', { hour12: false })}\n- 综合健康得分: ${profile.score} / 100 (${profile.grade})\n- 规则审计统计: 共检测 36 项 | 通过 ${profile.tabBadges.pass} 项 | 检出风险 ${profile.findings.length} 项\n\n## 检出高危风险与整改建议\n${findingsMd}--- 巡检引擎: OpsSentry SRE Copilot v2.4 (防篡改审计通过)`;
+      const mdReport = `# 服务器健康巡检与风险合规诊断报告\n- 报告编号: #INSP-20261005-${Math.floor(1000 + Math.random() * 9000)}\n- 巡检主机: ${profile.name} - ${profile.ip}\n- 巡检时间: ${new Date().toLocaleString('zh-CN', { hour12: false })}\n- 综合健康得分: ${profile.score} / 100 (${profile.grade})\n- 规则审计统计: 共检测 36 项 | 通过 ${profile.tabBadges.pass} 项 | 检出风险 ${profile.findings.length} 项\n\n## 检出高危风险与整改建议\n${findingsMd}--- 巡检引擎: OpsPub SRE Copilot v2.4 (防篡改审计通过)`;
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(mdReport).then(() => {
@@ -17326,7 +17561,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
           { key: 'host', name: '数据库主机地址', value: '127.0.0.1', secret: false },
           { key: 'port', name: '连接端口', value: '3306', secret: false },
           { key: 'user', name: '连接账号', value: 'root', secret: false },
-          { key: 'database', name: '默认数据库', value: 'ops_sentry', secret: false },
+          { key: 'database', name: '默认数据库', value: 'opspub', secret: false },
           { key: 'charset', name: '连接字符集', value: 'utf8mb4', secret: false }
         ]
       }
@@ -18365,7 +18600,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         document.documentElement.setAttribute('data-theme', 'dark');
       }
       try {
-        localStorage.setItem('ops_sentry_skin', themeKey);
+        localStorage.setItem('opspub_skin', themeKey);
       } catch (e) {}
 
       document.querySelectorAll('#skinDropdown [id^="skin-opt-"]').forEach(el => {
@@ -18697,7 +18932,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
     }
 
     function executeQuitApp() {
-      showToast('🔌 正在安全注销 SSH 会话并退出 OpsSentry...');
+      showToast('🔌 正在安全注销 SSH 会话并退出 OpsPub...');
       setTimeout(() => {
         document.getElementById('screenAppExited').classList.remove('hidden');
         lucide.createIcons();
@@ -18706,7 +18941,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
 
     function restartPrototypeApp() {
       document.getElementById('screenAppExited').classList.add('hidden');
-      showToast('⚡ OpsSentry 桌面端已重新连接并就绪！');
+      showToast('⚡ OpsPub 桌面端已重新连接并就绪！');
     }
 
     function onSettingCloseActionChange(val) {
@@ -19378,12 +19613,12 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       secrets: {},
       injected: {},
       tokens: (() => {
-        try { const value = JSON.parse(localStorage.getItem('opssentry.mcp.tokenMeta') || '[]'); return Array.isArray(value) ? value : []; } catch (_) { return []; }
+        try { const value = JSON.parse(localStorage.getItem('opspub.mcp.tokenMeta') || '[]'); return Array.isArray(value) ? value : []; } catch (_) { return []; }
       })()
     };
 
     function mcpPersistTokenMeta() {
-      try { localStorage.setItem('opssentry.mcp.tokenMeta', JSON.stringify(mcpPrototype.tokens)); } catch (_) { showToast('浏览器未允许保存令牌元数据，本次会话仍可继续使用'); }
+      try { localStorage.setItem('opspub.mcp.tokenMeta', JSON.stringify(mcpPrototype.tokens)); } catch (_) { showToast('浏览器未允许保存令牌元数据，本次会话仍可继续使用'); }
     }
 
     function mcpEscape(value) {
@@ -19438,18 +19673,18 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       if (!mcpPrototype.running) { showToast('请先启动 MCP HTTP 端点'); return; }
       const current = mcpCurrentToken('claude');
       if (!current) { showToast('请先创建当前客户端可用的 Scoped Token'); return; }
-      copyMcpText(`OpsSentry AI --mcp-stdio --token ${current.secret} --port ${mcpPrototype.port}`, 'stdio 启动命令已复制');
+      copyMcpText(`OpsPub AI --mcp-stdio --token ${current.secret} --port ${mcpPrototype.port}`, 'stdio 启动命令已复制');
     }
 
     function copyMcpHttpUrl() { copyMcpText(`http://127.0.0.1:${mcpPrototype.port}/mcp`, 'HTTP 地址已复制'); }
     function openMcpHttpProbe() { if (!mcpPrototype.running) { showToast('端点未启动，请先启动 MCP HTTP 端点'); return; } window.open(`http://127.0.0.1:${mcpPrototype.port}/health`, '_blank'); }
 
     function mcpConfigFor(client, secret) {
-      const command = 'OpsSentry AI';
+      const command = 'OpsPub AI';
       const args = ['--mcp-stdio', '--token', secret, '--port', String(mcpPrototype.port)];
-      if (client === 'codex') return `[mcp_servers.opssentry]\ncommand = "${command}"\nargs = ["${args.join('", "')}"]`;
-      if (client === 'opencode') return JSON.stringify({ mcp: { opssentry: { type: 'local', command: [command, ...args] } } }, null, 2);
-      return JSON.stringify({ mcpServers: { opssentry: { command, args } } }, null, 2);
+      if (client === 'codex') return `[mcp_servers.opspub]\ncommand = "${command}"\nargs = ["${args.join('", "')}"]`;
+      if (client === 'opencode') return JSON.stringify({ mcp: { opspub: { type: 'local', command: [command, ...args] } } }, null, 2);
+      return JSON.stringify({ mcpServers: { opspub: { command, args } } }, null, 2);
     }
 
     function previewMcpClient(client) {
@@ -19468,7 +19703,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       mcpPrototype.injected[client] = new Date().toLocaleString();
       const state = document.getElementById('mcpClientState' + client.charAt(0).toUpperCase() + client.slice(1));
       if (state) { state.innerText = '✓ 已注入'; state.className = 'ml-1 text-[10px] text-emerald-400'; }
-      showToast(`${client} 配置已备份并写入 opssentry 节点`);
+      showToast(`${client} 配置已备份并写入 opspub 节点`);
     }
 
     function openMcpTokenModal() { document.getElementById('modalMCPToken')?.classList.remove('hidden'); lucide.createIcons(); }
@@ -20889,7 +21124,7 @@ LIMIT 100;`;
             <td class="py-1.5 px-3 font-mono text-teal-400">1</td>
             <td class="py-1.5 px-3 font-mono">admin</td>
             <td class="py-1.5 px-3">若依超级管理员</td>
-            <td class="py-1.5 px-3 font-mono text-slate-400">admin@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">admin@opspub.com</td>
             <td class="py-1.5 px-3 font-mono">15888888888</td>
             <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
             <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-01 10:00:00</td>
@@ -20898,7 +21133,7 @@ LIMIT 100;`;
             <td class="py-1.5 px-3 font-mono text-teal-400">2</td>
             <td class="py-1.5 px-3 font-mono">ry</td>
             <td class="py-1.5 px-3">若依运维专员</td>
-            <td class="py-1.5 px-3 font-mono text-slate-400">ry@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">ry@opspub.com</td>
             <td class="py-1.5 px-3 font-mono">15666666666</td>
             <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
             <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-01 10:00:00</td>
@@ -20907,7 +21142,7 @@ LIMIT 100;`;
             <td class="py-1.5 px-3 font-mono text-teal-400">3</td>
             <td class="py-1.5 px-3 font-mono">test</td>
             <td class="py-1.5 px-3">测试人员</td>
-            <td class="py-1.5 px-3 font-mono text-slate-400">test@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">test@opspub.com</td>
             <td class="py-1.5 px-3 font-mono">13800138000</td>
             <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
             <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-02 14:22:15</td>
@@ -20916,7 +21151,7 @@ LIMIT 100;`;
             <td class="py-1.5 px-3 font-mono text-teal-400">4</td>
             <td class="py-1.5 px-3 font-mono">dev</td>
             <td class="py-1.5 px-3">研发工程师</td>
-            <td class="py-1.5 px-3 font-mono text-slate-400">dev@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">dev@opspub.com</td>
             <td class="py-1.5 px-3 font-mono">13912345678</td>
             <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400">正常</span></td>
             <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-03 09:15:30</td>
@@ -20925,7 +21160,7 @@ LIMIT 100;`;
             <td class="py-1.5 px-3 font-mono text-teal-400">5</td>
             <td class="py-1.5 px-3 font-mono">guest</td>
             <td class="py-1.5 px-3">访客账号</td>
-            <td class="py-1.5 px-3 font-mono text-slate-400">guest@opssentry.com</td>
+            <td class="py-1.5 px-3 font-mono text-slate-400">guest@opspub.com</td>
             <td class="py-1.5 px-3 font-mono">13700000000</td>
             <td class="py-1.5 px-3"><span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-500/20 text-slate-400">停用</span></td>
             <td class="py-1.5 px-3 font-mono text-slate-400">2026-09-05 18:30:00</td>
@@ -22057,7 +22292,7 @@ LIMIT 100;`;
       const domain = document.getElementById('siteFormDomain')?.value.trim() || 'demo.example.com';
       const port = document.getElementById('siteFormPort')?.value.trim() || '80';
 
-      let conf = `# 由 OpsSentry 自动化生成的虚拟主机配置\nserver {\n    listen ${port};\n    server_name ${domain};\n\n`;
+      let conf = `# 由 OpsPub 自动化生成的虚拟主机配置\nserver {\n    listen ${port};\n    server_name ${domain};\n\n`;
 
       if (siteFormSslEnabled) {
         conf += `    # SSL 证书配置\n    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;\n    ssl_protocols TLSv1.2 TLSv1.3;\n    ssl_ciphers HIGH:!aNULL:!MD5;\n\n`;
@@ -23845,7 +24080,7 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
       if (!rcloneInput) return;
       if (val === 'none') {
         rcloneInput.value = '';
-        rcloneInput.placeholder = 's3:my-bucket/opssentry-backups';
+        rcloneInput.placeholder = 's3:my-bucket/opspub-backups';
       } else if (val === 'cos') {
         rcloneInput.value = 'cos:ops-backup-bucket/daily';
       } else if (val === 'oss') {
@@ -23933,7 +24168,7 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
 
       closeCreateBackupModal();
       renderWbBackupView();
-      showToast(`✓ 备份任务 [${name}] 创建成功！产物将定时归档至 ~/.opssentry/backups/`);
+      showToast(`✓ 备份任务 [${name}] 创建成功！产物将定时归档至 ~/.opspub/backups/`);
     }
 
     function toggleTaskEnableState(taskName) {
@@ -23950,7 +24185,7 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
     }
 
     function runBackupTask(taskName) {
-      showToast(`🚀 正在执行备份任务 [${taskName}]，产物存放在 ~/.opssentry/backups/ ...`);
+      showToast(`🚀 正在执行备份任务 [${taskName}]，产物存放在 ~/.opspub/backups/ ...`);
     }
 
     function deleteBackupTask(taskName) {
@@ -24761,7 +24996,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
           <span><kbd class="px-1 py-0.5 rounded bg-surface-900 border border-slate-700">↵</kbd> 跳转</span>
           <span><kbd class="px-1 py-0.5 rounded bg-surface-900 border border-slate-700">ESC</kbd> 关闭</span>
         </div>
-        <span class="text-slate-500">OpsSentry Spotlight 全局指令中心</span>
+        <span class="text-slate-500">OpsPub Spotlight 全局指令中心</span>
       </div>
     </div>
   </div>
@@ -24860,10 +25095,10 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     <div class="glass-card bg-surface-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
       <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-surface-950/70">
         <div class="flex items-center space-x-2.5">
-          <img src="./logo.png" alt="OpsSentry Logo" class="w-9 h-9 object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
+          <img src="./logo.png" alt="OpsPub Logo" class="w-9 h-9 object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
           <div>
             <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-              <span>OpsSentry AI 桌面端</span>
+              <span>OpsPub AI 桌面端</span>
               <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">Stable</span>
             </h3>
             <p class="text-[11px] text-slate-400">架构: Tauri 2.3 · Rust Core · SQLite · WebKit</p>
@@ -25207,7 +25442,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       <!-- 弹窗顶栏 -->
       <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-surface-900/90">
         <div class="flex items-center space-x-2.5">
-          <img src="./logo.png" alt="OpsSentry Logo" class="w-8 h-8 object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]">
+          <img src="./logo.png" alt="OpsPub Logo" class="w-8 h-8 object-contain filter drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]">
           <div>
             <h3 class="text-sm font-bold text-white">关闭客户端确认</h3>
             <p class="text-[11px] text-slate-400">请选择您希望执行的关闭操作</p>
@@ -25253,7 +25488,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
               <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">安全注销</span>
             </div>
             <p class="text-[11px] text-slate-400 leading-relaxed">
-              退出 OpsSentry，安全断开所有正在连接的 SSH 终端会话、停止本地 MCP 协议通道并完全释放系统占用内存。
+              退出 OpsPub，安全断开所有正在连接的 SSH 终端会话、停止本地 MCP 协议通道并完全释放系统占用内存。
             </p>
           </div>
         </label>
@@ -25285,9 +25520,9 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
   <!-- 模拟退出后的遮罩界面 (当用户选“直接退出应用”并确认时展示真实退出效果) -->
   <div id="screenAppExited" class="hidden fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 font-sans text-center select-none animate-in fade-in duration-300">
     <div class="w-20 h-20 rounded-2xl bg-surface-900/90 border border-slate-800 flex items-center justify-center shadow-2xl mb-4 p-2 relative">
-      <img src="./logo.png" alt="OpsSentry Logo" class="w-14 h-14 object-contain grayscale opacity-60">
+      <img src="./logo.png" alt="OpsPub Logo" class="w-14 h-14 object-contain grayscale opacity-60">
     </div>
-    <h2 class="text-lg font-bold text-white mb-1">OpsSentry 客户端已安全退出</h2>
+    <h2 class="text-lg font-bold text-white mb-1">OpsPub 客户端已安全退出</h2>
     <p class="text-xs text-slate-400 max-w-sm mb-6 leading-relaxed">
       所有 SSH 会话已正常注销，本地数据金库已加锁。在实际桌面客户端中，此时进程已彻底终止并退出。
     </p>

@@ -1,5 +1,5 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpsSentry AI (Dev)",
+  "productName": "OpsPub AI (Dev)",
   "identifier": "com.agilefr.tauri.dev"
 }

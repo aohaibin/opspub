@@ -22,7 +22,7 @@ export const MOCK_CONTAINERS: ContainerItem[] = [
 
 export const MOCK_WEBSITES: WebsiteItem[] = [
   { id: "1", domain: "156.226.177.226", docRoot: "/www/sites/156.226.177.226/index", status: "running", port: 80, ssl: false, remark: "默认站点 (OpenResty 反代)" },
-  { id: "2", domain: "api.ops-sentry.local", docRoot: "/www/sites/api-ops/dist", status: "running", port: 8080, ssl: true, sslExpiry: "2027-03-12 (剩余 180 天)", remark: "微服务网关" },
+  { id: "2", domain: "api.ops-pub.local", docRoot: "/www/sites/api-ops/dist", status: "running", port: 8080, ssl: true, sslExpiry: "2027-03-12 (剩余 180 天)", remark: "微服务网关" },
   { id: "3", domain: "blog.ops.io", docRoot: "/www/sites/blog/public", status: "running", port: 8030, ssl: true, sslExpiry: "2027-01-08 (剩余 112 天)", remark: "技术博客与发布台" },
 ];
 

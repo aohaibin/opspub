@@ -538,6 +538,8 @@ fn handle_tool_call(app: &tauri::AppHandle, auth: McpAuth, id: Value, params: Va
             message: message.into(),
             server_id: selected_id,
             provider: Some("mcp".into()),
+            model_profile_id: None,
+            history: Vec::new(),
         },
     ) {
         Ok(response) => {

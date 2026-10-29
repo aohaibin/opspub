@@ -8,10 +8,55 @@ const CREDENTIAL_SERVICE: &str = "com.opsentr.yunwei.ai-model";
 
 pub struct ModelService;
 
+/// 供受控聊天调用使用的配置。密钥只在 Rust 进程内短暂存在，不会序列化或返回前端。
+#[derive(Clone)]
+pub struct ChatModelConfig {
+    pub name: String,
+    pub protocol: Protocol,
+    pub base_url: String,
+    pub model: String,
+    pub api_key: String,
+    pub preset_key: Option<String>,
+}
+
 impl ModelService {
     pub fn vendors() -> Vec<Vendor> { vendors(&[Kind::Chat]) }
 
     pub fn preset(key: &str) -> Option<&'static ProviderPreset> { preset_by_key(key) }
+
+    pub fn chat_config(db: &Database, id: &str) -> Result<ChatModelConfig, AppError> {
+        let raw = db
+            .get_config(&format!("{CONFIG_PREFIX}{id}"))?
+            .ok_or_else(|| AppError::NotFound("所选模型配置不存在".into()))?;
+        let profile: ModelProfile = serde_json::from_str(&raw)?;
+        if !profile.enabled {
+            return Err(AppError::InvalidInput("所选模型配置已停用".into()));
+        }
+        let protocol = Protocol::parse(&profile.protocol)
+            .ok_or_else(|| AppError::InvalidInput("模型服务协议无效".into()))?;
+        let base_url = if profile.base_url.trim().is_empty() {
+            profile
+                .preset_key
+                .as_deref()
+                .and_then(preset_by_key)
+                .and_then(|preset| preset.endpoint())
+                .unwrap_or(protocol.default_base_url())
+                .to_string()
+        } else {
+            profile.base_url.trim().to_string()
+        };
+        if profile.model.trim().is_empty() {
+            return Err(AppError::InvalidInput("模型名称不能为空".into()));
+        }
+        Ok(ChatModelConfig {
+            name: profile.name,
+            protocol,
+            base_url,
+            model: profile.model,
+            api_key: keyring_get(id)?.unwrap_or_default(),
+            preset_key: profile.preset_key,
+        })
+    }
 
     pub fn list(db: &Database) -> Result<Vec<ModelProfileSummary>, AppError> {
         let mut profiles = Vec::new();

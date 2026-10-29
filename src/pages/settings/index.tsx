@@ -15,7 +15,6 @@ import {
   Network,
   Palette,
   Power,
-  Shield,
   ShieldCheck,
   Smartphone,
   Sparkles,
@@ -43,7 +42,6 @@ type SettingsSection =
   | "audit-retention"
   | "backup"
   | "mobile-pairing"
-  | "license"
   | "legal"
   | "community"
   | "apps";
@@ -88,7 +86,6 @@ const NAV_GROUPS: Array<{ title: string; items: Array<{ id: SettingsSection; lab
   {
     title: "关于",
     items: [
-      { id: "license", label: "授权管理", icon: Shield },
       { id: "legal", label: "法律声明", icon: FileText },
       { id: "community", label: "作者 & 社区", icon: Users },
       { id: "apps", label: "推荐应用", icon: Sparkles },
@@ -315,10 +312,6 @@ export default function SettingsPage() {
 
         <SettingCard id="mobile-pairing" icon={<Smartphone size={15} />} title="手机配对" desc="配对移动端审批助手，接收高风险操作通知。">
           <div className="flex items-center gap-4"><div className="flex h-24 w-24 items-center justify-center rounded-xl bg-white text-center font-mono text-[9px] text-slate-900">[ QR CODE ]</div><div><div className="font-semibold text-slate-200">暂无已绑定设备</div><p className="mt-1 text-xs text-slate-500">扫描二维码后接收审批通知</p><StaticButton className="mt-2">刷新配对码</StaticButton></div></div>
-        </SettingCard>
-
-        <SettingCard id="license" icon={<Shield size={15} />} title="授权管理" desc="查看当前版本授权状态与设备绑定信息。">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-500/25 bg-teal-500/5 p-4"><div><div className="font-semibold text-white">OpsPub Community</div><p className="mt-1 text-xs text-slate-400">本地运行 · 无需在线授权</p></div><span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">有效</span></div>
         </SettingCard>
 
         <SettingCard id="legal" icon={<FileText size={15} />} title="法律声明与隐私保障" desc="全量数据优先驻留本地，未经授权不向外部发送敏感信息。">

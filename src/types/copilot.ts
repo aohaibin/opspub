@@ -2,6 +2,13 @@ export interface CopilotRequest {
   message: string;
   serverId?: number | null;
   provider?: string;
+  modelProfileId?: string | null;
+  history?: CopilotHistoryMessage[];
+}
+
+export interface CopilotHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export interface CopilotToolCall {
@@ -35,6 +42,8 @@ export interface CopilotResponse {
   reply: string;
   toolCalls: CopilotToolCall[];
   warnings: string[];
+  modelName?: string | null;
+  historyTrimmed: number;
 }
 
 export interface CopilotProgress {

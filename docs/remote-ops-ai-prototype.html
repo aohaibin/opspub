@@ -3491,7 +3491,7 @@
               <div id="wbTerminalScreen" class="flex-1 overflow-y-auto custom-scrollbar p-4 font-mono text-xs text-slate-200 leading-relaxed space-y-1 bg-[#0d1117]">
                 <div class="text-slate-400">Last login: Wed Sep 23 01:22:16 2026 from 111.35.66.40</div>
                 <div class="text-slate-300 font-mono text-[11px] break-all">
-                  root@C20241128197544:~# if [ -n "$ZSH_VERSION" ]; then __reeve_cwd(){ printf '\033]7;file://%s\007' "$PWD"; }; precmd_functions+=(__reeve_cwd); else export PROMPT_COMMAND='printf "\033]7;file://%s\007" "$PWD"'; fi
+                  root@C20241128197544:~# if [ -n "$ZSH_VERSION" ]; then __opspub_cwd(){ printf '\033]7;file://%s\007' "$PWD"; }; precmd_functions+=(__opspub_cwd); else export PROMPT_COMMAND='printf "\033]7;file://%s\007" "$PWD"'; fi
                 </div>
                 <div class="text-slate-300 font-mono text-[11px]">
                   root@C20241128197544:~# printf '\033]7;file://%s\007' "$PWD"
@@ -3649,7 +3649,7 @@
 
                   <!-- 路径与条目数指示 -->
                   <div class="flex items-center space-x-1.5 text-slate-400 font-mono text-xs pl-1">
-                    <span id="wbWsPathText" class="text-slate-300">/root/.reeve/backups</span>
+                    <span id="wbWsPathText" class="text-slate-300">/root/.opspub/backups</span>
                     <span>共</span>
                     <span id="wbWsCountText" class="text-white font-semibold">1</span>
                   </div>
@@ -5761,7 +5761,7 @@
               </div>
 
               <div class="text-[11px] font-mono text-slate-400 space-y-0.5 bg-surface-950 p-2 rounded border border-slate-800/80">
-                <div class="truncate">路径: /opt/reeve/stacks/remote_relay</div>
+                <div class="truncate">路径: /opt/opspub/stacks/remote_relay</div>
                 <div class="text-slate-500">构建: artifact · 软链: symlink 原子发布</div>
               </div>
 
@@ -5795,7 +5795,7 @@
               </div>
 
               <div class="text-[11px] font-mono text-slate-400 space-y-0.5 bg-surface-950 p-2 rounded border border-slate-800/80">
-                <div class="truncate">路径: /opt/reeve/stacks/remote_server</div>
+                <div class="truncate">路径: /opt/opspub/stacks/remote_server</div>
                 <div class="text-slate-500">构建: artifact · 软链: symlink 原子发布</div>
               </div>
 
@@ -5935,7 +5935,7 @@
       </div>
 
       <!-- =================================================================================== -->
-      <!-- VIEW 7: 远程终端 (对齐 Reeve 原型设计，含分屏控制、Tab标签、快速连接卡片与侧边工具栏) -->
+      <!-- VIEW 7: 远程终端 (对齐 OpsPub 原型设计，含分屏控制、Tab标签、快速连接卡片与侧边工具栏) -->
       <!-- =================================================================================== -->
       <div id="tab-terminal" class="tab-content hidden h-full w-full flex flex-col bg-surface-950 rounded-none overflow-hidden border-0 select-none">
         
@@ -6430,154 +6430,506 @@
       <!-- =================================================================================== -->
       <!-- VIEW 8: ★ AI 桥接中心 (AI Bridge & Copilot) - 对应截图 3 media_1789571001364.png -->
       <!-- =================================================================================== -->
-      <div id="tab-copilot" class="tab-content hidden h-[calc(100vh-8.5rem)] flex flex-col glass-card rounded-xl border border-slate-800 overflow-hidden">
-        <!-- 桥接顶栏 (截图 3 真实结构) -->
-        <div class="p-3 bg-surface-900/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      <div id="tab-copilot" class="tab-content hidden h-full w-full flex flex-col bg-[#0a0d14] overflow-hidden select-none font-sans">
+        
+        <!-- 1. 视图顶栏 (1:1 严格对齐截图 1、2: 🤖 AI 助手 + ⏻ AI 操作放行中 + 接入与策略) -->
+        <div class="px-5 py-3.5 border-b border-slate-800/80 bg-[#0c1017] flex items-center justify-between shrink-0">
           <div>
             <div class="flex items-center space-x-2">
-              <h1 class="text-sm font-bold text-white flex items-center space-x-1.5">
-                <i data-lucide="bot" class="w-4 h-4 text-indigo-400"></i>
-                <span>AI 桥接中心</span>
-              </h1>
-              <span class="text-[10px] text-slate-400">一套工具实现 + 一套策略，挂在 stdio sidecar / 页面内对话 / 本地 HTTP 三个通道</span>
+              <span class="text-base">🤖</span>
+              <h1 class="text-sm font-bold text-white leading-tight">AI 助手</h1>
             </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">让 AI 帮你看查和操作服务器；每一步都受 AI 操作策略约束，并记入审计</p>
           </div>
 
-          <div class="flex items-center space-x-2">
-            <button onclick="toggleGlobalAILock()" id="copilotLockBtn" class="px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-medium flex items-center space-x-1 transition cursor-pointer">
-              <i data-lucide="lock" class="w-3 h-3 text-rose-400"></i>
-              <span id="copilotLockText">AI 操作已锁定</span>
-            </button>
-            <button onclick="switchTab('tab-security')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center space-x-1 transition">
-              <i data-lucide="shield" class="w-3 h-3 text-amber-400"></i>
+          <div class="flex items-center space-x-2.5">
+            <!-- AI 操作放行与限时选择按钮 (与顶栏样式、时长逻辑完全对齐) -->
+            <div class="relative">
+              <button onclick="toggleCopilotAILockDropdown(event)" id="copilotLockBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition cursor-pointer shadow-sm select-none active:scale-95">
+                <i data-lucide="power" id="copilotLockIcon" class="w-3.5 h-3.5 text-emerald-400 pointer-events-none"></i>
+                <span id="copilotLockText" class="pointer-events-none font-mono">AI 操作放行中 剩 29:48</span>
+              </button>
+
+              <!-- AI 操作限时设置浮动卡片 (与顶栏完全一致，包含总开关、30m/2h/1d/永久) -->
+              <div id="copilotLockDropdown" onclick="event.stopPropagation()" class="hidden absolute right-0 top-11 z-50 w-80 p-4 rounded-2xl bg-[#0f141c] border border-slate-700 shadow-2xl text-xs space-y-3.5 font-sans animate-in fade-in zoom-in-95">
+                <!-- 顶部总开关行 -->
+                <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="power" class="w-4 h-4 text-slate-400"></i>
+                    <span id="copilotLockSwitchLabel" class="font-bold text-white text-xs">AI 操作已放行</span>
+                  </div>
+                  <!-- 滑块 Toggle -->
+                  <button type="button" onclick="toggleAILockSwitch()" id="copilotLockToggleSwitch" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-600 transition-colors duration-200 ease-in-out focus:outline-none" title="点击解锁或锁定">
+                    <span id="copilotLockToggleDot" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-5"></span>
+                  </button>
+                </div>
+
+                <!-- 限时放行时长选择栏 (30m / 2h / 1d / 永久) -->
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-400 font-medium">限时放行</span>
+                    <span id="copilotUnlockCountdownText" class="text-[10px] text-emerald-400 font-mono">倒计时: 29:48</span>
+                  </div>
+                  <div class="grid grid-cols-4 gap-1 p-1 bg-surface-950 rounded-xl border border-slate-800 text-center font-mono text-xs">
+                    <button onclick="selectUnlockDuration('30m')" id="copilot-dur-btn-30m" class="dur-opt-btn py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition">30m</button>
+                    <button onclick="selectUnlockDuration('2h')" id="copilot-dur-btn-2h" class="dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition">2h</button>
+                    <button onclick="selectUnlockDuration('1d')" id="copilot-dur-btn-1d" class="dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition">1d</button>
+                    <button onclick="selectUnlockDuration('forever')" id="copilot-dur-btn-forever" class="dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition">永久</button>
+                  </div>
+                </div>
+
+                <!-- 说明文案 -->
+                <p class="text-[11px] text-slate-400 leading-relaxed font-sans pt-1 border-t border-slate-800/80">
+                  「AI 操作」总开关：关闭时 AI 的一切改动型工具直接拒绝，只读工具仍可用。到点自动回归锁定。
+                </p>
+              </div>
+            </div>
+
+            <!-- 接入与策略 -->
+            <button onclick="switchTab('tab-security')" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface-900 hover:bg-surface-850 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-medium cursor-pointer transition">
+              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-400"></i>
               <span>接入与策略</span>
             </button>
           </div>
         </div>
 
-        <!-- 机器与模型上下文条 (截图 3 控件) -->
-        <div class="px-4 py-2 bg-surface-950/80 border-b border-slate-800 flex items-center justify-between text-xs">
-          <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-              <span class="text-slate-400">AI服务商:</span>
-              <select class="bg-surface-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-indigo-300 font-mono">
-                <option>deepseek · deepseek-reasoner (R1)</option>
-                <option>anthropic · claude-3-5-sonnet</option>
-                <option>openai · gpt-4o</option>
+        <!-- 2. 上下文筛选工具条 (对齐截图 1、2: 内置对话 / 服务器选择 / 外部工具 / 历史 / 存为经验 / 新对话) -->
+        <div class="px-5 py-2 border-b border-slate-800/80 bg-surface-950/60 flex items-center justify-between text-xs shrink-0 select-none">
+          <div class="flex items-center space-x-2">
+            <!-- 内置对话模型选择 -->
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#0e131b] border border-slate-800 text-slate-300">
+              <i data-lucide="message-square" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span class="text-slate-400 text-[11px]">内置对话</span>
+              <select id="copilotModelSelect" class="bg-transparent border-0 text-white font-mono text-xs focus:outline-none cursor-pointer">
+                <option value="deepseek-reasoner">deppseek · deepseek-reasoner</option>
+                <option value="claude-3-7-sonnet">anthropic · claude-3-7-sonnet</option>
+                <option value="gpt-4o">openai · gpt-4o</option>
               </select>
             </div>
 
-            <div class="flex items-center space-x-2">
-              <span class="text-slate-400">目标服务器:</span>
-              <select id="copilotHostSelect" class="bg-surface-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-white">
+            <!-- 目标服务器选择 -->
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#0e131b] border border-slate-800 text-slate-300">
+              <i data-lucide="server" class="w-3.5 h-3.5 text-teal-400"></i>
+              <select id="copilotHostSelect" class="bg-transparent border-0 text-white text-xs focus:outline-none cursor-pointer">
+                <option value="vanilla-cloud">我的香草云</option>
                 <option value="prod-api-01">我的腾讯云0209 (prod-api-01)</option>
-                <option value="prod-db-master">核心库 (prod-db-master)</option>
-                <option value="test-gateway-hk">香港边缘网关</option>
-                <option value="win-build-01">Windows构建机</option>
+                <option value="prod-db-master">我的阿里云 (核心库)</option>
+                <option value="prod-node-3845">我的阿里云3845</option>
               </select>
             </div>
+
+            <!-- 外部工具 -->
+            <button type="button" onclick="showToast('已挂载 6 个 MCP 外部系统工具 (read_file, ssh_exec, sftp_write, system_info, disk_usage, tail_log)')" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#0e131b] hover:bg-surface-850 border border-slate-800 text-slate-400 hover:text-slate-200 transition">
+              <i data-lucide="puzzle" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>外部工具</span>
+            </button>
           </div>
 
-          <button onclick="clearChat()" class="text-slate-400 hover:text-white flex items-center space-x-1 text-xs">
-            <i data-lucide="history" class="w-3.5 h-3.5"></i>
-            <span>对话历史</span>
-          </button>
-        </div>
-
-        <!-- 凭据隔离与端侧盲执行安全提示条 -->
-        <div class="px-4 py-1.5 bg-gradient-to-r from-emerald-950/40 via-surface-900 to-indigo-950/40 border-b border-emerald-500/20 flex items-center justify-between text-[11px]">
-          <div class="flex items-center space-x-2 text-emerald-300">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="font-medium">凭据安全隔离已激活</span>
-            <span class="text-slate-400">·</span>
-            <span class="text-slate-300">AI 仅使用本地句柄 (<code class="text-amber-300 font-mono bg-surface-950 px-1 py-0.2 rounded border border-slate-700">vault://ref/*</code>) 盲调用，凭据在客户端 DPAPI 加密，云端 0 明文接触</span>
+          <div class="flex items-center space-x-3 text-slate-400">
+            <button type="button" onclick="showToast('⏱ 已加载近 7 天共 14 条历史运维对话会话')" class="hover:text-white flex items-center space-x-1 transition cursor-pointer">
+              <i data-lucide="history" class="w-3.5 h-3.5"></i>
+              <span>历史</span>
+            </button>
+            <button type="button" onclick="showToast('⭐ 已将当前服务器排障总结存为团队经验知识库')" class="hover:text-white flex items-center space-x-1 transition cursor-pointer">
+              <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
+              <span>存为经验</span>
+            </button>
+            <button type="button" onclick="resetCopilotChat()" class="hover:text-white flex items-center space-x-1 transition cursor-pointer font-medium text-slate-300">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>新对话</span>
+            </button>
           </div>
-          <button onclick="openCredentialIsolationModal('我的腾讯云0209', 'vault://ref/mysql-prod-0209')" class="text-emerald-400 hover:text-emerald-300 underline flex items-center space-x-1 cursor-pointer">
-            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-            <span>查看抓包攻防验证</span>
-          </button>
         </div>
 
-
-        <!-- 对话主体区 -->
-        <div id="chatMessageList" class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-          <!-- 核心场景四卡片推荐区 (截图 3 经典大卡片) -->
-          <div class="space-y-3 max-w-3xl mx-auto pt-2">
-            <p class="text-slate-400 text-center text-xs">
-              可点什么试试 —— AI 会轮流调用 MCP 许可授权的工具 (list_servers / system_info / ssh_exec / sftp_* / recall_experience / run_runbook...)，全程受 AI 操作策略监督：
-            </p>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-              <!-- 卡片 1 -->
-              <div onclick="sendQuickPrompt('检查 4 台机器的健康度 (磁盘/内存/关键服务)')" class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 hover:bg-surface-850/60 transition cursor-pointer space-y-1">
-                <div class="font-bold text-white flex items-center space-x-1.5">
-                  <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
-                  <span>检查 4 台机器的健康度</span>
-                </div>
-                <p class="text-[11px] text-slate-400">磁盘 / 内存 / 关键服务 —— 全是只读工具，任何策略直接执行</p>
-              </div>
-
-              <!-- 卡片 2 -->
-              <div onclick="sendQuickPrompt('是否有慢查 或 数据库锁等待？')" class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 hover:bg-surface-850/60 transition cursor-pointer space-y-1">
-                <div class="font-bold text-white flex items-center space-x-1.5">
-                  <i data-lucide="database" class="w-4 h-4 text-cyan-400"></i>
-                  <span>是否有慢查 或 数据库锁等待</span>
-                </div>
-                <p class="text-[11px] text-slate-400">查询慢查询，看看有什么命令在哪个高负载节点挂下</p>
-              </div>
-
-              <!-- 卡片 3 -->
-              <div onclick="sendQuickPrompt('带着策略做复合场景：排障脚本先做 dry-run 确认无误后再放行')" class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 hover:bg-surface-850/60 transition cursor-pointer space-y-1">
-                <div class="font-bold text-white flex items-center space-x-1.5">
-                  <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
-                  <span>带着策略做复合场景</span>
-                </div>
-                <p class="text-[11px] text-slate-400">走进配套的排障脚本，先 dry-run 预演确认无误后再放行</p>
-              </div>
-
-              <!-- 卡片 4 -->
-              <div onclick="sendQuickPrompt('给出一份针对当前集群的 nginx 灰度发布思路')" class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 hover:bg-surface-850/60 transition cursor-pointer space-y-1">
-                <div class="font-bold text-white flex items-center space-x-1.5">
-                  <i data-lucide="git-merge" class="w-4 h-4 text-brand-400"></i>
-                  <span>给出一份 nginx 灰度思路</span>
-                </div>
-                <p class="text-[11px] text-slate-400">调配权重与动静分流，不直接操盘生产配置</p>
+        <!-- 3. 聊天消息展示主体滚动区 -->
+        <div id="chatMessageList" class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5 select-text">
+          <!-- 默认展示图 1、图 2 完整的服务器配置查看全流程，亦可通过「新对话」切换至图 3 初始空白引导卡片 -->
+          <!-- 核心布局：全宽铺展，不居中锁定；用户消息靠右，AI 回复靠左 -->
+          <div id="activeConversationContainer" class="space-y-5 w-full flex flex-col">
+            <!-- 用户发送消息气泡 (严格靠右对齐，带舒适内边距与右侧呼吸留白，文字居中饱满不溢出) -->
+            <div class="w-full flex justify-end pr-1 sm:pr-2">
+              <div id="userPromptBubble" class="inline-flex items-center px-5 py-2.5 rounded-2xl rounded-tr-md bg-[#1e2330] hover:bg-[#242a3a] border border-slate-700/80 text-slate-100 text-xs leading-normal max-w-2xl shadow-sm select-text transition" style="padding: 10px 20px;">
+                帮我看下我这台服务器配置
               </div>
             </div>
 
-            <div class="text-center pt-1 text-[11px] text-slate-500">
-              对话会自动保存历史，下次继续在【历史】中提取。
+            <!-- AI 助手回复卡片 (严格靠左对齐，占据左侧主体全宽) -->
+            <div class="w-full flex justify-start">
+              <div id="aiResponseCard" class="w-full p-5 rounded-2xl bg-[#0f141c] border border-slate-800/90 shadow-xl text-xs space-y-3.5 select-text">
+              <!-- 卡片顶栏 -->
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80 select-none">
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-white flex items-center space-x-1.5">
+                    <span class="text-sm">🤖</span>
+                    <span>OpsPub AI 助手</span>
+                  </span>
+                  <span id="aiCardStatusPill" class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
+                    <i data-lucide="check" class="w-3 h-3"></i>
+                    <span>已完成</span>
+                  </span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center space-x-1">
+                    <i data-lucide="sparkles" class="w-3 h-3 text-amber-400"></i>
+                    <span>AI 推荐匹配 2 个技能</span>
+                  </span>
+                </div>
+
+                <div class="flex items-center space-x-3 text-[11px] text-slate-400 font-mono">
+                  <span class="flex items-center space-x-1">
+                    <i data-lucide="repeat" class="w-3 h-3 text-slate-500"></i>
+                    <span>4轮</span>
+                  </span>
+                  <span class="flex items-center space-x-1">
+                    <i data-lucide="wrench" class="w-3 h-3 text-slate-500"></i>
+                    <span>6次工具</span>
+                  </span>
+                  <span class="flex items-center space-x-1">
+                    <i data-lucide="timer" class="w-3 h-3 text-slate-500"></i>
+                    <span>11.0s</span>
+                  </span>
+                  <span>173.4k</span>
+                  <span class="text-slate-500">↓509</span>
+                  <button type="button" id="aiStopCardBtn" onclick="stopAIChatThinking()" class="hidden px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[10px] font-sans flex items-center space-x-1 cursor-pointer">
+                    <i data-lucide="square" class="w-2.5 h-2.5 fill-current"></i>
+                    <span>停止</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 执行过程折叠面板 (对齐截图 1、2: 批次 2 个、依次执行、时延耗时) -->
+              <div class="rounded-xl border border-slate-800/80 bg-[#0b0f16] overflow-hidden">
+                <div onclick="toggleExecutionAccordion()" class="px-3.5 py-2.5 bg-surface-900/60 hover:bg-surface-850/80 flex items-center justify-between cursor-pointer select-none transition">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i data-lucide="chevron-down" id="execChevron" class="w-3.5 h-3.5 text-slate-400 transition-transform"></i>
+                    <span class="font-bold text-slate-200">执行过程</span>
+                    <span id="execStatusSubtitle" class="text-slate-400 text-[11px] font-mono truncate">4轮 · 6次工具调用 · 全部成功</span>
+                    <span id="execToolSummaryTags" class="text-slate-500 text-[10px] font-mono truncate hidden xl:inline">system_info disk_usage ssh_exec system_listen_ports +2</span>
+                  </div>
+                  <span id="execToggleText" class="text-slate-500 hover:text-slate-300 text-[11px] shrink-0 font-medium">点击展开</span>
+                </div>
+
+                <!-- 折叠过程步骤详情 (截图 1 中 3 轮执行细节) -->
+                <div id="executionStepsBody" class="hidden p-3.5 space-y-4 font-mono text-xs border-t border-slate-800/80 bg-[#090c12]">
+                  <!-- 第 1 轮 -->
+                  <div class="space-y-1.5 border-l-2 border-indigo-500/40 pl-3">
+                    <div class="text-slate-400 text-[11px]">第 1 轮</div>
+                    <div class="text-slate-300 font-sans text-xs">我先查看这台服务器的整体情况。</div>
+                    <div class="text-indigo-400 text-[11px] flex items-center space-x-1">
+                      <i data-lucide="settings" class="w-3 h-3"></i>
+                      <span>批次 2 个 (依次执行)</span>
+                    </div>
+                    <div class="space-y-1 pt-0.5">
+                      <div class="flex items-center justify-between p-2 rounded-lg bg-[#0d121a] border border-slate-800/80 hover:border-slate-700 transition">
+                        <div class="flex items-center space-x-2 min-w-0">
+                          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                          <span class="text-emerald-300 font-bold">system_info</span>
+                          <span class="text-slate-500">@我的香草云</span>
+                          <span class="text-slate-400 truncate text-[11px]">Linux 5.15.0-198-generic #208-Ubuntu SMP Fri Sep 4 10:22:38 UTC 2026 x86_64 GNU/Linux</span>
+                        </div>
+                        <div class="flex items-center space-x-1 text-slate-500 shrink-0 text-[11px]">
+                          <span>1.3s</span>
+                          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between p-2 rounded-lg bg-[#0d121a] border border-slate-800/80 hover:border-slate-700 transition">
+                        <div class="flex items-center space-x-2 min-w-0">
+                          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                          <span class="text-emerald-300 font-bold">disk_usage</span>
+                          <span class="text-slate-500">@我的香草云</span>
+                          <span class="text-slate-400 truncate text-[11px]">Filesystem Type Size Used Avail Use% Mounted on</span>
+                        </div>
+                        <div class="flex items-center space-x-1 text-slate-500 shrink-0 text-[11px]">
+                          <span>213ms</span>
+                          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 第 2 轮 -->
+                  <div class="space-y-1.5 border-l-2 border-indigo-500/40 pl-3">
+                    <div class="text-slate-400 text-[11px]">第 2 轮</div>
+                    <div class="text-slate-300 font-sans text-xs">接下来查看内存、CPU 和正在运行的服务。</div>
+                    <div class="text-indigo-400 text-[11px] flex items-center space-x-1">
+                      <i data-lucide="settings" class="w-3 h-3"></i>
+                      <span>批次 2 个 (依次执行)</span>
+                    </div>
+                    <div class="space-y-1 pt-0.5">
+                      <div class="flex items-center justify-between p-2 rounded-lg bg-[#0d121a] border border-slate-800/80 hover:border-slate-700 transition">
+                        <div class="flex items-center space-x-2 min-w-0">
+                          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                          <span class="text-emerald-300 font-bold">ssh_exec</span>
+                          <span class="text-slate-500">@我的香草云</span>
+                          <span class="text-slate-400 truncate text-[11px]">free -h; echo ---; nproc; echo ---; ... total used free shared buff/cache available</span>
+                        </div>
+                        <div class="flex items-center space-x-1 text-slate-500 shrink-0 text-[11px]">
+                          <span>157ms</span>
+                          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between p-2 rounded-lg bg-[#0d121a] border border-slate-800/80 hover:border-slate-700 transition">
+                        <div class="flex items-center space-x-2 min-w-0">
+                          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                          <span class="text-emerald-300 font-bold">system_listen_ports</span>
+                          <span class="text-slate-500">@我的香草云</span>
+                          <span class="text-slate-400 truncate text-[11px]">['ports':[{'proto':'udp','address':'127.0.0.53%lo','port':53,'pid':501,'process':'systemd-resolve'}...</span>
+                        </div>
+                        <div class="flex items-center space-x-1 text-slate-500 shrink-0 text-[11px]">
+                          <span>372ms</span>
+                          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 第 3 轮 -->
+                  <div class="space-y-1.5 border-l-2 border-indigo-500/40 pl-3">
+                    <div class="text-slate-400 text-[11px]">第 3 轮</div>
+                    <div class="text-slate-300 font-sans text-xs">接下来查看 Docker 容器和资源占用情况。</div>
+                    <div class="text-indigo-400 text-[11px] flex items-center space-x-1">
+                      <i data-lucide="settings" class="w-3 h-3"></i>
+                      <span>批次 2 个 (依次执行)</span>
+                    </div>
+                    <div class="space-y-1 pt-0.5">
+                      <div class="flex items-center justify-between p-2 rounded-lg bg-[#0d121a] border border-slate-800/80 hover:border-slate-700 transition">
+                        <div class="flex items-center space-x-2 min-w-0">
+                          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                          <span class="text-emerald-300 font-bold">docker_list_containers</span>
+                          <span class="text-slate-500">@我的香草云</span>
+                          <span class="text-slate-400 truncate text-[11px]">['containers':[{'id':'e108d2ceb178a0939ac3cc830700f909073e0bbc5337c345341048032e2f40c3','name':'single_remote:5.5.1...</span>
+                        </div>
+                        <div class="flex items-center space-x-1 text-slate-500 shrink-0 text-[11px]">
+                          <span>585ms</span>
+                          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between p-2 rounded-lg bg-[#0d121a] border border-slate-800/80 hover:border-slate-700 transition">
+                        <div class="flex items-center space-x-2 min-w-0">
+                          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                          <span class="text-emerald-300 font-bold">system_top_processes</span>
+                          <span class="text-slate-500">@我的香草云</span>
+                          <span class="text-slate-400 truncate text-[11px]">limit=12 ['processes':[{'pid':2202,'cpu':44.4,'mem':15.4,'rss':1290006528,'user':'root','command':'java -Dserver.port=5520...</span>
+                        </div>
+                        <div class="flex items-center space-x-1 text-slate-500 shrink-0 text-[11px]">
+                          <span>243ms</span>
+                          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 思考中提示标签 (执行中显示) -->
+              <div id="aiThinkingStatusRow" class="hidden flex items-center space-x-2 text-[11px] text-indigo-400 font-mono">
+                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-indigo-400"></i>
+                <span id="aiThinkingText">思考中 · 已 243 字</span>
+              </div>
+
+              <!-- 执行产出 Markdown / 配置总览表格 (截图 2 真实完整渲染) -->
+              <div id="executionResultMarkdown" class="space-y-4 pt-1 font-sans text-xs">
+                <div class="font-bold text-white text-sm flex items-center space-x-2">
+                  <span>我的香草云 — 配置总览</span>
+                </div>
+
+                <!-- 表格 1: 项目 / 情况 -->
+                <div class="rounded-xl border border-slate-800/80 overflow-hidden">
+                  <table class="w-full text-left text-xs">
+                    <thead>
+                      <tr class="bg-surface-900/90 text-slate-400 border-b border-slate-800/80 font-medium">
+                        <th class="py-2 px-3.5 w-28">项目</th>
+                        <th class="py-2 px-3.5">情况</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono text-[11px]">
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">系统</td>
+                        <td class="py-2 px-3.5 text-slate-200">Ubuntu 22.04 LTS (内核 5.15.0-198-generic, x86_64)</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">类型</td>
+                        <td class="py-2 px-3.5 text-slate-200">KVM 云主机 (Vendor: Red Hat) · 主机名 <span class="text-amber-300">C20241128197544</span></td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">CPU</td>
+                        <td class="py-2 px-3.5 text-slate-200">4 vCPU · Intel Xeon Gold 6133 @ 2.50GHz</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">内存</td>
+                        <td class="py-2 px-3.5 text-slate-200">7.8 GiB (已用 3.9G, 可用 2.6G) + Swap 2.0 GiB (未用)</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">运行时长</td>
+                        <td class="py-2 px-3.5 text-slate-200">1 小时 20 分 · 负载 0.19 / 0.10 / 0.09 (很轻松)</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">SSH 端口</td>
+                        <td class="py-2 px-3.5 text-slate-200">22000 (不是 22, 已改过)</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">面板</td>
+                        <td class="py-2 px-3.5 text-slate-200">1Panel core (端口 10356)</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-slate-400 font-sans">Web</td>
+                        <td class="py-2 px-3.5 text-slate-200">OpenResty 容器, 80 / 443</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="font-bold text-white text-xs pt-1">磁盘</div>
+
+                <!-- 表格 2: 磁盘挂载点 -->
+                <div class="rounded-xl border border-slate-800/80 overflow-hidden">
+                  <table class="w-full text-left text-xs">
+                    <thead>
+                      <tr class="bg-surface-900/90 text-slate-400 border-b border-slate-800/80 font-medium">
+                        <th class="py-2 px-3.5">挂载点</th>
+                        <th class="py-2 px-3.5">设备</th>
+                        <th class="py-2 px-3.5">容量</th>
+                        <th class="py-2 px-3.5">已用</th>
+                        <th class="py-2 px-3.5">使用率</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono text-[11px]">
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-teal-400 font-bold">/</td>
+                        <td class="py-2 px-3.5 text-slate-400">/dev/vda1 (ext4)</td>
+                        <td class="py-2 px-3.5 text-slate-200">39G</td>
+                        <td class="py-2 px-3.5 text-slate-200">31G</td>
+                        <td class="py-2 px-3.5 text-amber-400 font-bold">⚠️ 80%</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3.5 text-teal-400 font-bold">/data</td>
+                        <td class="py-2 px-3.5 text-slate-400">/dev/vdb1 (ext4)</td>
+                        <td class="py-2 px-3.5 text-slate-200">20G</td>
+                        <td class="py-2 px-3.5 text-slate-200">24K</td>
+                        <td class="py-2 px-3.5 text-emerald-400">1% (基本没有用)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 底部受控策略横幅 (截图 3 真实黄色警示条) -->
-        <div class="px-4 py-2 bg-amber-950/30 border-t border-amber-500/30 flex items-center justify-between text-xs text-amber-300 font-sans">
-          <div class="flex items-center space-x-2">
-            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
-            <span><strong>4 台机器设为 trusted 档</strong>（AI 命中策略放行，仅记录审计日志）；建议结合生产环境调整为 <strong>approval 档</strong>，增强 AI 执行前核验。</span>
+          <!-- 新会话空白初始推荐卡片区 (截图 3 初始状态，点击「新对话」或无会话时显示) -->
+          <div id="welcomeCardsContainer" class="hidden max-w-3xl mx-auto py-10 space-y-6 text-center select-none">
+            <div class="space-y-2">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center mx-auto text-indigo-400 shadow-inner">
+                <i data-lucide="bot" class="w-6 h-6"></i>
+              </div>
+              <h2 class="text-base font-bold text-white">有什么可以帮你？</h2>
+              <p class="text-xs text-slate-400 max-w-md mx-auto">
+                AI 会调用你授权的工具查看、操作服务器，每一步都受 AI 操作策略约束并记入审计。
+              </p>
+            </div>
+
+            <!-- 2x2 快捷卡片推荐 (完全对齐截图 3) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
+              <div onclick="sendQuickPrompt('帮我检查一下机器的健康度')" class="p-4 rounded-xl bg-[#0f141c] border border-slate-800/80 hover:border-slate-700 hover:bg-surface-900/60 transition cursor-pointer space-y-1.5 group">
+                <div class="font-bold text-white text-xs flex items-center space-x-2 group-hover:text-indigo-400 transition">
+                  <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  </div>
+                  <span>检查一台机器的健康度</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed pl-9">磁盘 / 内存 / 关键服务 —— 全是只读工具，任何策略档位都能执行</p>
+              </div>
+
+              <div onclick="sendQuickPrompt('查看最近被拦截的高危操作审计')" class="p-4 rounded-xl bg-[#0f141c] border border-slate-800/80 hover:border-slate-700 hover:bg-surface-900/60 transition cursor-pointer space-y-1.5 group">
+                <div class="font-bold text-white text-xs flex items-center space-x-2 group-hover:text-indigo-400 transition">
+                  <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
+                  </div>
+                  <span>最近有哪些 AI 操作被拦截</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed pl-9">查审计日志，看看什么命令在哪个档位被挡下</p>
+              </div>
+
+              <div onclick="sendQuickPrompt('帮我部署最新前端构建包到生产机')" class="p-4 rounded-xl bg-[#0f141c] border border-slate-800/80 hover:border-slate-700 hover:bg-surface-900/60 transition cursor-pointer space-y-1.5 group">
+                <div class="font-bold text-white text-xs flex items-center space-x-2 group-hover:text-indigo-400 transition">
+                  <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                    <i data-lucide="rocket" class="w-3.5 h-3.5 text-indigo-400"></i>
+                  </div>
+                  <span>部署前端到某台机器</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed pl-9">走已置好的部署目标，先 dry-run 预览计划再执行</p>
+              </div>
+
+              <div onclick="sendQuickPrompt('给我一份针对当前集群的 nginx 排障思路')" class="p-4 rounded-xl bg-[#0f141c] border border-slate-800/80 hover:border-slate-700 hover:bg-surface-900/60 transition cursor-pointer space-y-1.5 group">
+                <div class="font-bold text-white text-xs flex items-center space-x-2 group-hover:text-indigo-400 transition">
+                  <div class="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5 text-cyan-400"></i>
+                  </div>
+                  <span>给我一份 nginx 排障思路</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed pl-9">调用内置技能库，不连服务器也能答</p>
+              </div>
+            </div>
+
+            <div class="text-[11px] text-slate-500 pt-2 flex items-center justify-center space-x-1.5">
+              <i data-lucide="history" class="w-3.5 h-3.5 text-slate-600"></i>
+              <span>对话会自动保存，可在右上角「历史」里继续。</span>
+            </div>
           </div>
-          <button onclick="switchTab('tab-security')" class="text-amber-400 font-semibold hover:underline flex items-center space-x-0.5">
-            <span>去修改</span>
-            <i data-lucide="arrow-right" class="w-3 h-3"></i>
-          </button>
         </div>
 
-        <!-- 输入条 -->
-        <div class="p-3 bg-surface-900 border-t border-slate-800 space-y-2 font-sans">
+        <!-- 4. 底部策略提醒黄色横幅 (对齐截图 1、2) -->
+        <div class="mx-5 mb-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs text-amber-300 select-none shrink-0">
+          <div class="flex items-center space-x-2 min-w-0">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <span class="truncate">
+              <strong>4 台服务器为 trusted 档</strong> (AI 命令自动放行，仅过滤危险黑名单)：我的腾讯云0209，我的阿里云，我的阿里云3845，我的首草云 建议改为 approval 档，每条 AI 命令都弹审批。
+            </span>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0 pl-3">
+            <button onclick="switchTab('tab-security')" class="text-amber-300 hover:text-white font-medium flex items-center space-x-1 underline cursor-pointer">
+              <span>去修改</span>
+              <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </button>
+            <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="text-amber-400/60 hover:text-amber-300 p-0.5 cursor-pointer">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. 底部输入区 (对齐截图 1、2、3) -->
+        <div class="px-5 pb-4 pt-1 shrink-0 space-y-2 select-none">
+          <!-- 辅助状态与快捷标签 -->
           <div class="flex items-center justify-between text-[11px] text-slate-500">
-            <span>问点什么...（AI 只看服务器别名与脱敏配置，看不到明文私钥凭据）</span>
-            <div class="flex items-center space-x-1">
-              <span class="px-1.5 py-0.2 rounded bg-surface-950 text-slate-400">常用</span>
-              <span class="px-1.5 py-0.2 rounded bg-surface-950 text-slate-400">监控</span>
-              <span class="px-1.5 py-0.2 rounded bg-surface-950 text-slate-400">审批</span>
+            <div class="flex items-center space-x-2 font-mono">
+              <span class="text-slate-400">可见4台</span>
+              <span>·</span>
+              <span class="text-slate-400">deepseek-flash</span>
+              <span>·</span>
+              <span>173.4k</span>
+              <span class="text-slate-500">↓509</span>
+            </div>
+            <div class="flex items-center space-x-1.5 font-sans">
+              <button type="button" onclick="appendPromptChip('继续')" class="px-2 py-0.5 rounded bg-[#131924] hover:bg-[#1a2332] text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer text-[11px]">继续</button>
+              <button type="button" onclick="appendPromptChip('建议')" class="px-2 py-0.5 rounded bg-[#131924] hover:bg-[#1a2332] text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer text-[11px]">建议</button>
+              <button type="button" onclick="appendPromptChip('验证')" class="px-2 py-0.5 rounded bg-[#131924] hover:bg-[#1a2332] text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer text-[11px]">验证</button>
+              <button type="button" onclick="appendPromptChip('重试')" class="px-2 py-0.5 rounded bg-[#131924] hover:bg-[#1a2332] text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer text-[11px]">重试</button>
+              <button type="button" onclick="appendPromptChip('说明')" class="px-2 py-0.5 rounded bg-[#131924] hover:bg-[#1a2332] text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer text-[11px]">说明</button>
+              <button type="button" onclick="appendPromptChip('总结')" class="px-2 py-0.5 rounded bg-[#131924] hover:bg-[#1a2332] text-slate-400 hover:text-slate-200 border border-slate-800 transition cursor-pointer text-[11px]">总结</button>
             </div>
           </div>
-          <div class="flex items-center space-x-2">
-            <input id="chatInput" onkeydown="if(event.key==='Enter') sendUserMessage()" type="text" placeholder="向 AI 咨询服务器状态、生成排障命令或分析日志..." class="flex-1 bg-surface-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-            <button onclick="sendUserMessage()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow cursor-pointer">
-              <span>发送</span>
+
+          <!-- 输入文本框与操作按钮 -->
+          <div class="flex items-center space-x-2 bg-[#0e131b] border border-slate-800 hover:border-slate-700 focus-within:border-indigo-500/80 rounded-2xl p-1.5 pl-4 transition shadow-lg">
+            <input id="chatInput" onkeydown="if(event.key==='Enter') sendUserMessage()" type="text" placeholder="问点什么... (AI 只看到服务器别名，看不到任何凭据)" class="flex-1 bg-transparent border-0 text-xs text-white placeholder-slate-500 focus:outline-none">
+            <button id="chatClearBtn" type="button" onclick="document.getElementById('chatInput').value=''" title="清空" class="p-1.5 text-slate-500 hover:text-slate-300 transition cursor-pointer">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+            <button id="chatSendBtn" type="button" onclick="sendUserMessage()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/25 cursor-pointer">
               <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              <span>发送</span>
+            </button>
+            <button id="chatStopBtn" type="button" onclick="stopAIChatThinking()" class="hidden px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-rose-600/25 cursor-pointer">
+              <i data-lucide="square" class="w-3 h-3 fill-current"></i>
+              <span>停止</span>
             </button>
           </div>
         </div>
@@ -8739,7 +9091,7 @@
                 <span>启动行为</span>
               </div>
               <p class="text-slate-400 text-xs mt-1 leading-relaxed">
-                系统登录后自动启动 Reeve（用户级注册表，无需管理员权限）。Windows 写 HKCU\...\Run；macOS 写 LaunchAgent；Linux 写 ~/.config/autostart。
+                系统登录后自动启动 OpsPub（用户级注册表，无需管理员权限）。Windows 写 HKCU\...\Run；macOS 写 LaunchAgent；Linux 写 ~/.config/autostart。
               </p>
             </div>
             <div class="space-y-3.5 pt-1">
@@ -8770,7 +9122,7 @@
                 <span>窗口与托盘</span>
               </div>
               <p class="text-slate-400 text-xs mt-1 leading-relaxed">
-                点击主窗口关闭按钮时的行为。Reeve 是常驻后台的 MCP 网关，建议保持「最小化到托盘」—— 关闭后仍持续为 AI 提供服务，可随时从托盘图标重新打开，或在托盘菜单里彻底退出。
+                点击主窗口关闭按钮时的行为。OpsPub 是常驻后台的 MCP 网关，建议保持「最小化到托盘」—— 关闭后仍持续为 AI 提供服务，可随时从托盘图标重新打开，或在托盘菜单里彻底退出。
               </p>
             </div>
             <div>
@@ -8779,7 +9131,7 @@
                 <button type="button" onclick="setSettingCloseAction('minimize')" id="btn-close-minimize" class="px-3.5 py-1 text-xs text-slate-300 hover:text-white rounded-md transition">最小化到托盘</button>
                 <button type="button" onclick="setSettingCloseAction('quit')" id="btn-close-quit" class="px-3.5 py-1 text-xs text-white bg-teal-500 rounded-md font-medium shadow-sm transition">直接退出</button>
               </div>
-              <p id="desc-setting-close" class="text-xs text-slate-400 mt-2">关闭窗口 = 退出 Reeve（停止后台 MCP 服务）。</p>
+              <p id="desc-setting-close" class="text-xs text-slate-400 mt-2">关闭窗口 = 退出 OpsPub（停止后台 MCP 服务）。</p>
             </div>
             <div class="flex items-start pt-3 border-t border-slate-800/60">
               <span class="text-xs text-slate-300 shrink-0 mt-0.5">界面失联时失效 AI 权限:</span>
@@ -9370,7 +9722,7 @@
               <p class="text-slate-400 text-xs mt-1">所有服务器连接信息、审计日志、凭据均存储在本地 SQLite 数据库中，支持加密打包导出与一键还原</p>
             </div>
             <div class="flex items-center space-x-3 pt-1">
-              <button type="button" onclick="showToast('已导出本地数据包: reeve_backup_20261001.db')" class="px-4 py-2 rounded-xl bg-[#141a22] hover:bg-slate-800 text-slate-200 font-medium border border-slate-700 flex items-center space-x-2 transition">
+              <button type="button" onclick="showToast('已导出本地数据包: opspub_backup_20261001.db')" class="px-4 py-2 rounded-xl bg-[#141a22] hover:bg-slate-800 text-slate-200 font-medium border border-slate-700 flex items-center space-x-2 transition">
                 <i data-lucide="download" class="w-4 h-4 text-teal-400"></i>
                 <span>导出本地加密数据包</span>
               </button>
@@ -9388,7 +9740,7 @@
                 <i data-lucide="smartphone" class="w-4 h-4 text-teal-400"></i>
                 <span>手机配对 (移动端审批助手)</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1">使用手机 Reeve App 扫码配对后，外出离开办公桌时可接收高危运维动作实时推送并单手完成审批放行</p>
+              <p class="text-slate-400 text-xs mt-1">使用手机 OpsPub App 扫码配对后，外出离开办公桌时可接收高危运维动作实时推送并单手完成审批放行</p>
             </div>
             <div class="flex items-center space-x-5 pt-1">
               <div class="w-24 h-24 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0">
@@ -9420,7 +9772,7 @@
             <div class="p-4 rounded-xl bg-gradient-to-r from-teal-950/40 to-slate-900 border border-teal-500/30 flex items-center justify-between">
               <div>
                 <div class="flex items-center space-x-2">
-                  <span class="font-bold text-white text-sm">👑 Reeve Enterprise 商业团队版</span>
+                  <span class="font-bold text-white text-sm">👑 OpsPub Enterprise 商业团队版</span>
                   <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-semibold">07/27 到期</span>
                 </div>
                 <div class="text-slate-400 text-xs mt-1 font-mono">纳管节点限额: 200 节点 · 当前已纳管 18 节点 · 支持离线离网运行</div>
@@ -9436,7 +9788,7 @@
                 <i data-lucide="file-text" class="w-4 h-4 text-teal-400"></i>
                 <span>法律声明与隐私保障</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1">Reeve 坚守数据主权独立原则：全量数据驻留本地，禁止任何未经授权的遥测外传</p>
+              <p class="text-slate-400 text-xs mt-1">OpsPub 坚守数据主权独立原则：全量数据驻留本地，禁止任何未经授权的遥测外传</p>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
               <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
@@ -9465,19 +9817,19 @@
                 <i data-lucide="users" class="w-4 h-4 text-teal-400"></i>
                 <span>作者 & 社区</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1">感谢所有开发者、运维架构师与开源社区对 Reeve 项目的支持与贡献</p>
+              <p class="text-slate-400 text-xs mt-1">感谢所有开发者、运维架构师与开源社区对 OpsPub 项目的支持与贡献</p>
             </div>
             <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#141a22] border border-slate-800">
               <div class="flex items-center space-x-3">
                 <div class="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center font-bold">R</div>
                 <div>
-                  <div class="font-bold text-white">Reeve Desktop Core Team</div>
+                  <div class="font-bold text-white">OpsPub Desktop Core Team</div>
                   <div class="text-[11px] text-slate-400 font-mono">v2.3.0 · Built with Tauri 2.x & Rust 2021</div>
                 </div>
               </div>
               <div class="flex items-center space-x-2">
                 <button type="button" onclick="showToast('正在打开官方 GitHub 仓库页面...')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700">GitHub</button>
-                <button type="button" onclick="showToast('欢迎加入技术交流群：reeve-community')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700">技术交流群</button>
+                <button type="button" onclick="showToast('欢迎加入技术交流群：opspub-community')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700">技术交流群</button>
               </div>
             </div>
           </div>
@@ -12737,6 +13089,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       switchTab('tab-servers');
       const savedSkin = localStorage.getItem('opspub_skin') || 'obsidian';
       selectThemeSkin(savedSkin, true);
+      if (typeof applyAILockState === 'function') applyAILockState();
       if (typeof renderSkillsTable === 'function') renderSkillsTable();
       if (typeof updateDbEngineGroupVisibility === 'function') updateDbEngineGroupVisibility();
       if (typeof renderModelServicesList === 'function') renderModelServicesList();
@@ -12751,7 +13104,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       // 终端、SFTP 与新版工作台界面无外层包边卡片，直顶顶部与左侧
       const mainEl = document.getElementById('appMainContent') || document.querySelector('main');
       if (mainEl) {
-        if (tabId === 'tab-terminal' || tabId === 'tab-sftp' || tabId === 'tab-workbench' || tabId === 'tab-database' || tabId === 'tab-settings' || tabId === 'tab-batch') {
+        if (tabId === 'tab-terminal' || tabId === 'tab-sftp' || tabId === 'tab-workbench' || tabId === 'tab-database' || tabId === 'tab-settings' || tabId === 'tab-batch' || tabId === 'tab-copilot') {
           mainEl.classList.remove('p-5', 'space-y-5', 'overflow-y-auto');
           mainEl.classList.add('p-0', 'overflow-hidden');
         } else {
@@ -14544,7 +14897,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
     }
 
     // ==========================================
-    // 远程终端全套交互与会话管理 (对齐 Reeve 原型设计)
+    // 远程终端全套交互与会话管理 (对齐 OpsPub 原型设计)
     // ==========================================
     let currentTerminalTab = 'quick-connect'; // 'quick-connect' | 'session-tencent'
     let currentSplitMode = 'single'; // 'single' | 'dual-h' | 'dual-v' | 'quad'
@@ -18177,45 +18530,223 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
     }
 
 
+    let pendingUserPrompt = '';
+    let sessionReadOnlyMode = false;
+    let aiThinkingTimer = null;
+
     function sendQuickPrompt(t) {
-      document.getElementById('chatInput').value = t;
-      sendUserMessage();
+      const inp = document.getElementById('chatInput');
+      if (inp) inp.value = t;
+      sendUserMessage(t);
     }
 
-    function sendUserMessage() {
+    function appendPromptChip(chip) {
       const inp = document.getElementById('chatInput');
-      const val = inp.value.trim();
-      if (!val) return;
-      const list = document.getElementById('chatMessageList');
-      const msg = document.createElement('div');
-      msg.className = 'p-3 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 text-white max-w-lg ml-auto text-xs';
-      msg.innerText = val;
-      list.appendChild(msg);
-      inp.value = '';
+      if (!inp) return;
+      if (inp.value.trim()) {
+        inp.value = inp.value.trim() + ' ' + chip;
+      } else {
+        inp.value = chip;
+      }
+      inp.focus();
+    }
 
-      setTimeout(() => {
-        const reply = document.createElement('div');
-        reply.className = 'p-3 rounded-2xl bg-surface-900 border border-slate-800 text-slate-200 max-w-2xl text-xs space-y-2';
-        reply.innerHTML = `
-          <div class="flex items-center space-x-2 text-indigo-400 font-bold"><i data-lucide="bot" class="w-4 h-4"></i><span>Ops Copilot AI:</span></div>
-          <p>已分析服务器 <strong>prod-api-01</strong> 的实时状态。针对你的需求 <em>"${val}"</em>：</p>
-          <p>建议执行前先运行只读探测工具，排障后通过安全工单审核放行。</p>
-        `;
-        list.appendChild(reply);
-        list.scrollTop = list.scrollHeight;
-        lucide.createIcons();
-      }, 500);
+    function sendUserMessage(overrideText) {
+      const inp = document.getElementById('chatInput');
+      const val = (overrideText !== undefined ? overrideText : (inp ? inp.value.trim() : ''));
+      if (!val) return;
+
+      // 核心要求：如果 AI 时长没开启 (处于锁定状态)，弹窗提示是否开启 30 分钟
+      if (isAIOpLocked && !sessionReadOnlyMode) {
+        pendingUserPrompt = val;
+        openAIOpLockedModal();
+        return;
+      }
+
+      executeChatFlow(val);
+    }
+
+    function openAIOpLockedModal() {
+      const modal = document.getElementById('modalAIOpLockedPrompt');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeAIOpLockedModal() {
+      const modal = document.getElementById('modalAIOpLockedPrompt');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function confirmAIOpUnlock30m() {
+      closeAIOpLockedModal();
+      isAIOpLocked = false;
+      selectUnlockDuration('30m');
+      applyAILockState();
+      showToast('🔓 AI 操作已放行：开启 30 分钟限时执行权限');
+      if (pendingUserPrompt) {
+        const prompt = pendingUserPrompt;
+        pendingUserPrompt = '';
+        executeChatFlow(prompt);
+      }
+    }
+
+    function confirmAIOpReadOnly() {
+      closeAIOpLockedModal();
+      sessionReadOnlyMode = true;
+      showToast('🛡️ 已切换为「仅只读模式」执行探测');
+      if (pendingUserPrompt) {
+        const prompt = pendingUserPrompt;
+        pendingUserPrompt = '';
+        executeChatFlow(prompt);
+      }
+    }
+
+    function executeChatFlow(val) {
+      const inp = document.getElementById('chatInput');
+      if (inp) inp.value = '';
+
+      const welcome = document.getElementById('welcomeCardsContainer');
+      const activeConv = document.getElementById('activeConversationContainer');
+      if (welcome) welcome.classList.add('hidden');
+      if (activeConv) activeConv.classList.remove('hidden');
+
+      const userBubble = document.getElementById('userPromptBubble');
+      if (userBubble) userBubble.innerText = val;
+
+      // 切换输入框为思考中形态 (对齐截图 1)
+      setChatInputThinkingState(true);
+
+      const execBody = document.getElementById('executionStepsBody');
+      const execChevron = document.getElementById('execChevron');
+      const execToggleText = document.getElementById('execToggleText');
+      const execSub = document.getElementById('execStatusSubtitle');
+      const statusPill = document.getElementById('aiCardStatusPill');
+      const stopBtn = document.getElementById('aiStopCardBtn');
+      const thinkingRow = document.getElementById('aiThinkingStatusRow');
+      const resultMd = document.getElementById('executionResultMarkdown');
+
+      if (execBody) execBody.classList.remove('hidden');
+      if (execChevron) execChevron.className = 'w-3.5 h-3.5 text-slate-400 transition-transform rotate-180';
+      if (execToggleText) execToggleText.innerText = '点击收起';
+      if (execSub) execSub.innerText = '执行中...';
+      if (statusPill) {
+        statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center space-x-1 animate-pulse';
+        statusPill.innerHTML = '<i data-lucide="sparkles" class="w-3 h-3 text-blue-400"></i><span>思考中</span>';
+      }
+      if (stopBtn) stopBtn.classList.remove('hidden');
+      if (thinkingRow) thinkingRow.classList.remove('hidden');
+      if (resultMd) resultMd.classList.add('hidden');
+
+      const chatList = document.getElementById('chatMessageList');
+      if (chatList) chatList.scrollTop = chatList.scrollHeight;
+      if (window.lucide) lucide.createIcons();
+
+      if (aiThinkingTimer) clearTimeout(aiThinkingTimer);
+      aiThinkingTimer = setTimeout(() => {
+        finishAIChatThinking();
+      }, 1600);
+    }
+
+    function finishAIChatThinking() {
+      setChatInputThinkingState(false);
+
+      const execBody = document.getElementById('executionStepsBody');
+      const execChevron = document.getElementById('execChevron');
+      const execToggleText = document.getElementById('execToggleText');
+      const execSub = document.getElementById('execStatusSubtitle');
+      const statusPill = document.getElementById('aiCardStatusPill');
+      const stopBtn = document.getElementById('aiStopCardBtn');
+      const thinkingRow = document.getElementById('aiThinkingStatusRow');
+      const resultMd = document.getElementById('executionResultMarkdown');
+
+      if (execBody) execBody.classList.add('hidden');
+      if (execChevron) execChevron.className = 'w-3.5 h-3.5 text-slate-400 transition-transform';
+      if (execToggleText) execToggleText.innerText = '点击展开';
+      if (execSub) execSub.innerText = '4轮 · 6次工具调用 · 全部成功';
+      if (statusPill) {
+        statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1';
+        statusPill.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i><span>已完成</span>';
+      }
+      if (stopBtn) stopBtn.classList.add('hidden');
+      if (thinkingRow) thinkingRow.classList.add('hidden');
+      if (resultMd) resultMd.classList.remove('hidden');
+
+      const chatList = document.getElementById('chatMessageList');
+      if (chatList) chatList.scrollTop = chatList.scrollHeight;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function stopAIChatThinking() {
+      if (aiThinkingTimer) clearTimeout(aiThinkingTimer);
+      finishAIChatThinking();
+      showToast('⏹️ 已停止本次 AI 生成与工具调用');
+    }
+
+    function setChatInputThinkingState(isThinking) {
+      const input = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('chatSendBtn');
+      const stopBtn = document.getElementById('chatStopBtn');
+      const clearBtn = document.getElementById('chatClearBtn');
+
+      if (isThinking) {
+        if (input) {
+          input.placeholder = 'AI 正在思考 / 执行工具... (点右侧「停止」中断)';
+          input.disabled = true;
+        }
+        if (sendBtn) sendBtn.classList.add('hidden');
+        if (stopBtn) stopBtn.classList.remove('hidden');
+        if (clearBtn) clearBtn.classList.add('hidden');
+      } else {
+        if (input) {
+          input.placeholder = '问点什么... (AI 只看到服务器别名，看不到任何凭据)';
+          input.disabled = false;
+          input.focus();
+        }
+        if (sendBtn) sendBtn.classList.remove('hidden');
+        if (stopBtn) stopBtn.classList.add('hidden');
+        if (clearBtn) clearBtn.classList.remove('hidden');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleExecutionAccordion() {
+      const execBody = document.getElementById('executionStepsBody');
+      const execChevron = document.getElementById('execChevron');
+      const execToggleText = document.getElementById('execToggleText');
+      if (!execBody) return;
+
+      const isCollapsed = execBody.classList.contains('hidden');
+      if (isCollapsed) {
+        execBody.classList.remove('hidden');
+        if (execChevron) execChevron.className = 'w-3.5 h-3.5 text-slate-400 transition-transform rotate-180';
+        if (execToggleText) execToggleText.innerText = '点击收起';
+      } else {
+        execBody.classList.add('hidden');
+        if (execChevron) execChevron.className = 'w-3.5 h-3.5 text-slate-400 transition-transform';
+        if (execToggleText) execToggleText.innerText = '点击展开';
+      }
+    }
+
+    function resetCopilotChat() {
+      const welcome = document.getElementById('welcomeCardsContainer');
+      const activeConv = document.getElementById('activeConversationContainer');
+      if (welcome) welcome.classList.remove('hidden');
+      if (activeConv) activeConv.classList.add('hidden');
+      const inp = document.getElementById('chatInput');
+      if (inp) inp.value = '';
+      setChatInputThinkingState(false);
+      showToast('✨ 已重置并开启全新会话');
+      if (window.lucide) lucide.createIcons();
     }
 
     function askAIToFixService(s) {
       switchTab('tab-copilot');
-      sendQuickPrompt(`分析 ${s} 服务启动失败原因`);
+      sendQuickPrompt('分析 ' + s + ' 服务启动失败原因');
     }
 
     function clearChat() {
-      document.getElementById('chatMessageList').innerHTML = '<div class="p-4 text-center text-xs text-slate-500">新会话已开启</div>';
+      resetCopilotChat();
     }
-  
 
     // ==========================================
     // 凭据与敏感库交互逻辑 (截图 1 & 2)
@@ -18229,7 +18760,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         name: 'Remote Relay',
         key: 'remote_relay',
         server: '我的腾讯云0209',
-        installPath: '/opt/reeve/stacks/remote_relay',
+        installPath: '/opt/opspub/stacks/remote_relay',
         createdAt: '2026-08-10 20:28:44',
         icon: 'package',
         fields: [
@@ -18238,8 +18769,8 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
           { key: 'TURN_USERNAME', name: 'STUN/TURN 认证用户名', value: 'turn_user_0209', secret: true },
           { key: 'API_PORT', name: '中继服务 API 端口', value: '8089', secret: false },
           { key: 'STUN_PORT', name: 'STUN/TURN 监听端口', value: '3478', secret: false },
-          { key: 'TLS_CERT', name: 'TLS 证书存储路径', value: '/opt/reeve/certs/relay.crt', secret: false },
-          { key: 'TLS_KEY', name: 'TLS 证书私钥路径', value: '/opt/reeve/certs/relay.key', secret: false }
+          { key: 'TLS_CERT', name: 'TLS 证书存储路径', value: '/opt/opspub/certs/relay.crt', secret: false },
+          { key: 'TLS_KEY', name: 'TLS 证书私钥路径', value: '/opt/opspub/certs/relay.key', secret: false }
         ]
       },
       {
@@ -18864,7 +19395,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       const desc = document.getElementById('desc-setting-close');
       if (desc) {
         if (action === 'quit') {
-          desc.textContent = '关闭窗口 = 退出 Reeve（停止后台 MCP 服务）。';
+          desc.textContent = '关闭窗口 = 退出 OpsPub（停止后台 MCP 服务）。';
         } else if (action === 'minimize') {
           desc.textContent = '关闭窗口 = 最小化到系统托盘（保持后台 MCP 与 AI 守护运行）。';
         } else {
@@ -19189,25 +19720,38 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
     });
 
 
+    // 右上角特性 1: AI 操作锁定与限时放行 (30m/2h/1d/永久 + 倒计时，AI助手菜单内与顶栏完全同步)
     // ==========================================
-    // 右上角特性 1: AI 操作锁定与限时放行 (30m/2h/1d/永久 + 倒计时)
-    // ==========================================
-    let isAIOpLocked = true;
+    let isAIOpLocked = false; // 默认放行中，严格对齐用户截图 1、2 (剩 29:48)
     let unlockDuration = '30m';
     let unlockTimerInterval = null;
-    let unlockSecondsRemaining = 1800; // 30 mins default
+    let unlockSecondsRemaining = 29 * 60 + 48; // 29:48 matching screenshot 1
 
     function toggleAILockDropdown(e) {
       if (e) e.stopPropagation();
       const dropdown = document.getElementById('aiLockDropdown');
       if (!dropdown) return;
       dropdown.classList.toggle('hidden');
+      const copilotDd = document.getElementById('copilotLockDropdown');
+      if (copilotDd && !copilotDd.classList.contains('hidden')) copilotDd.classList.add('hidden');
       const skinDd = document.getElementById('skinDropdown');
       if (skinDd && !skinDd.classList.contains('hidden')) skinDd.classList.add('hidden');
     }
 
+    function toggleCopilotAILockDropdown(e) {
+      if (e) e.stopPropagation();
+      const copilotDd = document.getElementById('copilotLockDropdown');
+      if (!copilotDd) return;
+      copilotDd.classList.toggle('hidden');
+      const topDd = document.getElementById('aiLockDropdown');
+      if (topDd && !topDd.classList.contains('hidden')) topDd.classList.add('hidden');
+    }
+
     function toggleAILockSwitch() {
       isAIOpLocked = !isAIOpLocked;
+      if (!isAIOpLocked && unlockSecondsRemaining <= 0) {
+        unlockSecondsRemaining = 30 * 60;
+      }
       applyAILockState();
     }
 
@@ -19216,10 +19760,10 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       document.querySelectorAll('.dur-opt-btn').forEach(btn => {
         btn.className = 'dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition';
       });
-      const activeBtn = document.getElementById('dur-btn-' + dur);
-      if (activeBtn) {
-        activeBtn.className = 'dur-opt-btn py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition';
-      }
+      const topBtn = document.getElementById('dur-btn-' + dur);
+      if (topBtn) topBtn.className = 'dur-opt-btn py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition';
+      const copilotBtn = document.getElementById('copilot-dur-btn-' + dur);
+      if (copilotBtn) copilotBtn.className = 'dur-opt-btn py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition';
 
       if (dur === '30m') unlockSecondsRemaining = 30 * 60;
       else if (dur === '2h') unlockSecondsRemaining = 2 * 3600;
@@ -19240,39 +19784,76 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       const headerText = document.getElementById('headerLockText');
       const countdownText = document.getElementById('aiUnlockCountdownText');
 
+      // Copilot 视图内元素
+      const copilotBtn = document.getElementById('copilotLockBtn');
+      const copilotText = document.getElementById('copilotLockText');
+      const copilotIcon = document.getElementById('copilotLockIcon');
+      const copilotSwitchLabel = document.getElementById('copilotLockSwitchLabel');
+      const copilotSwitchToggle = document.getElementById('copilotLockToggleSwitch');
+      const copilotSwitchDot = document.getElementById('copilotLockToggleDot');
+      const copilotCountdown = document.getElementById('copilotUnlockCountdownText');
+
       if (isAIOpLocked) {
-        // 锁定状态
+        // 锁定状态 (对齐截图 3)
         if (unlockTimerInterval) clearInterval(unlockTimerInterval);
-        switchLabel.innerText = 'AI 操作已锁定';
-        switchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out focus:outline-none';
-        switchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-0';
-        headerBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition cursor-pointer shadow-sm';
-        headerDot.className = 'w-2 h-2 rounded-full bg-rose-400 animate-pulse';
-        headerText.innerText = 'AI 操作: 已锁定';
-        countdownText.classList.add('hidden');
+
+        if (switchLabel) switchLabel.innerText = 'AI 操作已锁定';
+        if (copilotSwitchLabel) copilotSwitchLabel.innerText = 'AI 操作已锁定';
+
+        if (switchToggle) switchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out focus:outline-none';
+        if (copilotSwitchToggle) copilotSwitchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out focus:outline-none';
+
+        if (switchDot) switchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-0';
+        if (copilotSwitchDot) copilotSwitchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-0';
+
+        if (headerBtn) headerBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition cursor-pointer shadow-sm';
+        if (headerDot) headerDot.className = 'w-2 h-2 rounded-full bg-rose-400 animate-pulse';
+        if (headerText) headerText.innerText = 'AI 操作: 已锁定';
+        if (countdownText) countdownText.classList.add('hidden');
+
+        if (copilotBtn) copilotBtn.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 transition cursor-pointer shadow-sm select-none active:scale-95';
+        if (copilotIcon) copilotIcon.className = 'w-3.5 h-3.5 text-rose-400 pointer-events-none';
+        if (copilotText) copilotText.innerText = 'AI 操作已锁定';
+        if (copilotCountdown) copilotCountdown.classList.add('hidden');
+
         showToast('🔒 AI 操作已锁定：改动类命令已被严格禁止。');
       } else {
-        // 解锁放行状态
-        switchLabel.innerText = 'AI 操作已放行';
-        switchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-600 transition-colors duration-200 ease-in-out focus:outline-none';
-        switchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-5';
-        headerBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition cursor-pointer shadow-sm';
-        headerDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
-        countdownText.classList.remove('hidden');
+        // 放行状态 (对齐截图 1、2)
+        if (switchLabel) switchLabel.innerText = 'AI 操作已放行';
+        if (copilotSwitchLabel) copilotSwitchLabel.innerText = 'AI 操作已放行';
+
+        if (switchToggle) switchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-600 transition-colors duration-200 ease-in-out focus:outline-none';
+        if (copilotSwitchToggle) copilotSwitchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-600 transition-colors duration-200 ease-in-out focus:outline-none';
+
+        if (switchDot) switchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-5';
+        if (copilotSwitchDot) copilotSwitchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-5';
+
+        if (headerBtn) headerBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition cursor-pointer shadow-sm';
+        if (headerDot) headerDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        if (countdownText) countdownText.classList.remove('hidden');
+
+        if (copilotBtn) copilotBtn.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition cursor-pointer shadow-sm select-none active:scale-95';
+        if (copilotIcon) copilotIcon.className = 'w-3.5 h-3.5 text-emerald-400 pointer-events-none';
+        if (copilotCountdown) copilotCountdown.classList.remove('hidden');
+
         startUnlockCountdown();
         showToast('🔓 AI 操作已放行：已开启限时执行权限 (' + unlockDuration + ')。');
       }
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     }
 
     function startUnlockCountdown() {
       if (unlockTimerInterval) clearInterval(unlockTimerInterval);
       const headerText = document.getElementById('headerLockText');
+      const copilotText = document.getElementById('copilotLockText');
       const countdownText = document.getElementById('aiUnlockCountdownText');
+      const copilotCountdown = document.getElementById('copilotUnlockCountdownText');
 
       if (unlockSecondsRemaining === -1) {
-        headerText.innerText = 'AI 操作: 已放行 (永久)';
-        countdownText.innerText = '放行模式: 永久不过期';
+        if (headerText) headerText.innerText = 'AI 操作: 已放行 (永久)';
+        if (copilotText) copilotText.innerText = 'AI 操作放行中 (永久)';
+        if (countdownText) countdownText.innerText = '放行模式: 永久不过期';
+        if (copilotCountdown) copilotCountdown.innerText = '放行模式: 永久不过期';
         return;
       }
 
@@ -19287,14 +19868,46 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         const m = Math.floor(unlockSecondsRemaining / 60);
         const s = unlockSecondsRemaining % 60;
         const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        headerText.innerText = `AI 操作: 已放行 (${timeStr})`;
-        countdownText.innerText = `倒计时: ${timeStr}`;
+        if (headerText) headerText.innerText = `AI 操作: 已放行 (${timeStr})`;
+        if (copilotText) copilotText.innerText = `AI 操作放行中 剩 ${timeStr}`;
+        if (countdownText) countdownText.innerText = `倒计时: ${timeStr}`;
+        if (copilotCountdown) copilotCountdown.innerText = `倒计时: ${timeStr}`;
         unlockSecondsRemaining--;
       }
 
       updateClock();
       unlockTimerInterval = setInterval(updateClock, 1000);
     }
+
+    // 全局点击遮罩关闭 AI 操作时长浮层
+    document.addEventListener('click', (e) => {
+      const topDd = document.getElementById('aiLockDropdown');
+      const topBtn = document.getElementById('headerLockBtn');
+      if (topDd && !topDd.classList.contains('hidden') && topBtn && !topBtn.contains(e.target) && !topDd.contains(e.target)) {
+        topDd.classList.add('hidden');
+      }
+      const copilotDd = document.getElementById('copilotLockDropdown');
+      const copilotBtn = document.getElementById('copilotLockBtn');
+      if (copilotDd && !copilotDd.classList.contains('hidden') && copilotBtn && !copilotBtn.contains(e.target) && !copilotDd.contains(e.target)) {
+        copilotDd.classList.add('hidden');
+      }
+    });
+
+    // 暴露全局方法
+    window.toggleAILockDropdown = toggleAILockDropdown;
+    window.toggleCopilotAILockDropdown = toggleCopilotAILockDropdown;
+    window.toggleAILockSwitch = toggleAILockSwitch;
+    window.selectUnlockDuration = selectUnlockDuration;
+    window.sendUserMessage = sendUserMessage;
+    window.sendQuickPrompt = sendQuickPrompt;
+    window.appendPromptChip = appendPromptChip;
+    window.openAIOpLockedModal = openAIOpLockedModal;
+    window.closeAIOpLockedModal = closeAIOpLockedModal;
+    window.confirmAIOpUnlock30m = confirmAIOpUnlock30m;
+    window.confirmAIOpReadOnly = confirmAIOpReadOnly;
+    window.stopAIChatThinking = stopAIChatThinking;
+    window.toggleExecutionAccordion = toggleExecutionAccordion;
+    window.resetCopilotChat = resetCopilotChat;
 
     // ==========================================
     // 右上角特性 2: 皮肤/外观主题切换
@@ -19781,13 +20394,13 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         content: `---\nname: redis-tools\ndescription: Redis 连接测试/PING/INFO/慢日志查询\ntriggers: redis-cli, redis-server, redis, ping, slowlog\n---\n\n# redis-tools\n\n## 目标与用途\n快速排查 Redis 服务可用性、内存占用与慢查询堆积。\n\n## 常用诊断命令\n\`redis-cli ping\`\n\`redis-cli info memory\`\n\`redis-cli slowlog get 10\``
       },
       {
-        name: 'reeve-app-deploy',
+        name: 'opspub-app-deploy',
         source: 'builtin',
-        desc: 'reeve 应用构建部署 (build, tar.gz 发布, systemctl 重启)',
-        triggers: ['reeve', '部署', 'deploy', '更新', '发版'],
+        desc: 'opspub 应用构建部署 (build, tar.gz 发布, systemctl 重启)',
+        triggers: ['opspub', '部署', 'deploy', '更新', '发版'],
         danger: 'systemctl stop, rm -rf, kill, killall, pkill...',
         hits: 0,
-        content: `---\nname: reeve-app-deploy\ndescription: reeve 应用构建部署 (build, tar.gz 发布, systemctl 重启)\ntriggers: reeve, 部署, deploy, 更新, 发版\n---\n\n# reeve-app-deploy\n\n## 部署流程规范\n1. 执行本地构建产出 tar.gz 制品包\n2. 校验文件完整性并推送到目标节点部署目录\n3. 执行平滑重启并核验端口监听`
+        content: `---\nname: opspub-app-deploy\ndescription: opspub 应用构建部署 (build, tar.gz 发布, systemctl 重启)\ntriggers: opspub, 部署, deploy, 更新, 发版\n---\n\n# opspub-app-deploy\n\n## 部署流程规范\n1. 执行本地构建产出 tar.gz 制品包\n2. 校验文件完整性并推送到目标节点部署目录\n3. 执行平滑重启并核验端口监听`
       },
       {
         name: 'ruoyi-plus-uniapp-deploy',
@@ -25048,12 +25661,12 @@ tmpfs           3.8G     0  3.8G   0% /dev/shm
       }
 
       let generatedCron = '0 2 * * *';
-      let generatedCmd = '/bin/bash ~/.reeve/scripts/daily_backup.sh';
+      let generatedCmd = '/bin/bash ~/.opspub/scripts/daily_backup.sh';
       let taskName = val;
 
       if (val.includes('清理') || val.includes('7 天')) {
         generatedCron = '0 3 * * *';
-        generatedCmd = 'find ~/.reeve/backups/ -mtime +7 -name "*.tar.gz" -exec rm -rf {} \;';
+        generatedCmd = 'find ~/.opspub/backups/ -mtime +7 -name "*.tar.gz" -exec rm -rf {} \;';
       } else if (val.includes('5 分钟') || val.includes('健康检查')) {
         generatedCron = '*/5 * * * *';
         generatedCmd = 'curl -fsSL -m 5 http://127.0.0.1:8080/health || systemctl restart app';
@@ -25507,13 +26120,13 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     let currentWbWsTab = 'backups';
     const wbWorkspaceData = {
       backups: {
-        path: '/root/.reeve/backups',
+        path: '/root/.opspub/backups',
         files: [
           { id: 'b1', name: 'www.remotedig.com.conf.remote-relay-20260811', size: '1.6 KB', time: '2026/8/11 10:35:20' }
         ]
       },
       logs: {
-        path: '/root/.reeve/logs',
+        path: '/root/.opspub/logs',
         files: [
           { id: 'l1', name: 'agent-runtime-20260812.log', size: '124.5 KB', time: '2026/8/12 09:15:00' },
           { id: 'l2', name: 'nginx-reload-stdout.log', size: '14.2 KB', time: '2026/8/11 16:40:12' },
@@ -25521,14 +26134,14 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         ]
       },
       scripts: {
-        path: '/root/.reeve/scripts',
+        path: '/root/.opspub/scripts',
         files: [
           { id: 's1', name: 'backup-mysql-daily.sh', size: '2.4 KB', time: '2026/8/10 18:22:15' },
           { id: 's2', name: 'deploy-service-hook.sh', size: '3.1 KB', time: '2026/8/09 14:05:40' }
         ]
       },
       runs: {
-        path: '/root/.reeve/runs',
+        path: '/root/.opspub/runs',
         files: [
           { id: 'r1', name: 'run-job-20260811-001.pid', size: '512 B', time: '2026/8/11 10:30:00' },
           { id: 'r2', name: 'run-session-3891.sock', size: '0 B', time: '2026/8/11 10:35:18' }
@@ -25558,7 +26171,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         }
       });
 
-      const tabInfo = wbWorkspaceData[tabKey] || { path: '/root/.reeve/' + tabKey, files: [] };
+      const tabInfo = wbWorkspaceData[tabKey] || { path: '/root/.opspub/' + tabKey, files: [] };
       const pathEl = document.getElementById('wbWsPathText');
       if (pathEl) pathEl.innerText = tabInfo.path;
       const countEl = document.getElementById('wbWsCountText');
@@ -26923,6 +27536,38 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
 
   <!-- =================================================================================== -->
   <!-- 模态框: 窗口关闭确认 (最小化到系统托盘 vs 彻底退出应用) -->
+  <!-- =================================================================================== -->
+  <!-- MODAL: AI 操作当前已锁定提醒 (1:1 严格对齐用户截图 3: 仅只读模式 / 开启 30 分钟) -->
+  <!-- =================================================================================== -->
+  <div id="modalAIOpLockedPrompt" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in zoom-in-95 duration-150">
+    <div class="glass-card bg-[#0f141c] border border-slate-700/80 w-full max-w-[480px] rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <h3 class="text-sm font-bold text-white">AI 操作当前已锁定</h3>
+      </div>
+      
+      <div class="space-y-2 text-slate-300 leading-relaxed text-xs">
+        <p class="font-medium text-slate-200">
+          是否开启 AI 操作 30 分钟，让 AI 能跑改动型工具 (ssh_exec / sftp_write / install_with_secret 等)？
+        </p>
+        <p class="text-slate-400 text-[11px] leading-normal">
+          选「仅只读模式」：AI 只能跑 system_info / disk_usage / tail_log 等只读工具，本会话内不再询问；想随时改主意可在上方状态条点开启。
+        </p>
+      </div>
+
+      <div class="flex items-center justify-end space-x-3 pt-2">
+        <button type="button" onclick="confirmAIOpReadOnly()" class="px-4 py-2 rounded-xl bg-surface-800 hover:bg-surface-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer">
+          仅只读模式
+        </button>
+        <button type="button" onclick="confirmAIOpUnlock30m()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 cursor-pointer">
+          <span>开启 30 分钟</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- =================================================================================== -->
   <div id="modalCloseApp" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in zoom-in-95 duration-150">
     <div class="glass-card bg-surface-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">

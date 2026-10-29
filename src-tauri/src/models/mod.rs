@@ -249,6 +249,16 @@ pub struct CopilotRequest {
     pub message: String,
     pub server_id: Option<i64>,
     pub provider: Option<String>,
+    pub model_profile_id: Option<String>,
+    #[serde(default)]
+    pub history: Vec<CopilotHistoryMessage>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotHistoryMessage {
+    pub role: String,
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -267,6 +277,8 @@ pub struct CopilotResponse {
     pub reply: String,
     pub tool_calls: Vec<CopilotToolCall>,
     pub warnings: Vec<String>,
+    pub model_name: Option<String>,
+    pub history_trimmed: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -8,6 +8,8 @@ export interface BatchTargetResult {
 }
 
 export const batchApi = {
+  generateCommand: (profileId: string, prompt: string) =>
+    invoke<string>("generate_batch_command", { profileId, prompt }),
   executeTarget: (serverId: number, command: string, timeoutSecs: number) =>
     invoke<BatchTargetResult>("execute_batch_target", {
       request: { serverId, command, timeoutSecs },

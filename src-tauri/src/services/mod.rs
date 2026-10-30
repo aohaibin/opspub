@@ -5,6 +5,7 @@ pub mod copilot;
 pub mod credential;
 pub mod database_connection;
 pub mod deployment;
+pub mod inspection;
 pub mod mcp;
 pub mod model_service;
 pub mod server;

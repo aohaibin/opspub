@@ -57,6 +57,18 @@ fn validate_command(command: &str, timeout_secs: u32) -> Result<(), AppError> {
 }
 
 impl BatchService {
+    pub fn generate(db: &Database, profile_id: &str, prompt: &str) -> Result<String, AppError> {
+        if profile_id.trim().is_empty() || prompt.trim().is_empty() || prompt.chars().count() > 2000
+        {
+            return Err(AppError::InvalidInput(
+                "请选择模型并填写 2000 字以内的运维需求".into(),
+            ));
+        }
+        let reply =
+            crate::services::copilot::CopilotService::draft_batch_command(db, profile_id, prompt)?;
+        validate_generated_command(&reply)
+    }
+
     pub fn execute(
         db: &Database,
         request: BatchTargetRequest,
@@ -119,9 +131,37 @@ impl BatchService {
     }
 }
 
+fn validate_generated_command(reply: &str) -> Result<String, AppError> {
+    let text = reply.trim();
+    if text.starts_with("REFUSED:") || text.contains("```") || text.contains("[REDACTED") {
+        return Err(AppError::InvalidInput(
+            "模型未生成可用命令，请调整需求；敏感或被拒绝的内容不会填入命令框".into(),
+        ));
+    }
+    validate_command(text, 30)?;
+    Ok(text.to_string())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::validate_command;
+    use super::{validate_command, validate_generated_command};
+
+    #[test]
+    fn model_drafts_must_be_single_unmasked_commands() {
+        assert_eq!(
+            validate_generated_command(" df -h ").expect("valid draft"),
+            "df -h"
+        );
+        for reply in [
+            "REFUSED: unsafe",
+            "```bash\nuptime\n```",
+            "uptime\nwhoami",
+            "echo [REDACTED: credential]",
+            "rm -rf /",
+        ] {
+            assert!(validate_generated_command(reply).is_err());
+        }
+    }
 
     #[test]
     fn blocks_destructive_root_commands() {

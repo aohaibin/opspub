@@ -1459,6 +1459,18 @@
   line-height: 1.5;
 }
 
+.ops-skill-editor .ant-drawer-header {
+  display: none;
+}
+
+.ops-skill-editor .ant-drawer-body {
+  color: var(--text-primary);
+}
+
+.ops-skill-editor textarea {
+  min-height: 220px;
+}
+
 /* 面板内的区块小标题 */
 .ops-section-title {
   display: flex;

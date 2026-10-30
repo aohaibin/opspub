@@ -1,0 +1,114 @@
+/* 固定工作区高度，让主机树与执行看板等高，并各自滚动。 */
+.ops-page.ops-batch-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--app-chrome-height) - 40px);
+  min-height: 0;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.55;
+  overflow: hidden;
+}
+
+.batch-page-heading, .batch-title, .batch-actions, .batch-controls,
+.batch-control-fields, .batch-prompt-row, .batch-presets,
+.batch-selection-bar, .batch-group-heading, .batch-group-heading > button,
+.batch-host, .batch-output-card > header, .batch-output-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.batch-page-heading { flex-shrink: 0; justify-content: space-between; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.batch-title { gap: 10px; min-width: 0; }
+.batch-title-icon { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+.batch-title h1 { margin: 0; color: var(--text-primary); font-size: 18px; font-weight: 700; }
+.batch-title p { margin: 3px 0 0; font-size: 13px; }
+.batch-actions { flex-wrap: wrap; }
+.batch-panel { min-width: 0; min-height: 0; border: 1px solid var(--border); border-radius: 16px; background: var(--bg-secondary); }
+.batch-config { flex-shrink: 0; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.batch-prompt-row { padding: 5px 8px 5px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-primary); }
+.batch-prompt-row:focus-within { border-color: var(--accent); }
+.batch-prompt-row > svg { flex-shrink: 0; color: var(--accent); }
+.batch-prompt-row > .ant-input { flex: 1; min-width: 0; }
+.batch-prompt-row > .ant-select { width: 145px; flex-shrink: 0; }
+.batch-prompt-row > .ant-btn { flex-shrink: 0; }
+.batch-model-note { margin: 0; font-size: 12px; color: var(--text-secondary); }
+.batch-model-note a { color: var(--accent); }
+.batch-presets { flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.batch-presets > button { padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); cursor: pointer; }
+.batch-presets > button:hover:not(:disabled) { color: var(--accent); background: var(--bg-hover); }
+.batch-presets > button:disabled { cursor: default; opacity: .5; }
+.ops-batch-page textarea.batch-command { min-height: 66px; resize: none; border-radius: 12px; background: var(--bg-primary); font-family: var(--font-mono); font-size: 14px; line-height: 1.6; color: var(--success); padding: 10px 12px; }
+.batch-controls { justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.batch-control-fields { flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.batch-control-fields > label { display: inline-flex; align-items: center; gap: 7px; }
+.batch-control-fields .ant-input-number { width: 70px; }
+.batch-control-fields > label > span:last-child { cursor: help; }
+
+.batch-workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); gap: 12px; overflow: hidden; }
+.batch-hosts { display: flex; flex-direction: column; overflow: hidden; padding: 12px; }
+.batch-hosts > .ant-input-affix-wrapper { flex-shrink: 0; border-radius: 12px; }
+.batch-selection-bar { flex-shrink: 0; justify-content: space-between; padding: 12px 8px 8px; }
+.batch-selection-bar > span { font-size: 13px; font-family: var(--font-mono); }
+.batch-host-list { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; }
+.batch-loading { padding: 40px; text-align: center; }
+.batch-group-heading { justify-content: space-between; padding: 7px 3px; }
+.batch-group-heading > button { min-width: 0; flex: 1; text-align: left; color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; }
+.batch-group-heading > button svg { flex-shrink: 0; transition: transform .15s; }
+.batch-group-heading > .ant-checkbox-wrapper { font-size: 12px; flex-shrink: 0; }
+.batch-group-dot { width: 7px; height: 7px; border-radius: 100%; background: var(--accent); flex-shrink: 0; }
+.batch-group-servers { padding-left: 8px; }
+.batch-host { padding: 8px 6px; border: 1px solid transparent; border-radius: 12px; }
+.batch-host:hover { background: var(--bg-hover); }
+.batch-host.is-selected { background: color-mix(in srgb, var(--accent) 8%, transparent); border-color: color-mix(in srgb, var(--accent) 24%, transparent); }
+.batch-host > .ant-checkbox-wrapper { min-width: 0; flex: 1; align-items: flex-start; gap: 4px; }
+.batch-host .ant-checkbox { margin-top: 3px; }
+.batch-host .ant-checkbox + span { overflow: hidden; min-width: 0; }
+.batch-host-name, .batch-host-address { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-host-name { color: var(--text-primary); font-weight: 500; font-size: 14px; }
+.batch-host-address { color: var(--text-secondary); font-size: 13px; font-family: var(--font-mono); margin-top: 2px; }
+.batch-host-note { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12px; }
+
+.batch-results { display: flex; flex-direction: column; padding: 16px; overflow: hidden; }
+.batch-empty { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
+.batch-empty-icon { display: grid; place-items: center; width: 50px; height: 50px; border: 1px solid var(--border); background: var(--bg-tertiary); border-radius: 16px; color: var(--text-primary); }
+.batch-empty h2 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 14px 0 0; }
+.batch-empty p { font-size: 13px; margin: 6px 0 0; }
+.batch-result-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.batch-result-heading strong { color: var(--text-primary); font-size: 14px; }
+.batch-result-heading p { margin: 4px 0 0; font-size: 13px; }
+.batch-output-list { flex: 1; overflow-y: auto; min-height: 0; padding-right: 3px; margin-top: 12px; }
+.batch-output-card { border: 1px solid var(--border); background: var(--bg-primary); border-radius: 12px; overflow: hidden; }
+.batch-output-card + .batch-output-card { margin-top: 12px; }
+.batch-output-card > header { justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.batch-output-identity { min-width: 0; flex: 1; }
+.batch-output-identity > svg { flex-shrink: 0; }
+.batch-output-identity > strong { min-width: 0; color: var(--text-primary); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-output-identity > span, .batch-output-card .batch-actions > span { flex-shrink: 0; font-size: 12px; font-family: var(--font-mono); }
+.batch-output-meta { padding: 7px 12px 0; font-size: 12px; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.batch-output-command { margin: 0; padding: 8px 12px; font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.batch-output-body { max-height: 260px; overflow: auto; padding: 4px 12px 12px; color: var(--success); }
+.batch-output-body > pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.65; }
+.batch-output-body > pre.batch-stderr { margin-top: 8px; color: var(--danger); }
+.batch-snippets { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.batch-snippets > div { display: flex; align-items: flex-start; gap: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.batch-snippets code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13.5px; }
+.batch-confirm-command { margin: 12px 0 0; max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-family: var(--font-mono); font-size: 14px; }
+.ops-batch-page .ant-input, .ops-batch-page .ant-btn, .ops-batch-page .ant-checkbox-label, .ops-batch-page .ant-segmented { font-size: 13.5px; }
+
+/* 窄窗口与较矮窗口使用页面滚动，保留两个面板内的独立滚动区域。 */
+@media (max-width: 880px), (max-height: 650px) {
+  .ops-page.ops-batch-page { height: auto; min-height: 100%; }
+  .batch-workspace { min-height: 420px; }
+  .batch-host-list, .batch-output-list { max-height: 450px; }
+}
+@media (max-width: 720px) {
+  .batch-workspace { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+  .batch-prompt-row { flex-wrap: wrap; }
+  .batch-prompt-row > .ant-input { flex-basis: calc(100% - 36px); }
+  .batch-host-list { max-height: 280px; }
+  .batch-results { min-height: 300px; }
+}

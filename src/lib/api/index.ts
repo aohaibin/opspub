@@ -29,3 +29,4 @@ export { mcpApi } from "./mcp";
 export { sensitiveApi } from "./sensitive";
 export { fileApi } from "./file";
 export { modelServiceApi } from "./model-service";
+export { inspectionApi } from "./inspection";

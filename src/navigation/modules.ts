@@ -245,6 +245,7 @@ export const MODULES: ModuleDef[] = [
     icon: ShieldAlert,
     group: "security",
     dot: "rose",
+    implemented: true,
   },
   {
     key: "sensitive",

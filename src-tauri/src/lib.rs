@@ -158,6 +158,8 @@ pub fn run() {
             commands::model_service::import_model_profiles,
             commands::file::write_text_file,
             commands::file::read_text_file,
+            commands::skills::save_user_skill,
+            commands::skills::delete_user_skill,
             // 服务器模块
             commands::server::list_servers,
             commands::server::list_saved_ssh_credentials,
@@ -201,7 +203,9 @@ pub fn run() {
             commands::sensitive::delete_sensitive_entry,
             commands::sensitive::export_sensitive_csv,
             commands::workbench::execute_workbench_command,
+            commands::inspection::run_inspection_probe,
             commands::batch::execute_batch_target,
+            commands::batch::generate_batch_command,
             commands::copilot::copilot_chat,
             commands::copilot::get_ai_lock,
             commands::copilot::set_ai_lock,

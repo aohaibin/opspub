@@ -22,6 +22,21 @@ const MAX_OUTPUT_LENGTH: usize = 12_000;
 pub struct CopilotService;
 
 impl CopilotService {
+    /// 只生成待人工确认的草稿，绝不进入 safe_chat 的工具执行分支。
+    pub fn draft_batch_command(db: &crate::database::Database, profile_id: &str, prompt: &str) -> Result<String, AppError> {
+        if db.get_ai_lock()?.locked {
+            return Err(AppError::InvalidInput("AI 操作已锁定，请先开启 AI 操作后生成命令".into()));
+        }
+        let config = ModelService::chat_config(db, profile_id)?;
+        AuditService::add_log(db, "全局", "batch_generate_command", "batch-runner", "started")?;
+        let result = call_model_with_instructions(
+            db, &config, &[], prompt, "仅生成草稿，不连接服务器。",
+            "你是 Linux 运维命令草稿助手。将用户需求转换为一条单行 shell 命令，只输出命令本身，不要代码围栏或解释。优先只读诊断，不输出破坏性操作、凭据、绕过审批或安全策略的命令。不调用任何工具，不声称已经执行。需求不清晰或不安全时拒绝，以 REFUSED: 开头说明原因。",
+        );
+        AuditService::add_log(db, "全局", "batch_generate_command", "batch-runner", if result.is_ok() { "success" } else { "failed" })?;
+        result.map(|reply| reply.reply)
+    }
+
     pub fn get_lock(app: &AppHandle) -> Result<AiLockState, AppError> {
         app.state::<crate::state::AppState>().db.get_ai_lock()
     }
@@ -454,10 +469,22 @@ fn call_model(
     user_message: &str,
     safe_context: &str,
 ) -> Result<ModelReply, AppError> {
+    call_model_with_instructions(db, config, history, user_message, safe_context,
+        "你是运维分析助手。你只能解释用户问题和后端提供的脱敏只读结果。不要生成或建议绕过审批、AI策略、主机指纹或凭据保护的操作；不要把自然语言当作可执行命令。若用户要求改动服务器，明确说明必须由后端白名单和人工审批处理。")
+}
+
+fn call_model_with_instructions(
+    db: &crate::database::Database,
+    config: &ChatModelConfig,
+    history: &[CopilotHistoryMessage],
+    user_message: &str,
+    safe_context: &str,
+    instructions: &str,
+) -> Result<ModelReply, AppError> {
     let mut messages = Vec::new();
     messages.push(json!({
         "role": "system",
-        "content": "你是运维分析助手。你只能解释用户问题和后端提供的脱敏只读结果。不要生成或建议绕过审批、AI策略、主机指纹或凭据保护的操作；不要把自然语言当作可执行命令。若用户要求改动服务器，明确说明必须由后端白名单和人工审批处理。"
+        "content": instructions
     }));
     let mut trimmed = 0usize;
     let mut outbound_redactions = 0usize;

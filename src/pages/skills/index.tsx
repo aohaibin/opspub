@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import { Button, Input, Modal, Tag, message } from "antd";
-import { BookOpen, CheckCircle2, Code2, FileText, Pencil, Plus, Search, Sparkles, Trash2, Workflow, X } from "lucide-react";
+import { Button, Drawer, Input, Tag, message } from "antd";
+import { invoke } from "@tauri-apps/api/core";
+import { getErrorMessage } from "@/lib/api/client";
+import { BookOpen, Code2, Eye, FileCode2, FileText, LockKeyhole, Pencil, Plus, Save, Search, Sparkles, Trash2, Workflow, X } from "lucide-react";
 import skillsIndex from "../../../docs/skills-index-20261006.md?raw";
 
 type SkillSource = "builtin" | "user";
@@ -63,6 +65,7 @@ const EXPERIENCES: Experience[] = [
 ];
 
 const SKILLS_STORAGE_KEY = "opspub_user_skills";
+const DEFAULT_SKILL_BODY = "## 操作步骤\n\n1. 先收集只读信息并确认影响范围。\n2. 根据结果给出可回滚的处理建议。\n3. 涉及变更时，说明审批和验证要求。\n\n## 注意事项\n\n- 不要把敏感信息写入输出。\n- 高危操作必须经过人工审批。";
 
 function loadUserSkills() {
   try {
@@ -79,6 +82,18 @@ function matchCount(skill: Skill, prompt: string) {
   return skill.triggers.filter((trigger) => value.includes(trigger.toLowerCase())).length;
 }
 
+function createEmptySkill(name = ""): Skill {
+  return { id: crypto.randomUUID(), name, source: "user", description: "", triggers: [], dangerous: [], content: DEFAULT_SKILL_BODY, hits: 0 };
+}
+
+function skillDraftValidName(name: string) {
+  return /^[a-z0-9][a-z0-9_-]{0,63}$/.test(name);
+}
+
+function splitSkillValues(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
 export default function SkillsPage() {
   const [activeTab, setActiveTab] = useState<"skills" | "experiences" | "runbooks">("skills");
   const [source, setSource] = useState<"all" | SkillSource>("all");
@@ -87,7 +102,9 @@ export default function SkillsPage() {
   const [prompt, setPrompt] = useState("");
   const [userSkills, setUserSkills] = useState<Skill[]>(loadUserSkills);
   const [editing, setEditing] = useState<Skill | null>(null);
+  const [editingOriginalName, setEditingOriginalName] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editorTab, setEditorTab] = useState<"edit" | "preview">("edit");
 
   const allSkills = useMemo(() => [...userSkills, ...BUILTIN_SKILLS], [userSkills]);
   const visibleSkills = useMemo(() => allSkills
@@ -96,21 +113,51 @@ export default function SkillsPage() {
     .filter((skill) => `${skill.name} ${skill.description} ${skill.triggers.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) => b.hits - a.hits || Number(a.source === "builtin") - Number(b.source === "builtin")), [allSkills, prompt, query, showBuiltin, source]);
 
-  const saveSkill = () => {
-    if (!editing) return;
-    const normalized = { ...editing, name: editing.name.trim(), description: editing.description.trim(), triggers: editing.triggers.map((item) => item.trim()).filter(Boolean), dangerous: editing.dangerous.map((item) => item.trim()).filter(Boolean) };
-    if (!normalized.name || !normalized.description || normalized.triggers.length === 0) { message.warning("请填写技能名称、描述和至少一个触发词"); return; }
-    if (allSkills.some((item) => item.id !== normalized.id && item.name.toLowerCase() === normalized.name.toLowerCase())) { message.warning("技能名称已存在"); return; }
-    const next = userSkills.some((item) => item.id === normalized.id) ? userSkills.map((item) => item.id === normalized.id ? normalized : item) : [normalized, ...userSkills];
-    setUserSkills(next); localStorage.setItem(SKILLS_STORAGE_KEY, JSON.stringify(next)); setEditorOpen(false); setEditing(null); message.success("技能已保存到本机");
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditing(null);
+    setEditingOriginalName(null);
+    setEditorTab("edit");
   };
 
-  const deleteSkill = (skill: Skill) => {
+  const openCreate = () => {
+    setEditing(createEmptySkill());
+    setEditingOriginalName(null);
+    setEditorTab("edit");
+    setEditorOpen(true);
+  };
+
+  const saveSkill = async () => {
+    if (!editing) return;
+    const normalized = { ...editing, name: editing.name.trim(), description: editing.description.trim(), triggers: editing.triggers.map((item) => item.trim()).filter(Boolean), dangerous: editing.dangerous.map((item) => item.trim()).filter(Boolean), content: editing.content.trim() || DEFAULT_SKILL_BODY };
+    if (!skillDraftValidName(normalized.name)) { message.warning("技能名称格式不正确，只能使用小写字母、数字、连字符和下划线"); return; }
+    if (!normalized.description || normalized.triggers.length === 0) { message.warning("请填写技能描述和至少一个触发词"); return; }
+    if (allSkills.some((item) => item.id !== normalized.id && item.name.toLowerCase() === normalized.name.toLowerCase())) { message.warning("技能名称已存在"); return; }
+    const skillDocument = `---\nname: ${normalized.name}\ndescription: ${normalized.description}\ntriggers: ${normalized.triggers.join(", ")}\n---\n\n# ${normalized.name}\n\n${normalized.content}\n`;
+    try {
+      await invoke<string>("save_user_skill", { name: normalized.name, content: skillDocument });
+      if (editingOriginalName && editingOriginalName !== normalized.name) {
+        await invoke<boolean>("delete_user_skill", { name: editingOriginalName });
+      }
+      const next = userSkills.some((item) => item.id === normalized.id) ? userSkills.map((item) => item.id === normalized.id ? normalized : item) : [normalized, ...userSkills];
+      setUserSkills(next); localStorage.setItem(SKILLS_STORAGE_KEY, JSON.stringify(next)); closeEditor(); message.success("技能已保存到 ~/.codex/skills");
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const deleteSkill = async (skill: Skill) => {
     if (skill.source !== "user") { message.info("内置技能不可删除"); return; }
-    const next = userSkills.filter((item) => item.id !== skill.id); setUserSkills(next); localStorage.setItem(SKILLS_STORAGE_KEY, JSON.stringify(next)); message.success("技能已删除");
+    try {
+      await invoke<boolean>("delete_user_skill", { name: skill.name });
+      const next = userSkills.filter((item) => item.id !== skill.id); setUserSkills(next); localStorage.setItem(SKILLS_STORAGE_KEY, JSON.stringify(next)); message.success("技能已删除");
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
   };
 
   const testPrompt = (value: string) => { setPrompt(value); setActiveTab("skills"); };
+  const frontmatter = editing ? `---\nname: ${editing.name || "未命名技能"}\ndescription: ${editing.description || "一句话描述本技能干什么"}\ntriggers: ${editing.triggers.length ? editing.triggers.join(", ") : "关键词1, 关键词2"}\n---\n\n# ${editing.name || "未命名技能"}` : "";
 
   return (
     <div className="ops-page ops-skills-page flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4 font-sans sm:p-5" style={{ color: "var(--text-secondary)" }}>
@@ -123,10 +170,10 @@ export default function SkillsPage() {
         <section className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-800 bg-surface-900/90 p-3 text-xs"><Sparkles size={15} className="shrink-0 text-cyan-400" /><span className="font-medium text-slate-300">试试 Prompt：</span><button type="button" onClick={() => testPrompt("nginx 502 怎么排查")} className="text-cyan-400 hover:underline">“nginx 502 怎么排查”</button><span className="text-slate-500">或</span><button type="button" onClick={() => testPrompt("docker 容器一直 restarting")} className="text-cyan-400 hover:underline">“docker 容器一直 restarting”</button>{prompt && <button type="button" onClick={() => setPrompt("")} className="ml-auto inline-flex items-center gap-1 text-slate-500 hover:text-white"><X size={13} />清除测试</button>}</section>
         {prompt && <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-3 py-2 text-[11px] text-cyan-200">当前命中 {visibleSkills.filter((item) => item.hits > 0).length} 项技能，列表已按命中数优先排序。</div>}
         <section className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2"><div className="inline-flex rounded-lg border border-slate-800 bg-surface-950 p-0.5"><button type="button" onClick={() => setSource("all")} className={`rounded-md px-3 py-1.5 text-xs ${source === "all" ? "bg-surface-800 text-blue-400 font-medium" : "text-slate-400 hover:text-slate-200"}`}>全部 {allSkills.length}</button><button type="button" onClick={() => setSource("user")} className={`rounded-md px-3 py-1.5 text-xs ${source === "user" ? "bg-surface-800 text-blue-400 font-medium" : "text-slate-400 hover:text-slate-200"}`}>用户 {userSkills.length}</button><button type="button" onClick={() => setSource("builtin")} className={`rounded-md px-3 py-1.5 text-xs ${source === "builtin" ? "bg-surface-800 text-blue-400 font-medium" : "text-slate-400 hover:text-slate-200"}`}>内置 {BUILTIN_SKILLS.length}</button></div><Input allowClear value={query} onChange={(event) => setQuery(event.target.value)} prefix={<Search size={14} className="text-slate-500" />} placeholder="按名称、描述、触发词搜索" className="w-64" /><label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-xs text-slate-300"><input type="checkbox" checked={showBuiltin} onChange={(event) => setShowBuiltin(event.target.checked)} className="accent-blue-500" />显示内置</label></div><Button type="primary" icon={<Plus size={14} />} onClick={() => { setEditing({ id: crypto.randomUUID(), name: "", source: "user", description: "", triggers: [], dangerous: [], content: "", hits: 0 }); setEditorOpen(true); }}>新建技能</Button>
+          <div className="flex flex-wrap items-center gap-2"><div className="inline-flex rounded-lg border border-slate-800 bg-surface-950 p-0.5"><button type="button" onClick={() => setSource("all")} className={`rounded-md px-3 py-1.5 text-xs ${source === "all" ? "bg-surface-800 text-blue-400 font-medium" : "text-slate-400 hover:text-slate-200"}`}>全部 {allSkills.length}</button><button type="button" onClick={() => setSource("user")} className={`rounded-md px-3 py-1.5 text-xs ${source === "user" ? "bg-surface-800 text-blue-400 font-medium" : "text-slate-400 hover:text-slate-200"}`}>用户 {userSkills.length}</button><button type="button" onClick={() => setSource("builtin")} className={`rounded-md px-3 py-1.5 text-xs ${source === "builtin" ? "bg-surface-800 text-blue-400 font-medium" : "text-slate-400 hover:text-slate-200"}`}>内置 {BUILTIN_SKILLS.length}</button></div><Input allowClear value={query} onChange={(event) => setQuery(event.target.value)} prefix={<Search size={14} className="text-slate-500" />} placeholder="按名称、描述、触发词搜索" className="w-64" /><label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-xs text-slate-300"><input type="checkbox" checked={showBuiltin} onChange={(event) => setShowBuiltin(event.target.checked)} className="accent-blue-500" />显示内置</label></div><Button type="primary" icon={<Plus size={14} />} onClick={openCreate}>新建技能</Button>
         </section>
         <section className="overflow-hidden rounded-xl border border-slate-800 bg-surface-900/75">
-          <div className="custom-scrollbar overflow-x-auto"><table className="w-full min-w-[980px] text-left text-xs"><thead className="border-b border-slate-800 bg-surface-900/90 text-[11px] text-slate-400"><tr><th className="w-52 p-3 font-medium">名称</th><th className="w-20 p-3 font-medium">来源</th><th className="min-w-64 p-3 font-medium">描述</th><th className="min-w-56 p-3 font-medium">触发词</th><th className="min-w-48 p-3 font-medium">危险命令</th><th className="w-20 p-3 font-medium">命中</th><th className="w-28 p-3 text-right font-medium">操作</th></tr></thead><tbody className="divide-y divide-slate-800/60">{visibleSkills.map((skill) => <tr key={skill.id} className="transition hover:bg-surface-850/50"><td className="p-3"><div className="font-mono font-semibold text-slate-200">{skill.name}</div><div className="mt-1 max-w-48 truncate text-[10px] text-slate-500">{skill.content || (skill.source === "builtin" ? "索引未提供技能正文" : "未填写技能正文")}</div></td><td className="p-3">{skill.source === "user" ? <Tag color="blue">用户</Tag> : <Tag color="default">内置</Tag>}</td><td className="p-3 leading-relaxed text-slate-400">{skill.description}</td><td className="p-3"><div className="flex flex-wrap gap-1">{skill.triggers.map((trigger) => <span key={trigger} className={`rounded border px-1.5 py-0.5 text-[10px] ${skill.hits > 0 && prompt.toLowerCase().includes(trigger.toLowerCase()) ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-300" : "border-slate-700 text-slate-400"}`}>{trigger}</span>)}</div></td><td className="p-3 font-mono text-[10px] text-rose-300">{skill.dangerous.length ? skill.dangerous.join(" · ") : skill.source === "builtin" ? "索引未提供" : "无"}</td><td className="p-3 font-mono text-cyan-300">{skill.hits || "-"}</td><td className="p-3 text-right"><div className="flex justify-end gap-1">{skill.source === "user" && <><Button size="small" type="text" icon={<Pencil size={13} />} title="编辑技能" aria-label="编辑技能" onClick={() => { setEditing(skill); setEditorOpen(true); }} /><Button size="small" danger type="text" icon={<Trash2 size={13} />} title="删除技能" aria-label="删除技能" onClick={() => deleteSkill(skill)} /></>}</div></td></tr>)}</tbody></table>{visibleSkills.length === 0 && <div className="p-10 text-center text-xs text-slate-500">没有匹配的技能</div>}</div>
+          <div className="custom-scrollbar overflow-x-auto"><table className="w-full min-w-[980px] text-left text-xs"><thead className="border-b border-slate-800 bg-surface-900/90 text-[11px] text-slate-400"><tr><th className="w-52 p-3 font-medium">名称</th><th className="w-20 p-3 font-medium">来源</th><th className="min-w-64 p-3 font-medium">描述</th><th className="min-w-56 p-3 font-medium">触发词</th><th className="min-w-48 p-3 font-medium">危险命令</th><th className="w-20 p-3 font-medium">命中</th><th className="w-28 p-3 text-right font-medium">操作</th></tr></thead><tbody className="divide-y divide-slate-800/60">{visibleSkills.map((skill) => <tr key={skill.id} className="transition hover:bg-surface-850/50"><td className="p-3"><div className="font-mono font-semibold text-slate-200">{skill.name}</div><div className="mt-1 max-w-48 truncate text-[10px] text-slate-500">{skill.content || (skill.source === "builtin" ? "索引未提供技能正文" : "未填写技能正文")}</div></td><td className="p-3">{skill.source === "user" ? <Tag color="blue">用户</Tag> : <Tag color="default">内置</Tag>}</td><td className="p-3 leading-relaxed text-slate-400">{skill.description}</td><td className="p-3"><div className="flex flex-wrap gap-1">{skill.triggers.map((trigger) => <span key={trigger} className={`rounded border px-1.5 py-0.5 text-[10px] ${skill.hits > 0 && prompt.toLowerCase().includes(trigger.toLowerCase()) ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-300" : "border-slate-700 text-slate-400"}`}>{trigger}</span>)}</div></td><td className="p-3 font-mono text-[10px] text-rose-300">{skill.dangerous.length ? skill.dangerous.join(" · ") : skill.source === "builtin" ? "索引未提供" : "无"}</td><td className="p-3 font-mono text-cyan-300">{skill.hits || "-"}</td><td className="p-3 text-right"><div className="flex justify-end gap-1">{skill.source === "user" && <><Button size="small" type="text" icon={<Pencil size={13} />} title="编辑技能" aria-label="编辑技能" onClick={() => { setEditing(skill); setEditingOriginalName(skill.name); setEditorTab("edit"); setEditorOpen(true); }} /><Button size="small" danger type="text" icon={<Trash2 size={13} />} title="删除技能" aria-label="删除技能" onClick={() => deleteSkill(skill)} /></>}</div></td></tr>)}</tbody></table>{visibleSkills.length === 0 && <div className="p-10 text-center text-xs text-slate-500">没有匹配的技能</div>}</div>
         </section>
       </div>}
 
@@ -134,9 +181,51 @@ export default function SkillsPage() {
 
       {activeTab === "runbooks" && <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto"><section className="w-full max-w-xl rounded-xl border border-slate-800 bg-surface-900/50 p-8 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-800 text-slate-500"><Workflow size={24} /></div><h2 className="mt-3 text-sm font-medium text-slate-200">暂无独立 Runbook 自动化工作流</h2><p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-500">Runbook 可通过经验库的处置 SOP 创建，支持多节点自动化编排与审批放行。</p><Button size="small" className="mt-4" onClick={() => setActiveTab("experiences")}>查看处置经验</Button></section></div>}
 
-      <Modal title={<span className="inline-flex items-center gap-2"><Code2 size={16} />{editing?.id && userSkills.some((item) => item.id === editing.id) ? "编辑技能" : "新建技能"}</span>} open={editorOpen} width={650} centered maskClosable={false} destroyOnClose onCancel={() => { setEditorOpen(false); setEditing(null); }} footer={<div className="flex justify-end gap-2"><Button onClick={() => { setEditorOpen(false); setEditing(null); }}>取消</Button><Button type="primary" onClick={saveSkill}>保存到本机</Button></div>}>
-        {editing && <div className="space-y-3"><label className="block text-xs text-slate-400">技能名称<Input value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} className="mt-1" placeholder="例如：redis-cluster-check" /></label><label className="block text-xs text-slate-400">一句话描述<Input value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} className="mt-1" placeholder="技能解决什么问题" /></label><label className="block text-xs text-slate-400">触发词（用逗号分隔）<Input value={editing.triggers.join(", ")} onChange={(event) => setEditing({ ...editing, triggers: event.target.value.split(",") })} className="mt-1" placeholder="redis, cluster, 集群" /></label><label className="block text-xs text-slate-400">危险命令（用逗号分隔，可选）<Input value={editing.dangerous.join(", ")} onChange={(event) => setEditing({ ...editing, dangerous: event.target.value.split(",") })} className="mt-1" placeholder="FLUSHALL, restart" /></label><label className="block text-xs text-slate-400">技能正文<textarea value={editing.content} onChange={(event) => setEditing({ ...editing, content: event.target.value })} rows={8} className="mt-1 w-full resize-y rounded-lg border border-slate-700 bg-surface-950 p-3 text-xs leading-relaxed text-slate-200 outline-none focus:border-blue-500" placeholder="写入排查步骤、注意事项和审批要求" /></label><div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2 text-[11px] text-amber-300"><CheckCircle2 size={13} />技能只保存在本机浏览器存储，暂不会自动同步给其他设备。</div></div>}
-      </Modal>
+      <Drawer
+        className="ops-skill-editor"
+        title={null}
+        placement="right"
+        width="min(760px, 92vw)"
+        open={editorOpen}
+        onClose={closeEditor}
+        maskClosable={false}
+        destroyOnClose
+        closable={false}
+        styles={{ body: { padding: 0, display: "flex", flexDirection: "column", overflow: "hidden" }, content: { background: "var(--bg-primary)" } }}
+      >
+        {editing && <>
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-3.5">
+          <div className="flex min-w-0 items-center gap-3"><Button type="text" aria-label="关闭技能编辑器" title="关闭" icon={<X size={16} />} onClick={closeEditor} /><h2 className="m-0 truncate font-mono text-base font-bold text-[var(--text-primary)]">{editing.name || "新建技能"}</h2><Tag color="green">用户</Tag></div>
+            <Button type="primary" icon={<Save size={15} />} onClick={saveSkill}>保存</Button>
+          </div>
+          <div className="flex shrink-0 items-center gap-5 border-b border-[var(--border)] bg-[var(--bg-secondary)] px-6 pt-2">
+            <button type="button" onClick={() => setEditorTab("edit")} className={`inline-flex items-center gap-2 border-b-2 pb-2 text-sm ${editorTab === "edit" ? "border-blue-500 text-blue-400" : "border-transparent text-[var(--text-secondary)]"}`}><Code2 size={15} />编辑</button>
+            <button type="button" onClick={() => setEditorTab("preview")} className={`inline-flex items-center gap-2 border-b-2 pb-2 text-sm ${editorTab === "preview" ? "border-blue-500 text-blue-400" : "border-transparent text-[var(--text-secondary)]"}`}><Eye size={15} />预览</button>
+          </div>
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+            {editorTab === "edit" ? <div className="space-y-5">
+              <section className="space-y-4">
+                <label className="block text-sm font-medium text-[var(--text-primary)]">技能名称 <span className="text-rose-400">*</span><Input value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })} className="mt-2" placeholder="例如：redis-cluster-check" /></label>
+                <label className="block text-sm font-medium text-[var(--text-primary)]">一句话描述 <span className="text-rose-400">*</span><Input value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} className="mt-2" placeholder="技能解决什么问题" /></label>
+                <label className="block text-sm font-medium text-[var(--text-primary)]">触发词（逗号分隔） <span className="text-rose-400">*</span><Input value={editing.triggers.join(", ")} onChange={(event) => setEditing({ ...editing, triggers: splitSkillValues(event.target.value) })} className="mt-2" placeholder="redis, cluster, 集群" /></label>
+                <label className="block text-sm font-medium text-[var(--text-primary)]">危险命令（逗号分隔，可选）<Input value={editing.dangerous.join(", ")} onChange={(event) => setEditing({ ...editing, dangerous: splitSkillValues(event.target.value) })} className="mt-2" placeholder="FLUSHALL, restart" /></label>
+              </section>
+              <section className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2"><div className="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]"><FileCode2 size={15} className="text-blue-400" />Frontmatter 与标题</div><span className="inline-flex items-center gap-1 text-xs text-amber-400"><LockKeyhole size={13} />由上方表单生成</span></div>
+                <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-[var(--bg-primary)] p-3 font-mono text-sm leading-relaxed text-[var(--text-secondary)]">{frontmatter}</pre>
+              </section>
+              <label className="block text-sm font-medium text-[var(--text-primary)]">正文内容（Markdown）<span className="ml-2 font-normal text-xs text-[var(--text-secondary)]">支持排查步骤、注意事项和审批要求</span><textarea spellCheck={false} value={editing.content} onChange={(event) => setEditing({ ...editing, content: event.target.value })} rows={12} className="mt-2 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-sm leading-relaxed text-[var(--text-primary)] outline-none focus:border-blue-500" placeholder="编写技能操作步骤和安全要求" /></label>
+            </div> : <div className="space-y-4">
+              <section className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]"><FileCode2 size={15} className="text-blue-400" />技能元数据</div>
+                <div className="grid gap-3 text-sm"><div><span className="mr-3 text-[var(--text-secondary)]">名称</span><code>{editing.name || "未命名技能"}</code></div><div><span className="mr-3 text-[var(--text-secondary)]">描述</span>{editing.description || "尚未填写"}</div><div><span className="mr-3 text-[var(--text-secondary)]">触发词</span><div className="mt-2 flex flex-wrap gap-1.5">{editing.triggers.length ? editing.triggers.map((trigger) => <Tag key={trigger} color="blue">{trigger}</Tag>) : <span className="text-[var(--text-muted)]">尚未填写</span>}</div></div><div><span className="mr-3 text-[var(--text-secondary)]">危险命令</span><span className="font-mono text-amber-400">{editing.dangerous.length ? editing.dangerous.join(" · ") : "无"}</span></div></div>
+              </section>
+              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5"><h3 className="mb-3 mt-0 font-mono text-base font-bold text-[var(--text-primary)]"># {editing.name || "未命名技能"}</h3><pre className="m-0 whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-[var(--text-secondary)]">{editing.content || "暂无正文内容"}</pre></section>
+            </div>}
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-2.5 text-xs text-[var(--text-secondary)]"><span>本机存储：opspub_user_skills / {editing.name || "技能名"}</span><span>保存后可在技能列表中编辑和删除</span></div>
+        </>}
+      </Drawer>
     </div>
   );
 }

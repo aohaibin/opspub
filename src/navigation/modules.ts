@@ -218,7 +218,7 @@ export const MODULES: ModuleDef[] = [
     key: "skills",
     navLabel: "技能",
     title: "技能与经验库",
-    subtitle: "39 项技能 / 19 篇事故复盘 SOP",
+    subtitle: "41 项内置技能 / 19 篇事故复盘 SOP",
     desc: "运维技能库与故障处置经验库，AI 自动检索命中即注入对话上下文",
     capabilities: [
       "技能条目增删改查与版本管理",
@@ -228,6 +228,7 @@ export const MODULES: ModuleDef[] = [
     ],
     icon: Sparkles,
     group: "ai",
+    implemented: true,
   },
   {
     key: "inspector",
@@ -260,6 +261,7 @@ export const MODULES: ModuleDef[] = [
     icon: Shield,
     group: "security",
     dot: "amber",
+    implemented: true,
   },
   {
     key: "credentials",
@@ -312,17 +314,18 @@ export const MODULES: ModuleDef[] = [
   {
     key: "audit",
     navLabel: "审计",
-    title: "不可篡改审计日志",
-    subtitle: "1374 条存证 / SHA-256 防篡改",
-    desc: "全量操作存证，链式哈希防篡改，支持按主机 / 用户 / 时间多维检索",
+    title: "审计日志",
+    subtitle: "本地操作记录 / 脱敏导出",
+    desc: "记录服务器操作来源、命令与结果，支持按工具、主机、裁决和时间检索",
     capabilities: [
-      "链式哈希防篡改存证",
-      "多维度检索与导出",
-      "AI 操作与人工操作的归因区分",
-      "关联跳转到对应审批工单",
+      "多维度检索与脱敏导出",
+      "AI、MCP、批量与人工来源区分",
+      "展开查看完整命令与执行结果",
+      "复制命令或保存为本机经验",
     ],
     icon: ScrollText,
     group: "security",
+    implemented: true,
   },
   {
     key: "settings",

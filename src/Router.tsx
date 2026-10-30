@@ -39,6 +39,9 @@ import BatchPage from "@/pages/batch";
 import DeploymentPage from "@/pages/deployment";
 import CopilotPage from "@/pages/copilot";
 import McpPage from "@/pages/mcp";
+import AuditPage from "@/pages/audit";
+import SkillsPage from "@/pages/skills";
+import SensitivePage from "@/pages/sensitive";
 import { ModulePlaceholder } from "@/pages/module";
 
 /** 已实现模块的 key → 页面组件 */
@@ -54,6 +57,9 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   deploy: DeploymentPage,
   copilot: CopilotPage,
   mcp: McpPage,
+  audit: AuditPage,
+  skills: SkillsPage,
+  sensitive: SensitivePage,
 };
 
 /** 路由路径按模块注册表的顺序生成，与左侧导航轨严格同序 */

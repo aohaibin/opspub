@@ -686,6 +686,7 @@ pub struct SensitiveScanRequest {
 pub struct SensitiveScanResult {
     pub entries: Vec<SensitiveEntry>,
     pub match_count: usize,
+    pub sanitized_content: String,
 }
 
 /// 告警规则

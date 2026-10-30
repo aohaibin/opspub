@@ -1351,6 +1351,114 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
+/* 技能页按原型采用可读的工作区字号，避免触发词和表格正文过细。 */
+.ops-skills-page {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ops-skills-page [class~="text-[10px]"] {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.ops-skills-page [class~="text-[11px]"] {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.ops-skills-page .text-xs {
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+}
+
+.ops-skills-page .text-sm {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.ops-skills-page .text-base {
+  font-size: 18px !important;
+  line-height: 1.4 !important;
+}
+
+.ops-skills-page button {
+  font-size: 13.5px;
+}
+
+.ops-skills-page input:not([type="checkbox"]):not([type="radio"]),
+.ops-skills-page textarea {
+  font-size: 13.5px !important;
+}
+
+.ops-skills-page table {
+  font-size: 13.5px;
+}
+
+.ops-skills-page table thead {
+  font-size: 13px;
+}
+
+.ops-skills-page table tbody {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* 敏感库沿用原型的密集审计表格，但保留足够的可读字号。 */
+.ops-sensitive-page {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ops-sensitive-page [class~="text-[10px]"] {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.ops-sensitive-page [class~="text-[11px]"] {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.ops-sensitive-page .text-xs {
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+}
+
+.ops-sensitive-page .text-sm {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.ops-sensitive-page .text-base {
+  font-size: 18px !important;
+  line-height: 1.4 !important;
+}
+
+.ops-sensitive-page button,
+.ops-sensitive-page .ant-select,
+.ops-sensitive-page input:not([type="checkbox"]):not([type="radio"]) {
+  font-size: 13.5px;
+}
+
+.ops-sensitive-page table thead {
+  font-size: 13px;
+}
+
+.ops-sensitive-page table tbody {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.ops-sensitive-modal .ant-modal-title {
+  font-size: 16px;
+}
+
+.ops-sensitive-modal .ant-modal-body {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
 /* 面板内的区块小标题 */
 .ops-section-title {
   display: flex;

@@ -27,7 +27,12 @@ function parseBuiltinSkills(index: string): Skill[] {
     const end = headings[position + 1]?.index ?? index.length;
     const section = index.slice(start, end);
     const description = section.match(/^\*\*描述\*\*：(.+)$/m)?.[1]?.trim();
-    const triggerSection = section.match(/^\*\*触发词\*\*：([\s\S]*?)(?=\r?\n\r?\n|$)/m)?.[1] ?? "";
+    // 索引把触发词放在标题下一行；不要用带多行 `$` 的正则，否则会在标题行末提前结束匹配。
+    const triggerMarker = "**触发词**：";
+    const triggerStart = section.indexOf(triggerMarker);
+    const triggerSection = triggerStart >= 0
+      ? section.slice(triggerStart + triggerMarker.length).split(/\r?\n\s*\r?\n/, 1)[0]
+      : "";
     const triggers = [...triggerSection.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim()).filter(Boolean);
 
     if (!description || triggers.length === 0) return [];
@@ -46,6 +51,9 @@ function parseBuiltinSkills(index: string): Skill[] {
 }
 
 const BUILTIN_SKILLS = parseBuiltinSkills(skillsIndex);
+if (import.meta.env.DEV && BUILTIN_SKILLS.length !== 41) {
+  console.warn(`内置技能索引应包含 41 项，实际解析到 ${BUILTIN_SKILLS.length} 项`);
+}
 
 const EXPERIENCES: Experience[] = [
   { id: "exp-nginx-502", title: "Nginx 502 Bad Gateway 突发排障 SOP", category: "Web 服务", summary: "从 upstream、PHP-FPM/Node 进程池和错误日志入手，逐步缩小连接超时原因。", steps: ["确认 Nginx 配置语法和 upstream 状态", "检查后端进程池与连接数", "核对 error.log 时间窗口", "只在确认影响范围后平滑重载"], date: "2026-08-19" },
@@ -105,9 +113,9 @@ export default function SkillsPage() {
   const testPrompt = (value: string) => { setPrompt(value); setActiveTab("skills"); };
 
   return (
-    <div className="ops-page flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4 font-sans sm:p-5" style={{ color: "var(--text-secondary)" }}>
+    <div className="ops-page ops-skills-page flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4 font-sans sm:p-5" style={{ color: "var(--text-secondary)" }}>
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2"><Sparkles size={18} className="text-cyan-400" /><div><h1 className="m-0 text-base font-bold text-white">技能与经验库</h1><p className="m-0 mt-1 text-[11px] text-slate-400">内置技能来自本地索引，按名称、描述和触发词检索；完整正文需从技能服务加载。</p></div></div>
+        <div className="flex items-center gap-2"><Sparkles size={18} className="text-cyan-400" /><div><h1 className="m-0 text-base font-bold text-white">技能与经验库</h1><p className="m-0 mt-1 text-[11px] text-slate-400">已载入 41 项内置技能，可按名称、描述和触发词检索。</p></div></div>
         <div className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-surface-950 p-1"><button type="button" onClick={() => setActiveTab("skills")} className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${activeTab === "skills" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}><BookOpen size={13} className="mr-1 inline" />技能 {allSkills.length}</button><button type="button" onClick={() => setActiveTab("experiences")} className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${activeTab === "experiences" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}>经验库 {EXPERIENCES.length}</button><button type="button" onClick={() => setActiveTab("runbooks")} className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${activeTab === "runbooks" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}><Workflow size={13} className="mr-1 inline" />Runbook 0</button></div>
       </header>
 

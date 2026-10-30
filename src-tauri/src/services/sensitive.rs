@@ -1,6 +1,7 @@
 use chrono::Local;
 use regex::Regex;
 use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 
 use crate::database::Database;
 use crate::error::AppError;
@@ -14,6 +15,11 @@ struct ScanRule {
     secret_type: &'static str,
     default_label: &'static str,
     regex: Regex,
+}
+
+pub struct OutboundSanitizeResult {
+    pub content: String,
+    pub match_count: usize,
 }
 
 impl SensitiveService {
@@ -42,40 +48,76 @@ impl SensitiveService {
             return Err(AppError::InvalidInput("服务器别名不能超过 160 个字符".into()));
         }
 
-        let rules = build_rules()?;
+        let (sanitized_content, matches) = sanitize_text(&content)?;
         let detected_at = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        let mut entries = Vec::new();
-        let mut seen = Vec::<String>::new();
+        let mut entries = Vec::with_capacity(matches.len());
 
-        for rule in rules {
-            for matched in rule.regex.find_iter(&content) {
-                let raw = matched.as_str();
-                let hash = hash_value(raw);
-                if seen.iter().any(|item| item == &hash) {
-                    continue;
-                }
-                seen.push(hash.clone());
-
-                let label = label_for(&rule, raw);
-                let masked_value = mask_value(raw, rule.secret_type == "private_key");
-                let entry = db.add_sensitive_entry(
-                    request.server_id,
-                    server_alias,
-                    &detected_at,
-                    rule.secret_type,
-                    &label,
-                    &masked_value,
-                    source,
-                    &hash,
-                    1,
-                )?;
-                entries.push(entry);
-            }
+        for item in matches {
+            let entry = db.add_sensitive_entry(
+                request.server_id,
+                server_alias,
+                &detected_at,
+                item.secret_type,
+                &item.label,
+                &item.masked_value,
+                source,
+                &item.value_hash,
+                1,
+            )?;
+            entries.push(entry);
         }
 
         Ok(SensitiveScanResult {
             match_count: entries.len(),
             entries,
+            sanitized_content,
+        })
+    }
+
+    /// 扫描并替换即将发送给外部模型的内容；记录失败时调用方必须停止发送。
+    pub fn sanitize_outbound(
+        db: &Database,
+        content: &str,
+        source: &str,
+    ) -> Result<OutboundSanitizeResult, AppError> {
+        if content.len() > MAX_SCAN_BYTES {
+            return Err(AppError::InvalidInput(format!(
+                "AI 请求内容不能超过 {} MB",
+                MAX_SCAN_BYTES / 1024 / 1024
+            )));
+        }
+        let source = source.trim();
+        if source.is_empty() || source.len() > 200 {
+            return Err(AppError::InvalidInput("AI 请求拦截来源无效".into()));
+        }
+
+        let (sanitized, matches) = sanitize_text(content)?;
+        if matches.is_empty() {
+            return Ok(OutboundSanitizeResult {
+                content: sanitized,
+                match_count: 0,
+            });
+        }
+
+        let detected_at = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        for item in &matches {
+            // AI 请求没有可信的服务器归属，使用独立别名避免误归到某台主机。
+            db.add_sensitive_entry(
+                None,
+                "AI 对话",
+                &detected_at,
+                item.secret_type,
+                &item.label,
+                &item.masked_value,
+                source,
+                &item.value_hash,
+                1,
+            )?;
+        }
+
+        Ok(OutboundSanitizeResult {
+            content: sanitized,
+            match_count: matches.len(),
         })
     }
 
@@ -119,6 +161,52 @@ impl SensitiveService {
             csv.push('\n');
         }
         Ok(csv)
+    }
+}
+
+struct SanitizedMatch {
+    secret_type: &'static str,
+    label: String,
+    masked_value: String,
+    value_hash: String,
+}
+
+fn sanitize_text(content: &str) -> Result<(String, Vec<SanitizedMatch>), AppError> {
+    let rules = build_rules()?;
+    let mut text = content.replace('\0', "");
+    let mut seen = HashSet::new();
+    let mut matches = Vec::new();
+
+    for rule in &rules {
+        let found = rule.regex.find_iter(&text).map(|matched| matched.as_str().to_string()).collect::<Vec<_>>();
+        if found.is_empty() {
+            continue;
+        }
+        for raw in found {
+            let value_hash = hash_value(&raw);
+            if !seen.insert(value_hash.clone()) {
+                continue;
+            }
+            matches.push(SanitizedMatch {
+                secret_type: rule.secret_type,
+                label: label_for(rule, &raw),
+                masked_value: mask_value(&raw, rule.secret_type == "private_key"),
+                value_hash,
+            });
+        }
+        text = rule.regex.replace_all(&text, replacement_for(rule.secret_type)).into_owned();
+    }
+
+    Ok((text, matches))
+}
+
+fn replacement_for(secret_type: &str) -> &'static str {
+    match secret_type {
+        "private_key" => "[REDACTED: private key]",
+        "credential" => "[REDACTED: credential]",
+        "token" => "[REDACTED: token]",
+        "ip" => "[REDACTED: public IP]",
+        _ => "[REDACTED]",
     }
 }
 
@@ -212,7 +300,7 @@ fn csv_cell(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_rules, hash_value, mask_value};
+    use super::{build_rules, hash_value, mask_value, sanitize_text};
 
     #[test]
     fn masks_without_retaining_secret() {
@@ -225,5 +313,24 @@ mod tests {
         assert!(build_rules().is_ok());
         assert_eq!(hash_value("secret"), hash_value("secret"));
         assert_ne!(hash_value("secret"), hash_value("other"));
+    }
+
+    #[test]
+    fn outbound_text_replaces_sensitive_values_without_touching_safe_text() {
+        let input = concat!(
+            "password=hunter2 safe-text ",
+            "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature-value-long ",
+            "-----BEGIN PRIVATE KEY-----\nsecret\n-----END PRIVATE KEY-----"
+        );
+        let (sanitized, matches) = sanitize_text(input).expect("scan should succeed");
+
+        assert_eq!(matches.len(), 3);
+        assert!(sanitized.contains("safe-text"));
+        assert!(!sanitized.contains("hunter2"));
+        assert!(!sanitized.contains("eyJhbGciOiJIUzI1NiJ9"));
+        assert!(!sanitized.contains("-----BEGIN PRIVATE KEY-----"));
+        assert!(sanitized.contains("[REDACTED: credential]"));
+        assert!(sanitized.contains("[REDACTED: token]"));
+        assert!(sanitized.contains("[REDACTED: private key]"));
     }
 }

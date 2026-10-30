@@ -33,4 +33,5 @@ export interface SensitiveScanRequest {
 export interface SensitiveScanResult {
   entries: SensitiveEntry[];
   matchCount: number;
+  sanitizedContent: string;
 }

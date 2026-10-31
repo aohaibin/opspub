@@ -66,9 +66,9 @@ impl CopilotService {
         app.state::<crate::state::AppState>().db.list_ai_approvals()
     }
 
-    pub fn reject_approval(app: &AppHandle, id: i64) -> Result<(), AppError> {
+    pub fn reject_approval(app: &AppHandle, id: i64, reason: &str) -> Result<(), AppError> {
         let db = &app.state::<crate::state::AppState>().db;
-        db.reject_ai_approval(id)?;
+        db.reject_ai_approval(id, reason)?;
         let approval = db
             .get_ai_approval(id)?
             .ok_or_else(|| AppError::NotFound("审批记录不存在".into()))?;
@@ -77,7 +77,7 @@ impl CopilotService {
             &approval.server_alias,
             &approval.command,
             "human",
-            "rejected",
+            &format!("rejected: {}", reason.trim()),
         )?;
         Ok(())
     }

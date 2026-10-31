@@ -1,4 +1,5 @@
 pub mod audit;
+pub mod alerts;
 pub mod batch;
 pub mod config;
 pub mod copilot;

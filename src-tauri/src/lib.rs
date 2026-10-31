@@ -240,6 +240,10 @@ pub fn run() {
             // 审核日志模块
             commands::audit::get_audit_logs,
             commands::audit::add_audit_log,
+            commands::alerts::send_alert_webhook,
+            commands::alerts::save_alert_webhook_url,
+            commands::alerts::get_alert_webhook_status,
+            commands::alerts::delete_alert_webhook_url,
             // MCP 接入中心
             commands::mcp::get_mcp_status,
             commands::mcp::test_mcp_connection,

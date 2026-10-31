@@ -143,7 +143,12 @@
       --scrollbar-track: transparent;
     }
 
-    /* 亮色模式通用覆盖 */
+    /* ========================================================================= */
+    /* 全系统级亮色皮肤全面高质感适配 (Sky 商务冷白 / Warm 暖阳纸张白 / Aurora 极光翠白) */
+    /* 彻底消除所有页面、卡片、表格、表单、侧边抽屉与 51 个弹窗中的突兀暗底与黑底黑字问题 */
+    /* ========================================================================= */
+
+    /* 1. 基础全局框架与主布局容器 */
     html:not(.dark) {
       color-scheme: light;
       color: #0f172a;
@@ -152,9 +157,39 @@
       background-color: var(--surface-950) !important;
       color: #0f172a !important;
     }
+    html:not(.dark) main#appMainContent {
+      background-color: var(--surface-950) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) header.glass-nav {
+      background-color: rgba(255, 255, 255, 0.94) !important;
+      border-bottom-color: var(--border-base) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    html:not(.dark) aside {
+      background-color: #ffffff !important;
+      border-right-color: var(--border-base) !important;
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02);
+    }
+    html:not(.dark) aside button {
+      color: #64748b !important;
+    }
+    html:not(.dark) aside button:hover {
+      background-color: var(--surface-850) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) aside button.bg-brand-500\/20,
+    html:not(.dark) aside button.text-brand-400,
+    html:not(.dark) aside button.border-brand-500 {
+      background-color: rgba(59, 130, 246, 0.12) !important;
+      color: var(--brand-600) !important;
+    }
+
+    /* 2. 全局文字与边框通用映射 */
     html:not(.dark) .text-white {
       color: #0f172a !important;
     }
+    html:not(.dark) .text-slate-100,
     html:not(.dark) .text-slate-200,
     html:not(.dark) .text-slate-300 {
       color: #1e293b !important;
@@ -168,50 +203,623 @@
     html:not(.dark) .border-slate-800,
     html:not(.dark) .border-slate-700,
     html:not(.dark) .border-slate-800\/80,
-    html:not(.dark) .border-slate-700\/60,
     html:not(.dark) .border-slate-800\/60,
+    html:not(.dark) .border-slate-800\/40,
+    html:not(.dark) .border-slate-700\/80,
+    html:not(.dark) .border-slate-700\/60,
     html:not(.dark) .border-slate-700\/40 {
       border-color: var(--border-base) !important;
     }
-    html:not(.dark) input,
-    html:not(.dark) select,
-    html:not(.dark) textarea {
-      background-color: var(--surface-900) !important;
-      color: #0f172a !important;
+
+    /* 3. 卡片与玻璃拟态全局洗白 */
+    html:not(.dark) .glass-card {
+      background-color: #ffffff !important;
       border-color: var(--border-base) !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
     }
-    html:not(.dark) .bg-slate-900,
-    html:not(.dark) .bg-slate-950 {
+
+    /* 4. 彻底覆写所有 Tailwind 深色背景类名（涵盖所有带透明度修饰符的变体） */
+    html:not(.dark) .bg-surface-950,
+    html:not(.dark) .bg-surface-950\/95,
+    html:not(.dark) .bg-surface-950\/92,
+    html:not(.dark) .bg-surface-950\/90,
+    html:not(.dark) .bg-surface-950\/80,
+    html:not(.dark) .bg-surface-950\/70,
+    html:not(.dark) .bg-surface-950\/60,
+    html:not(.dark) .bg-surface-950\/50,
+    html:not(.dark) .bg-surface-950\/40 {
+      background-color: var(--surface-950) !important;
+    }
+
+    html:not(.dark) .bg-surface-900,
+    html:not(.dark) .bg-surface-900\/98,
+    html:not(.dark) .bg-surface-900\/95,
+    html:not(.dark) .bg-surface-900\/90,
+    html:not(.dark) .bg-surface-900\/80,
+    html:not(.dark) .bg-surface-900\/70,
+    html:not(.dark) .bg-surface-900\/60,
+    html:not(.dark) .bg-surface-900\/50,
+    html:not(.dark) .bg-surface-900\/40,
+    html:not(.dark) .bg-surface-900\/30 {
+      background-color: #ffffff !important;
+    }
+
+    html:not(.dark) .bg-surface-850,
+    html:not(.dark) .bg-surface-850\/80,
+    html:not(.dark) .bg-surface-850\/60,
+    html:not(.dark) .bg-surface-850\/50,
+    html:not(.dark) .bg-surface-850\/40 {
       background-color: var(--surface-850) !important;
     }
 
-    /* ========================================================================= */
-    /* 亮色模式深色背景全面洗白与高质感适配 (消除所有突兀黑底、深灰底与硬编码色块) */
-    /* ========================================================================= */
-    html:not(.dark) .bg-\[\#090d16\],
-    html:not(.dark) .bg-\[\#090d16\]\/30,
-    html:not(.dark) .bg-\[\#090d16\]\/70,
-    html:not(.dark) .bg-\[\#090d16\]\/80,
-    html:not(.dark) .bg-\[\#0d1117\],
-    html:not(.dark) .bg-\[\#0f172a\] {
-      background-color: var(--surface-900) !important;
-      color: #0f172a !important;
+    html:not(.dark) .bg-surface-800,
+    html:not(.dark) .bg-surface-800\/90,
+    html:not(.dark) .bg-surface-800\/80,
+    html:not(.dark) .bg-surface-800\/60,
+    html:not(.dark) .bg-surface-800\/40 {
+      background-color: #f1f5f9 !important;
       border-color: var(--border-base) !important;
     }
 
-    /* 模型服务卡片与弹窗亮色模式适配 (对齐设置页风格) */
-    html:not(.dark) #setting-card-models,
-    html:not(.dark) #setting-card-proxy,
-    html:not(.dark) #setting-card-whitelist {
-      background-color: #ffffff !important;
-      border-color: #e2e8f0 !important;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    html:not(.dark) .bg-slate-950,
+    html:not(.dark) .bg-slate-900,
+    html:not(.dark) .bg-slate-800,
+    html:not(.dark) .bg-slate-800\/90,
+    html:not(.dark) .bg-slate-800\/80 {
+      background-color: #f8fafc !important;
+      border-color: var(--border-base) !important;
     }
-    html:not(.dark) #setting-card-models div.font-medium.text-sm.text-white,
-    html:not(.dark) #setting-card-proxy div.font-medium.text-sm.text-white,
-    html:not(.dark) #setting-card-whitelist div.font-medium.text-sm.text-white {
+
+    /* 5. 硬编码十六进制深色块彻底映射为高雅白底/浅灰底 */
+    html:not(.dark) .bg-\[\#090d16\],
+    html:not(.dark) .bg-\[\#090d16\]\/90,
+    html:not(.dark) .bg-\[\#090d16\]\/80,
+    html:not(.dark) .bg-\[\#090d16\]\/70,
+    html:not(.dark) .bg-\[\#090d16\]\/30,
+    html:not(.dark) .bg-\[\#0a0e16\],
+    html:not(.dark) .bg-\[\#111620\],
+    html:not(.dark) .bg-\[\#0f172a\],
+    html:not(.dark) .bg-\[\#0d1117\],
+    html:not(.dark) .bg-\[\#1e293b\],
+    html:not(.dark) .bg-\[\#18181b\],
+    html:not(.dark) .bg-\[\#050811\] {
+      background-color: #ffffff !important;
+      border-color: var(--border-base) !important;
       color: #0f172a !important;
     }
+
+    /* 6. 表单控件 (input, select, textarea) 全套亮色适配 */
+    html:not(.dark) input,
+    html:not(.dark) select,
+    html:not(.dark) textarea {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) input::placeholder,
+    html:not(.dark) textarea::placeholder {
+      color: #94a3b8 !important;
+    }
+    html:not(.dark) input:focus,
+    html:not(.dark) select:focus,
+    html:not(.dark) textarea:focus {
+      border-color: var(--brand-500) !important;
+      outline: 2px solid rgba(59, 130, 246, 0.2) !important;
+    }
+
+    /* 7. 表格与分页控制器全局亮色适配 */
+    html:not(.dark) table thead,
+    html:not(.dark) table thead tr,
+    html:not(.dark) table thead th {
+      background-color: #f8fafc !important;
+      color: #475569 !important;
+      border-color: var(--border-base) !important;
+    }
+    html:not(.dark) table tbody tr {
+      border-color: var(--border-subtle) !important;
+      color: #1e293b !important;
+    }
+    html:not(.dark) table tbody tr:hover {
+      background-color: #f8fafc !important;
+    }
+    html:not(.dark) #skillsPaginationBar,
+    html:not(.dark) #inspectPaginationBar,
+    html:not(.dark) div[id$="PaginationBar"] {
+      background-color: #ffffff !important;
+      border-color: var(--border-base) !important;
+      color: #64748b !important;
+    }
+    html:not(.dark) div[id$="PaginationBar"] strong {
+      color: #0f172a !important;
+    }
+
+    /* 8. 51 个 Modal 弹窗系统级深度洗白与立体高质感 */
+    html:not(.dark) div[id^="modal"] .glass-card,
+    html:not(.dark) div[id^="modal"] > div.relative,
+    html:not(.dark) #modalNewRule > div > div,
+    html:not(.dark) #modalAddServer > div > div,
+    html:not(.dark) #modalEditServer > div > div,
+    html:not(.dark) #modalInspectionReport > div > div,
+    html:not(.dark) #modalInspectionHistory > div > div,
+    html:not(.dark) #modalApproval > div > div,
+    html:not(.dark) #modalCommandPalette > div > div,
+    html:not(.dark) #modalCreateSkill > div > div,
+    html:not(.dark) #modalSkillDetail > div > div,
+    html:not(.dark) #modalSkillAiHistory > div > div,
+    html:not(.dark) #modalAiGenSkillConfirm > div > div,
+    html:not(.dark) #modalBindDatabase > div > div,
+    html:not(.dark) #modalDeleteConfirm > div > div,
+    html:not(.dark) #modalPingTest > div > div,
+    html:not(.dark) #modalBatchTag > div > div,
+    html:not(.dark) #modalBatchAIPolicy > div > div,
+    html:not(.dark) #modalWindowsGuide > div > div,
+    html:not(.dark) #modalAddCustomRule > div > div,
+    html:not(.dark) #modalTestNotificationCard > div > div,
+    html:not(.dark) #modalInspectionFixDryRun > div > div,
+    html:not(.dark) #modalFileEditor > div > div,
+    html:not(.dark) #modalCredentialDetail > div > div,
+    html:not(.dark) #modalNewCredential > div > div,
+    html:not(.dark) #modalSecretFieldDecrypt > div > div,
+    html:not(.dark) #modalCredentialIsolation > div > div,
+    html:not(.dark) #modalDnsAccounts > div > div,
+    html:not(.dark) #modalCertRenewalLogs > div > div,
+    html:not(.dark) #modalProxy4Add > div > div,
+    html:not(.dark) #modalCreateWebsite > div > div,
+    html:not(.dark) #modalCreateBackup > div > div,
+    html:not(.dark) #modalDbCredentialAdd > div > div,
+    html:not(.dark) #modalRedisConnAdd > div > div,
+    html:not(.dark) #modalMongoConnAdd > div > div,
+    html:not(.dark) #modalTestMask > div > div,
+    html:not(.dark) #modalPasteImportModel > div > div,
+    html:not(.dark) #modalModelService > div > div,
+    html:not(.dark) #modalAddBlacklistRule > div > div,
+    html:not(.dark) #modalConfigDiff > div > div,
+    html:not(.dark) #modalVersionInfo > div > div,
+    html:not(.dark) #modalMCPToken > div > div,
+    html:not(.dark) #modalMCPSecret > div > div,
+    html:not(.dark) #modalMCPExport > div > div,
+    html:not(.dark) #modalSessionReplay > div > div,
+    html:not(.dark) #modalVerifyHash > div > div,
+    html:not(.dark) #modalAIOpLockedPrompt > div > div,
+    html:not(.dark) #modalCloseApp > div > div {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+      color: #0f172a !important;
+    }
+    /* 弹窗顶部栏与底部操作栏统一微灰底色与细线分隔 */
+    html:not(.dark) div[id^="modal"] div.px-5.py-4.border-b,
+    html:not(.dark) div[id^="modal"] div.px-5.py-3\.5.border-b,
+    html:not(.dark) div[id^="modal"] div.p-4\.5.border-b,
+    html:not(.dark) div[id^="modal"] div.px-4.py-3.border-b,
+    html:not(.dark) div[id^="modal"] div.p-4.border-b,
+    html:not(.dark) div[id^="modal"] [class*="border-b"][class*="bg-surface-950"] {
+      background-color: #f8fafc !important;
+      border-bottom-color: #e2e8f0 !important;
+    }
+    html:not(.dark) div[id^="modal"] div.px-5.py-3.border-t,
+    html:not(.dark) div[id^="modal"] div.p-4.border-t,
+    html:not(.dark) div[id^="modal"] [class*="border-t"][class*="bg-surface-950"] {
+      background-color: #f8fafc !important;
+      border-top-color: #e2e8f0 !important;
+    }
+    /* 弹窗内的卡片分区与标签 */
+    html:not(.dark) div[id^="modal"] h3,
+    html:not(.dark) div[id^="modal"] h4 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) div[id^="modal"] label {
+      color: #334155 !important;
+    }
+    html:not(.dark) div[id^="modal"] p.text-slate-400,
+    html:not(.dark) div[id^="modal"] span.text-slate-400 {
+      color: #64748b !important;
+    }
+
+    /* 9. 3 个侧边抽屉 (Drawer) 亮色优雅外观 */
+    html:not(.dark) #drawerSkillEditor > div > div,
+    html:not(.dark) #drawerInspectionRules > div > div,
+    html:not(.dark) #drawerApplyCert > div > div {
+      background-color: #ffffff !important;
+      border-left-color: #e2e8f0 !important;
+      box-shadow: -8px 0 30px rgba(0, 0, 0, 0.1) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #drawerSkillEditor header,
+    html:not(.dark) #drawerInspectionRules header,
+    html:not(.dark) #drawerApplyCert header {
+      background-color: #f8fafc !important;
+      border-bottom-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #drawerSkillEditor footer,
+    html:not(.dark) #drawerInspectionRules footer,
+    html:not(.dark) #drawerApplyCert footer {
+      background-color: #f8fafc !important;
+      border-top-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #skillDrawerNameDisplay,
+    html:not(.dark) #skillDrawerNameSync,
+    html:not(.dark) #skillDrawerMetaBox {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #skillDrawerYamlCode {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #047857 !important;
+    }
+    html:not(.dark) #skillDrawerContent {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
+    /* 10. 弱警示色与状态微标 (Alert Pills & Badges) 在亮色下清新柔和化 */
+    /* 翠绿 (成功/在线/内置/用户) */
+    html:not(.dark) .bg-emerald-950\/10,
+    html:not(.dark) .bg-emerald-950\/20,
+    html:not(.dark) .bg-emerald-950\/30,
+    html:not(.dark) .bg-emerald-950\/40,
+    html:not(.dark) .bg-emerald-900\/50,
+    html:not(.dark) .bg-emerald-900\/60 {
+      background-color: rgba(16, 185, 129, 0.1) !important;
+      border-color: rgba(16, 185, 129, 0.28) !important;
+    }
+    html:not(.dark) .text-emerald-400 {
+      color: #059669 !important;
+    }
+
+    /* 玫瑰红 (高危/离线/删除/危险命令) */
+    html:not(.dark) .bg-rose-950\/10,
+    html:not(.dark) .bg-rose-950\/20,
+    html:not(.dark) .bg-rose-950\/30,
+    html:not(.dark) .bg-rose-950\/40,
+    html:not(.dark) .bg-rose-900\/50,
+    html:not(.dark) .bg-rose-900\/60,
+    html:not(.dark) .bg-red-950\/80 {
+      background-color: rgba(244, 63, 94, 0.1) !important;
+      border-color: rgba(244, 63, 94, 0.28) !important;
+    }
+    html:not(.dark) .text-rose-400,
+    html:not(.dark) .text-red-400 {
+      color: #e11d48 !important;
+    }
+
+    /* 琥珀金/落日黄 (警告/待审批/中危) */
+    html:not(.dark) .bg-amber-950\/10,
+    html:not(.dark) .bg-amber-950\/20,
+    html:not(.dark) .bg-amber-950\/25,
+    html:not(.dark) .bg-amber-950\/40,
+    html:not(.dark) .bg-amber-900\/50,
+    html:not(.dark) .bg-amber-900\/60 {
+      background-color: rgba(245, 158, 11, 0.1) !important;
+      border-color: rgba(245, 158, 11, 0.28) !important;
+    }
+    html:not(.dark) .text-amber-400 {
+      color: #d97706 !important;
+    }
+
+    /* 浅青蓝 (触发词/MCP/端口/探针) */
+    html:not(.dark) .bg-cyan-950\/20,
+    html:not(.dark) .bg-cyan-950\/40,
+    html:not(.dark) .bg-cyan-900\/50,
+    html:not(.dark) .bg-cyan-900\/60,
+    html:not(.dark) .bg-blue-950\/20,
+    html:not(.dark) .bg-blue-950\/40,
+    html:not(.dark) .bg-blue-900\/60,
+    html:not(.dark) .bg-blue-900\/80 {
+      background-color: rgba(6, 182, 212, 0.1) !important;
+      border-color: rgba(6, 182, 212, 0.28) !important;
+    }
+    html:not(.dark) .text-cyan-400 {
+      color: #0891b2 !important;
+    }
+    html:not(.dark) .text-blue-400 {
+      color: #2563eb !important;
+    }
+
+    /* 紫色 (密钥/脱敏/特权) */
+    html:not(.dark) .bg-purple-950\/40,
+    html:not(.dark) .bg-purple-950\/70 {
+      background-color: rgba(168, 85, 247, 0.1) !important;
+      border-color: rgba(168, 85, 247, 0.28) !important;
+    }
+    html:not(.dark) .text-purple-400 {
+      color: #9333ea !important;
+    }
+
+    /* 11. AI 助手页面 (tab-copilot) 亮色皮肤全维度高质感深度精修 (对齐现代顶级 AI 对话界面) */
+    /* 彻底消灭全屏黑色大底、右侧黑色暗斑、告警条深色块与气泡突兀感 */
+    html:not(.dark) #tab-copilot,
+    html:not(.dark) #tab-copilot.bg-\[\#0a0d14\],
+    html:not(.dark) .bg-\[\#0a0d14\] {
+      background-color: var(--surface-950) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #chatMessageList {
+      background-color: var(--surface-950) !important;
+    }
+    html:not(.dark) #activeConversationContainer {
+      background-color: transparent !important;
+    }
+
+    /* 顶栏 (🤖 AI 助手) 与上下文筛选工具栏 (内置对话、服务器、外部工具、历史等) */
+    html:not(.dark) #tab-copilot > div.border-b.bg-\[\#0c1017\],
+    html:not(.dark) #tab-copilot > div:first-child,
+    html:not(.dark) .bg-\[\#0c1017\] {
+      background-color: #ffffff !important;
+      border-bottom-color: var(--border-base) !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+    html:not(.dark) #tab-copilot select#copilotModelSelect,
+    html:not(.dark) #tab-copilot select#copilotHostSelect {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #tab-copilot select#copilotModelSelect option,
+    html:not(.dark) #tab-copilot select#copilotHostSelect option {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+    }
+
+    /* 右侧用户指令消息气泡 (#userPromptBubble) 极高质感现代对话重塑 */
+    /* 默认/极简白 (Sky) 模式：清爽纯白高雅卡片，带主题色细边框与柔和悬浮微阴影 */
+    html:not(.dark) #userPromptBubble,
+    html:not(.dark) .user-bubble,
+    html:not(.dark) [id^="userPrompt"],
+    html:not(.dark) .bg-\[\#1e2330\] {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      border-right: 3.5px solid var(--brand-500) !important;
+      border-radius: 1.25rem 0.25rem 1.25rem 1.25rem !important;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.01em !important;
+      text-shadow: none !important;
+    }
+    html:not(.dark) #userPromptBubble *,
+    html:not(.dark) .user-bubble *,
+    html:not(.dark) [id^="userPrompt"] *,
+    html:not(.dark) .bg-\[\#1e2330\] * {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #userPromptBubble:hover {
+      border-color: var(--brand-500) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.09) !important;
+    }
+
+    /* 浅墨极光翠 (Aurora) 亮色皮肤专属：带柔和极光微青绿微高光与翡翠深青精致强调线 */
+    html[data-skin="aurora"]:not(.dark) #userPromptBubble,
+    html[data-skin="aurora"]:not(.dark) .user-bubble {
+      background: #ffffff !important;
+      border: 1px solid rgba(20, 184, 166, 0.35) !important;
+      border-right: 3.5px solid #0d9488 !important;
+      color: #0f172a !important;
+      box-shadow: 0 3px 12px rgba(13, 148, 136, 0.1) !important;
+    }
+    html[data-skin="aurora"]:not(.dark) #userPromptBubble:hover {
+      border-color: #0d9488 !important;
+      box-shadow: 0 6px 18px rgba(13, 148, 136, 0.16) !important;
+    }
+
+    /* 暖阳白 (Warm) 亮色皮肤专属：带暖橙精致边框与柔润微阴影 */
+    html[data-skin="warm"]:not(.dark) #userPromptBubble,
+    html[data-skin="warm"]:not(.dark) .user-bubble {
+      background: #ffffff !important;
+      border: 1px solid rgba(249, 115, 22, 0.35) !important;
+      border-right: 3.5px solid #ea580c !important;
+      color: #0f172a !important;
+      box-shadow: 0 3px 12px rgba(234, 88, 12, 0.1) !important;
+    }
+    html[data-skin="warm"]:not(.dark) #userPromptBubble:hover {
+      border-color: #ea580c !important;
+      box-shadow: 0 6px 18px rgba(234, 88, 12, 0.16) !important;
+    }
+
+    /* 左侧 AI 助手回复大卡片 (#aiResponseCard) 高质感白底立体卡片 */
+    html:not(.dark) #aiResponseCard {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+      color: #0f172a !important;
+      border-radius: 1rem !important;
+    }
+    html:not(.dark) #tab-copilot .glass-card,
+    html:not(.dark) #tab-copilot .bg-surface-900\/90,
+    html:not(.dark) #tab-copilot .bg-surface-900\/60 {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #tab-copilot .bg-surface-950,
+    html:not(.dark) #tab-copilot .bg-surface-950\/60 {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    /* AI 助手工具调用折叠卡片 */
+    html:not(.dark) #tab-copilot .tool-call-block,
+    html:not(.dark) #tab-copilot div.border-slate-800.bg-surface-950 {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: #1e293b !important;
+    }
+
+    /* 执行过程折叠面板与各轮步骤列表 */
+    html:not(.dark) #executionStepsBody,
+    html:not(.dark) .bg-\[\#090c12\] {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) .bg-\[\#0b0f16\] {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) .bg-\[\#0d121a\] {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) .bg-\[\#0d121a\]:hover {
+      background-color: #f1f5f9 !important;
+    }
+
+    /* 底部黄色 Trusted 档告警条在亮色下的高级柔和暖黄横幅 */
+    html:not(.dark) #tab-copilot div.bg-amber-500\/10 {
+      background-color: #fefce8 !important;
+      border: 1px solid #fef08a !important;
+      color: #854d0e !important;
+    }
+    html:not(.dark) #tab-copilot div.bg-amber-500\/10 strong,
+    html:not(.dark) #tab-copilot div.bg-amber-500\/10 span {
+      color: #854d0e !important;
+    }
+    html:not(.dark) #tab-copilot div.bg-amber-500\/10 button {
+      color: #b45309 !important;
+    }
+    html:not(.dark) #tab-copilot div.bg-amber-500\/10 i {
+      color: #d97706 !important;
+    }
+
+    /* 底部输入与操作区全局协调 */
+    html:not(.dark) #tab-copilot > div:last-child {
+      background-color: var(--surface-950) !important;
+    }
+    html:not(.dark) .bg-\[\#131924\] {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      color: #475569 !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    }
+    html:not(.dark) .bg-\[\#131924\]:hover,
+    html:not(.dark) .hover\:bg-\[\#1a2332\]:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #tab-copilot div.bg-\[\#0e131b\] {
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    }
+    html:not(.dark) #chatInput {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #chatInput::placeholder {
+      color: #94a3b8 !important;
+    }
+
+    /* 右上方 AI 操作放行浮动设置面板 */
+    html:not(.dark) #copilotLockDropdown {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #copilotLockDropdown button.bg-surface-900 {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    html:not(.dark) #copilotLockDropdown button.bg-surface-900:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+
+    /* 12. 代码块与执行日志 (pre, code) 适配 */
+    html:not(.dark) pre:not(.terminal-screen):not(#termOutput):not(#batchTerminalOutput) {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html:not(.dark) code:not(.terminal-screen) {
+      color: #2563eb !important;
+    }
+
+    /* 13. 遮罩层在亮色下采用现代半透磨砂，告别死黑 */
+    html:not(.dark) .fixed.bg-black\/80,
+    html:not(.dark) .fixed.bg-black\/75,
+    html:not(.dark) .fixed.bg-black\/70,
+    html:not(.dark) .fixed.bg-black\/85,
+    html:not(.dark) .fixed.bg-black\/90 {
+      background-color: rgba(15, 23, 42, 0.45) !important;
+      backdrop-filter: blur(4px) !important;
+    }
+
+    /* 设置菜单页 (tab-settings) 亮色皮肤全维度高质感深度适配 (彻底解决右侧暗黑卡片不协调问题) */
+    /* 1. 右侧设置详情主面板与背景统一洗白 */
+    html:not(.dark) #tab-settings {
+      background-color: var(--surface-950) !important;
+    }
+    html:not(.dark) #settingsContentPanel {
+      background-color: var(--surface-950) !important;
+    }
+    html:not(.dark) #tab-settings aside {
+      background-color: #ffffff !important;
+      border-right-color: var(--border-base) !important;
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02);
+    }
+    html:not(.dark) #tab-settings aside div.border-b {
+      border-bottom-color: var(--border-base) !important;
+    }
+    html:not(.dark) #tab-settings aside h2 {
+      color: #0f172a !important;
+    }
+
+    /* 2. 所有 18 个设置卡片 (div[id^="setting-card-"]) 统一纯白高阶立体卡片 */
+    html:not(.dark) div[id^="setting-card-"] {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) div[id^="setting-card-"]:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* 3. 卡片内文本层次清晰化 */
+    html:not(.dark) div[id^="setting-card-"] div.font-medium.text-white,
+    html:not(.dark) div[id^="setting-card-"] div.font-bold.text-white,
+    html:not(.dark) div[id^="setting-card-"] h3,
+    html:not(.dark) div[id^="setting-card-"] h4 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] p.text-slate-400,
+    html:not(.dark) div[id^="setting-card-"] span.text-slate-400 {
+      color: #64748b !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] span.text-slate-300,
+    html:not(.dark) div[id^="setting-card-"] span.text-slate-200 {
+      color: #334155 !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] label {
+      color: #1e293b !important;
+    }
+
+    /* 4. 未激活按钮、切换胶囊与辅助标签亮色洗白 */
+    html:not(.dark) div[id^="setting-card-"] .bg-\[\#141a22\],
+    html:not(.dark) div[id^="setting-card-"] .bg-\[\#161a22\],
+    html:not(.dark) div[id^="setting-card-"] button.text-slate-300:not(.bg-teal-500):not(.bg-blue-600):not(.bg-indigo-600) {
+      background-color: #f1f5f9 !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] .bg-\[\#141a22\]:hover,
+    html:not(.dark) div[id^="setting-card-"] .bg-\[\#161a22\]:hover,
+    html:not(.dark) div[id^="setting-card-"] button.text-slate-300:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+
+    /* 5. 关状态的开关滑块槽在亮色下柔和浅灰化 (告别死黑色 bg-slate-700) */
+    html:not(.dark) div[id^="setting-card-"] .bg-slate-700 {
+      background-color: #cbd5e1 !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] .bg-slate-700 div {
+      background-color: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* 6. 模型服务卡片、黑白名单、代理卡片与快捷操作 */
     html:not(.dark) .model-serv-card {
       background-color: #f8fafc !important;
       border-color: #e2e8f0 !important;
@@ -223,56 +831,51 @@
     html:not(.dark) .model-serv-card span.text-slate-200 {
       color: #0f172a !important;
     }
-    html:not(.dark) #modalPasteImportModel .glass-card,
-    html:not(.dark) #modalModelService .glass-card {
-      background-color: #ffffff !important;
-      border-color: #e2e8f0 !important;
-      color: #0f172a !important;
-    }
-    html:not(.dark) #modalPasteImportModel h3,
-    html:not(.dark) #modalModelService h3 {
-      color: #0f172a !important;
-    }
-    html:not(.dark) #modalPasteImportModel textarea,
-    html:not(.dark) #modalModelService input,
-    html:not(.dark) #modalModelService select {
+
+    /* 7. 设置页所有内嵌表格 (黑白名单/SSH/审计/备份) 全套亮色适配 */
+    html:not(.dark) div[id^="setting-card-"] table thead tr {
       background-color: #f8fafc !important;
-      border-color: #cbd5e1 !important;
+      border-color: #e2e8f0 !important;
+      color: #475569 !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] table thead th {
+      color: #475569 !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] table tbody tr {
+      border-color: #f1f5f9 !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] table tbody tr:hover {
+      background-color: #f8fafc !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] table td.font-mono {
       color: #0f172a !important;
     }
 
-    /* 危险命令黑名单表格亮色适配 */
-    html:not(.dark) #setting-card-blacklist {
-      background-color: #ffffff !important;
-      border-color: #e2e8f0 !important;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-    html:not(.dark) #setting-card-blacklist table thead tr {
-      background-color: #f8fafc !important;
-      border-color: #e2e8f0 !important;
-      color: #64748b !important;
-    }
-    html:not(.dark) #setting-card-blacklist table tbody tr {
-      border-color: #f1f5f9 !important;
-    }
-    html:not(.dark) #setting-card-blacklist table tbody tr:hover {
-      background-color: #f8fafc !important;
-    }
-    html:not(.dark) #setting-card-blacklist table td.font-mono {
-      color: #0f172a !important;
-    }
-    html:not(.dark) #modalAddBlacklistRule .glass-card {
-      background-color: #ffffff !important;
-      border-color: #e2e8f0 !important;
-      color: #0f172a !important;
-    }
-    html:not(.dark) #modalAddBlacklistRule h3 {
-      color: #0f172a !important;
-    }
-    html:not(.dark) #modalAddBlacklistRule input {
+    /* 8. 设置页表单输入框、选择框与文本域 */
+    html:not(.dark) div[id^="setting-card-"] input,
+    html:not(.dark) div[id^="setting-card-"] select,
+    html:not(.dark) div[id^="setting-card-"] textarea {
       background-color: #f8fafc !important;
       border-color: #cbd5e1 !important;
       color: #0f172a !important;
+    }
+    html:not(.dark) div[id^="setting-card-"] input:focus,
+    html:not(.dark) div[id^="setting-card-"] select:focus,
+    html:not(.dark) div[id^="setting-card-"] textarea:focus {
+      background-color: #ffffff !important;
+      border-color: var(--brand-500) !important;
+    }
+
+    /* 9. 外观主题皮肤选择卡片在亮色模式下的高阶展示 */
+    html:not(.dark) #setting-card-appearance .rounded-xl.border {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    }
+    html:not(.dark) #setting-card-appearance .rounded-xl.border:hover {
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06) !important;
     }
 
     /* 数据库 SQL 编辑器亮色适配：清爽纯白底色、清晰行号与深色代码字体 */
@@ -19022,16 +19625,6 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       document.getElementById('modalAddGroup').classList.add('hidden');
     }
 
-    // 新建分组弹窗交互 (modalAddGroup)
-    function openAddGroupModal() {
-      document.getElementById('modalAddGroup').classList.remove('hidden');
-      lucide.createIcons();
-    }
-
-    function closeAddGroupModal() {
-      document.getElementById('modalAddGroup').classList.add('hidden');
-    }
-
     function saveNewGroup() {
       const name = document.getElementById('newGroupName').value.trim();
       const parent = document.getElementById('newGroupParent')?.value || 'root';
@@ -20402,14 +20995,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       }
       nextStep();
     }
-    function togglePasswordVisibility(fieldId, btn) {
-      const input = document.getElementById(fieldId);
-      if (input.type === 'password') {
-        input.type = 'text';
-      } else {
-        input.type = 'password';
-      }
-    }
+    // 已复用全局 togglePasswordVisibility
     let clearClipboardTimer = null;
     function copyCredentialSecure(val, label) {
       navigator.clipboard.writeText(val).then(() => {
@@ -24881,13 +25467,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       openCurrentEngineAddModal();
     }
 
-    function openNewCredentialModal() {
-      openDbCredentialModal('MySQL');
-    }
-
-    function refreshCredentials() {
-      showToast('🔄 凭据列表已刷新');
-    }
+    // 凭据相关操作已统一收拢至全局凭据保险箱模块
 
     function syncMainSqlLineNumbers() {
       const editorArea = document.getElementById('mainSqlEditorArea');

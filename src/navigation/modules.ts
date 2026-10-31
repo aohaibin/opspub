@@ -295,6 +295,7 @@ export const MODULES: ModuleDef[] = [
     icon: Bell,
     group: "security",
     dot: "rose-pulse",
+    implemented: true,
   },
   {
     key: "security",
@@ -311,6 +312,7 @@ export const MODULES: ModuleDef[] = [
     icon: ShieldCheck,
     group: "security",
     dot: "amber",
+    implemented: true,
   },
   {
     key: "audit",

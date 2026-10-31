@@ -43,6 +43,8 @@ import AuditPage from "@/pages/audit";
 import SkillsPage from "@/pages/skills";
 import SensitivePage from "@/pages/sensitive";
 import InspectorPage from "@/pages/inspector";
+import AlertsPage from "@/pages/alerts";
+import SecurityPage from "@/pages/security";
 import { ModulePlaceholder } from "@/pages/module";
 
 /** 已实现模块的 key → 页面组件 */
@@ -62,6 +64,8 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   skills: SkillsPage,
   sensitive: SensitivePage,
   inspector: InspectorPage,
+  alerts: AlertsPage,
+  security: SecurityPage,
 };
 
 /** 路由路径按模块注册表的顺序生成，与左侧导航轨严格同序 */

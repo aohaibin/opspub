@@ -33,8 +33,13 @@ pub fn list_ai_approvals(app: tauri::AppHandle) -> Result<Vec<AiApproval>, Comma
 }
 
 #[tauri::command]
-pub fn reject_ai_approval(app: tauri::AppHandle, id: i64) -> Result<(), CommandError> {
-    CopilotService::reject_approval(&app, id).map_err(Into::into)
+pub fn reject_ai_approval(
+    app: tauri::AppHandle,
+    id: i64,
+    reason: Option<String>,
+) -> Result<(), CommandError> {
+    CopilotService::reject_approval(&app, id, reason.as_deref().unwrap_or("人工审批驳回"))
+        .map_err(Into::into)
 }
 
 #[tauri::command]

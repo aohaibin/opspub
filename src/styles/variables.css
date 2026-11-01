@@ -65,28 +65,30 @@
 /* ---- 亮色主题 ---- */
 :root[data-theme="light"] {
   /* 背景色层级 */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-tertiary: #e2e8f0;
-  --bg-hover: #e2e8f0;
-  --bg-active: #dbeafe;
+  --bg-primary: #f4f7fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #edf2f8;
+  --bg-hover: #e8eef6;
+  --bg-active: #e4efff;
 
   /* 文本色层级 */
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-secondary: #526174;
+  --text-muted: #748196;
 
   /* 品牌色 */
-  --accent: #4f46e5;
-  --accent-hover: #6366f1;
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --info: #3b82f6;
+  --accent: #315fce;
+  --accent-hover: #244fae;
+  --brand-500: #315fce;
+  --brand-400: #4776e2;
+  --danger: #c53b46;
+  --success: #16845b;
+  --warning: #a96808;
+  --info: #2563a8;
 
   /* 边框 */
-  --border: #e2e8f0;
-  --border-secondary: #f1f5f9;
+  --border: #d7e0eb;
+  --border-secondary: #e7edf4;
 
   /* 阴影 */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -98,23 +100,23 @@
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
 
   /* 选区 */
-  --selection-bg: rgba(79, 70, 229, 0.25);
-  --selection-text: #000;
+  --selection-bg: rgba(49, 95, 206, 0.2);
+  --selection-text: #172033;
 
   /* 玻璃效果 */
   --overlay-bg: rgba(248, 250, 252, 0.9);
-  --surface-950: #f8fafc;
+  --surface-950: #f4f7fb;
   --surface-900: #ffffff;
-  --surface-850: #eef2f7;
-  --glass-card-bg: rgba(255, 255, 255, 0.86);
-  --glass-nav-bg: rgba(255, 255, 255, 0.9);
+  --surface-850: #edf2f8;
+  --glass-card-bg: #ffffff;
+  --glass-nav-bg: rgba(255, 255, 255, 0.96);
 
   /* 导航选中态：亮色下 emerald 需要压深才能保证对比度 */
-  --nav-active-bg: rgba(16, 185, 129, 0.12);
-  --nav-active-border: rgba(16, 185, 129, 0.35);
-  --nav-active-text: #047857;
-  --nav-active-icon: #059669;
-  --nav-active-glow: 0 0 12px rgba(16, 185, 129, 0.12);
+  --nav-active-bg: rgba(22, 132, 91, 0.1);
+  --nav-active-border: rgba(22, 132, 91, 0.28);
+  --nav-active-text: #126846;
+  --nav-active-icon: #16845b;
+  --nav-active-glow: 0 0 10px rgba(22, 132, 91, 0.08);
 }
 
 /* ---- 通用令牌（不随主题切换） ---- */
@@ -1089,62 +1091,62 @@
 
 /* --- 亮色 · 晴空素白（冷灰白 + 蓝强调） --- */
 :root[data-skin="sky"] {
-  --surface-950: #f8fafc;
+  --surface-950: #f4f8ff;
   --surface-900: #ffffff;
-  --surface-850: #eef2f7;
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-tertiary: #e2e8f0;
-  --bg-hover: #e2e8f0;
-  --bg-active: #dbeafe;
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
-  --brand-500: #3b82f6;
-  --brand-400: #60a5fa;
-  --overlay-bg: rgba(248, 250, 252, 0.9);
+  --surface-850: #edf3fb;
+  --bg-primary: #f4f8ff;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #edf3fb;
+  --bg-hover: #e7f0ff;
+  --bg-active: #e0ecff;
+  --accent: #2563a8;
+  --accent-hover: #1d4f87;
+  --brand-500: #2563a8;
+  --brand-400: #3979bd;
+  --overlay-bg: rgba(244, 248, 255, 0.92);
   --glass-nav-bg: rgba(255, 255, 255, 0.92);
-  --glass-card-bg: rgba(255, 255, 255, 0.88);
-  --selection-bg: rgba(59, 130, 246, 0.25);
+  --glass-card-bg: #ffffff;
+  --selection-bg: rgba(37, 99, 168, 0.2);
 }
 
 /* --- 亮色 · 活力晨光（暖米白 + 橙强调） --- */
 :root[data-skin="warm"] {
-  --surface-950: #fffbeb;
+  --surface-950: #fffaf2;
   --surface-900: #ffffff;
-  --surface-850: #fef9e7;
-  --bg-primary: #fffbeb;
-  --bg-secondary: #fef3c7;
-  --bg-tertiary: #fde68a;
-  --bg-hover: #fde68a;
-  --bg-active: #fed7aa;
-  --accent: #f97316;
-  --accent-hover: #fb923c;
-  --brand-500: #f97316;
-  --brand-400: #fb923c;
-  --overlay-bg: rgba(255, 251, 235, 0.9);
-  --glass-nav-bg: rgba(255, 251, 235, 0.9);
-  --glass-card-bg: rgba(255, 255, 255, 0.88);
-  --selection-bg: rgba(249, 115, 22, 0.22);
+  --surface-850: #fff5e8;
+  --bg-primary: #fffaf2;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #fff1df;
+  --bg-hover: #ffedd5;
+  --bg-active: #ffe4c2;
+  --accent: #c25a12;
+  --accent-hover: #9f470c;
+  --brand-500: #c25a12;
+  --brand-400: #db6d1d;
+  --overlay-bg: rgba(255, 250, 242, 0.92);
+  --glass-nav-bg: rgba(255, 255, 255, 0.94);
+  --glass-card-bg: #ffffff;
+  --selection-bg: rgba(194, 90, 18, 0.18);
 }
 
 /* --- 亮色 · 极光浅葱（薄荷白 + 青绿强调） --- */
 :root[data-skin="aurora"] {
-  --surface-950: #f0fdfa;
+  --surface-950: #f2fbfa;
   --surface-900: #ffffff;
-  --surface-850: #e6fbf5;
-  --bg-primary: #f0fdfa;
-  --bg-secondary: #ccfbf1;
-  --bg-tertiary: #99f6e4;
-  --bg-hover: #99f6e4;
-  --bg-active: #99f6e4;
-  --accent: #14b8a6;
-  --accent-hover: #2dd4bf;
-  --brand-500: #14b8a6;
-  --brand-400: #2dd4bf;
-  --overlay-bg: rgba(240, 253, 250, 0.9);
-  --glass-nav-bg: rgba(240, 253, 250, 0.9);
-  --glass-card-bg: rgba(255, 255, 255, 0.88);
-  --selection-bg: rgba(20, 184, 166, 0.22);
+  --surface-850: #e8f8f5;
+  --bg-primary: #f2fbfa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e1f5f1;
+  --bg-hover: #d9f1ed;
+  --bg-active: #ccebe5;
+  --accent: #087f78;
+  --accent-hover: #06655f;
+  --brand-500: #087f78;
+  --brand-400: #149d93;
+  --overlay-bg: rgba(242, 251, 250, 0.92);
+  --glass-nav-bg: rgba(255, 255, 255, 0.94);
+  --glass-card-bg: #ffffff;
+  --selection-bg: rgba(8, 127, 120, 0.18);
 }
 
 /* ============================================================
@@ -1721,4 +1723,68 @@
   .sftp-tree-sidebar { width: 100%; max-height: 240px; }
   .sftp-tree-detail { min-height: 380px; padding: 16px; }
   .sftp-tree-detail-head { align-items: flex-start; flex-direction: column; }
+}
+
+/* 亮色模式下，部分工作区保留了深色终端/代码面板；普通信息面板统一回到浅色表面。 */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --server-action-hover: var(--accent);
+  --border-subtle: var(--border-secondary);
+  --brand: var(--accent);
+}
+
+:root[data-theme="light"] .ops-server-group,
+:root[data-theme="light"] .ops-server-table-panel,
+:root[data-theme="light"] .ops-panel,
+:root[data-theme="light"] .sftp-tree-detail,
+:root[data-theme="light"] .security-ticket,
+:root[data-theme="light"] .security-panel,
+:root[data-theme="light"] .security-policy-row {
+  background: var(--surface-900);
+  box-shadow: 0 1px 2px rgb(24 39 62 / 5%);
+}
+
+:root[data-theme="light"] .sftp-tree-item.active {
+  background: color-mix(in srgb, var(--nav-active-bg) 72%, white);
+}
+
+:root[data-theme="light"] .sftp-tree-detail-name em {
+  color: #a52c3a;
+}
+
+:root[data-theme="light"] .ops-terminal-empty-pane {
+  border-color: var(--border);
+  background: var(--surface-850);
+}
+
+:root[data-theme="light"] .ops-terminal-disconnected {
+  background: rgb(244 247 251 / 92%);
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .ops-terminal-disconnected strong {
+  color: var(--danger);
+}
+
+:root[data-theme="light"] .ops-terminal-notice {
+  color: #82520c;
+}
+
+:root[data-theme="light"] .security-header h1,
+:root[data-theme="light"] .security-kpi strong,
+:root[data-theme="light"] .security-ticket > header strong,
+:root[data-theme="light"] .security-ticket-meta b,
+:root[data-theme="light"] .security-section-title h2,
+:root[data-theme="light"] .security-policy-row strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .security-tabs button.active {
+  color: #82520c;
+}
+
+:root[data-theme="light"] .security-script pre,
+:root[data-theme="light"] .security-command-detail,
+:root[data-theme="light"] .security-confirm pre {
+  color: #126846;
 }

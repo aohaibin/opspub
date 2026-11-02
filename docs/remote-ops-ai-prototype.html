@@ -40,6 +40,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
     :root,
     html[data-skin="obsidian"] {
       --surface-950: #090d16;
@@ -56,7 +58,7 @@
       --border-subtle: rgba(51, 65, 85, 0.6);
       --scrollbar-thumb: #334155;
       --scrollbar-track: #0f172a;
-    }
+  }
 
     html[data-skin="graphite"] {
       --surface-950: #0a0a0b;
@@ -1258,7 +1260,7 @@
     pre, code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
-  
+
     html, body {
       height: 100%;
       overflow: hidden;
@@ -1518,11 +1520,23 @@
       --desktop-scale: 1.0;
     }
 
+    /* 全局高质感圆润现代字体栈 (彻底告别机械方正切割的卡尺感) */
     body, button, input, select, textarea {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Alibaba PuHuiTi 3.0", "Alibaba PuHuiTi", "Microsoft YaHei", sans-serif;
+      font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI Variable Text", "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "HarmonyOS Sans", "MiSans", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
+      text-rendering: geometricPrecision;
+      letter-spacing: -0.012em;
+    }
+
+    /* 极致柔和温润圆体风格 (当启用 data-font="rounded" 时) */
+    html[data-font="rounded"] body,
+    html[data-font="rounded"] button,
+    html[data-font="rounded"] input,
+    html[data-font="rounded"] select,
+    html[data-font="rounded"] textarea {
+      font-family: "Plus Jakarta Sans", "PingFang SC", "HarmonyOS Sans SC", "MiSans", "YouYuan", "STYuanti-SC-Regular", "Microsoft YaHei UI", sans-serif !important;
+      letter-spacing: 0.01em;
     }
 
     /* 桌面客户端应用视窗主体 */
@@ -1704,7 +1718,53 @@
     .window-no-drag {
       -webkit-app-region: no-drag;
     }
-  </style>
+  
+    /* ==========================================================================
+       服务器资产清单 - 默认不换行与双模式视觉优化
+       ========================================================================== */
+    #serverTable.whitespace-nowrap th,
+    #serverTable.whitespace-nowrap td {
+      white-space: nowrap !important;
+    }
+    #serverTable.whitespace-nowrap tr {
+      height: 56px;
+    }
+    .custom-scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* 亮色模式下的服务器表格与标签优化 (对齐截图 media_1793455537548_bfa48219.png) */
+    html:not(.dark) #serverTable thead {
+      background-color: rgba(248, 250, 252, 0.95) !important;
+      border-bottom-color: #e2e8f0 !important;
+      color: #64748b !important;
+    }
+    html:not(.dark) #serverTableBody tr {
+      border-bottom-color: #f1f5f9 !important;
+    }
+    html:not(.dark) #serverTableBody tr:hover {
+      background-color: rgba(241, 245, 249, 0.8) !important;
+    }
+    html:not(.dark) #serverTableBody td .text-slate-100 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #serverTableBody td .text-slate-400 {
+      color: #64748b !important;
+    }
+    html:not(.dark) #serverTableBody span.bg-surface-800 {
+      background-color: #f1f5f9 !important;
+      color: #334155 !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #btnServerWrapMode {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+</style>
 </head>
 <body class="bg-[#050811] text-slate-100 h-full max-h-screen overflow-hidden font-sans select-none">
 
@@ -2260,18 +2320,24 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- 列表换行控制按钮 (默认单行不换行，支持一键切换) -->
+                <button onclick="toggleServerTableWrapMode()" id="btnServerWrapMode" class="px-2.5 py-1 rounded-lg bg-surface-800 text-emerald-400 border border-emerald-500/40 hover:bg-surface-750 flex items-center space-x-1.5 transition cursor-pointer select-none shadow-sm" title="切换列表换行方式：当前为单行不换行（默认，行高紧凑一致）。点击可切换为换行展开">
+                  <i data-lucide="align-justify" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span id="serverWrapModeText" class="text-xs font-medium">单行不换行</span>
+                </button>
               </div>
             </div>
 
-            <!-- 主机动态表格 (自适应纵向滚动，表头 sticky 吸顶，内容直通底部) -->
+            <!-- 主机动态表格 (自适应纵向滚动，表头 sticky 吸顶，内容直通底部，默认单行不换行) -->
             <div class="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar relative">
-              <table class="w-full text-left text-xs">
+              <table id="serverTable" class="w-full text-left text-xs whitespace-nowrap">
                 <thead class="bg-surface-900/95 backdrop-blur-md sticky top-0 z-10 text-slate-400 text-[11px] border-b border-slate-800 select-none shadow-sm">
                   <tr>
                     <th class="p-3 w-10 text-center">
                       <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" class="rounded bg-surface-800 border-slate-700 cursor-pointer" title="全选 / 反选">
                     </th>
-                    <th class="p-3 min-w-[200px] cursor-pointer hover:text-slate-200 transition" onclick="toggleServerSort('name')">
+                    <th class="p-3 min-w-[280px] cursor-pointer hover:text-slate-200 transition" onclick="toggleServerSort('name')">
                       <div class="flex items-center space-x-1">
                         <span>别名 / 主机</span>
                         <span class="text-slate-500 text-[10px]">⬍</span>
@@ -2417,7 +2483,7 @@
 
         <!-- 2. 工作台主体结构：左侧次级侧边栏 + 右侧主内容区 -->
         <div class="flex-1 flex min-h-0 overflow-hidden">
-          
+
           <!-- 左侧二级侧边栏：机器面板 (对齐截图 1~5) -->
           <div id="wbSidePanel" class="w-44 shrink-0 flex flex-col border-r border-slate-800 bg-surface-950/70 select-none py-2 px-2 overflow-y-auto custom-scrollbar transition-all duration-200">
             <div class="flex items-center justify-between px-2 py-1 text-xs text-slate-400 font-medium">
@@ -10532,7 +10598,42 @@
                 </div>
               </div>
             </div>
-          </div>
+          
+            <!-- 字体风格偏好设置 (消除卡尺感 / 现代圆润黑体与温润幼圆一键切换) -->
+            <div class="pt-4 border-t border-slate-800/80">
+              <div class="flex items-center justify-between mb-2.5">
+                <div>
+                  <div class="font-medium text-xs text-white flex items-center space-x-1.5">
+                    <span>🔤</span>
+                    <span>文字字体风格（消除机械卡尺感）</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5">告别老旧机械方折卡尺感，切换现代圆润抗锯齿平滑字体栈</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button type="button" onclick="selectFontStyle('modern-round')" id="font-btn-modern-round" class="px-3.5 py-2.5 rounded-xl border-2 border-teal-500 bg-teal-500/10 text-teal-400 text-xs font-medium flex items-center justify-between transition cursor-pointer select-none">
+                  <div class="flex items-center space-x-2.5">
+                    <span class="text-base">✨</span>
+                    <div class="text-left">
+                      <div class="font-bold text-slate-100">现代圆润 (推荐默认)</div>
+                      <div class="text-[10px] text-slate-400 font-normal">Plus Jakarta + 鸿蒙/苹方/雅黑UI · 几何平滑</div>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-mono font-bold text-teal-400">✓ 激活</span>
+                </button>
+                <button type="button" onclick="selectFontStyle('rounded-soft')" id="font-btn-rounded-soft" class="px-3.5 py-2.5 rounded-xl border border-slate-700 bg-surface-900 text-slate-300 text-xs font-medium flex items-center justify-between hover:bg-surface-850 transition cursor-pointer select-none">
+                  <div class="flex items-center space-x-2.5">
+                    <span class="text-base">🌸</span>
+                    <div class="text-left">
+                      <div class="font-bold text-slate-200">温润幼圆风格</div>
+                      <div class="text-[10px] text-slate-400 font-normal">幼圆 / 华文幼圆 · 圆弧倒角饱满亲和</div>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-500">点击切换</span>
+                </button>
+              </div>
+            </div>
+</div>
 
           <!-- 卡片 5: 终端主题 -->
           <div id="setting-card-terminal-theme" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
@@ -14805,7 +14906,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
           mainEl.classList.remove('p-0', 'overflow-hidden');
           mainEl.classList.add('p-5', 'space-y-5', 'overflow-y-auto');
         }
-      }
+  }
 
       document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('nav-btn-active', 'bg-emerald-500/15', 'text-emerald-300', 'border', 'border-emerald-500/30', 'shadow-[0_0_12px_rgba(16,185,129,0.15)]');
@@ -18288,10 +18389,37 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       document.getElementById('modalWindowsGuide').classList.add('hidden');
     }
 
-    
+
     // =========================================================================
     // ★ 服务器资产管理核心状态与控制器 (Server Assets State & Controller)
     // =========================================================================
+    // 列表换行模式状态：默认单行不换行 ('nowrap')，支持用户切换为折行展开 ('wrap')
+    let serverTableWrapMode = 'nowrap';
+
+    function toggleServerTableWrapMode() {
+      serverTableWrapMode = serverTableWrapMode === 'nowrap' ? 'wrap' : 'nowrap';
+      updateServerWrapModeButton();
+      renderServerTable();
+    }
+
+    function updateServerWrapModeButton() {
+      const btn = document.getElementById('btnServerWrapMode');
+      const table = document.getElementById('serverTable');
+      if (!btn) return;
+      if (serverTableWrapMode === 'nowrap') {
+        btn.className = 'px-2.5 py-1 rounded-lg bg-surface-800 text-emerald-400 border border-emerald-500/40 hover:bg-surface-750 flex items-center space-x-1.5 transition cursor-pointer select-none shadow-sm';
+        btn.innerHTML = '<i data-lucide="align-justify" class="w-3.5 h-3.5 text-emerald-400"></i><span id="serverWrapModeText" class="text-xs font-medium">单行不换行</span>';
+        btn.title = '当前为：单行不换行（默认，行高紧凑一致）。点击可切换为换行展开';
+        if (table) table.classList.add('whitespace-nowrap');
+      } else {
+        btn.className = 'px-2.5 py-1 rounded-lg bg-surface-800 text-slate-400 hover:text-slate-200 border border-slate-700/80 flex items-center space-x-1.5 transition cursor-pointer select-none';
+        btn.innerHTML = '<i data-lucide="wrap-text" class="w-3.5 h-3.5 text-slate-400"></i><span id="serverWrapModeText" class="text-xs font-medium">换行展开</span>';
+        btn.title = '当前为：换行展开（多标签自动折行）。点击可切换为默认单行不换行';
+        if (table) table.classList.remove('whitespace-nowrap');
+      }
+      lucide.createIcons();
+    }
+
     let serverList = [
       {
         id: 'tx-0209',
@@ -18768,12 +18896,14 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         if (emptyNotice) emptyNotice.classList.add('hidden');
       }
 
-      // 5. 动态组装每行 HTML (对齐用户红框截图)
+      const isNowrap = serverTableWrapMode === 'nowrap';
+
+      // 5. 动态组装每行 HTML (默认单行不换行，紧凑工整，行高严格一致)
       tbody.innerHTML = filtered.map(s => {
         const isChecked = selectedServerIds.has(s.id);
 
-        // 标签小微标
-        const tagPills = s.tags.map(t => `<span class="px-1.5 py-0.2 rounded text-[10px] bg-surface-800 text-slate-300 border border-slate-700/60 font-sans">${t}</span>`).join(' ');
+        // 标签小徽标 (单行不折叠 + shrink-0)
+        const tagPills = s.tags.map(t => `<span class="px-1.5 py-0.5 rounded text-[10px] bg-surface-800 text-slate-300 border border-slate-700/60 font-sans whitespace-nowrap shrink-0 leading-none select-none">${t}</span>`).join(' ');
 
         // OS 图标徽章 (圆角方形带彩色背景与专用 Logo)
         let osBadgeHtml = '';
@@ -18821,11 +18951,26 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         }
         const bypassTooltip = bypassActive ? `AI免审批：${bypassStatusText}，点击修改` : 'AI免审批：点击设置';
 
+        // 标签行展示结构：默认单行不换行（水平排列不折叠）vs 换行展开
+        const tagsRowHtml = isNowrap ? `
+          <div class="flex items-center gap-1.5 mt-0.5 whitespace-nowrap flex-nowrap overflow-hidden max-w-full">
+            <span class="font-mono text-[11px] text-slate-400 shrink-0 select-text">${s.user}@${s.ip}${s.port !== 22 ? ':' + s.port : ''}</span>
+            <div class="flex items-center gap-1 overflow-x-auto custom-scrollbar-hide shrink-0">
+              ${tagPills}
+            </div>
+          </div>
+        ` : `
+          <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+            <span class="font-mono text-[11px] text-slate-400">${s.user}@${s.ip}${s.port !== 22 ? ':' + s.port : ''}</span>
+            ${tagPills}
+          </div>
+        `;
+
         // 当前所属分组名称与胶囊下拉
         return `
-          <tr class="hover:bg-surface-850/60 transition group border-b border-slate-800/40">
+          <tr class="hover:bg-surface-850/60 transition group border-b border-slate-800/40 ${isNowrap ? 'h-[56px]' : ''}">
             <!-- 1. 选择框 + 收藏星标 -->
-            <td class="p-3 text-center">
+            <td class="p-3 text-center whitespace-nowrap">
               <div class="flex items-center justify-center space-x-1.5">
                 <input type="checkbox" onchange="handleRowSelectChange('${s.id}', this.checked)" ${isChecked ? 'checked' : ''} class="server-row-chk rounded bg-surface-800 border-slate-700 cursor-pointer">
                 <button onclick="toggleStarServer('${s.id}')" class="p-0.5 rounded cursor-pointer transition text-slate-500 hover:text-amber-400" title="${s.isStarred ? '取消收藏' : '加入收藏'}">
@@ -18834,25 +18979,22 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
               </div>
             </td>
 
-            <!-- 2. 别名 / 主机 (左侧系统图标，第一行别名+锁标，第二行连接地址+标签) -->
-            <td class="p-3">
-              <div class="flex items-center space-x-2.5">
+            <!-- 2. 别名 / 主机 (默认单行不换行，第一行别名+锁标，第二行连接地址+标签单行平铺) -->
+            <td class="p-3 whitespace-nowrap">
+              <div class="flex items-center space-x-2.5 whitespace-nowrap">
                 ${osBadgeHtml}
-                <div class="min-w-0">
-                  <div class="flex items-center space-x-1.5 font-bold text-slate-100">
-                    <span class="truncate hover:text-brand-300 cursor-pointer transition text-xs" onclick="switchHost('${s.id}'); switchTab('tab-workbench')">${s.name}</span>
+                <div class="min-w-0 max-w-full whitespace-nowrap">
+                  <div class="flex items-center space-x-1.5 font-bold text-slate-100 whitespace-nowrap">
+                    <span class="truncate hover:text-brand-300 cursor-pointer transition text-xs font-semibold" onclick="switchHost('${s.id}'); switchTab('tab-workbench')">${s.name}</span>
                     <i data-lucide="lock" class="w-3 h-3 text-slate-500 shrink-0" title="AES-256 主密钥安全托管"></i>
                   </div>
-                  <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    <span class="font-mono text-[11px] text-slate-400">${s.user}@${s.ip}${s.port !== 22 ? ':' + s.port : ''}</span>
-                    ${tagPills}
-                  </div>
+                  ${tagsRowHtml}
                 </div>
               </div>
             </td>
 
             <!-- 3. 分组 (绿色微光胶囊下拉选择) -->
-            <td class="p-3">
+            <td class="p-3 whitespace-nowrap">
               <div class="relative inline-flex items-center">
                 <select onchange="changeServerGroup('${s.id}', this.value)" class="appearance-none bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full pl-2.5 pr-5 py-0.5 text-[11px] font-medium cursor-pointer focus:outline-none transition" title="点击更改所属分组">
                   ${customServerGroups.map(g => `<option value="${g.id}" class="bg-surface-900 text-slate-200" ${s.group === g.id || s.group === g.name ? 'selected' : ''}>${g.name}</option>`).join('')}
@@ -18862,7 +19004,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
             </td>
 
             <!-- 4. AI 策略 (完全对齐截图 media_1790004662510.png 胶囊下拉选择 + 5个彩色胶囊药丸选项) -->
-            <td class="p-3 relative">
+            <td class="p-3 relative whitespace-nowrap">
               <div class="flex items-center space-x-1.5">
                 <div class="relative">
                   <button onclick="toggleServerAIPolicyMenu(event, '${s.id}')" class="px-2.5 py-0.5 rounded-full text-[11px] font-medium ${curPolicyCfg.btnBg} border flex items-center space-x-1.5 transition cursor-pointer hover:opacity-90 shadow-sm" title="点击切换 AI 策略">
@@ -18928,14 +19070,13 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
               </div>
             </td>
 
-
             <!-- 5. 凭证指示 (绿色盾牌图标，主密钥安全托管) -->
-            <td class="p-3 text-center">
+            <td class="p-3 text-center whitespace-nowrap">
               <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 mx-auto" title="AES-256 主密钥安全托管于系统钥匙串"></i>
             </td>
 
             <!-- 6. 状态 (🟢 延迟时间毫秒) -->
-            <td class="p-3">
+            <td class="p-3 whitespace-nowrap">
               <div onclick="openPingTestModal('${s.id}')" class="flex items-center space-x-1.5 text-xs text-emerald-400 font-mono font-medium cursor-pointer hover:underline" title="点击查看连通性与握手诊断报告">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
                 <span id="latency-text-${s.id}">${s.latency}</span>
@@ -18998,6 +19139,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       if (selectAllChk) selectAllChk.checked = allVisibleSelected;
 
       updateBatchActionBar();
+      updateServerWrapModeButton();
       lucide.createIcons();
     }
 
@@ -22235,6 +22377,60 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       skinDd.classList.toggle('hidden');
       const lockDd = document.getElementById('aiLockDropdown');
       if (lockDd && !lockDd.classList.contains('hidden')) lockDd.classList.add('hidden');
+    }
+
+    
+    // 字体风格偏好控制 (现代圆润 / 温润幼圆)
+    function selectFontStyle(styleKey, quiet = false) {
+      if (styleKey === 'rounded-soft') {
+        document.documentElement.setAttribute('data-font', 'rounded');
+      } else {
+        document.documentElement.removeAttribute('data-font');
+      }
+      try {
+        localStorage.setItem('opspub_font_style', styleKey);
+      } catch (e) {}
+
+      updateFontStyleUI(styleKey);
+      if (!quiet) {
+        showToast(styleKey === 'rounded-soft' ? '🌸 已切换为「温润幼圆」风格' : '✨ 已切换为「现代圆润」风格');
+      }
+    }
+
+    function updateFontStyleUI(styleKey) {
+      const btnModern = document.getElementById('font-btn-modern-round');
+      const btnSoft = document.getElementById('font-btn-rounded-soft');
+      if (!btnModern || !btnSoft) return;
+
+      if (styleKey === 'rounded-soft') {
+        btnModern.className = 'px-3.5 py-2.5 rounded-xl border border-slate-700 bg-surface-900 text-slate-300 text-xs font-medium flex items-center justify-between hover:bg-surface-850 transition cursor-pointer select-none';
+        const span1 = btnModern.querySelector('span:last-child');
+        if (span1) {
+          span1.className = 'text-[10px] font-mono text-slate-500';
+          span1.innerText = '点击切换';
+        }
+
+        btnSoft.className = 'px-3.5 py-2.5 rounded-xl border-2 border-teal-500 bg-teal-500/10 text-teal-400 text-xs font-medium flex items-center justify-between transition cursor-pointer select-none';
+        const span2 = btnSoft.querySelector('span:last-child');
+        if (span2) {
+          span2.className = 'text-[10px] font-mono font-bold text-teal-400';
+          span2.innerText = '✓ 激活';
+        }
+      } else {
+        btnModern.className = 'px-3.5 py-2.5 rounded-xl border-2 border-teal-500 bg-teal-500/10 text-teal-400 text-xs font-medium flex items-center justify-between transition cursor-pointer select-none';
+        const span1 = btnModern.querySelector('span:last-child');
+        if (span1) {
+          span1.className = 'text-[10px] font-mono font-bold text-teal-400';
+          span1.innerText = '✓ 激活';
+        }
+
+        btnSoft.className = 'px-3.5 py-2.5 rounded-xl border border-slate-700 bg-surface-900 text-slate-300 text-xs font-medium flex items-center justify-between hover:bg-surface-850 transition cursor-pointer select-none';
+        const span2 = btnSoft.querySelector('span:last-child');
+        if (span2) {
+          span2.className = 'text-[10px] font-mono text-slate-500';
+          span2.innerText = '点击切换';
+        }
+      }
     }
 
     function selectThemeSkin(themeKey, quiet = false) {

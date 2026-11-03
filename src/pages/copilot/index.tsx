@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Spin, Tag, message } from "antd";
 import {
   Activity,
+  BadgeInfo,
   Bookmark,
   Bot,
   ChevronDown,
@@ -25,8 +26,11 @@ import { copilotApi } from "@/lib/api/copilot";
 import { getErrorMessage } from "@/lib/api/client";
 import { modelServiceApi } from "@/lib/api/model-service";
 import { serverApi } from "@/lib/api/server";
+import { skillsApi } from "@/lib/api/skills";
+import { chatSkillContext, matchChatSkills, parseBuiltinSkills, parseUserSkills, resolveChatSkills, SKILLS_STORAGE_KEY, skillDocument, type ChatSkill } from "@/lib/copilot-skills";
 import { UNLOCK_DURATIONS, useAppStore, type UnlockDuration } from "@/store/app";
-import type { AiApproval, CopilotProgress, CopilotToolCall, ModelProfile, Server } from "@/types";
+import type { AiApproval, AiApprovalDetail, CopilotProgress, CopilotToolCall, ModelProfile, Server } from "@/types";
+import skillsIndex from "../../../docs/skills-index-20261006.md?raw";
 
 interface ChatMessage {
   id: string;
@@ -35,6 +39,7 @@ interface ChatMessage {
   toolCalls?: CopilotToolCall[];
   warnings?: string[];
   modelName?: string | null;
+  skillNames?: string[];
 }
 
 interface ChatSession {
@@ -43,6 +48,7 @@ interface ChatSession {
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];
+  skillIds?: string[];
 }
 
 interface CopilotExperience {
@@ -56,6 +62,8 @@ const CHAT_SESSIONS_KEY = "ops_copilot_sessions";
 const ACTIVE_CHAT_SESSION_KEY = "ops_copilot_active_session";
 const LEGACY_HISTORY_KEY = "ops_copilot_history";
 const EXPERIENCES_KEY = "ops_copilot_experiences";
+
+const BUILTIN_CHAT_SKILLS = parseBuiltinSkills(skillsIndex);
 
 const QUICK_PROMPTS = [
   { icon: Activity, color: "text-emerald-400", iconBg: "bg-emerald-500/10 border-emerald-500/20", title: "检查一台机器的健康度", description: "磁盘 / 内存 / 关键服务，只使用只读工具", prompt: "帮我检查当前机器的健康度" },
@@ -95,6 +103,7 @@ function loadChatState(): { sessions: ChatSession[]; activeSessionId: string } {
         title: typeof item.title === "string" ? item.title : sessionTitle(item.messages),
         createdAt: Number.isFinite(item.createdAt) ? item.createdAt : Date.now(),
         updatedAt: Number.isFinite(item.updatedAt) ? item.updatedAt : Date.now(),
+        skillIds: Array.isArray(item.skillIds) ? item.skillIds.filter((id): id is string => typeof id === "string") : [],
       }));
       const savedActiveId = localStorage.getItem(ACTIVE_CHAT_SESSION_KEY);
       return {
@@ -141,7 +150,8 @@ export default function CopilotPage() {
   const activeServerId = useAppStore((state) => state.activeServerId);
   const setActiveServerId = useAppStore((state) => state.setActiveServerId);
   const [servers, setServers] = useState<Server[]>([]);
-  const [serverId, setServerId] = useState<number | null>(activeServerId);
+  // 顶部会话选择器和 AI 对话必须共用同一个目标，避免本地副本在切换后继续发送旧 ID。
+  const serverId = activeServerId;
   const [modelProfiles, setModelProfiles] = useState<ModelProfile[]>([]);
   const [modelProfileId, setModelProfileId] = useState<string | null>(() => localStorage.getItem("ops_copilot_model_profile"));
   const [input, setInput] = useState("");
@@ -153,16 +163,35 @@ export default function CopilotPage() {
   const [experienceQuery, setExperienceQuery] = useState("");
   const [experienceTitle, setExperienceTitle] = useState("");
   const [experienceContent, setExperienceContent] = useState("");
+  const [skillDraftOpen, setSkillDraftOpen] = useState(false);
+  const [skillDraft, setSkillDraft] = useState({ name: "", description: "", triggers: "", content: "" });
+  const [skillDraftSaving, setSkillDraftSaving] = useState(false);
+  const [chatSkills, setChatSkills] = useState<ChatSkill[]>(() => [...parseUserSkills(localStorage.getItem(SKILLS_STORAGE_KEY)), ...BUILTIN_CHAT_SKILLS]);
+  const [suppressedAutoSkillIds, setSuppressedAutoSkillIds] = useState<string[]>([]);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explainText, setExplainText] = useState("");
+  const [explainResult, setExplainResult] = useState("");
+  const [explainLoading, setExplainLoading] = useState(false);
   const [experiences, setExperiences] = useState<CopilotExperience[]>(loadExperiences);
   const [sessions, setSessions] = useState<ChatSession[]>(chatState.sessions);
   const [activeSessionId, setActiveSessionId] = useState(chatState.activeSessionId);
+  const selectedSkillIds = sessions.find((session) => session.id === activeSessionId)?.skillIds ?? [];
+  const setSelectedSkillIds = (ids: string[]) => {
+    setSessions((current) => current.map((session) => session.id === activeSessionId ? { ...session, skillIds: ids, updatedAt: Date.now() } : session));
+  };
   const messages = useMemo(
     () => sessions.find((session) => session.id === activeSessionId)?.messages ?? [INITIAL_MESSAGE],
     [sessions, activeSessionId],
   );
+  const matchedSkills = useMemo(() => matchChatSkills(chatSkills, input), [chatSkills, input]);
+  const visibleSkillIds = useMemo(() => Array.from(new Set([
+    ...selectedSkillIds.filter((id) => chatSkills.some((skill) => skill.id === id)),
+    ...matchedSkills.filter((skill) => !suppressedAutoSkillIds.includes(skill.id)).map((skill) => skill.id),
+  ])), [selectedSkillIds, chatSkills, matchedSkills, suppressedAutoSkillIds]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<CopilotProgress | null>(null);
   const [approvals, setApprovals] = useState<AiApproval[]>([]);
+  const [approvalDetails, setApprovalDetails] = useState<AiApprovalDetail[]>([]);
   const [approvalBusy, setApprovalBusy] = useState<number | null>(null);
   const [lockSaving, setLockSaving] = useState(false);
   const [lockPopoverOpen, setLockPopoverOpen] = useState(false);
@@ -203,11 +232,14 @@ export default function CopilotPage() {
     void serverApi.list().then((items) => {
       if (!mounted) return;
       setServers(items);
-      if (activeServerId && items.some((item) => item.id === activeServerId)) setServerId(activeServerId);
-      else if (items.length === 1) setServerId(items[0].id);
+      const selectedStillExists = activeServerId !== null && items.some((item) => item.id === activeServerId);
+      if (!selectedStillExists) {
+        // 服务器被删除或首次只有一台时，修正全局选择，保证后端收到的 ID 一定来自当前列表。
+        setActiveServerId(items.length === 1 ? items[0].id : null);
+      }
     }).catch((error) => { if (mounted) message.error(getErrorMessage(error)); });
     return () => { mounted = false; };
-  }, [activeServerId]);
+  }, [activeServerId, setActiveServerId]);
 
   useEffect(() => {
     let mounted = true;
@@ -221,6 +253,14 @@ export default function CopilotPage() {
   }, []);
 
   useEffect(() => {
+    const syncUserSkills = () => {
+      setChatSkills([...parseUserSkills(localStorage.getItem(SKILLS_STORAGE_KEY)), ...BUILTIN_CHAT_SKILLS]);
+    };
+    window.addEventListener("storage", syncUserSkills);
+    return () => window.removeEventListener("storage", syncUserSkills);
+  }, []);
+
+  useEffect(() => {
     let disposed = false;
     let stop: (() => void) | undefined;
     void listen<CopilotProgress>("copilot-progress", (event) => {
@@ -231,12 +271,30 @@ export default function CopilotPage() {
     return () => { disposed = true; stop?.(); };
   }, []);
 
+  useEffect(() => {
+    let disposed = false;
+    let stop: (() => void) | undefined;
+    void listen("copilot-approval-changed", () => { if (!disposed) void refreshApprovals(); })
+      .then((unlisten) => { if (disposed) unlisten(); else stop = unlisten; })
+      .catch(() => undefined);
+    return () => { disposed = true; stop?.(); };
+  }, []);
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, progress]);
 
   const refreshApprovals = async () => {
-    try { setApprovals(await copilotApi.listApprovals()); }
+    try {
+      const details = await copilotApi.listApprovalDetails();
+      setApprovalDetails(details);
+      setApprovals(details.map((item) => item.approval));
+    }
     catch (error) { message.error(getErrorMessage(error)); }
   };
+
+  const approvalDetailById = useMemo(
+    () => new Map(approvalDetails.map((item) => [item.approval.id, item])),
+    [approvalDetails],
+  );
 
   useEffect(() => {
     void refreshApprovals();
@@ -335,6 +393,7 @@ export default function CopilotPage() {
     setActiveSessionId(session.id);
     setHistoryOpen(false);
     setInput("");
+    setSuppressedAutoSkillIds([]);
   };
 
   const switchSession = (sessionId: string) => {
@@ -342,9 +401,11 @@ export default function CopilotPage() {
     setHistoryOpen(false);
     setInput("");
     setProgress(null);
+    setSuppressedAutoSkillIds([]);
   };
 
   const deleteSession = (sessionId: string) => {
+    if (sessionId === activeSessionId) { setInput(""); setSuppressedAutoSkillIds([]); }
     const remaining = sessions.filter((session) => session.id !== sessionId);
     if (remaining.length === 0) {
       const fresh = newChatSession();
@@ -383,14 +444,17 @@ export default function CopilotPage() {
       }
     }
     const requestSessionId = activeSessionId;
+    // 每次重新匹配实际问题；自动命中的技能不写回会话，避免污染下一轮。
+    const activeSkills = resolveChatSkills(chatSkills.filter((skill) => !suppressedAutoSkillIds.includes(skill.id)), selectedSkillIds, text, true);
     setInput("");
     updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "user", content: text }]);
     setLoading(true);
     setProgress({ stage: "queued", message: "正在分析问题并选择受控工具", serverAlias: null, completed: false });
     try {
       const history = messages.filter((item) => item.id !== "welcome").slice(-12).map((item) => ({ role: item.role, content: item.content }));
-      const result = await copilotApi.chat({ message: text, serverId: serverId ?? null, provider: modelProfileId ? "model" : "local-safe-tools", modelProfileId, history });
-      updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.reply, modelName: result.modelName, toolCalls: result.toolCalls, warnings: result.warnings }]);
+      const skillContext = chatSkillContext(activeSkills);
+      const result = await copilotApi.chat({ message: text, serverId: serverId ?? null, provider: modelProfileId ? "model" : "local-safe-tools", modelProfileId, history, skillIds: activeSkills.map((skill) => skill.id), skillContext });
+      updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.reply, modelName: result.modelName, toolCalls: result.toolCalls, warnings: result.warnings, skillNames: activeSkills.map((skill) => skill.name) }]);
       if (result.toolCalls.some((tool) => tool.approvalId)) await refreshApprovals();
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -399,6 +463,29 @@ export default function CopilotPage() {
     } finally {
       setLoading(false);
       setProgress(null);
+      setSuppressedAutoSkillIds([]);
+    }
+  };
+
+  const openCommandExplanation = (text: string) => {
+    if (!modelProfileId) {
+      message.info("请先在顶部选择已配置的模型服务，再使用命令解析。");
+      return;
+    }
+    setExplainText(text);
+    setExplainResult("");
+    setExplainOpen(true);
+  };
+
+  const explainCommand = async () => {
+    if (!modelProfileId || !explainText.trim()) return;
+    setExplainLoading(true);
+    try {
+      setExplainResult(await copilotApi.explainCommand(modelProfileId, explainText));
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setExplainLoading(false);
     }
   };
 
@@ -422,6 +509,7 @@ export default function CopilotPage() {
   const clearHistory = () => {
     updateSessionMessages(activeSessionId, () => [INITIAL_MESSAGE]);
     setProgress(null);
+    setSuppressedAutoSkillIds([]);
   };
 
   const openExperienceSave = () => {
@@ -446,6 +534,53 @@ export default function CopilotPage() {
     setExperiences((current) => [item, ...current]);
     setExperienceSaveOpen(false);
     message.success("已保存到本机经验库");
+  };
+
+  const openSkillDraft = (experience: CopilotExperience) => {
+    const normalizedName = `${experience.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "ops-experience"}-${crypto.randomUUID().slice(0, 8)}`;
+    const triggerCandidates = experience.title.split(/[\s，。,:：/]+/).map((item) => item.trim()).filter((item) => item.length >= 2).slice(0, 6);
+    setSkillDraft({
+      name: normalizedName,
+      description: experience.title,
+      triggers: triggerCandidates.join(", "),
+      content: `## 操作步骤\n\n${experience.content}\n\n## 安全约束\n\n- 先执行只读检查并确认目标范围。\n- 变更命令必须经过后端风险规则、白名单和人工审批。\n- 执行完成后进行只读健康验证并记录结果。`,
+    });
+    setExperienceLibraryOpen(false);
+    setSkillDraftOpen(true);
+  };
+
+  const saveSkillDraft = async () => {
+    if (skillDraftSaving) return;
+    const name = skillDraft.name.trim();
+    const description = skillDraft.description.trim();
+    const triggers = [...new Set(skillDraft.triggers.split(/[,，、\n]/).map((item) => item.trim()).filter(Boolean))];
+    const content = skillDraft.content.trim();
+    if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(name) || !description || triggers.length === 0 || !content) {
+      message.warning("请填写合法的技能名称、描述、触发词和正文");
+      return;
+    }
+    const existing = parseUserSkills(localStorage.getItem(SKILLS_STORAGE_KEY));
+    if ([...existing, ...BUILTIN_CHAT_SKILLS].some((skill) => skill.name === name)) {
+      message.warning("技能名称已存在，请更换名称；已有技能可在技能菜单编辑");
+      return;
+    }
+    setSkillDraftSaving(true);
+    try {
+      const document = skillDocument({ name, description, triggers, content });
+      const nextSkill: ChatSkill = { id: crypto.randomUUID(), name, source: "user", description, triggers, dangerous: [], content, hits: 0 };
+      // 提前序列化，避免文件保存后才发现浏览器数据无法编码。
+      const stored = JSON.stringify([nextSkill, ...existing]);
+      await skillsApi.save(name, document);
+      localStorage.setItem(SKILLS_STORAGE_KEY, stored);
+      setChatSkills([nextSkill, ...existing, ...BUILTIN_CHAT_SKILLS]);
+      setSelectedSkillIds(Array.from(new Set([...selectedSkillIds, nextSkill.id])));
+      setSkillDraftOpen(false);
+      message.success("技能草稿已审核保存，并可用于后续对话匹配");
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setSkillDraftSaving(false);
+    }
   };
 
   const matchingSessions = sessions
@@ -495,6 +630,30 @@ export default function CopilotPage() {
           <Button size="small" type="primary" loading={lockSaving} disabled={lockSaving} onClick={() => void continuePendingPrompt("unlock")}><span className="inline-flex items-center gap-1.5"><Unlock size={13} />开启 30 分钟</span></Button>
         </div>
       </Modal>
+      <Modal
+        title={<span className="flex items-center gap-2"><BadgeInfo size={17} className="text-amber-500" />AI 命令静态解析</span>}
+        open={explainOpen}
+        onCancel={() => setExplainOpen(false)}
+        onOk={() => void explainCommand()}
+        okText={explainResult ? "重新解析" : "开始解析"}
+        cancelText="关闭"
+        confirmLoading={explainLoading}
+        okButtonProps={{ disabled: !explainText.trim() }}
+        width={680}
+        destroyOnClose
+        maskClosable={false}
+      >
+        <div className="space-y-3">
+          <Alert type="warning" showIcon message="此功能只分析文本，不会连接服务器、执行命令或批准操作。命令仍需人工同意，并继续受白名单和审批策略限制。" />
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">待分析命令或请求
+            <Input.TextArea className="mt-2 font-mono" value={explainText} onChange={(event) => setExplainText(event.target.value)} maxLength={4000} showCount rows={5} placeholder="粘贴被拦截的命令或命令请求" />
+          </label>
+          {explainResult && <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+            <h3 className="mb-2 mt-0 text-base font-semibold text-slate-900 dark:text-slate-100">分析结果</h3>
+            <div className="whitespace-pre-wrap break-words text-sm leading-7 text-slate-700 dark:text-slate-300">{explainResult}</div>
+          </section>}
+        </div>
+      </Modal>
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-surface-900/95 px-5 py-3.5">
         <div className="flex min-w-0 items-center gap-2"><Bot size={18} className="text-indigo-400" /><div><h1 className="m-0 text-sm font-bold text-white">AI 助手</h1><p className="m-0 mt-0.5 text-[11px] text-slate-400">让 AI 帮你查看和操作服务器；每一步都受 AI 操作策略约束，并记入审计</p></div></div>
         <div className="flex items-center gap-2">
@@ -515,8 +674,17 @@ export default function CopilotPage() {
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-surface-950/60 px-5 py-2 text-xs">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Bot size={14} className="text-indigo-400" /><span className="text-[11px]">内置对话</span><Select size="small" variant="borderless" className="min-w-44" value={modelProfileId ?? "local-safe-tools"} onChange={(value) => setModelProfileId(value === "local-safe-tools" ? null : value)} options={[{ value: "local-safe-tools", label: "本地受控工具" }, ...modelProfiles.map((profile) => ({ value: profile.id, label: `${profile.name} · ${profile.model || "未指定模型"}` }))]} /></label>
-          <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Database size={14} className="text-teal-400" /><span className="sr-only">目标服务器</span><Select size="small" variant="borderless" className="min-w-52 max-w-72" value={serverId} onChange={(value) => { setServerId(value); setActiveServerId(value); }} options={serverOptions} /></label>
+          <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Database size={14} className="text-teal-400" /><span className="sr-only">目标服务器</span><Select size="small" variant="borderless" className="min-w-52 max-w-72" value={serverId} onChange={(value) => setActiveServerId(value === null || value === undefined ? null : Number(value))} options={serverOptions} /></label>
           <Button size="small" className="!h-8 !border-slate-800 !bg-[#0e131b] !text-slate-300" icon={<Puzzle size={14} className="text-amber-400" />} onClick={() => message.info("AI 工具由当前服务器策略和 MCP 接入配置共同控制")}>外部工具</Button>
+          <div className="flex min-h-8 w-full max-w-[32rem] items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400">
+            <Puzzle size={14} className="shrink-0 text-amber-400" /><span className="shrink-0 text-xs">本轮技能</span>
+            <Select aria-label="本轮技能" mode="multiple" size="small" variant="borderless" allowClear showSearch maxTagCount="responsive" className="min-w-0 flex-1" placeholder="自动匹配或手动选择" value={visibleSkillIds} disabled={loading} optionFilterProp="label" onChange={(ids: string[]) => {
+              // 删除某个自动技能时，不要把其余自动匹配项变成会话固定项。
+              setSelectedSkillIds(ids.filter((id) => selectedSkillIds.includes(id) || suppressedAutoSkillIds.includes(id) || !matchedSkills.some((skill) => skill.id === id)));
+              setSuppressedAutoSkillIds(matchedSkills.filter((skill) => !ids.includes(skill.id)).map((skill) => skill.id));
+            }} options={chatSkills.map((skill) => ({ value: skill.id, label: `${skill.name} · ${matchedSkills.some((item) => item.id === skill.id) && !selectedSkillIds.includes(skill.id) ? "自动" : skill.source === "user" ? "用户" : "内置"}`, title: skill.description }))} />
+          </div>
+          <span className="text-xs text-slate-500">自动匹配最多 3 项，可手动增删；技能仅作分析参考</span>
           <span className="px-1 text-[11px] text-slate-500">{sessions.length} 个会话</span>
         </div>
         <div className="flex items-center gap-3 text-slate-400">
@@ -530,7 +698,7 @@ export default function CopilotPage() {
 
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-amber-500/20 bg-amber-950/15 px-4 py-1.5 text-[11px]"><div className="flex items-center gap-2 text-amber-200"><ShieldAlert size={13} /><span>选择模型后，当前问题、最近对话和脱敏后的只读结果会发送给对应模型服务商；SSH 凭据不会发送。</span></div><Button type="link" size="small" className="text-emerald-400" onClick={() => void navigate("/credentials")}>查看凭据状态</Button></div>
 
-      {approvals.length > 0 && <section className="custom-scrollbar max-h-40 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div key={item.id} className="mb-1 flex flex-wrap items-center justify-between gap-2 rounded border border-slate-700 px-2 py-1"><span>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</span><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div key={item.id} className="border-b border-slate-800 py-1">#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
+      {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div key={item.id} className="mb-2 rounded border border-slate-700 px-2 py-2"><div className="flex flex-wrap items-center justify-between gap-2"><span>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</span><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div key={item.id} className="border-b border-slate-800 py-1">#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
 
       <Modal title={<span className="flex items-center gap-2"><History size={16} />历史对话 <Tag className="m-0">{sessions.length}</Tag></span>} open={historyOpen} onCancel={() => setHistoryOpen(false)} footer={null} width={620} destroyOnClose>
         <div className="mb-3 flex items-center justify-between gap-2"><Input.Search allowClear value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索对话标题或内容" className="max-w-sm" /><Button icon={<Plus size={13} />} onClick={createSession}>新建对话</Button></div>
@@ -564,10 +732,21 @@ export default function CopilotPage() {
         <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
           {matchingExperiences.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={experienceQuery ? "没有匹配的经验" : "还没有保存的经验"} /> : matchingExperiences.map((item) => (
             <article key={item.id} className="rounded-lg border border-slate-800 bg-surface-950 p-3">
-              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="m-0 truncate text-sm font-semibold text-slate-100">{item.title}</h3><p className="mb-0 mt-1 text-[10px] text-slate-500">保存于 {new Date(item.createdAt).toLocaleString()}</p></div><div className="flex shrink-0 items-center gap-1"><Button size="small" onClick={() => { setInput((current) => current ? `${current}\n\n参考本机经验「${item.title}」：\n${item.content}` : `参考本机经验「${item.title}」：\n${item.content}`); setExperienceLibraryOpen(false); }}>放入对话</Button><Popconfirm title="删除这条本机经验？" okText="删除" cancelText="取消" onConfirm={() => setExperiences((current) => current.filter((experience) => experience.id !== item.id))}><Button size="small" danger type="text">删除</Button></Popconfirm></div></div>
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="m-0 truncate text-sm font-semibold text-slate-100">{item.title}</h3><p className="mb-0 mt-1 text-[10px] text-slate-500">保存于 {new Date(item.createdAt).toLocaleString()}</p></div><div className="flex shrink-0 items-center gap-1"><Button size="small" type="dashed" onClick={() => openSkillDraft(item)}>提炼为技能</Button><Button size="small" onClick={() => { setInput((current) => current ? `${current}\n\n参考本机经验「${item.title}」：\n${item.content}` : `参考本机经验「${item.title}」：\n${item.content}`); setExperienceLibraryOpen(false); }}>放入对话</Button><Popconfirm title="删除这条本机经验？" okText="删除" cancelText="取消" onConfirm={() => setExperiences((current) => current.filter((experience) => experience.id !== item.id))}><Button size="small" danger type="text">删除</Button></Popconfirm></div></div>
               <details className="mt-2"><summary className="cursor-pointer text-[11px] text-indigo-300">查看内容</summary><pre className="mb-0 mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 text-xs leading-relaxed text-slate-300">{item.content}</pre></details>
             </article>
           ))}
+        </div>
+      </Modal>
+
+      <Modal title={<span className="flex items-center gap-2"><Puzzle size={17} />提炼为用户技能 · 审核草稿</span>} open={skillDraftOpen} onCancel={() => { if (!skillDraftSaving) setSkillDraftOpen(false); }} onOk={() => void saveSkillDraft()} okText="审核并保存技能" cancelText="取消" confirmLoading={skillDraftSaving} cancelButtonProps={{ disabled: skillDraftSaving }} closable={!skillDraftSaving} maskClosable={false} width={760} styles={{ body: { maxHeight: "65vh", overflowY: "auto" } }}>
+        <div className="space-y-4 py-2">
+          <Alert type="info" showIcon message="经验已整理为草稿，请审核适用环境、操作步骤与验证方式，移除敏感信息后保存。" />
+          <label className="block text-sm">技能名称<Input className="mt-2" value={skillDraft.name} maxLength={64} disabled={skillDraftSaving} onChange={(event) => setSkillDraft((current) => ({ ...current, name: event.target.value }))} placeholder="例如 nginx-troubleshooting" /></label>
+          <label className="block text-sm">描述<Input className="mt-2" value={skillDraft.description} maxLength={500} disabled={skillDraftSaving} onChange={(event) => setSkillDraft((current) => ({ ...current, description: event.target.value }))} /></label>
+          <label className="block text-sm">触发词（逗号分隔）<Input className="mt-2" value={skillDraft.triggers} maxLength={1000} disabled={skillDraftSaving} onChange={(event) => setSkillDraft((current) => ({ ...current, triggers: event.target.value }))} placeholder="nginx, 502, 网关错误" /></label>
+          <label className="block text-sm">正文（Markdown）<Input.TextArea className="mt-2 font-mono" rows={12} maxLength={20000} showCount value={skillDraft.content} disabled={skillDraftSaving} onChange={(event) => setSkillDraft((current) => ({ ...current, content: event.target.value }))} /></label>
+          <Alert type="warning" showIcon message="保存后可在技能菜单管理并用于后续聊天。技能不会绕过黑白名单、风险规则、人工审批或后置验证。" />
         </div>
       </Modal>
 
@@ -577,15 +756,29 @@ export default function CopilotPage() {
             <div className="mx-auto max-w-3xl space-y-2"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-500/25 bg-indigo-500/10 text-indigo-400 shadow-inner"><Bot size={24} /></div><h2 className="m-0 text-base font-bold text-white">有什么可以帮你？</h2><p className="mx-auto max-w-md text-xs leading-relaxed text-slate-400">AI 会调用你授权的工具查看、操作服务器，每一步都受 AI 操作策略约束并记入审计。</p></div>
             <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 text-left md:grid-cols-2">{QUICK_PROMPTS.map((item) => { const Icon = item.icon; return <button key={item.title} type="button" disabled={loading} onClick={() => void send(item.prompt)} className="group space-y-1.5 rounded-xl border border-slate-800/80 bg-[#0f141c] p-4 text-left transition hover:border-slate-700 hover:bg-surface-900/60 disabled:opacity-60"><div className="flex items-center gap-2 text-xs font-bold text-white transition group-hover:text-indigo-400"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${item.iconBg}`}><Icon size={14} className={item.color} /></span><span>{item.title}</span></div><p className="m-0 pl-9 text-[11px] leading-relaxed text-slate-400">{item.description}</p></button>; })}</div>
             <div className="mx-auto flex max-w-3xl items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-500"><History size={14} className="text-slate-600" /><span>对话会自动保存，可在上方“历史”中继续。</span></div>
-          </div> : messages.filter((item) => item.id !== "welcome").map((item) => item.role === "user" ? (
+          </div> : messages.map((item, messageIndex) => item.id === "welcome" ? null : item.role === "user" ? (
             <div key={item.id} className="flex w-full justify-end pr-1 sm:pr-2"><article className="inline-flex max-w-2xl items-center rounded-2xl rounded-tr-md border border-slate-700/80 bg-[#1e2330] px-5 py-2.5 text-xs leading-normal text-slate-100 shadow-sm transition hover:bg-[#242a3a]"><div className="whitespace-pre-wrap break-words">{item.content}</div></article></div>
           ) : (
+            (() => {
+              const blockedCall = item.toolCalls?.find((tool) => tool.status === "blocked" && (tool.tool === "policy_guard" || tool.output.includes("白名单")));
+              const sourceRequest = messages.slice(0, messageIndex).reverse().find((entry) => entry.role === "user")?.content ?? "";
+              return (
             <article key={item.id} className="w-full space-y-3.5 rounded-2xl border border-slate-800/90 bg-[#0f141c] p-5 text-xs shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5"><div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-1.5 font-bold text-white"><Bot size={15} className="text-indigo-400" />OpsPub AI 助手</span><Tag bordered={false} color={item.content.startsWith("请求失败：") ? "error" : "success"} className="m-0">{item.content.startsWith("请求失败：") ? "未完成" : "已完成"}</Tag>{item.toolCalls?.length ? <Tag bordered={false} color="blue" className="m-0">{item.toolCalls.length} 次工具调用</Tag> : null}</div><span className="text-[11px] text-slate-500">{item.modelName ? `模型 · ${item.modelName}` : "本地受控模式"}</span></div>
               <div className="whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-200">{item.content}</div>
+              {item.modelName && item.skillNames?.length ? <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400"><Puzzle size={13} /><span>本轮参考技能</span>{item.skillNames.map((name) => <Tag key={name} className="m-0">{name}</Tag>)}</div> : null}
               {item.toolCalls?.length ? <details className="overflow-hidden rounded-xl border border-slate-800/80 bg-[#0b0f16]"><summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-surface-900/60 px-3.5 py-2.5 text-xs transition hover:bg-surface-850/80"><span className="flex min-w-0 items-center gap-2 font-semibold text-slate-200"><TerminalSquare size={14} className="shrink-0 text-cyan-400" />执行过程 <span className="truncate font-normal text-slate-400">{item.toolCalls.length} 次工具调用</span></span><span className="shrink-0 text-[11px] text-slate-500">点击展开</span></summary><div className="space-y-2 border-t border-slate-800/80 bg-[#090c12] p-3.5">{item.toolCalls.map((tool, index) => <div key={`${tool.tool}-${tool.serverAlias}-${index}`} className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-cyan-300"><TerminalSquare size={13} />{tool.tool}{tool.serverAlias ? <span className="font-sans font-normal text-slate-500">@{tool.serverAlias}</span> : null}</span><Tag color={tool.status === "success" ? "success" : tool.status === "blocked" ? "warning" : tool.status === "skipped" ? "default" : tool.status === "pending" ? "processing" : "error"}>{tool.status}</Tag></div><pre className="m-0 mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-slate-400">{tool.output || "无输出"}</pre></div>)}</div></details> : null}
+              {blockedCall && <Alert
+                className="mt-2"
+                type="warning"
+                showIcon
+                message="该命令不在受控白名单中，已拦截，需要人工同意"
+                description={<div className="space-y-2"><p className="m-0">命令没有发送到服务器。你可以先让 AI 解释它的用途、参数和风险；解析结果不会代替人工同意，也不会执行命令。</p><Button size="middle" icon={<BadgeInfo size={15} />} disabled={!modelProfileId} onClick={() => openCommandExplanation(sourceRequest)}>AI 解析命令</Button>{!modelProfileId && <span className="ml-2">请先选择已配置的模型。</span>}</div>}
+              />}
               {item.warnings?.map((warning) => <Alert key={warning} className="mt-2" type="warning" showIcon message={warning} />)}
             </article>
+              );
+            })()
           ))}
           {loading && <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-surface-900 p-3 text-slate-400"><Spin size="small" />{progress?.message ?? "正在处理..."}{progress?.serverAlias ? ` · ${progress.serverAlias}` : ""}</div>}
           <div ref={bottomRef} />
@@ -600,4 +793,17 @@ export default function CopilotPage() {
       </div></footer>
     </div>
   );
+}
+
+function CopilotApprovalPlanSummary({ detail }: { detail?: AiApprovalDetail }) {
+  const plan = detail?.plan;
+  if (!plan) return null;
+  const risk = plan.risk.level === "high" ? "高危" : plan.risk.level === "medium" ? "中危" : plan.risk.level === "extreme" ? "极高危" : "需复核";
+  return <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-[10px] text-slate-500 sm:grid-cols-2">
+    <span>风险：{risk}</span>
+    <span>计划：{plan.status}</span>
+    <span className="truncate" title={plan.commandSha256}>哈希：{plan.commandSha256.slice(0, 16)}…</span>
+    <span className="truncate" title={plan.ruleVersion}>策略：{plan.ruleVersion || "--"}</span>
+    <span className="sm:col-span-2">验证：{plan.verificationSteps.map((step) => step.label).join("、") || "无"}</span>
+  </div>;
 }

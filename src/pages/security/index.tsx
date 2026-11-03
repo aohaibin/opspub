@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { Alert, Button, Drawer, Empty, Input, Modal, Select, Switch, Table, Tag, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Ban, CheckCircle2, Clock3, FileSearch, History, Inbox, RefreshCw, ScrollText, ShieldAlert, ShieldCheck, Sliders, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { configApi } from "@/lib/api/config";
 import { copilotApi } from "@/lib/api/copilot";
+import { policyApi } from "@/lib/api/policy";
 import { getErrorMessage } from "@/lib/api/client";
-import type { AiApproval } from "@/types";
+import type { AiApproval, AiApprovalDetail, PolicyRule } from "@/types";
 import "./security.css";
 
 type SecurityTab = "pending" | "history" | "policies" | "blacklist";
@@ -16,19 +18,11 @@ type GatePolicy = {
   nightMode: boolean;
   zeroPresenceLock: boolean;
 };
-type BlacklistRule = { id: string; pattern: string; label: string; builtin?: boolean };
+type LegacyBlacklistRule = { id: string; pattern: string; label: string; builtin?: boolean };
 
 const POLICY_KEY = "security.gatePolicy";
 const BLACKLIST_KEY = "security.blacklist";
 const DEFAULT_POLICY: GatePolicy = { productionDoubleApproval: true, testingAutofix: false, nightMode: true, zeroPresenceLock: true };
-const DEFAULT_BLACKLIST: BlacklistRule[] = [
-  { id: "rm-root", pattern: String.raw`^rm\s+-(rf|fr)\s+/(.*)?$`, label: "根目录强制删除", builtin: true },
-  { id: "mkfs-device", pattern: String.raw`^mkfs(\.[a-z0-9]+)?\s+/dev/.*$`, label: "格式化块设备", builtin: true },
-  { id: "dd-device", pattern: String.raw`^dd\s+if=.*\s+of=/dev/[a-z]+$`, label: "底层裸盘复写", builtin: true },
-  { id: "iptables-flush", pattern: String.raw`^iptables\s+-(F|X|Z)$`, label: "清空所有防护链", builtin: true },
-  { id: "drop-database", pattern: String.raw`DROP\s+DATABASE\s+.*`, label: "直接删除主数据库", builtin: true },
-  { id: "chmod-root", pattern: String.raw`^chmod\s+-R\s+777\s+/$`, label: "根目录危险越权", builtin: true },
-];
 
 const statusLabel: Record<AiApproval["status"], string> = {
   pending: "待审批", rejected: "已拒绝", expired: "已过期", executing: "执行中", completed: "已完成", failed: "执行失败", unknown: "状态未知",
@@ -55,8 +49,9 @@ export default function SecurityPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<SecurityTab>("pending");
   const [approvals, setApprovals] = useState<AiApproval[]>([]);
+  const [approvalDetails, setApprovalDetails] = useState<AiApprovalDetail[]>([]);
   const [policy, setPolicy] = useState<GatePolicy>(DEFAULT_POLICY);
-  const [blacklist, setBlacklist] = useState<BlacklistRule[]>(DEFAULT_BLACKLIST);
+  const [blacklist, setBlacklist] = useState<PolicyRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
@@ -68,14 +63,37 @@ export default function SecurityPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [items, policyValue, blacklistValue] = await Promise.all([
-        copilotApi.listApprovals(),
+      const [items, policyValue, blacklistValue, storedRules] = await Promise.all([
+        copilotApi.listApprovalDetails(),
         configApi.get(POLICY_KEY).catch(() => null),
         configApi.get(BLACKLIST_KEY).catch(() => null),
+        policyApi.listRules(true),
       ]);
-      setApprovals(items);
+      setApprovalDetails(items);
+      setApprovals(items.map((item) => item.approval));
       setPolicy({ ...DEFAULT_POLICY, ...parseJson<Partial<GatePolicy>>(policyValue, {}) });
-      setBlacklist(parseJson<BlacklistRule[]>(blacklistValue, DEFAULT_BLACKLIST));
+      const legacyRules = parseJson<LegacyBlacklistRule[]>(blacklistValue, []);
+      const storedIds = new Set(storedRules.map((rule) => rule.id));
+      for (const legacy of legacyRules) {
+        if (legacy.builtin || storedIds.has(legacy.id) || !legacy.id.startsWith("custom-")) continue;
+        try {
+          await policyApi.saveRule({
+            id: legacy.id,
+            label: legacy.label,
+            pattern: legacy.pattern,
+            riskLevel: "high",
+            action: "review",
+            enabled: true,
+            builtin: false,
+            ruleVersion: "policy-v1",
+            createdAt: 0,
+            updatedAt: 0,
+          });
+        } catch {
+          // Ignore malformed legacy rules; new rules are validated by the Rust service.
+        }
+      }
+      setBlacklist(legacyRules.length ? await policyApi.listRules(true) : storedRules);
     } catch (error) {
       message.error(getErrorMessage(error));
     } finally {
@@ -88,8 +106,20 @@ export default function SecurityPage() {
     const timer = window.setInterval(() => { void load(); }, 30_000);
     return () => window.clearInterval(timer);
   }, [load]);
+  useEffect(() => {
+    let disposed = false;
+    let stop: (() => void) | undefined;
+    void listen("copilot-approval-changed", () => { if (!disposed) void load(); })
+      .then((unlisten) => { if (disposed) unlisten(); else stop = unlisten; })
+      .catch(() => undefined);
+    return () => { disposed = true; stop?.(); };
+  }, [load]);
 
   const pending = approvals.filter((item) => item.status === "pending");
+  const detailByApproval = useMemo(
+    () => new Map(approvalDetails.map((item) => [item.approval.id, item])),
+    [approvalDetails],
+  );
   const today = todayStart();
   const approvedToday = approvals.filter((item) => item.status === "completed" && (item.finishedAt ?? item.decidedAt ?? 0) >= today).length;
   const rejectedCount = approvals.filter((item) => item.status === "rejected" || item.status === "failed").length;
@@ -136,15 +166,41 @@ export default function SecurityPage() {
     try { await configApi.set(POLICY_KEY, JSON.stringify(policy)); message.success("安全闸门策略已保存到本机"); }
     catch (error) { message.error(getErrorMessage(error)); }
   };
-  const saveBlacklist = async (next: BlacklistRule[]) => {
-    try { await configApi.set(BLACKLIST_KEY, JSON.stringify(next)); setBlacklist(next); message.success("高危拦截规则已保存"); }
-    catch (error) { message.error(getErrorMessage(error)); }
-  };
   const addRule = async () => {
     if (!ruleDraft.pattern.trim() || !ruleDraft.label.trim()) { message.warning("请填写规则正则和说明"); return; }
-    try { new RegExp(ruleDraft.pattern); } catch { message.error("正则表达式格式无效"); return; }
-    await saveBlacklist([...blacklist, { id: `custom-${Date.now()}`, pattern: ruleDraft.pattern.trim(), label: ruleDraft.label.trim() }]);
-    setRuleDraft({ pattern: "", label: "" }); setRuleDrawerOpen(false);
+    try {
+      await policyApi.saveRule({
+        id: `custom-${Date.now()}`,
+        label: ruleDraft.label.trim(),
+        pattern: ruleDraft.pattern.trim(),
+        riskLevel: "high",
+        action: "review",
+        enabled: true,
+        builtin: false,
+        ruleVersion: "policy-v1",
+        createdAt: 0,
+        updatedAt: 0,
+      });
+      setBlacklist(await policyApi.listRules(true));
+      setRuleDraft({ pattern: "", label: "" });
+      setRuleDrawerOpen(false);
+      message.success("高危复核规则已保存到后端策略库");
+    } catch (error) { message.error(getErrorMessage(error)); }
+  };
+
+  const setRuleEnabled = async (rule: PolicyRule, enabled: boolean) => {
+    try {
+      await policyApi.setRuleEnabled(rule.id, enabled);
+      setBlacklist(await policyApi.listRules(true));
+    } catch (error) { message.error(getErrorMessage(error)); }
+  };
+
+  const deleteRule = async (rule: PolicyRule) => {
+    try {
+      await policyApi.deleteRule(rule.id);
+      setBlacklist(await policyApi.listRules(true));
+      message.success("自定义规则已删除");
+    } catch (error) { message.error(getErrorMessage(error)); }
   };
 
   const columns: ColumnsType<AiApproval> = [
@@ -160,17 +216,31 @@ export default function SecurityPage() {
     <section className="security-kpis"><Kpi icon={<Inbox size={15} />} label="待决操作工单" value={pending.length} tone="amber" hint="需人工裁决" /><Kpi icon={<CheckCircle2 size={15} />} label="今日安全放行" value={approvedToday} tone="green" hint="24 小时统计" /><Kpi icon={<Ban size={15} />} label="拒绝 / 执行失败" value={rejectedCount} tone="rose" hint="后端安全门结果" /><Kpi icon={<Clock3 size={15} />} label="平均审批时效" value={averageMinutes} tone="indigo" hint="分钟" /></section>
     <nav className="security-tabs" aria-label="审批视图">{([ ["pending", <Inbox size={14} />, `待决审批队列 (${pending.length})`], ["history", <History size={14} />, "已审批轨迹记录"], ["policies", <Sliders size={14} />, "安全闸门策略配置"], ["blacklist", <Ban size={14} />, "高危指令拦截库"] ] as const).map(([key, icon, label]) => <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{icon}{label}</button>)}</nav>
 
-    {tab === "pending" && <section className="security-scroll">{pending.length === 0 ? <Empty className="py-16" image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无待裁决审批。AI 发起改动型操作后，申请会出现在这里。" /> : <div className="security-ticket-list">{pending.map((item) => <article key={item.id} className="security-ticket"><header><div className="min-w-0"><Tag color="gold">待审批</Tag><strong>工单 #{item.id} · {item.action}</strong></div><span className="security-expiry">{remaining(item.expiresAt)}</span></header><div className="security-ticket-meta"><span>目标服务器：<b>{item.serverAlias}</b></span><span>申请时间：{formatTime(item.requestedAt)}</span><span>到期时间：{formatTime(item.expiresAt)}</span></div><div className="security-script"><div className="security-script-title"><span>拟执行命令</span><Button type="link" size="small" icon={<FileSearch size={13} />} onClick={() => Modal.info({ title: `审批 #${item.id} 命令详情`, content: <pre className="security-command-detail">{item.command}</pre>, width: 680 })}>查看详情</Button></div><pre>{item.command}</pre></div><Alert type="warning" showIcon message="审批只允许后端受控白名单动作；命令会在执行前再次检查服务器策略和全局 AI 锁定状态。" /><footer><span>超过有效期后自动失效，不能重复执行</span><div><Button size="small" danger disabled={busyId !== null} onClick={() => decide(item, "reject")}>驳回并填报原因</Button><Button size="small" type="primary" loading={busyId === item.id} disabled={busyId !== null && busyId !== item.id} onClick={() => decide(item, "approve")}>确认批准放行执行</Button></div></footer></article>)}</div>}</section>}
+    {tab === "pending" && <section className="security-scroll">{pending.length === 0 ? <Empty className="py-16" image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无待裁决审批。AI 发起改动型操作后，申请会出现在这里。" /> : <div className="security-ticket-list">{pending.map((item) => <article key={item.id} className="security-ticket"><header><div className="min-w-0"><Tag color="gold">待审批</Tag><strong>工单 #{item.id} · {item.action}</strong></div><span className="security-expiry">{remaining(item.expiresAt)}</span></header><div className="security-ticket-meta"><span>目标服务器：<b>{item.serverAlias}</b></span><span>申请时间：{formatTime(item.requestedAt)}</span><span>到期时间：{formatTime(item.expiresAt)}</span></div><div className="security-script"><div className="security-script-title"><span>拟执行命令</span><Button type="link" size="small" icon={<FileSearch size={13} />} onClick={() => Modal.info({ title: `审批 #${item.id} 命令详情`, content: <pre className="security-command-detail">{item.command}</pre>, width: 680 })}>查看详情</Button></div><pre>{item.command}</pre></div><ApprovalPlanSummary detail={detailByApproval.get(item.id)} /><Alert type="warning" showIcon message="审批只允许后端受控白名单动作；命令会在执行前再次检查服务器策略和全局 AI 锁定状态。" /><footer><span>超过有效期后自动失效，不能重复执行</span><div><Button size="small" danger disabled={busyId !== null} onClick={() => decide(item, "reject")}>驳回并填报原因</Button><Button size="small" type="primary" loading={busyId === item.id} disabled={busyId !== null && busyId !== item.id} onClick={() => decide(item, "approve")}>确认批准放行执行</Button></div></footer></article>)}</div>}</section>}
 
     {tab === "history" && <section className="security-scroll security-history"><div className="security-filters"><Input.Search allowClear value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索服务器、动作、命令或结果" className="max-w-sm" /><Select allowClear value={statusFilter} onChange={setStatusFilter} placeholder="全部状态" options={Object.entries(statusLabel).filter(([key]) => key !== "pending").map(([value, label]) => ({ value, label }))} /><Tag color="blue">共 {visibleHistory.length} 条</Tag></div><Table<AiApproval> size="small" rowKey="id" loading={loading} dataSource={visibleHistory} columns={columns} pagination={{ pageSize: 10, showSizeChanger: false }} locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无审批轨迹" /> }} /></section>}
 
     {tab === "policies" && <section className="security-scroll"><div className="security-panel"><div className="security-section-title"><div><ShieldCheck size={16} className="text-indigo-400" /><div><h2>分级放行规则体系</h2><p>保存为本机策略偏好。真正的执行权限仍以 Rust 后端的全局锁、服务器 AI 档位和动作白名单为准。</p></div></div><Button type="primary" onClick={() => void savePolicy()}>保存策略变更</Button></div><div className="security-policy-list"><PolicyRow title="生产集群强制双人审批制" description="生产主机的配置变更、服务重启与网络调整必须经过人工审批。" checked={policy.productionDoubleApproval} onChange={(checked) => setPolicy((value) => ({ ...value, productionDoubleApproval: checked }))} /><PolicyRow title="测试集群低风险自愈免审" description="仅作为策略标记；当前后端不会因该开关绕过受控动作白名单。" checked={policy.testingAutofix} onChange={(checked) => setPolicy((value) => ({ ...value, testingAutofix: checked }))} /><PolicyRow title="夜间非运维时段强化防护" description="22:00 至 08:00 标记为高风险时段，建议保持 AI 放行状态锁定。" checked={policy.nightMode} onChange={(checked) => setPolicy((value) => ({ ...value, nightMode: checked }))} /><PolicyRow title="界面失焦与无人值守保护" description="应用失焦、最小化或锁屏后，配合 AI 总开关回归锁定状态。" checked={policy.zeroPresenceLock} onChange={(checked) => setPolicy((value) => ({ ...value, zeroPresenceLock: checked }))} /></div><Alert type="info" showIcon message="安全边界说明：关闭页面策略开关不会解锁 AI，也不会放宽服务器策略。要执行改动，必须通过 AI 总开关、服务器策略、审批有效期和后端动作白名单的联合校验。" /></div></section>}
 
-    {tab === "blacklist" && <section className="security-scroll"><div className="security-panel"><div className="security-section-title"><div><Ban size={16} className="text-rose-400" /><div><h2>高危命令硬拦截规则库</h2><p>内置规则用于展示安全边界；危险命令仍由后端固定校验直接阻断，不能通过页面关闭。</p></div></div><Button icon={<Sliders size={14} />} onClick={() => setRuleDrawerOpen(true)}>新增拦截正则</Button></div><div className="security-rule-test"><Input value={ruleTest} onChange={(event) => setRuleTest(event.target.value)} placeholder="输入命令测试规则命中情况" /><Tag color={ruleTest && blacklist.some((rule) => { try { return new RegExp(rule.pattern, "i").test(ruleTest); } catch { return false; } }) ? "red" : "default"}>{ruleTest && blacklist.some((rule) => { try { return new RegExp(rule.pattern, "i").test(ruleTest); } catch { return false; } }) ? "命中拦截规则" : "未命中"}</Tag></div><div className="security-blacklist-grid">{blacklist.map((rule) => <div key={rule.id} className="security-blacklist-item"><div className="min-w-0"><code>{rule.pattern}</code><span>{rule.label}</span></div>{rule.builtin ? <Tag color="red">内置</Tag> : <Button type="text" danger size="small" icon={<Trash2 size={14} />} aria-label={`删除 ${rule.label}`} onClick={() => Modal.confirm({ title: `删除拦截规则“${rule.label}”？`, okText: "删除", cancelText: "取消", okButtonProps: { danger: true }, onOk: () => saveBlacklist(blacklist.filter((item) => item.id !== rule.id)) })} />}</div>)}</div></div></section>}
+    {tab === "blacklist" && <section className="security-scroll"><div className="security-panel"><div className="security-section-title"><div><Ban size={16} className="text-rose-400" /><div><h2>高危命令策略规则库</h2><p>规则由 Rust 后端校验并持久化；内置规则不可删除或关闭，用户规则只允许阻断或人工复核。</p></div></div><Button icon={<Sliders size={14} />} onClick={() => setRuleDrawerOpen(true)}>新增复核规则</Button></div><div className="security-rule-test"><Input value={ruleTest} onChange={(event) => setRuleTest(event.target.value)} placeholder="输入命令测试规则命中情况" /><Tag color={ruleTest && blacklist.some((rule) => rule.enabled && (() => { try { return new RegExp(rule.pattern, "i").test(ruleTest); } catch { return false; } })()) ? "red" : "default"}>{ruleTest && blacklist.some((rule) => rule.enabled && (() => { try { return new RegExp(rule.pattern, "i").test(ruleTest); } catch { return false; } })()) ? "命中启用规则" : "未命中"}</Tag></div><div className="security-blacklist-grid">{blacklist.map((rule) => <div key={rule.id} className="security-blacklist-item"><div className="min-w-0"><code>{rule.pattern}</code><span>{rule.label} · {rule.riskLevel === "extreme" ? "极高危" : rule.riskLevel === "high" ? "高危" : "需复核"}</span></div><div className="flex items-center gap-2">{rule.builtin ? <Tag color="red">内置</Tag> : <><Switch size="small" checked={rule.enabled} onChange={(checked) => void setRuleEnabled(rule, checked)} /><Button type="text" danger size="small" icon={<Trash2 size={14} />} aria-label={`删除 ${rule.label}`} onClick={() => Modal.confirm({ title: `删除拦截规则“${rule.label}”？`, okText: "删除", cancelText: "取消", okButtonProps: { danger: true }, onOk: () => void deleteRule(rule) })} /></>}</div></div>)}</div></div></section>}
 
-    <Drawer title="新增高危拦截正则" open={ruleDrawerOpen} onClose={() => setRuleDrawerOpen(false)} width={440} maskClosable={false} extra={<Button type="primary" onClick={() => void addRule()}>保存规则</Button>}><div className="security-form"><label>规则说明<Input value={ruleDraft.label} onChange={(event) => setRuleDraft((value) => ({ ...value, label: event.target.value }))} placeholder="例如：停止生产数据库服务" /></label><label>正则表达式<Input.TextArea rows={4} value={ruleDraft.pattern} onChange={(event) => setRuleDraft((value) => ({ ...value, pattern: event.target.value }))} placeholder={String.raw`^systemctl\s+stop\s+mysql$`} /></label><Alert type="warning" showIcon message="自定义规则用于本机策略记录和命令预检展示。生产环境的危险命令仍由 Rust 后端固定安全规则最终拦截。" /></div></Drawer>
+    <Drawer title="新增高危复核正则" open={ruleDrawerOpen} onClose={() => setRuleDrawerOpen(false)} width={440} maskClosable={false} extra={<Button type="primary" onClick={() => void addRule()}>保存规则</Button>}><div className="security-form"><label>规则说明<Input value={ruleDraft.label} onChange={(event) => setRuleDraft((value) => ({ ...value, label: event.target.value }))} placeholder="例如：停止生产数据库服务" /></label><label>正则表达式<Input.TextArea rows={4} value={ruleDraft.pattern} onChange={(event) => setRuleDraft((value) => ({ ...value, pattern: event.target.value }))} placeholder={String.raw`^systemctl\s+stop\s+mysql$`} /></label><Alert type="warning" showIcon message="自定义规则只会阻断或升级为人工复核，不能配置自动放行。" /></div></Drawer>
   </main>;
 }
 
 function Kpi({ icon, label, value, tone, hint }: { icon: React.ReactNode; label: string; value: number | string; tone: string; hint: string }) { return <div className={`security-kpi ${tone}`}><span>{icon}{label}</span><strong>{value}</strong><small>{hint}</small></div>; }
 function PolicyRow({ title, description, checked, onChange }: { title: string; description: string; checked: boolean; onChange: (checked: boolean) => void }) { return <div className="security-policy-row"><div><strong>{title}</strong><p>{description}</p></div><Switch checked={checked} onChange={onChange} /></div>; }
+
+function ApprovalPlanSummary({ detail }: { detail?: AiApprovalDetail }) {
+  const plan = detail?.plan;
+  if (!plan) return null;
+  const riskLabel = plan.risk.level === "high" ? "高危" : plan.risk.level === "medium" ? "中危" : plan.risk.level === "extreme" ? "极高危" : "需复核";
+  return <div className="mt-2 grid gap-1 rounded border border-slate-800 bg-slate-950/40 px-2 py-2 text-[11px] text-slate-400 sm:grid-cols-2">
+    <span>风险：<Tag color={plan.risk.level === "high" || plan.risk.level === "extreme" ? "red" : "gold"}>{riskLabel}</Tag></span>
+    <span>计划状态：{plan.status}</span>
+    <span className="truncate" title={plan.commandSha256}>命令哈希：{plan.commandSha256.slice(0, 16)}…</span>
+    <span className="truncate" title={plan.ruleVersion}>策略版本：{plan.ruleVersion || "--"}</span>
+    <span className="sm:col-span-2">规则命中：{plan.risk.matchedRules.length ? plan.risk.matchedRules.join("、") : "内置静态检查"}</span>
+    <span className="sm:col-span-2">后置验证：{plan.verificationSteps.map((step) => step.label).join("、") || "无"}</span>
+  </div>;
+}

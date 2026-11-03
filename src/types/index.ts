@@ -43,7 +43,8 @@ export type {
   DeployRunResult,
   DeploymentProgress,
 } from "./deployment";
-export type { AiApproval, AiLockState, CopilotRequest, CopilotToolCall, CopilotResponse, CopilotProgress } from "./copilot";
+export type { ActionPlan, ActionPlanTarget, AiApproval, AiApprovalDetail, AiLockState, CopilotRequest, CopilotToolCall, CopilotResponse, CopilotProgress, VerificationStep } from "./copilot";
+export type { ActionRiskLevel, PolicyRule, PolicyRuleAction } from "./policy";
 export type { McpStatus, McpToken, McpTokenInput, McpTokenCreated, McpClientConfig } from "./mcp";
 export type {
   SensitiveEntry,

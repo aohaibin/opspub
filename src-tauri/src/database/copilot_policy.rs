@@ -111,7 +111,7 @@ impl Database {
             return Err(AppError::Custom("仅允许 AI 只读操作".into()));
         }
         let current = now();
-        tx.execute("INSERT INTO ai_approvals(server_id,server_alias,action,command,requested_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6)", params![server_id,alias,action,command,current,current+600])?;
+        tx.execute("INSERT INTO ai_approvals(server_id,server_alias,action,command,requested_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6)", params![server_id,alias,action,command,current,current+900])?;
         let id = tx.last_insert_rowid();
         tx.commit()?;
         drop(conn);
@@ -152,9 +152,15 @@ impl Database {
     pub fn reject_ai_approval(&self, id: i64, reason: &str) -> Result<(), AppError> {
         let reason = reason.trim();
         if reason.len() > 500 {
-            return Err(AppError::InvalidInput("审批驳回原因不能超过 500 个字符".into()));
+            return Err(AppError::InvalidInput(
+                "审批驳回原因不能超过 500 个字符".into(),
+            ));
         }
-        let reason = if reason.is_empty() { "人工审批驳回" } else { reason };
+        let reason = if reason.is_empty() {
+            "人工审批驳回"
+        } else {
+            reason
+        };
         let conn = self
             .conn
             .lock()
@@ -314,7 +320,8 @@ mod tests {
         let rejected = db
             .create_ai_approval(1, "restart_nginx", "systemctl restart nginx")
             .expect("approval");
-        db.reject_ai_approval(rejected.id, "测试驳回").expect("reject");
+        db.reject_ai_approval(rejected.id, "测试驳回")
+            .expect("reject");
         assert!(db.take_ai_approval(rejected.id).is_err());
         let expired = db
             .create_ai_approval(1, "restart_nginx", "systemctl restart nginx")

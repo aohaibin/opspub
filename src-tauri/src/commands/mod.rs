@@ -1,5 +1,5 @@
-pub mod audit;
 pub mod alerts;
+pub mod audit;
 pub mod batch;
 pub mod config;
 pub mod copilot;
@@ -9,9 +9,10 @@ pub mod file;
 pub mod inspection;
 pub mod mcp;
 pub mod model_service;
+pub mod policy;
+pub mod sensitive;
 pub mod server;
 pub mod sftp;
-pub mod sensitive;
 pub mod skills;
 pub mod system;
 pub mod terminal;

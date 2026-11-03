@@ -55,7 +55,9 @@ pub struct ModelProfileInput {
     pub enabled: bool,
 }
 
-fn default_enabled() -> bool { true }
+fn default_enabled() -> bool {
+    true
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -250,6 +252,12 @@ pub struct CopilotRequest {
     pub server_id: Option<i64>,
     pub provider: Option<String>,
     pub model_profile_id: Option<String>,
+    /// 前端本轮选中的技能标识，仅用于审计和模型上下文，不授予执行权限。
+    #[serde(default)]
+    pub skill_ids: Vec<String>,
+    /// 已脱敏的技能摘要/正文，由后端作为不可信提示词处理。
+    #[serde(default)]
+    pub skill_context: Option<String>,
     #[serde(default)]
     pub history: Vec<CopilotHistoryMessage>,
 }
@@ -311,6 +319,100 @@ pub struct AiApproval {
     pub decided_at: Option<i64>,
     pub finished_at: Option<i64>,
     pub result: String,
+}
+
+/// 审批中心和 AI 聊天共用的审批详情；计划内容来自 Rust 持久化存储。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiApprovalDetail {
+    pub approval: AiApproval,
+    pub plan: Option<ActionPlan>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ActionRiskLevel {
+    Extreme,
+    High,
+    Medium,
+    LowReadonly,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskAssessment {
+    pub level: ActionRiskLevel,
+    pub reason: String,
+    pub matched_rules: Vec<String>,
+    pub requires_approval: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionPlanTarget {
+    pub server_id: i64,
+    pub server_alias: String,
+    pub role: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VerificationStep {
+    pub id: String,
+    pub label: String,
+    pub command: String,
+    pub expected_result: String,
+    pub required: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionPlan {
+    pub id: String,
+    pub conversation_id: Option<String>,
+    pub action: String,
+    pub summary: String,
+    pub original_request: String,
+    pub original_command: String,
+    pub normalized_command: String,
+    pub command_sha256: String,
+    pub rule_version: String,
+    pub risk: RiskAssessment,
+    pub targets: Vec<ActionPlanTarget>,
+    pub verification_steps: Vec<VerificationStep>,
+    pub status: String,
+    pub expires_at: i64,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalBatch {
+    pub id: String,
+    pub plan_id: String,
+    pub mode: String,
+    pub canary_server_id: Option<i64>,
+    pub status: String,
+    pub expires_at: i64,
+    pub created_at: i64,
+}
+
+/// Rust 后端最终复核使用的策略规则。内置规则不可由前端删除。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PolicyRule {
+    pub id: String,
+    pub label: String,
+    pub pattern: String,
+    pub risk_level: ActionRiskLevel,
+    pub action: String,
+    pub enabled: bool,
+    pub builtin: bool,
+    pub rule_version: String,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 /// 部署目标配置。凭据不属于目标配置，远端执行时由系统凭据管理器读取。

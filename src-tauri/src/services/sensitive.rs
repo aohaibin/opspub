@@ -5,7 +5,9 @@ use std::collections::HashSet;
 
 use crate::database::Database;
 use crate::error::AppError;
-use crate::models::{SensitiveEntry, SensitiveListFilter, SensitiveScanRequest, SensitiveScanResult};
+use crate::models::{
+    SensitiveEntry, SensitiveListFilter, SensitiveScanRequest, SensitiveScanResult,
+};
 
 const MAX_SCAN_BYTES: usize = 5 * 1024 * 1024;
 
@@ -23,11 +25,17 @@ pub struct OutboundSanitizeResult {
 }
 
 impl SensitiveService {
-    pub fn list(db: &Database, filter: SensitiveListFilter) -> Result<Vec<SensitiveEntry>, AppError> {
+    pub fn list(
+        db: &Database,
+        filter: SensitiveListFilter,
+    ) -> Result<Vec<SensitiveEntry>, AppError> {
         db.get_sensitive_entries(&filter)
     }
 
-    pub fn scan(db: &Database, request: SensitiveScanRequest) -> Result<SensitiveScanResult, AppError> {
+    pub fn scan(
+        db: &Database,
+        request: SensitiveScanRequest,
+    ) -> Result<SensitiveScanResult, AppError> {
         let content = request.content;
         if content.trim().is_empty() {
             return Err(AppError::InvalidInput("待扫描内容不能为空".into()));
@@ -41,11 +49,19 @@ impl SensitiveService {
 
         let source = request.source.trim();
         if source.is_empty() || source.len() > 200 {
-            return Err(AppError::InvalidInput("来源不能为空且不能超过 200 个字符".into()));
+            return Err(AppError::InvalidInput(
+                "来源不能为空且不能超过 200 个字符".into(),
+            ));
         }
-        let server_alias = request.server_alias.as_deref().unwrap_or("未关联服务器").trim();
+        let server_alias = request
+            .server_alias
+            .as_deref()
+            .unwrap_or("未关联服务器")
+            .trim();
         if server_alias.len() > 160 {
-            return Err(AppError::InvalidInput("服务器别名不能超过 160 个字符".into()));
+            return Err(AppError::InvalidInput(
+                "服务器别名不能超过 160 个字符".into(),
+            ));
         }
 
         let (sanitized_content, matches) = sanitize_text(&content)?;
@@ -125,7 +141,10 @@ impl SensitiveService {
         if id <= 0 {
             return Err(AppError::InvalidInput("敏感条目 ID 无效".into()));
         }
-        if !matches!(status, "pending" | "retained" | "false_positive" | "discarded") {
+        if !matches!(
+            status,
+            "pending" | "retained" | "false_positive" | "discarded"
+        ) {
             return Err(AppError::InvalidInput("敏感条目状态无效".into()));
         }
         db.update_sensitive_status(id, status)
@@ -178,7 +197,11 @@ fn sanitize_text(content: &str) -> Result<(String, Vec<SanitizedMatch>), AppErro
     let mut matches = Vec::new();
 
     for rule in &rules {
-        let found = rule.regex.find_iter(&text).map(|matched| matched.as_str().to_string()).collect::<Vec<_>>();
+        let found = rule
+            .regex
+            .find_iter(&text)
+            .map(|matched| matched.as_str().to_string())
+            .collect::<Vec<_>>();
         if found.is_empty() {
             continue;
         }
@@ -194,7 +217,10 @@ fn sanitize_text(content: &str) -> Result<(String, Vec<SanitizedMatch>), AppErro
                 value_hash,
             });
         }
-        text = rule.regex.replace_all(&text, replacement_for(rule.secret_type)).into_owned();
+        text = rule
+            .regex
+            .replace_all(&text, replacement_for(rule.secret_type))
+            .into_owned();
     }
 
     Ok((text, matches))
@@ -227,7 +253,11 @@ fn build_rules() -> Result<Vec<ScanRule>, AppError> {
             "Token 字段",
             r#"(?im)(?:token|api[_-]?key|access[_-]?key)\s*[:=]\s*[^\s"'\x60,;]+"#,
         ),
-        ("token", "JWT Token", r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
+        (
+            "token",
+            "JWT Token",
+            r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b",
+        ),
         ("token", "GitHub Token", r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
         ("credential", "AWS Access Key", r"\bAKIA[0-9A-Z]{16}\b"),
         (
@@ -264,7 +294,12 @@ fn label_for(rule: &ScanRule, raw: &str) -> String {
         "密码字段".into()
     } else if lower.contains("secret") || lower.contains("credential") {
         "Secret 字段".into()
-    } else if lower.contains("token") || lower.contains("api") || lower.contains("access") || raw.starts_with("eyJ") || raw.starts_with("gh") {
+    } else if lower.contains("token")
+        || lower.contains("api")
+        || lower.contains("access")
+        || raw.starts_with("eyJ")
+        || raw.starts_with("gh")
+    {
         "访问 Token".into()
     } else {
         rule.default_label.into()
@@ -284,7 +319,14 @@ fn mask_value(raw: &str, private_key: bool) -> String {
         return "****".into();
     }
     let head: String = chars.iter().take(3).collect();
-    let tail: String = chars.iter().rev().take(2).collect::<Vec<_>>().into_iter().rev().collect();
+    let tail: String = chars
+        .iter()
+        .rev()
+        .take(2)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
     format!("{head}****{tail}")
 }
 
@@ -305,7 +347,11 @@ mod tests {
     #[test]
     fn masks_without_retaining_secret() {
         assert_eq!(mask_value("password123", false), "pas****23");
-        assert!(mask_value("-----BEGIN RSA PRIVATE KEY-----\nsecret\n-----END RSA PRIVATE KEY-----", true).contains("REDACTED"));
+        assert!(mask_value(
+            "-----BEGIN RSA PRIVATE KEY-----\nsecret\n-----END RSA PRIVATE KEY-----",
+            true
+        )
+        .contains("REDACTED"));
     }
 
     #[test]

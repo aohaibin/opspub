@@ -1,5 +1,5 @@
 use crate::error::CommandError;
-use crate::models::{AiApproval, AiLockState, CopilotRequest, CopilotResponse};
+use crate::models::{AiApproval, AiApprovalDetail, AiLockState, CopilotRequest, CopilotResponse};
 use crate::services::copilot::CopilotService;
 
 #[tauri::command]
@@ -18,6 +18,23 @@ pub async fn copilot_chat(
 }
 
 #[tauri::command]
+pub async fn explain_copilot_command(
+    app: tauri::AppHandle,
+    profile_id: String,
+    command_text: String,
+) -> Result<String, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        CopilotService::explain_command(&app, &profile_id, &command_text)
+            .map_err(CommandError::from)
+    })
+    .await
+    .map_err(|error| CommandError {
+        code: "INTERNAL".into(),
+        message: format!("命令解析任务异常终止: {error}"),
+    })?
+}
+
+#[tauri::command]
 pub fn get_ai_lock(app: tauri::AppHandle) -> Result<AiLockState, CommandError> {
     CopilotService::get_lock(&app).map_err(Into::into)
 }
@@ -30,6 +47,13 @@ pub fn set_ai_lock(app: tauri::AppHandle, duration: String) -> Result<AiLockStat
 #[tauri::command]
 pub fn list_ai_approvals(app: tauri::AppHandle) -> Result<Vec<AiApproval>, CommandError> {
     CopilotService::list_approvals(&app).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn list_ai_approval_details(
+    app: tauri::AppHandle,
+) -> Result<Vec<AiApprovalDetail>, CommandError> {
+    CopilotService::list_approval_details(&app).map_err(Into::into)
 }
 
 #[tauri::command]

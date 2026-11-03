@@ -1,8 +1,8 @@
 use crate::database::Database;
-use ai_profile::client::Verifier;
 use crate::services::mcp::McpServerManager;
 use crate::services::sftp::SftpManager;
 use crate::services::terminal::TerminalManager;
+use ai_profile::client::Verifier;
 
 /// 应用全局状态，通过 tauri::State 注入到 Command 中
 pub struct AppState {

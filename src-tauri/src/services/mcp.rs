@@ -539,6 +539,8 @@ fn handle_tool_call(app: &tauri::AppHandle, auth: McpAuth, id: Value, params: Va
             server_id: selected_id,
             provider: Some("mcp".into()),
             model_profile_id: None,
+            skill_ids: Vec::new(),
+            skill_context: None,
             history: Vec::new(),
         },
     ) {

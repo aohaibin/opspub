@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 /// 当前 Schema 版本
-pub const SCHEMA_VERSION: i32 = 11;
+pub const SCHEMA_VERSION: i32 = 14;
 
 /// 获取数据库版本
 pub fn get_version(conn: &Connection) -> Result<i32, AppError> {
@@ -41,6 +41,9 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
             8 => migrate_v8_to_v9(conn)?,
             9 => migrate_v9_to_v10(conn)?,
             10 => migrate_v10_to_v11(conn)?,
+            11 => migrate_v11_to_v12(conn)?,
+            12 => migrate_v12_to_v13(conn)?,
+            13 => migrate_v13_to_v14(conn)?,
             _ => {
                 return Err(AppError::Custom(format!("未知的数据库版本: {}", version)));
             }
@@ -328,4 +331,217 @@ fn migrate_v10_to_v11(conn: &Connection) -> Result<(), AppError> {
     )?;
     set_version(conn, 11)?;
     Ok(())
+}
+
+/// v11 -> v12：结构化 AI 操作计划、批次、目标、验证步骤和审批事件。
+fn migrate_v11_to_v12(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v11 -> v12（AI 操作计划与审批批次）");
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS action_plans (
+            id TEXT PRIMARY KEY,
+            conversation_id TEXT,
+            action TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            original_request TEXT NOT NULL,
+            original_command TEXT NOT NULL,
+            normalized_command TEXT NOT NULL,
+            command_sha256 TEXT NOT NULL,
+            rule_version TEXT NOT NULL,
+            risk_level TEXT NOT NULL,
+            risk_reason TEXT NOT NULL,
+            matched_rules TEXT NOT NULL DEFAULT '[]',
+            requires_approval INTEGER NOT NULL DEFAULT 1,
+            status TEXT NOT NULL DEFAULT 'draft',
+            expires_at INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_action_plans_status_expiry
+            ON action_plans(status, expires_at);
+        CREATE INDEX IF NOT EXISTS idx_action_plans_conversation
+            ON action_plans(conversation_id, created_at);
+
+        CREATE TABLE IF NOT EXISTS action_plan_targets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id TEXT NOT NULL REFERENCES action_plans(id) ON DELETE CASCADE,
+            server_id INTEGER NOT NULL,
+            server_alias TEXT NOT NULL,
+            sequence_no INTEGER NOT NULL,
+            role TEXT NOT NULL DEFAULT 'target',
+            status TEXT NOT NULL DEFAULT 'pending',
+            result TEXT NOT NULL DEFAULT '',
+            started_at INTEGER,
+            finished_at INTEGER,
+            UNIQUE(plan_id, server_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_action_plan_targets_status
+            ON action_plan_targets(plan_id, status, sequence_no);
+
+        CREATE TABLE IF NOT EXISTS approval_batches (
+            id TEXT PRIMARY KEY,
+            plan_id TEXT NOT NULL REFERENCES action_plans(id) ON DELETE CASCADE,
+            mode TEXT NOT NULL DEFAULT 'single',
+            canary_server_id INTEGER,
+            status TEXT NOT NULL DEFAULT 'pending',
+            expires_at INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            decided_at INTEGER,
+            finished_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_approval_batches_status_expiry
+            ON approval_batches(status, expires_at);
+
+        CREATE TABLE IF NOT EXISTS plan_verifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id TEXT NOT NULL REFERENCES action_plans(id) ON DELETE CASCADE,
+            target_id INTEGER REFERENCES action_plan_targets(id) ON DELETE CASCADE,
+            step_id TEXT NOT NULL,
+            label TEXT NOT NULL,
+            command TEXT NOT NULL,
+            expected_result TEXT NOT NULL DEFAULT '',
+            required INTEGER NOT NULL DEFAULT 1,
+            status TEXT NOT NULL DEFAULT 'pending',
+            exit_code INTEGER,
+            result_summary TEXT NOT NULL DEFAULT '',
+            started_at INTEGER,
+            finished_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_plan_verifications_status
+            ON plan_verifications(plan_id, status);
+
+        CREATE TABLE IF NOT EXISTS approval_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id TEXT NOT NULL REFERENCES action_plans(id) ON DELETE CASCADE,
+            batch_id TEXT REFERENCES approval_batches(id) ON DELETE CASCADE,
+            event_type TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            details TEXT NOT NULL DEFAULT '',
+            previous_hash TEXT NOT NULL DEFAULT '',
+            event_hash TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_approval_events_plan
+            ON approval_events(plan_id, id);",
+    )?;
+    set_version(conn, 12)?;
+    Ok(())
+}
+
+/// v12 -> v13：后端统一策略规则库。前端安全页只管理规则，不作为最终执行依据。
+fn migrate_v12_to_v13(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v12 -> v13（策略规则库）");
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS policy_rules (
+            id TEXT PRIMARY KEY,
+            label TEXT NOT NULL,
+            pattern TEXT NOT NULL,
+            risk_level TEXT NOT NULL,
+            action TEXT NOT NULL DEFAULT 'review',
+            enabled INTEGER NOT NULL DEFAULT 1,
+            builtin INTEGER NOT NULL DEFAULT 0,
+            rule_version TEXT NOT NULL DEFAULT 'policy-v1',
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_policy_rules_enabled
+            ON policy_rules(enabled, risk_level);
+        CREATE INDEX IF NOT EXISTS idx_policy_rules_builtin
+            ON policy_rules(builtin, id);
+
+        INSERT OR IGNORE INTO policy_rules
+            (id, label, pattern, risk_level, action, builtin, rule_version, created_at, updated_at)
+        VALUES
+            ('builtin:rm-root', '根目录强制删除', '^rm\\s+-(rf|fr)\\s+/(.*)?$', 'extreme', 'block', 1, 'policy-v1', strftime('%s','now'), strftime('%s','now')),
+            ('builtin:mkfs-device', '格式化块设备', '^mkfs(\\.[a-z0-9]+)?\\s+/dev/.*$', 'extreme', 'block', 1, 'policy-v1', strftime('%s','now'), strftime('%s','now')),
+            ('builtin:dd-device', '底层裸盘复写', '^dd\\s+if=.*\\s+of=/dev/[a-z]+$', 'extreme', 'block', 1, 'policy-v1', strftime('%s','now'), strftime('%s','now')),
+            ('builtin:drop-database', '直接删除主数据库', '(?i)drop\\s+database\\s+.*', 'extreme', 'block', 1, 'policy-v1', strftime('%s','now'), strftime('%s','now')),
+            ('builtin:iptables-flush', '清空所有防护链', '^iptables\\s+-(F|X|Z)$', 'high', 'review', 1, 'policy-v1', strftime('%s','now'), strftime('%s','now')),
+            ('builtin:curl-shell', '下载后直接交给解释器', '(?i)(curl|wget)[^|]*\\|\\s*(bash|sh|python|perl)', 'high', 'review', 1, 'policy-v1', strftime('%s','now'), strftime('%s','now'));",
+    )?;
+    set_version(conn, 13)?;
+    Ok(())
+}
+
+/// v13 -> v14：将现有审批记录与结构化操作计划建立关联。
+fn migrate_v13_to_v14(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v13 -> v14（审批与操作计划关联）");
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS ai_approval_plans (
+            approval_id INTEGER PRIMARY KEY REFERENCES ai_approvals(id) ON DELETE CASCADE,
+            plan_id TEXT NOT NULL UNIQUE REFERENCES action_plans(id) ON DELETE CASCADE,
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_approval_plans_plan
+            ON ai_approval_plans(plan_id);",
+    )?;
+    set_version(conn, 14)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{migrate, SCHEMA_VERSION};
+    use rusqlite::Connection;
+
+    #[test]
+    fn migration_v14_creates_plan_and_policy_tables() {
+        let conn = Connection::open_in_memory().expect("open in-memory database");
+        conn.pragma_update(None, "user_version", 11)
+            .expect("set starting schema version");
+
+        migrate(&conn).expect("migrate schema");
+
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("read schema version");
+        assert_eq!(version, SCHEMA_VERSION);
+
+        for table in [
+            "action_plans",
+            "action_plan_targets",
+            "approval_batches",
+            "plan_verifications",
+            "approval_events",
+            "policy_rules",
+            "ai_approval_plans",
+        ] {
+            let exists: bool = conn
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+                    [table],
+                    |row| row.get(0),
+                )
+                .expect("check table exists");
+            assert!(exists, "missing table {table}");
+        }
+
+        let columns = conn
+            .prepare("PRAGMA table_info(action_plans)")
+            .expect("prepare schema introspection")
+            .query_map([], |row| row.get::<_, String>(1))
+            .expect("query schema columns")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("collect schema columns");
+        for column in [
+            "original_command",
+            "normalized_command",
+            "command_sha256",
+            "rule_version",
+            "risk_level",
+        ] {
+            assert!(
+                columns.iter().any(|name| name == column),
+                "missing column {column}"
+            );
+        }
+
+        let builtin_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM policy_rules WHERE builtin = 1 AND action = 'block'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count builtin hard-block rules");
+        assert!(builtin_count >= 4, "expected seeded hard-block rules");
+    }
 }

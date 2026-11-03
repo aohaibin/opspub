@@ -25,6 +25,7 @@ export { workbenchApi } from "./workbench";
 export { databaseApi } from "./database";
 export { deploymentApi } from "./deployment";
 export { copilotApi } from "./copilot";
+export { policyApi } from "./policy";
 export { mcpApi } from "./mcp";
 export { sensitiveApi } from "./sensitive";
 export { fileApi } from "./file";

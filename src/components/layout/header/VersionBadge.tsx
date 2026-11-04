@@ -61,8 +61,10 @@ export function VersionBadge() {
             className="header-pill"
             onClick={toggle}
             title={`当前版本 v${version} · 点击检查更新与更新日志`}
+            aria-label={`当前版本 v${version}，点击检查更新与更新日志`}
             style={{ fontFamily: "var(--font-mono)" }}
           >
+            <span style={{ fontFamily: "var(--font-sans)", fontWeight: 500 }}>版本</span>
             <span>v{version}</span>
             <RotateCw
               size={12}

@@ -18,6 +18,7 @@ import {
   History,
   Lock,
   Plus,
+  Pencil,
   Power,
   Puzzle,
   RotateCw,
@@ -376,6 +377,54 @@ export default function CopilotPage() {
     } catch (error) {
       message.error(`复制失败：${getErrorMessage(error)}`);
     }
+  };
+
+  const copyUserMessage = async (item: ChatMessage) => {
+    try {
+      await navigator.clipboard.writeText(item.content);
+      message.success("消息已复制");
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const editUserMessage = (messageId: string) => {
+    if (loading) return;
+    const index = messages.findIndex((item) => item.id === messageId && item.role === "user");
+    if (index < 0) return;
+    const item = messages[index];
+    const followingMessages = messages.slice(index + 1);
+    const hasPendingApproval = followingMessages.some((entry) => entry.toolCalls?.some((tool) => {
+      if (tool.status === "pending") return true;
+      if (typeof tool.approvalId !== "number") return false;
+      return ["pending", "executing"].includes(approvalDetailById.get(tool.approvalId)?.approval.status ?? "");
+    }));
+    if (hasPendingApproval) {
+      message.warning("后续对话存在待处理审批，请先处理审批后再编辑");
+      return;
+    }
+    const hasExecutedMutation = followingMessages.some((entry) => entry.toolCalls?.some((tool) =>
+      tool.status === "success" && isMutatingTool(tool.tool),
+    ));
+    const applyEdit = () => {
+      setInput(item.content);
+      updateSessionMessages(activeSessionId, (current) => {
+        const currentIndex = current.findIndex((entry) => entry.id === messageId);
+        return currentIndex < 0 ? current : current.slice(0, currentIndex);
+      });
+      message.info("已将消息放入输入框，后续回复已移除");
+    };
+    if (hasExecutedMutation) {
+      Modal.confirm({
+        title: "编辑这条消息？",
+        content: "这会移除本机对话中的本消息及后续回复。已经执行的服务器操作不会撤销。",
+        okText: "继续编辑",
+        cancelText: "取消",
+        onOk: applyEdit,
+      });
+      return;
+    }
+    applyEdit();
   };
 
   const forkFromMessage = (messageId: string) => {
@@ -866,7 +915,15 @@ export default function CopilotPage() {
             <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 text-left md:grid-cols-2">{QUICK_PROMPTS.map((item) => { const Icon = item.icon; return <button key={item.title} type="button" disabled={loading} onClick={() => void send(item.prompt)} className="group space-y-1.5 rounded-xl border border-slate-800/80 bg-[#0f141c] p-4 text-left transition hover:border-slate-700 hover:bg-surface-900/60 disabled:opacity-60"><div className="flex items-center gap-2 text-xs font-bold text-white transition group-hover:text-indigo-400"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${item.iconBg}`}><Icon size={14} className={item.color} /></span><span>{item.title}</span></div><p className="m-0 pl-9 text-[11px] leading-relaxed text-slate-400">{item.description}</p></button>; })}</div>
             <div className="mx-auto flex max-w-3xl items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-500"><History size={14} className="text-slate-600" /><span>对话会自动保存，可在上方“历史”中继续。</span></div>
           </div> : messages.map((item, messageIndex) => item.id === "welcome" ? null : item.role === "user" ? (
-            <div key={item.id} className="flex w-full justify-end pr-1 sm:pr-2"><article className="inline-flex max-w-2xl items-center rounded-2xl rounded-tr-md border border-slate-700/80 bg-[#1e2330] px-5 py-2.5 text-xs leading-normal text-slate-100 shadow-sm transition hover:bg-[#242a3a]"><div className="whitespace-pre-wrap break-words">{item.content}</div></article></div>
+            <div key={item.id} className="group flex w-full justify-end pr-1 sm:pr-2">
+              <div className="flex max-w-2xl items-end gap-1.5">
+                <div className="flex shrink-0 items-center gap-0.5 self-end pb-1 opacity-60 transition group-hover:opacity-100 focus-within:opacity-100">
+                  <Button size="small" type="text" title="复制这条消息" aria-label="复制这条消息" icon={<Copy size={14} />} onClick={() => void copyUserMessage(item)} />
+                  <Button size="small" type="text" title="编辑此消息；内容会放回输入框，并移除这条消息之后的回复" aria-label="编辑这条消息" icon={<Pencil size={14} />} onClick={() => editUserMessage(item.id)} disabled={loading} />
+                </div>
+                <article className="inline-flex items-center rounded-2xl rounded-tr-md border border-slate-700/80 bg-[#1e2330] px-5 py-2.5 text-xs leading-normal text-slate-100 shadow-sm transition hover:bg-[#242a3a]"><div className="whitespace-pre-wrap break-words">{item.content}</div></article>
+              </div>
+            </div>
           ) : (
             (() => {
               const blockedCall = item.toolCalls?.find((tool) => tool.status === "blocked" && (tool.tool === "policy_guard" || tool.output.includes("白名单")));

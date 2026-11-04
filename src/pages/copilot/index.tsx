@@ -2,19 +2,25 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Spin, Tag, message } from "antd";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Activity,
   BadgeInfo,
   Bookmark,
   Bot,
+  Copy,
   ChevronDown,
   Database,
+  FileText,
+  GitFork,
   GitMerge,
   History,
   Lock,
   Plus,
   Power,
   Puzzle,
+  RotateCw,
   Send,
   ShieldAlert,
   ShieldCheck,
@@ -40,6 +46,10 @@ interface ChatMessage {
   warnings?: string[];
   modelName?: string | null;
   skillNames?: string[];
+  triggeredSkillNames?: string[];
+  manualSkillNames?: string[];
+  historyCount?: number;
+  historyTrimmed?: number;
 }
 
 interface ChatSession {
@@ -75,7 +85,7 @@ const QUICK_PROMPTS = [
 const INITIAL_MESSAGE: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  content: "你好，我是本地受控运维助手。可运行只读探针；改动操作只开放明确选择服务器后的“重启 nginx”申请，需解锁总开关并经人工批准。其他改动指令不会执行。",
+  content: "你好，我是 OpsPub 运维助手。你可以直接用自然语言查询服务器信息，不需要逐条创建模板。查询命令会先由后端校验为安全只读操作；改动操作仍受风险策略和人工审批约束。",
 };
 
 function sessionTitle(messages: ChatMessage[]) {
@@ -139,6 +149,16 @@ function experienceDraft(messages: ChatMessage[]) {
     .join("\n\n");
 }
 
+const MUTATING_TOOL_NAMES = new Set(["execute_command", "write_file", "sftp_write"]);
+
+function isMutatingTool(tool: string) {
+  return MUTATING_TOOL_NAMES.has(tool) || tool.startsWith("restart_");
+}
+
+function toolStatusLabel(status: CopilotToolCall["status"]) {
+  return status === "success" ? "已完成" : status === "failed" ? "失败" : status === "blocked" ? "已拦截" : status === "pending" ? "待审批" : "已跳过";
+}
+
 export default function CopilotPage() {
   const navigate = useNavigate();
   const aiLocked = useAppStore((state) => state.aiLocked);
@@ -197,6 +217,7 @@ export default function CopilotPage() {
   const [lockPopoverOpen, setLockPopoverOpen] = useState(false);
   const [lockedPromptOpen, setLockedPromptOpen] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const [pendingRegenerateMessageId, setPendingRegenerateMessageId] = useState<string | null>(null);
   const [sessionReadOnlyMode, setSessionReadOnlyMode] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -324,9 +345,74 @@ export default function CopilotPage() {
     return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(secs)}` : `${pad(minutes)}:${pad(secs)}`;
   };
 
+  const updateApprovalToolCall = (id: number, status: CopilotToolCall["status"], output: string) => {
+    setSessions((current) => current.map((session) => ({
+      ...session,
+      messages: session.messages.map((item) => ({
+        ...item,
+        toolCalls: item.toolCalls?.map((tool) => tool.approvalId === id ? { ...tool, status, output } : tool),
+      })),
+    })));
+  };
+
+  const copyAssistantMessage = async (item: ChatMessage, includeProcess = false) => {
+    const lines = [item.content.trim()];
+    if (includeProcess) {
+      lines.push("", "### 分析与执行过程");
+      if (item.skillNames?.length) lines.push(`- 参考技能：${item.skillNames.join("、")}`);
+      item.toolCalls?.forEach((tool) => {
+        lines.push(`- ${tool.tool}${tool.serverAlias ? ` @${tool.serverAlias}` : ""}：${toolStatusLabel(tool.status)}`);
+        if (tool.output.trim()) lines.push(`  - 输出：${tool.output.trim().replace(/\n/g, "\n    ")}`);
+      });
+      const approvalIds = item.toolCalls?.map((tool) => tool.approvalId).filter((id): id is number => typeof id === "number") ?? [];
+      approvalIds.forEach((id) => {
+        const detail = approvalDetailById.get(id);
+        if (detail) lines.push(`- 审批 #${id}：${detail.approval.status}，目标 ${detail.approval.serverAlias}，命令 ${detail.approval.command}`);
+      });
+    }
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      message.success(includeProcess ? "回答与过程已复制" : "回答已复制");
+    } catch (error) {
+      message.error(`复制失败：${getErrorMessage(error)}`);
+    }
+  };
+
+  const forkFromMessage = (messageId: string) => {
+    const index = messages.findIndex((item) => item.id === messageId);
+    if (index < 0) return;
+    const branch = newChatSession(messages.slice(0, index + 1).map((item) => ({
+      ...item,
+      toolCalls: item.toolCalls?.map((tool) => ({ ...tool })),
+    })));
+    branch.skillIds = [...selectedSkillIds];
+    setSessions((current) => [branch, ...current]);
+    setActiveSessionId(branch.id);
+    setHistoryOpen(false);
+    setInput("");
+    setSuppressedAutoSkillIds([]);
+    message.success("已从此回答创建分支对话");
+  };
+
+  const regenerateMessage = (item: ChatMessage) => {
+    const index = messages.findIndex((entry) => entry.id === item.id);
+    if (index < 0) return;
+    const lastAssistantIndex = messages.reduce((last, entry, currentIndex) => entry.role === "assistant" ? currentIndex : last, -1);
+    const isLatestAssistant = lastAssistantIndex === index && index === messages.length - 1;
+    const hasPendingApproval = item.toolCalls?.some((tool) => tool.status === "pending" || (typeof tool.approvalId === "number" && ["pending", "executing"].includes(approvalDetailById.get(tool.approvalId)?.approval.status ?? ""))) ?? false;
+    const hasExecutedMutation = item.toolCalls?.some((tool) => tool.status === "success" && isMutatingTool(tool.tool)) ?? false;
+    if (!isLatestAssistant || hasPendingApproval || hasExecutedMutation) return;
+    const sourceRequest = messages.slice(0, index).reverse().find((entry) => entry.role === "user")?.content;
+    if (sourceRequest) void send(sourceRequest, false, item.id);
+  };
+
   const rejectApproval = async (id: number) => {
     setApprovalBusy(id);
-    try { await copilotApi.rejectApproval(id); await refreshApprovals(); }
+    try {
+      await copilotApi.rejectApproval(id);
+      updateApprovalToolCall(id, "blocked", "人工已拒绝，此命令未执行");
+      await refreshApprovals();
+    }
     catch (error) { message.error(getErrorMessage(error)); }
     finally { setApprovalBusy(null); }
   };
@@ -342,6 +428,11 @@ export default function CopilotPage() {
         setApprovalBusy(item.id);
         try {
           const result = await copilotApi.approveApproval(item.id);
+          updateApprovalToolCall(
+            item.id,
+            result.status === "completed" ? "success" : "failed",
+            result.result || (result.status === "completed" ? "操作执行并验证完成" : "操作执行失败"),
+          );
           await refreshApprovals();
           if (result.status === "completed") message.success("操作执行成功");
           else message.error(result.result || "操作执行失败");
@@ -426,7 +517,7 @@ export default function CopilotPage() {
     ...servers.map((server) => ({ value: server.id, label: `${server.alias} · ${server.hostname}` })),
   ], [servers]);
 
-  const send = async (prompt = input, bypassLockPrompt = false) => {
+  const send = async (prompt = input, bypassLockPrompt = false, regenerateMessageId: string | null = null) => {
     const text = prompt.trim();
     if (!text || loading) return;
     if (!bypassLockPrompt && !sessionReadOnlyMode) {
@@ -435,6 +526,7 @@ export default function CopilotPage() {
         setAiLockState(lockState.locked, lockState.unlockUntil === null ? null : lockState.unlockUntil * 1000);
         if (lockState.locked) {
           setPendingPrompt(text);
+          setPendingRegenerateMessageId(regenerateMessageId);
           setLockedPromptOpen(true);
           return;
         }
@@ -444,17 +536,31 @@ export default function CopilotPage() {
       }
     }
     const requestSessionId = activeSessionId;
+    const currentMessages = sessions.find((session) => session.id === requestSessionId)?.messages ?? messages;
+    const regenerateIndex = regenerateMessageId ? currentMessages.findIndex((item) => item.id === regenerateMessageId) : -1;
+    const requestMessages = regenerateIndex >= 0 ? currentMessages.slice(0, regenerateIndex) : currentMessages;
+    const regenerateUserIndex = regenerateIndex >= 0
+      ? requestMessages.reduce((last, item, index) => item.role === "user" ? index : last, -1)
+      : -1;
+    const historyMessages = regenerateUserIndex >= 0 ? requestMessages.slice(0, regenerateUserIndex) : requestMessages;
     // 每次重新匹配实际问题；自动命中的技能不写回会话，避免污染下一轮。
-    const activeSkills = resolveChatSkills(chatSkills.filter((skill) => !suppressedAutoSkillIds.includes(skill.id)), selectedSkillIds, text, true);
+    const eligibleSkills = chatSkills.filter((skill) => !suppressedAutoSkillIds.includes(skill.id));
+    const matchedThisTurn = matchChatSkills(eligibleSkills, text);
+    const activeSkills = resolveChatSkills(eligibleSkills, selectedSkillIds, text, true);
+    const activeSkillIds = new Set(activeSkills.map((skill) => skill.id));
+    const triggeredSkillNames = matchedThisTurn.filter((skill) => activeSkillIds.has(skill.id)).map((skill) => skill.name);
+    const manualSkillNames = activeSkills.filter((skill) => selectedSkillIds.includes(skill.id)).map((skill) => skill.name);
     setInput("");
-    updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "user", content: text }]);
+    updateSessionMessages(requestSessionId, (current) => regenerateIndex >= 0
+      ? current.slice(0, regenerateIndex)
+      : [...current, { id: crypto.randomUUID(), role: "user", content: text }]);
     setLoading(true);
     setProgress({ stage: "queued", message: "正在分析问题并选择受控工具", serverAlias: null, completed: false });
     try {
-      const history = messages.filter((item) => item.id !== "welcome").slice(-12).map((item) => ({ role: item.role, content: item.content }));
+      const history = historyMessages.filter((item) => item.id !== "welcome").slice(-12).map((item) => ({ role: item.role, content: item.content }));
       const skillContext = chatSkillContext(activeSkills);
       const result = await copilotApi.chat({ message: text, serverId: serverId ?? null, provider: modelProfileId ? "model" : "local-safe-tools", modelProfileId, history, skillIds: activeSkills.map((skill) => skill.id), skillContext });
-      updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.reply, modelName: result.modelName, toolCalls: result.toolCalls, warnings: result.warnings, skillNames: activeSkills.map((skill) => skill.name) }]);
+      updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.reply, modelName: result.modelName, toolCalls: result.toolCalls, warnings: result.warnings, skillNames: activeSkills.map((skill) => skill.name), triggeredSkillNames, manualSkillNames, historyCount: history.length, historyTrimmed: result.historyTrimmed }]);
       if (result.toolCalls.some((tool) => tool.approvalId)) await refreshApprovals();
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -491,8 +597,10 @@ export default function CopilotPage() {
 
   const continuePendingPrompt = async (mode: "readonly" | "unlock") => {
     const prompt = pendingPrompt;
+    const regenerateMessageId = pendingRegenerateMessageId;
     if (!prompt) {
       setLockedPromptOpen(false);
+      setPendingRegenerateMessageId(null);
       return;
     }
     if (mode === "unlock") {
@@ -502,8 +610,9 @@ export default function CopilotPage() {
       setSessionReadOnlyMode(true);
     }
     setPendingPrompt(null);
+    setPendingRegenerateMessageId(null);
     setLockedPromptOpen(false);
-    await send(prompt, true);
+    await send(prompt, true, regenerateMessageId);
   };
 
   const clearHistory = () => {
@@ -618,7 +727,7 @@ export default function CopilotPage() {
         footer={null}
         closable
         maskClosable={false}
-        onCancel={() => { setLockedPromptOpen(false); setPendingPrompt(null); }}
+        onCancel={() => { setLockedPromptOpen(false); setPendingPrompt(null); setPendingRegenerateMessageId(null); }}
         title={<span className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/20 text-amber-400"><ShieldAlert size={16} /></span><span className="text-sm font-bold">AI 操作当前已锁定</span></span>}
       >
         <div className="space-y-2 text-xs leading-relaxed text-slate-300">
@@ -678,13 +787,13 @@ export default function CopilotPage() {
           <Button size="small" className="!h-8 !border-slate-800 !bg-[#0e131b] !text-slate-300" icon={<Puzzle size={14} className="text-amber-400" />} onClick={() => message.info("AI 工具由当前服务器策略和 MCP 接入配置共同控制")}>外部工具</Button>
           <div className="flex min-h-8 w-full max-w-[32rem] items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400">
             <Puzzle size={14} className="shrink-0 text-amber-400" /><span className="shrink-0 text-xs">本轮技能</span>
-            <Select aria-label="本轮技能" mode="multiple" size="small" variant="borderless" allowClear showSearch maxTagCount="responsive" className="min-w-0 flex-1" placeholder="自动匹配或手动选择" value={visibleSkillIds} disabled={loading} optionFilterProp="label" onChange={(ids: string[]) => {
+            <Select aria-label="本轮技能" mode="multiple" size="small" variant="borderless" allowClear showSearch maxTagCount="responsive" className="min-w-0 flex-1" placeholder="输入问题后自动匹配，也可手动补充" value={visibleSkillIds} disabled={loading} optionFilterProp="label" onChange={(ids: string[]) => {
               // 删除某个自动技能时，不要把其余自动匹配项变成会话固定项。
               setSelectedSkillIds(ids.filter((id) => selectedSkillIds.includes(id) || suppressedAutoSkillIds.includes(id) || !matchedSkills.some((skill) => skill.id === id)));
               setSuppressedAutoSkillIds(matchedSkills.filter((skill) => !ids.includes(skill.id)).map((skill) => skill.id));
             }} options={chatSkills.map((skill) => ({ value: skill.id, label: `${skill.name} · ${matchedSkills.some((item) => item.id === skill.id) && !selectedSkillIds.includes(skill.id) ? "自动" : skill.source === "user" ? "用户" : "内置"}`, title: skill.description }))} />
           </div>
-          <span className="text-xs text-slate-500">自动匹配最多 3 项，可手动增删；技能仅作分析参考</span>
+          <span className="text-xs text-slate-500">技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定</span>
           <span className="px-1 text-[11px] text-slate-500">{sessions.length} 个会话</span>
         </div>
         <div className="flex items-center gap-3 text-slate-400">
@@ -762,12 +871,59 @@ export default function CopilotPage() {
             (() => {
               const blockedCall = item.toolCalls?.find((tool) => tool.status === "blocked" && (tool.tool === "policy_guard" || tool.output.includes("白名单")));
               const sourceRequest = messages.slice(0, messageIndex).reverse().find((entry) => entry.role === "user")?.content ?? "";
+              const toolCount = item.toolCalls?.length ?? 0;
+              const completedToolCount = item.toolCalls?.filter((tool) => tool.status === "success").length ?? 0;
+              const triggeredSkillNames = item.triggeredSkillNames ?? [];
+              const manualSkillNames = item.manualSkillNames ?? [];
+              const usedSkillCount = item.skillNames?.length ?? 0;
+              const targetAliases = Array.from(new Set(item.toolCalls?.map((tool) => tool.serverAlias).filter((alias): alias is string => Boolean(alias)) ?? []));
+              const contextCount = item.historyCount ?? 0;
+              const hasPendingApproval = item.toolCalls?.some((tool) => tool.status === "pending") ?? false;
+              const hasBlockedTool = item.toolCalls?.some((tool) => tool.status === "blocked") ?? false;
+              const hasFailedTool = item.toolCalls?.some((tool) => tool.status === "failed") ?? false;
+              const hasMutationTool = item.toolCalls?.some((tool) => isMutatingTool(tool.tool)) ?? false;
+              const intentSummary = toolCount ? `已匹配 ${item.toolCalls?.map((tool) => tool.tool).join("、")}` : "未调用服务器工具";
+              const policySummary = hasPendingApproval ? "改动操作 · 等待人工审批" : hasBlockedTool ? "策略阻断 · 未执行" : hasFailedTool ? "受控探针执行失败" : hasMutationTool ? "改动工具 · 受审批策略约束" : toolCount ? "受控只读查询 · 不执行改动" : "未命中远程工具";
               return (
             <article key={item.id} className="w-full space-y-3.5 rounded-2xl border border-slate-800/90 bg-[#0f141c] p-5 text-xs shadow-xl">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5"><div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-1.5 font-bold text-white"><Bot size={15} className="text-indigo-400" />OpsPub AI 助手</span><Tag bordered={false} color={item.content.startsWith("请求失败：") ? "error" : "success"} className="m-0">{item.content.startsWith("请求失败：") ? "未完成" : "已完成"}</Tag>{item.toolCalls?.length ? <Tag bordered={false} color="blue" className="m-0">{item.toolCalls.length} 次工具调用</Tag> : null}</div><span className="text-[11px] text-slate-500">{item.modelName ? `模型 · ${item.modelName}` : "本地受控模式"}</span></div>
-              <div className="whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-200">{item.content}</div>
-              {item.modelName && item.skillNames?.length ? <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400"><Puzzle size={13} /><span>本轮参考技能</span>{item.skillNames.map((name) => <Tag key={name} className="m-0">{name}</Tag>)}</div> : null}
-              {item.toolCalls?.length ? <details className="overflow-hidden rounded-xl border border-slate-800/80 bg-[#0b0f16]"><summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-surface-900/60 px-3.5 py-2.5 text-xs transition hover:bg-surface-850/80"><span className="flex min-w-0 items-center gap-2 font-semibold text-slate-200"><TerminalSquare size={14} className="shrink-0 text-cyan-400" />执行过程 <span className="truncate font-normal text-slate-400">{item.toolCalls.length} 次工具调用</span></span><span className="shrink-0 text-[11px] text-slate-500">点击展开</span></summary><div className="space-y-2 border-t border-slate-800/80 bg-[#090c12] p-3.5">{item.toolCalls.map((tool, index) => <div key={`${tool.tool}-${tool.serverAlias}-${index}`} className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-cyan-300"><TerminalSquare size={13} />{tool.tool}{tool.serverAlias ? <span className="font-sans font-normal text-slate-500">@{tool.serverAlias}</span> : null}</span><Tag color={tool.status === "success" ? "success" : tool.status === "blocked" ? "warning" : tool.status === "skipped" ? "default" : tool.status === "pending" ? "processing" : "error"}>{tool.status}</Tag></div><pre className="m-0 mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-slate-400">{tool.output || "无输出"}</pre></div>)}</div></details> : null}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                <div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-1.5 font-bold text-white"><Bot size={15} className="text-indigo-400" />OpsPub AI 助手</span><Tag bordered={false} color={item.content.startsWith("请求失败：") ? "error" : "success"} className="m-0">{item.content.startsWith("请求失败：") ? "未完成" : "已完成"}</Tag>{triggeredSkillNames.length > 0 && <Tag bordered={false} color="gold" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />关键词触发：{triggeredSkillNames.join("、")}</span></Tag>}{manualSkillNames.length > 0 && <Tag bordered={false} color="blue" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />手动补充：{manualSkillNames.join("、")}</span></Tag>}</div>
+                <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400"><span>本轮 1 轮</span><span className="text-slate-700">·</span><span>{completedToolCount}/{toolCount} 次工具完成</span><span className="text-slate-700">·</span><span>{usedSkillCount} 个技能</span><span className="text-slate-700">·</span><span>上下文 {contextCount} 条{item.historyTrimmed ? `（裁剪 ${item.historyTrimmed}）` : ""}</span><span className="text-slate-600">·</span><span>{item.modelName ? `模型 · ${item.modelName}` : "本地受控模式"}</span></div>
+              </div>
+              <CopilotMarkdown content={item.content} />
+              <details open={Boolean(item.toolCalls?.length)} className="overflow-hidden rounded-xl border border-slate-800/80 bg-[#0b0f16]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-surface-900/60 px-3.5 py-2.5 text-xs transition hover:bg-surface-850/80">
+                  <span className="flex min-w-0 items-center gap-2 font-semibold text-slate-200"><FileText size={14} className="shrink-0 text-cyan-400" />分析与执行过程 <span className="truncate font-normal text-slate-400">{item.toolCalls?.length ? `${item.toolCalls.length} 条工具记录` : "请求与策略摘要"}</span></span>
+                  <span className="shrink-0 text-[11px] text-slate-500">查看过程摘要</span>
+                </summary>
+                <div className="space-y-3 border-t border-slate-800/80 bg-[#090c12] p-3.5">
+                  <div><div className="mb-1 text-[11px] font-semibold text-slate-300">本轮问题</div><p className="m-0 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-400">{sourceRequest || "未找到关联问题"}</p></div>
+                  <div className="grid grid-cols-1 gap-2 text-[11px] text-slate-400 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><span className="block text-slate-500">意图识别</span><strong className="mt-1 block break-words font-medium text-slate-200">{intentSummary}</strong></div>
+                    <div className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><span className="block text-slate-500">目标选择</span><strong className="mt-1 block break-words font-medium text-slate-200">{targetAliases.length ? targetAliases.join("、") : "未建立远程会话"}</strong></div>
+                    <div className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><span className="block text-slate-500">策略判定</span><strong className={`mt-1 block break-words font-medium ${hasBlockedTool || hasFailedTool ? "text-amber-300" : hasPendingApproval || hasMutationTool ? "text-amber-200" : "text-emerald-300"}`}>{policySummary}</strong></div>
+                    <div className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><span className="block text-slate-500">会话上下文</span><strong className="mt-1 block font-medium text-slate-200">最近 {contextCount} 条消息</strong><span className="mt-1 block text-slate-500">不包含跨会话语义记忆检索</span></div>
+                  </div>
+                  {item.skillNames?.length ? <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400"><Puzzle size={13} /><span>参考技能</span>{item.skillNames.map((name) => <Tag key={name} className="m-0">{name}</Tag>)}</div> : null}
+                  {item.toolCalls?.length ? <div className="space-y-2">{item.toolCalls.map((tool, index) => <div key={`${tool.tool}-${tool.serverAlias}-${index}`} className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-cyan-300"><TerminalSquare size={13} />{tool.tool}{tool.serverAlias ? <span className="font-sans font-normal text-slate-500">@{tool.serverAlias}</span> : null}</span><Tag color={tool.status === "success" ? "success" : tool.status === "blocked" ? "warning" : tool.status === "skipped" ? "default" : tool.status === "pending" ? "processing" : "error"}>{toolStatusLabel(tool.status)}</Tag></div><pre className="m-0 mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-slate-400">{tool.output || "无输出"}</pre></div>)}</div> : <p className="m-0 text-[11px] text-slate-500">没有调用服务器工具；以上内容由模型根据对话上下文生成。</p>}
+                  {item.warnings?.length ? <div className="space-y-1">{item.warnings.map((warning) => <p key={warning} className="m-0 text-[11px] text-amber-300">策略提示：{warning}</p>)}</div> : null}
+                  <p className="m-0 border-t border-slate-800 pt-2 text-[10px] text-slate-600">此处展示可核验的策略状态和工具记录，不包含模型隐藏思维链。</p>
+                </div>
+              </details>
+              {item.toolCalls?.map((tool) => {
+                if (typeof tool.approvalId !== "number") return null;
+                const detail = approvalDetailById.get(tool.approvalId);
+                const approval = detail?.approval;
+                const pending = approval?.status === "pending";
+                const statusLabel = approval?.status === "pending" ? "等待审批" : approval?.status === "completed" ? "执行完成" : approval?.status === "rejected" ? "已拒绝" : approval?.status === "expired" ? "已过期" : approval?.status === "failed" ? "执行失败" : approval?.status ?? "状态同步中";
+                return <section key={`approval-${tool.approvalId}`} className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2 font-semibold text-amber-200"><ShieldAlert size={15} />人工审批 #{tool.approvalId}<Tag color={pending ? "processing" : approval?.status === "completed" ? "success" : approval?.status === "failed" ? "error" : "default"}>{statusLabel}</Tag></div>{approval && <span className="text-[11px] text-slate-500">{pending ? `失效时间 ${new Date(approval.expiresAt * 1000).toLocaleTimeString()}` : approval.decidedAt ? `处理于 ${new Date(approval.decidedAt * 1000).toLocaleString()}` : ""}</span>}</div>
+                  <div className="mt-2 grid gap-1 text-[11px] text-slate-400"><span>目标：{approval?.serverAlias ?? tool.serverAlias ?? "待同步"}</span><span>操作：{approval?.action ?? tool.tool}</span><code className="break-all rounded bg-black/20 p-2 text-amber-100">{approval?.command ?? tool.output}</code></div>
+                  <CopilotApprovalPlanSummary detail={detail} />
+                  {approval?.result && !pending && <p className="mb-0 mt-2 whitespace-pre-wrap break-words text-[11px] text-slate-400">结果：{approval.result}</p>}
+                  {pending && approval && <div className="mt-3 flex justify-end gap-2"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(approval.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => approveApproval(approval)}>批准并执行</Button></div>}
+                </section>;
+              })}
               {blockedCall && <Alert
                 className="mt-2"
                 type="warning"
@@ -776,6 +932,15 @@ export default function CopilotPage() {
                 description={<div className="space-y-2"><p className="m-0">命令没有发送到服务器。你可以先让 AI 解释它的用途、参数和风险；解析结果不会代替人工同意，也不会执行命令。</p><Button size="middle" icon={<BadgeInfo size={15} />} disabled={!modelProfileId} onClick={() => openCommandExplanation(sourceRequest)}>AI 解析命令</Button>{!modelProfileId && <span className="ml-2">请先选择已配置的模型。</span>}</div>}
               />}
               {item.warnings?.map((warning) => <Alert key={warning} className="mt-2" type="warning" showIcon message={warning} />)}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 pt-2">
+                <span className="text-[10px] text-slate-600">{item.modelName ? `由 ${item.modelName} 生成` : "OpsPub 受控助手"}</span>
+                <div className="flex items-center gap-1">
+                  <Button size="small" type="text" title="复制纯文本回答" aria-label="复制回答" icon={<Copy size={14} />} onClick={() => void copyAssistantMessage(item)}>复制</Button>
+                  <Button size="small" type="text" title="复制包含问题和工具执行过程的 Markdown 报告" aria-label="复制回答和过程摘要" icon={<FileText size={14} />} onClick={() => void copyAssistantMessage(item, true)}>连过程复制</Button>
+                  {(() => { const latestAssistant = messageIndex === messages.length - 1 && messages.reduce((last, entry, currentIndex) => entry.role === "assistant" ? currentIndex : last, -1) === messageIndex; const hasPendingApproval = item.toolCalls?.some((tool) => tool.status === "pending" || (typeof tool.approvalId === "number" && ["pending", "executing"].includes(approvalDetailById.get(tool.approvalId)?.approval.status ?? ""))) ?? false; const hasExecutedMutation = item.toolCalls?.some((tool) => tool.status === "success" && isMutatingTool(tool.tool)) ?? false; const canRegenerate = latestAssistant && !hasPendingApproval && !hasExecutedMutation && Boolean(sourceRequest); return <Button size="small" type="text" title={canRegenerate ? "重新思考并重新生成本轮回复" : "仅最新且未涉及审批或变更的回答可以重新生成"} aria-label="重新生成回答" disabled={!canRegenerate || loading} icon={<RotateCw size={14} />} onClick={() => regenerateMessage(item)}>重新生成</Button>; })()}
+                  <Button size="small" type="text" title="剪裁到这一轮为止，另存为一条新对话并切换过去" aria-label="从这里分叉" disabled={loading} icon={<GitFork size={14} />} onClick={() => forkFromMessage(item.id)}>从这里分叉</Button>
+                </div>
+              </div>
             </article>
               );
             })()
@@ -793,6 +958,12 @@ export default function CopilotPage() {
       </div></footer>
     </div>
   );
+}
+
+function CopilotMarkdown({ content }: { content: string }) {
+  return <div className="copilot-markdown">
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+  </div>;
 }
 
 function CopilotApprovalPlanSummary({ detail }: { detail?: AiApprovalDetail }) {

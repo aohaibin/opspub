@@ -747,7 +747,318 @@
       backdrop-filter: blur(4px) !important;
     }
 
-    /* 设置菜单页 (tab-settings) 亮色皮肤全维度高质感深度适配 (彻底解决右侧暗黑卡片不协调问题) */
+    
+    
+    /* 统一 AI 聊天所有倒三角悬浮气泡 Tooltip 样式 (在暗色/亮色下均保证高对比度、深色磨砂与优雅阴影) */
+    .chat-custom-tooltip {
+      background-color: rgba(15, 23, 42, 0.96) !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(51, 65, 85, 0.85) !important;
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3) !important;
+    }
+    html:not(.dark) .chat-custom-tooltip {
+      background-color: rgba(15, 23, 42, 0.96) !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(30, 41, 59, 0.9) !important;
+    }
+
+
+    /* 终端文本左键自由选中高亮样式与上下文菜单 */
+    #termPane1, #termPane1 *, #termOutputCode, #termOutputCode * {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+    #termPane1::selection,
+    #termPane1 *::selection,
+    #termOutputCode::selection,
+    #termOutputCode *::selection {
+      background-color: rgba(16, 185, 129, 0.4) !important;
+      color: #ffffff !important;
+    }
+    html:not(.dark) #termPane1::selection,
+    html:not(.dark) #termPane1 *::selection {
+      background-color: rgba(13, 148, 136, 0.35) !important;
+      color: #0f172a !important;
+    }
+    #terminalContextMenu {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
+    }
+
+
+    /* ========================================================================= */
+    /* 软件版本更新胶囊样式 (中空下载进度态 vs 填充完成就绪态，深度适配多套主题皮肤) */
+    /* ========================================================================= */
+    .update-capsule-btn {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 1. 中空下载中态 (截图 1: 细边框、中空透明或微白、无实心背景色填充，跟随当前主题色) */
+    .update-capsule-downloading {
+      background: transparent !important;
+      border: 1.5px solid var(--brand-500, #3b82f6) !important;
+      color: var(--brand-400, #60a5fa) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    }
+    html:not(.dark) .update-capsule-downloading {
+      background: #ffffff !important;
+      border: 1.5px solid var(--brand-500, #3b82f6) !important;
+      color: var(--brand-600, #2563eb) !important;
+      box-shadow: 0 1px 4px rgba(59, 130, 246, 0.12) !important;
+    }
+
+    /* 2. 下载完成填充样式态 (截图 2: 填充实心颜色、纯白饱满文字、微柔阴影) */
+    .update-capsule-ready {
+      border: 1.5px solid transparent !important;
+      color: #ffffff !important;
+    }
+    
+    /* 默认暗色 (Obsidian/Dark) 下填充翡翠绿/品牌色渐变 */
+    .update-capsule-ready,
+    html[data-skin="obsidian"] .update-capsule-ready {
+      background: linear-gradient(135deg, #10b981, #059669) !important;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35) !important;
+    }
+    /* 极光绿 (Aurora) 皮肤下填充极光翡翠色 */
+    html[data-skin="aurora"] .update-capsule-ready {
+      background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+      box-shadow: 0 2px 10px rgba(13, 148, 136, 0.35) !important;
+    }
+    /* 暖阳橙 (Warm) 皮肤下填充活力暖橙色 */
+    html[data-skin="warm"] .update-capsule-ready {
+      background: linear-gradient(135deg, #f97316, #ea580c) !important;
+      box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35) !important;
+    }
+    /* 天蓝 (Sky) 皮肤下填充清新绿宝石色 (1:1 还原截图 2 亮色背景下的绿色胶囊) */
+    html[data-skin="sky"] .update-capsule-ready,
+    html:not(.dark) .update-capsule-ready {
+      background: #10b981 !important;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+    }
+
+
+    /* ========================================================================= */
+    /* 软件版本更新弹窗 (#modalAppUpdateInfo) 与右下角卡片 (#floatUpdateNotification) 主题皮肤全维度高品质重构 */
+    /* ========================================================================= */
+
+    /* 1. 暗色模式基调 (Obsidian / Graphite / Amber / 默认暗色) */
+    html.dark #modalAppUpdateCard,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard {
+      background-color: #0f141f !important;
+      color: #f1f5f9 !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* 顶栏与底栏 */
+    html.dark #modalAppUpdateCard .modal-update-header,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-update-header {
+      background-color: #0c1018 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #ffffff !important;
+    }
+    html.dark #modalAppUpdateCard .modal-update-footer,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-update-footer {
+      background-color: #0c1018 !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* 版本对比卡片 */
+    html.dark #modalAppUpdateCard .modal-ver-card,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-ver-card {
+      background-color: #141b27 !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    html.dark #modalAppUpdateCard .modal-ver-card .ver-old-label,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-ver-card .ver-old-label {
+      color: #f1f5f9 !important;
+    }
+
+    /* 进度卡片 */
+    html.dark #modalAppUpdateCard .modal-progress-card,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-progress-card {
+      background-color: rgba(16, 185, 129, 0.06) !important;
+      border: 1px solid rgba(16, 185, 129, 0.22) !important;
+    }
+    html.dark #modalAppUpdateCard .modal-progress-card .progress-title,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-progress-card .progress-title {
+      color: #e2e8f0 !important;
+    }
+
+    /* 更新日志容器卡片 (彻底根除灰蒙蒙、白底白字错乱现象) */
+    html.dark #modalAppUpdateCard .modal-changelog-card,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-changelog-card {
+      background-color: #121824 !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #cbd5e1 !important;
+    }
+    html.dark #modalAppUpdateCard .modal-changelog-card strong,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-changelog-card strong {
+      color: #ffffff !important;
+      font-weight: 600 !important;
+    }
+    html.dark #modalAppUpdateCard .modal-changelog-card div,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-changelog-card div {
+      color: #cbd5e1 !important;
+    }
+
+    /* 取消按钮 */
+    html.dark #modalAppUpdateCard .modal-cancel-btn,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-cancel-btn {
+      background-color: #1e293b !important;
+      border: 1px solid #334155 !important;
+      color: #cbd5e1 !important;
+    }
+    html.dark #modalAppUpdateCard .modal-cancel-btn:hover,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #modalAppUpdateCard .modal-cancel-btn:hover {
+      background-color: #334155 !important;
+      color: #ffffff !important;
+    }
+
+    /* 右下角直接升级通知卡片 (暗色模式适配) */
+    html.dark #floatUpdateNotification,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #floatUpdateNotification {
+      background-color: rgba(15, 20, 31, 0.96) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #f1f5f9 !important;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    }
+    html.dark #floatUpdateNotification .float-title,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #floatUpdateNotification .float-title {
+      color: #ffffff !important;
+    }
+    html.dark #floatUpdateNotification .float-desc,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #floatUpdateNotification .float-desc {
+      color: #94a3b8 !important;
+    }
+    html.dark #floatUpdateNotification .float-cancel-btn,
+    html:not([data-skin="sky"]):not([data-skin="warm"]):not([data-skin="aurora"]) #floatUpdateNotification .float-cancel-btn {
+      background-color: #1e293b !important;
+      border: 1px solid #334155 !important;
+      color: #cbd5e1 !important;
+    }
+
+    /* ========================================================================= */
+    /* 2. 亮色模式基调 (Sky 极简天蓝 / Aurora 极光绿 / Warm 暖阳橙) */
+    /* ========================================================================= */
+    html:not(.dark)[data-skin="sky"] #modalAppUpdateCard,
+    html:not(.dark)[data-skin="warm"] #modalAppUpdateCard,
+    html:not(.dark)[data-skin="aurora"] #modalAppUpdateCard,
+    html:not(.dark) #modalAppUpdateCard {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-update-header {
+      background-color: #f8fafc !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-update-footer {
+      background-color: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-ver-card {
+      background-color: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-ver-card .ver-old-label {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-progress-card {
+      background-color: #f0fdf4 !important;
+      border: 1px solid #bbf7d0 !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-progress-card .progress-title {
+      color: #166534 !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-changelog-card {
+      background-color: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-changelog-card strong {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-cancel-btn {
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    html:not(.dark) #modalAppUpdateCard .modal-cancel-btn:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+
+    /* 亮色下右下角通知卡片 */
+    html:not(.dark) #floatUpdateNotification {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      color: #0f172a !important;
+      box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+    }
+    html:not(.dark) #floatUpdateNotification .float-title {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #floatUpdateNotification .float-desc {
+      color: #64748b !important;
+    }
+    html:not(.dark) #floatUpdateNotification .float-cancel-btn {
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #475569 !important;
+    }
+
+    /* ========================================================================= */
+    /* 3. 各特定主题的高光颜色与主按钮搭配 */
+    /* ========================================================================= */
+    /* 极光绿 (Aurora) */
+    html[data-skin="aurora"] .modal-theme-btn,
+    html[data-skin="aurora"] .float-theme-btn {
+      background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+      box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4) !important;
+    }
+    html[data-skin="aurora"] #modalDownloadProgressBar {
+      background-color: #0d9488 !important;
+    }
+
+    /* 暖阳橙 (Warm) */
+    html[data-skin="warm"] .modal-theme-btn,
+    html[data-skin="warm"] .float-theme-btn {
+      background: linear-gradient(135deg, #f97316, #ea580c) !important;
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4) !important;
+    }
+    html[data-skin="warm"] #modalDownloadProgressBar {
+      background-color: #f97316 !important;
+    }
+
+    /* 天蓝 (Sky) 与 曜石黑 (Obsidian) 与 默认 */
+    .modal-theme-btn,
+    .float-theme-btn {
+      background: linear-gradient(135deg, #10b981, #059669) !important;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important;
+    }
+    #modalDownloadProgressBar {
+      background-color: #10b981 !important;
+    }
+
+/* 亮色模式下用户消息操作按钮与就地编辑框适配 */
+    html:not(.dark) #userMsgActions button {
+      color: #64748b !important;
+      background: transparent !important;
+    }
+    html:not(.dark) #userMsgActions button:hover {
+      color: #0f172a !important;
+      background: #f1f5f9 !important;
+    }
+    html:not(.dark) #userMsgInlineEditor textarea {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #0d9488 !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    }
+
+/* 设置菜单页 (tab-settings) 亮色皮肤全维度高质感深度适配 (彻底解决右侧暗黑卡片不协调问题) */
     /* 1. 右侧设置详情主面板与背景统一洗白 */
     html:not(.dark) #tab-settings {
       background-color: var(--surface-950) !important;
@@ -1764,6 +2075,87 @@
       background-color: #ffffff !important;
       border-color: #cbd5e1 !important;
     }
+
+    /* ==========================================================================
+       法律声明与合规卡片双主题适配 (含亮色模式)
+       ========================================================================== */
+    html:not(.dark) #setting-card-legal {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+    }
+    html:not(.dark) #setting-card-legal .text-white {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #setting-card-legal .text-slate-300 {
+      color: #334155 !important;
+    }
+    html:not(.dark) #setting-card-legal .text-slate-400 {
+      color: #64748b !important;
+    }
+    html:not(.dark) #setting-card-legal .bg-\[\#141a22\] {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #setting-card-legal .bg-\[\#121720\] {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #setting-card-legal .bg-\[\#0c1017\] {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #setting-card-legal .bg-surface-900 {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #setting-card-legal .border-slate-800,
+    html:not(.dark) #setting-card-legal .border-slate-800\/80,
+    html:not(.dark) #setting-card-legal .border-slate-800\/90 {
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #setting-card-legal button.bg-surface-850 {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    html:not(.dark) #setting-card-legal button.bg-surface-850:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+
+    /* ==========================================================================
+       AI 助手对话审批与操作工具栏双主题适配 (含亮色模式)
+       ========================================================================== */
+    html:not(.dark) #pendingInstructionBanner {
+      background-color: #fefce8 !important;
+      border-color: #fef08a !important;
+    }
+    html:not(.dark) #pendingInstructionBanner .bg-rose-950\/30 {
+      background-color: #fff1f2 !important;
+      border-color: #fecdd3 !important;
+      color: #9f1239 !important;
+    }
+    html:not(.dark) #pendingInstructionBanner .bg-surface-950\/90 {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) .chat-action-btn {
+      color: #64748b !important;
+    }
+    html:not(.dark) .chat-action-btn:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #aiResponseCard table thead tr {
+      background-color: #f8fafc !important;
+      color: #64748b !important;
+    }
+    html:not(.dark) #aiResponseCard table tbody tr:hover {
+      background-color: #f1f5f9 !important;
+    }
 </style>
 </head>
 <body class="bg-[#050811] text-slate-100 h-full max-h-screen overflow-hidden font-sans select-none">
@@ -1794,11 +2186,12 @@
     <!-- 右侧工具栏：完全匹配截图 1789613652724 的布局 -->
     <div class="flex items-center space-x-2">
 
-      <!-- 2. 版本号与更新检测 (对应截图 v2.1.0 ⟳) -->
-      <div class="relative">
-        <button onclick="toggleVersionModal()" id="headerVersionBtn" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-mono transition" title="当前版本 v2.5.0 · 点击检查更新与更新日志">
-          <span>v2.5.0</span>
-          <i data-lucide="rotate-cw" id="headerVersionUpdateIcon" class="w-3 h-3 text-slate-400"></i>
+      <!-- 2. 软件版本更新胶囊状态栏 (1:1 严格对齐截图 1、2：默认未填充下载进度态 -> 下载完成后填充样式颜色，适配当前主题色) -->
+      <div class="relative select-none flex items-center">
+        <button onclick="openAppUpdateModal()" id="headerUpdateCapsuleBtn" class="update-capsule-btn update-capsule-downloading flex items-center space-x-1.5 px-3 py-1 rounded-full font-mono text-xs font-semibold shadow-sm transition-all duration-300 cursor-pointer active:scale-95" title="新版本正在下载中 (点击查看进度)">
+          <span id="headerUpdateVerText">1.2.0-1.2.1</span>
+          <i data-lucide="rotate-cw" id="headerUpdateIcon" class="w-3.5 h-3.5 animate-spin"></i>
+          <span id="headerUpdateStatusBadge" class="text-emerald-500 font-bold text-[11px]">12%</span>
         </button>
       </div>
 
@@ -6690,7 +7083,7 @@
           <!-- 标签列表 -->
           <div class="flex items-center space-x-1 overflow-x-auto custom-scrollbar pr-2">
             <!-- 标签 1: 我的腾讯云0209 (已连接会话) -->
-            <div onclick="switchTerminalTab('session-tencent')" id="termTab-session-tencent" class="term-tab px-3 py-1.5 rounded-t-xl bg-surface-900/60 hover:bg-surface-900 text-slate-400 hover:text-slate-200 border-t border-x border-transparent flex items-center space-x-2 cursor-pointer transition select-none group">
+            <div onclick="switchTerminalTab('session-tencent')" id="termTab-session-tencent" class="term-tab px-3 py-1.5 rounded-t-xl bg-surface-900 border-t-2 border-emerald-400 text-white shadow-sm hover:text-slate-200 border-t border-x border-transparent flex items-center space-x-2 cursor-pointer transition select-none group">
               <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>
               <span class="font-mono text-xs text-slate-300 group-hover:text-white">我的腾讯云0209</span>
               <button onclick="closeTerminalSessionTab(event, 'session-tencent')" class="p-0.5 rounded hover:bg-slate-700/60 text-slate-500 hover:text-rose-400 transition" title="关闭会话">
@@ -6699,7 +7092,7 @@
             </div>
 
             <!-- 标签 2: ⚡ 快速连接 (激活高亮态，对应截图) -->
-            <div onclick="switchTerminalTab('quick-connect')" id="termTab-quick-connect" class="term-tab px-3 py-1.5 rounded-t-xl bg-emerald-500/15 border-t border-x border-emerald-500/40 text-emerald-300 flex items-center space-x-1.5 cursor-pointer transition select-none shadow-sm">
+            <div onclick="switchTerminalTab('quick-connect')" id="termTab-quick-connect" class="term-tab px-3 py-1.5 rounded-t-xl bg-surface-900/60 hover:bg-surface-900 text-slate-400 hover:text-slate-200 border-t border-x border-transparent flex items-center space-x-1.5 cursor-pointer transition select-none shadow-sm">
               <i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-400"></i>
               <span class="font-medium text-xs text-emerald-300">快速连接</span>
               <button onclick="closeTerminalSessionTab(event, 'quick-connect')" class="p-0.5 rounded hover:bg-emerald-500/20 text-emerald-400/70 hover:text-emerald-300 transition" title="关闭标签">
@@ -6723,11 +7116,11 @@
           <span class="text-[10px] text-amber-400 font-mono bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30">BROADCAST_ACTIVE</span>
         </div>
 
-        <!-- 4. 终端核心工作区 (主内容 + 右侧垂直工具栏) -->
-        <div class="flex-1 flex overflow-hidden min-h-0 relative">
+        <!-- 4. 终端核心工作区 (主工作区全屏自适应撑满，去除右侧多余并排与挤压) -->
+        <div class="flex-1 flex flex-col overflow-hidden min-h-0 relative w-full">
 
           <!-- 4.1 VIEW A: ★ 快速连接视图 (支持 网格 / 列表 / 树形 3 种视图切换，1:1 对齐截图 media_1792974780339_0ab94bf3.png) -->
-          <div id="termView-quick-connect" class="flex-1 flex flex-col p-6 overflow-y-auto custom-scrollbar justify-between">
+          <div id="termView-quick-connect" class="hidden flex-1 flex flex-col p-6 overflow-y-auto custom-scrollbar justify-between">
             <div class="space-y-5">
               <!-- 快速连接标题栏 + 搜索栏 + 视图切换 + 新建按钮 (1:1 严格对齐截图) -->
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80 font-sans">
@@ -7047,26 +7440,109 @@
             </div>
           </div>
 
-          <!-- 4.2 VIEW B: 终端多屏会话交互视图 (点击卡片或标签时展示) -->
-          <div id="termView-session" class="hidden flex-1 h-full bg-black grid grid-cols-1 gap-1 p-1 font-mono transition-all duration-200 relative overflow-hidden">
-            <!-- 终端窗格 1 (prod-api-01) -->
-            <div id="termPane1" class="bg-black p-3.5 text-xs text-emerald-400 overflow-y-auto flex flex-col justify-between rounded-lg border border-slate-900 custom-scrollbar">
-              <div class="space-y-1.5 leading-relaxed">
-                <div class="text-slate-500 flex items-center justify-between pb-1 border-b border-slate-900 font-sans text-[11px]">
-                  <span class="text-cyan-400 font-bold font-mono">root@prod-api-01 (111.231.166.192:22)</span>
-                  <span>PTY 会话已建立 · xterm-256color · UTF-8</span>
+                    <!-- 4.2 VIEW B: 终端多屏会话交互视图 (全宽展示，无任何右侧并排或多余抽屉，1:1 对齐真实终端输出与操作流) -->
+          <div id="termView-session" class="flex-1 w-full h-full bg-black grid grid-cols-1 gap-1 p-1 font-mono transition-all duration-200 relative overflow-hidden">
+                        <!-- 终端窗格 1 (prod-api-01: 全宽占满，紧凑终端等宽字符流排版，绝无缩进空白与纵向拉扯) -->
+            <div id="termPane1" oncontextmenu="handleTerminalContextMenu(event)" class="bg-[#0b0f17] p-4 text-xs text-slate-200 overflow-y-auto flex flex-col justify-start rounded-lg border border-slate-800/90 custom-scrollbar select-text relative font-mono leading-normal" style="user-select: text !important;">
+              <!-- 终端输出核心内容区 -->
+              <div id="termOutputCode" class="select-text text-slate-300 font-mono text-[12px] leading-normal" style="user-select: text !important;">
+<pre class="font-mono text-[12px] text-slate-300 whitespace-pre leading-snug m-0 p-0">commit    Create a new image from a container's changes
+cp        Copy files/folders between a container and the local filesystem
+create    Create a new container
+diff      Inspect changes to files or directories on a container's filesystem
+events    Get real time events from the server
+export    Export a container's filesystem as a tar archive
+history   Show the history of an image
+import    Import the contents from a tarball to create a filesystem image
+inspect   Return low-level information on Docker objects
+kill      Kill one or more running containers
+load      Load an image from a tar archive or STDIN
+logs      Fetch the logs of a container
+pause     Pause all processes within one or more containers
+port      List port mappings or a specific mapping for the container
+rename    Rename a container
+restart   Restart one or more containers
+rm        Remove one or more containers
+rmi       Remove one or more images
+save      Save one or more images to a tar archive (streamed to STDOUT by default)
+start     Start one or more stopped containers
+stats     Display a live stream of container(s) resource usage statistics
+stop      Stop one or more running containers
+tag       Create a tag TARGET_IMAGE that refers to SOURCE_IMAGE
+top       Display the running processes of a container
+unpause   Unpause all processes within one or more containers
+update    Update configuration of one or more containers
+wait      Block until one or more containers stop, then print their exit codes
+
+Global Options:
+      --config string      Location of client config files (default "/root/.docker")
+  -c, --context string     Name of the context to use to connect to the daemon (overrides DOCKER_HOST env var and default context set with "docker context use")
+  -D, --debug              Enable debug mode
+  -H, --host string        Daemon socket to connect to
+  -l, --log-level string   Set the logging level ("debug", "info", "warn", "error", "fatal") (default "info")
+      --tls                Use TLS; implied by --tlsverify
+      --tlscacert string   Trust certs signed only by this CA (default "/root/.docker/ca.pem")
+      --tlscert string     Path to TLS certificate file (default "/root/.docker/cert.pem")
+      --tlskey string      Path to TLS key file (default "/root/.docker/key.pem")
+      --tlsverify          Use TLS and verify the remote
+  -v, --version            Print version information and quit
+
+Run 'docker COMMAND --help' for more information on a command.
+
+For more help on how to use Docker, head to https://docs.docker.com/go/guides/</pre>
+                <!-- 终端原位 AI 操作与直接内联回答区域 (1:1 严格对齐图 2：原位字符流直接回答，紧凑无拉扯) -->
+                <div id="termInlineAIContainer" class="pt-2 font-mono text-[12px] select-text">
+                  <div class="text-slate-300 flex items-center flex-wrap leading-relaxed">
+                    <span class="text-cyan-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># 
+                    <span class="text-slate-400 ml-1.5 font-mono">⇥ ssh_exec: docker --version; docker wait --help 2&gt;&amp;1 | head -20</span>
+                  </div>
+                  <!-- 原位操作执行与提示行 -->
+                  <div id="termAIWaitingNotice" class="font-mono text-[12px] select-text leading-relaxed">
+                    <div class="text-amber-300 font-semibold py-0.5">  ⏸ 等待开启 AI 操作 —— 点底部状态条「开启并继续」( 5 分钟内有效, Ctrl+C 取消)</div>
+                    <div class="text-emerald-400 font-semibold py-0.5">  ↳ 已开启 AI 操作，继续执行</div>
+                    <div class="text-slate-400 font-mono text-[11px] py-0.5 truncate">  ↳ {"stdout":"Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2\nUsage:  docker wait CONTAINER [CONT...</div>
+                  </div>
+                  <!-- 终端内原位纯命令行字符流解读 (行间紧凑有序，紧贴左侧，1:1 对齐图 2) -->
+                  <div id="termInlineAIAnswerBox" class="space-y-2 pt-2 text-[12px] font-mono text-slate-200 select-text leading-normal">
+                    <div class="font-medium text-white flex items-center space-x-1.5">
+                      <span>🤖 这是 <span class="text-teal-300 font-semibold">docker wait</span> 子命令的帮助说明文本，不是报错。</span>
+                    </div>
+                    <div class="text-slate-200">结论：没有问题，它只是 Docker 的用法描述。</div>
+                    <div class="text-white font-bold pt-1">它是什么</div>
+                    <div class="text-slate-300">在你这台机器上确认了，它出自 <span class="text-teal-300 font-semibold">docker wait --help</span> (Docker 29.1.3) :</div>
+                    <div class="py-1 text-slate-300 font-mono space-y-0.5">
+                      <div>Usage:  docker wait CONTAINER [CONTAINER...]</div>
+                      <div>Block until one or more containers stop, then print their exit codes</div>
+                    </div>
+                    <div class="text-slate-300 leading-relaxed">
+                      含义：<span class="text-teal-300 font-semibold">docker wait 容器名...</span> 会<strong class="text-white font-bold">阻塞</strong>，直到指定容器停止，然后打印它的退出码（每行一个，按命令行给的容器顺序）。常用于脚本里「等某一个一次性任务跑完再取结果」。
+                    </div>
+                    <div class="text-white font-bold pt-1">退出码速查：</div>
+                    <div class="font-mono text-xs py-0.5">
+                      <div class="text-teal-300 font-bold pb-1 flex space-x-8">
+                        <span class="w-12">码</span>
+                        <span>含义</span>
+                      </div>
+                      <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-emerald-400 font-bold">0</span><span>正常退出</span></div>
+                      <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-amber-400 font-bold">1</span><span>应用自身报错</span></div>
+                      <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-rose-400 font-bold">137</span><span>被 kill -9 / OOM 杀掉</span></div>
+                      <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-indigo-400 font-bold">143</span><span>被 SIGTERM 优雅停止</span></div>
+                    </div>
+                    <div class="text-white font-bold pt-1">需要注意的点（不是故障，是用法坑）</div>
+                    <div class="text-slate-300 space-y-1">
+                      <div>1. 没有超时：容器一直不退出，这条命令就一直挂着。你看到的大概率只是帮助文本，但如果真在跑 <span class="text-teal-300 font-semibold">docker wait</span>，Ctrl+C 可中断（不影响容器）。</div>
+                      <div>2. 只给退出码，不给原因：想知道为什么挂了要看日志。</div>
+                      <div>3. 想限制等待时间：</div>
+                      <div class="text-cyan-300 font-mono py-0.5 pl-3">timeout 60 docker wait 容器名 || echo "超时未退出"</div>
+                      <div>4. 想看日志又等结果，用 <span class="text-teal-300 font-semibold">docker logs -f 容器名</span>，-f 结束时会自动带日志，比 <span class="text-teal-300 font-semibold">wait</span> 直观。</div>
+                    </div>
+                  </div>
                 </div>
-                <p class="text-slate-500">Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-105-generic x86_64)</p>
-                <p class="text-slate-500">System information as of Sun Sep 20 22:10:00 CST 2026</p>
-                <p class="text-slate-400"><span class="text-cyan-400">root@prod-api-01</span>:<span class="text-indigo-400">~</span># ufw status</p>
-                <p class="text-slate-300 font-mono">Status: active (22, 80, 443 ALLOW)</p>
-                <p class="text-slate-400"><span class="text-cyan-400">root@prod-api-01</span>:<span class="text-indigo-400">~</span># systemctl restart nginx</p>
-                <p class="text-rose-400 font-mono">Job for nginx.service failed because the control process exited with error code.</p>
-                <p class="text-rose-300 font-mono text-[11px] bg-rose-500/10 px-1 py-0.5 rounded border border-rose-500/20">nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)</p>
-                <p class="text-slate-400 flex items-center">
-                  <span class="text-cyan-400">root@prod-api-01</span>:<span class="text-indigo-400">~</span>#
-                  <span class="w-2 h-4 bg-emerald-400 ml-1 animate-pulse"></span>
-                </p>
+                <!-- 终端命令提示符与闪烁光标行 -->
+                <div id="termCursorLine" class="text-slate-200 flex items-center pt-3 font-mono">
+                  <span class="text-emerald-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># 
+                  <span class="w-2 h-4 bg-emerald-400 ml-1 inline-block animate-pulse align-middle"></span>
+                </div>
               </div>
             </div>
 
@@ -7092,11 +7568,52 @@
             <div id="termPane4" class="hidden bg-black p-3.5 text-xs text-slate-200 overflow-y-auto flex flex-col justify-between rounded-lg border border-slate-900 custom-scrollbar">
               <p class="text-blue-400 font-mono">PS C:\Users\builder&gt; Get-Service Jenkins (Status: Running)</p>
             </div>
+          </div> <!-- 闭合 termView-session -->
+
+        </div> <!-- 闭合 4. 终端核心工作区 -->
+
+        <!-- 5. 终端底部在线流输入栏 (1:1 严格对齐图 2：全宽底部输入栏，常规默认状态) -->
+        <div id="terminalStreamBar" class="w-full shrink-0 px-4 py-2.5 bg-[#0b0f17] border-t border-slate-800/90 flex items-center justify-between text-xs font-sans select-none z-30 shadow-lg mb-1">
+          <div class="flex-1 flex items-center space-x-2 mr-3">
+            <i data-lucide="terminal" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <input id="terminalStreamInput" onkeydown="handleTerminalStreamInputKey(event)" type="text" placeholder="在线终端流输入：命令直接执行  中文 / ? / Shift+Enter 问 AI" class="w-full bg-[#101522] hover:bg-[#131929] focus:bg-[#131929] border border-slate-800 focus:border-emerald-500/80 rounded-xl px-3.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition font-mono shadow-inner" style="background-color: #101522 !important; color: #f1f5f9 !important;">
+          </div>
+          <div class="flex items-center space-x-2 shrink-0">
+            <button type="button" onclick="executeCurrentTerminalInput()" class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span>执行</span>
+            </button>
+            <button type="button" onclick="openTermInlineAIQuery('docker wait CONTAINER')" class="px-2.5 py-1.5 rounded-xl bg-surface-900 hover:bg-surface-850 text-slate-400 hover:text-slate-200 border border-slate-800 text-xs flex items-center space-x-1 transition cursor-pointer" title="开启当前终端原位 AI 操作">
+              <i data-lucide="bot" class="w-3.5 h-3.5 text-teal-400"></i>
+              <span>开启 AI 操作</span>
+            </button>
           </div>
         </div>
+
+        <!-- 6. 终端底部 AI 等待状态条 (全宽横条：AI 等待开启 AI 操作执行 + 开启并继续 + 取消，默认隐藏) -->
+        <div id="terminalAIPendingBar" class="hidden w-full shrink-0 px-4 py-2 bg-[#121620] border-t border-amber-500/40 flex items-center justify-between text-xs font-sans select-none z-20 shadow-lg">
+          <div class="flex items-center space-x-2 truncate">
+            <span class="text-amber-400 flex items-center space-x-1.5 font-semibold text-xs shrink-0">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 animate-pulse"></i>
+              <span>AI 等待开启 AI 操作执行:</span>
+            </span>
+            <span class="text-slate-300 font-mono text-[11px] truncate" id="termAIPendingCmd">ssh_exec: docker --version; docker wait --help 2&gt;&amp;1 | head -20</span>
+            <span class="text-amber-400 font-mono text-[11px] shrink-0" id="termAIPendingCountdown">04:45</span>
+          </div>
+          <div class="flex items-center space-x-2 shrink-0 ml-3">
+            <button type="button" onclick="confirmTermAIOpAndContinue()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition cursor-pointer shadow-md flex items-center space-x-1">
+              <i data-lucide="play" class="w-3 h-3"></i>
+              <span>开启并继续</span>
+            </button>
+            <button type="button" onclick="cancelTermAIOp()" class="px-2.5 py-1.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 text-xs transition cursor-pointer">
+              <span>取消</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
-      <!-- =================================================================================== -->
+<!-- =================================================================================== -->
       <!-- VIEW 8: ★ AI 桥接中心 (AI Bridge & Copilot) - 对应截图 3 media_1789571001364.png -->
       <!-- =================================================================================== -->
       <div id="tab-copilot" class="tab-content hidden h-full w-full flex flex-col bg-[#0a0d14] overflow-hidden select-none font-sans">
@@ -7180,11 +7697,19 @@
             <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#0e131b] border border-slate-800 text-slate-300">
               <i data-lucide="server" class="w-3.5 h-3.5 text-teal-400"></i>
               <select id="copilotHostSelect" class="bg-transparent border-0 text-white text-xs focus:outline-none cursor-pointer">
-                <option value="vanilla-cloud">我的香草云</option>
+                <option value="vanilla-cloud">我的香草云 (生产边缘)</option>
                 <option value="prod-api-01">我的腾讯云0209 (prod-api-01)</option>
                 <option value="prod-db-master">我的阿里云 (核心库)</option>
                 <option value="prod-node-3845">我的阿里云3845</option>
               </select>
+            </div>
+
+            <!-- 跨机白名单互信联动标识 -->
+            <div class="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs select-none" title="当前主操作机已与阿里云核心库建立跨机白名单互信关系">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span class="text-slate-400 text-[11px]">关联白名单:</span>
+              <span class="font-medium text-[11px]">我的阿里云(核心库)</span>
+              <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">互信</span>
             </div>
 
             <!-- 外部工具 -->
@@ -7214,11 +7739,94 @@
         <div id="chatMessageList" class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5 select-text">
           <!-- 默认展示图 1、图 2 完整的服务器配置查看全流程，亦可通过「新对话」切换至图 3 初始空白引导卡片 -->
           <!-- 核心布局：全宽铺展，不居中锁定；用户消息靠右，AI 回复靠左 -->
-          <div id="activeConversationContainer" class="space-y-5 w-full flex flex-col">
-            <!-- 用户发送消息气泡 (严格靠右对齐，带舒适内边距与右侧呼吸留白，文字居中饱满不溢出) -->
-            <div class="w-full flex justify-end pr-1 sm:pr-2">
+          <div id="activeConversationContainer" class="space-y-4 w-full flex flex-col">
+            <!-- 顶部待审批指令警示条 (严格对齐截图 1: 待审批指令 (1) · 危险审批 · 审批... / 拒绝) -->
+            <div id="pendingInstructionBanner" class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2 select-none shadow-md">
+              <div class="flex items-center justify-between text-amber-300 font-bold text-xs">
+                <span class="flex items-center space-x-1.5">
+                  <i data-lucide="list-checks" class="w-4 h-4 text-amber-400"></i>
+                  <span>待审批指令 (1)</span>
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono">288s 后自动拒绝</span>
+              </div>
+              <div class="p-3 rounded-xl bg-rose-950/30 border border-rose-500/30 text-rose-300 space-y-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div class="flex items-center space-x-2 text-[11px] min-w-0">
+                    <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-200 font-bold shrink-0">⚠️ 危险审批</span>
+                    <span class="text-slate-300 truncate">来源：内置对话，目标 <strong>我的香草云</strong> · [危险审批] 命中危险命令黑名单 (内置)：<code>powershell -EncodedCommand</code> (编码命令，内容不可见)</span>
+                  </div>
+                  <div class="flex items-center space-x-2 shrink-0">
+                    <button type="button" onclick="approveCurrentPendingTicket()" class="px-3.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition cursor-pointer shadow">审批...</button>
+                    <button type="button" onclick="rejectCurrentPendingTicket()" class="px-3 py-1 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer">拒绝</button>
+                  </div>
+                </div>
+                <div class="p-2 rounded-lg bg-surface-950/90 border border-slate-800 font-mono text-[11px] text-slate-300 truncate select-all">
+                  ssh_exec_script · set -e SITE=/opt/1panel/www/sites/remote.remotedig.com/index STAMP=$(date +%Y%m%d%H%M%S) # 1) 备份原二维码 cp -a "$SITE/down.png" "$SITE/down.png.bak...
+                </div>
+              </div>
+            </div>
+            <!-- 上一轮历史对话概览 (对齐最新截图：多轮上下文呈现) -->
+            <div id="previousTurnContainer" class="hidden w-full space-y-2 pb-2 select-text font-mono text-xs">
+              <div class="p-3.5 rounded-xl bg-surface-900/60 border border-slate-800/80 text-slate-400 space-y-2">
+                <div class="grid grid-cols-3 gap-2 text-[11px] pb-1 border-b border-slate-800/60 text-slate-300">
+                  <div>single_website <span class="text-rose-400 ml-1">❌ 无</span> 833 MiB</div>
+                  <div>1panel_server <span class="text-rose-400 ml-1">❌ 无</span> 727 MiB</div>
+                  <div>yqb-log <span class="text-rose-400 ml-1">❌ 无</span> 605 MiB</div>
+                </div>
+                <div class="text-[11px] text-slate-400 leading-relaxed font-sans">
+                  这是续盘查到的实际数据 (docker inspect + cgroup 的 memory.max 再次核对，结果一致：除 MySQL 外全是 无)。一句话总结：其余八个容器正占用集中全部 7.6 GiB 内存，很重内存消耗预想在 OOM Killer...
+                </div>
+              </div>
+            </div>
+
+            <!-- 用户发送消息容器 (支持左侧复制、编辑修改，严格靠右对齐，带悬停精密 Tooltip 1:1 还原截图) -->
+            <div id="userMessageRowContainer" class="w-full flex justify-end items-center pr-1 sm:pr-2 group/usermsg relative">
+              <!-- 气泡左侧操作按钮组 (对齐截图：复制与修改，统一样式与倒三角气泡弹窗) -->
+              <div id="userMsgActions" class="flex items-center space-x-1 mr-2 opacity-80 group-hover/usermsg:opacity-100 transition-opacity select-none">
+                <!-- 复制按钮 (带与修改完全一致的悬停气泡 Tooltip) -->
+                <div class="relative group/usercopy inline-flex items-center">
+                  <button type="button" onclick="copyUserPromptMessage()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition relative flex items-center justify-center cursor-pointer" aria-label="复制此信息">
+                    <i data-lucide="copy" class="w-3.5 h-3.5" id="userMsgCopyIcon"></i>
+                  </button>
+                  <!-- 悬停 Tooltip 气泡 (与修改保持100%一致的倒三角指示器与深色高保真卡片) -->
+                  <div class="hidden group-hover/usercopy:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none whitespace-nowrap">
+                    <div class="px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-700/80 text-white text-[11px] leading-relaxed shadow-xl backdrop-blur-sm select-none font-sans chat-custom-tooltip">
+                      复制此信息
+                    </div>
+                    <div class="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-700/80 -mt-[1px]"></div>
+                  </div>
+                </div>
+
+                <!-- 编辑/修改按钮 (带悬停气泡 Tooltip) -->
+                <div class="relative group/useredit inline-flex items-center">
+                  <button type="button" onclick="editUserPromptMessage()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition relative flex items-center justify-center cursor-pointer" aria-label="编辑此信息">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <!-- 悬停 Tooltip 气泡 (1:1 还原截图文案与倒三角指示器) -->
+                  <div class="hidden group-hover/useredit:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none whitespace-nowrap">
+                    <div class="px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-700/80 text-white text-[11px] leading-relaxed shadow-xl backdrop-blur-sm select-none font-sans chat-custom-tooltip">
+                      编辑此信息（内容覆盖输入框；本消息及之后的回复都会被删除）
+                    </div>
+                    <div class="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-700/80 -mt-[1px]"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 用户发送消息气泡主体 -->
               <div id="userPromptBubble" class="inline-flex items-center px-5 py-2.5 rounded-2xl rounded-tr-md bg-[#1e2330] hover:bg-[#242a3a] border border-slate-700/80 text-slate-100 text-xs leading-normal max-w-2xl shadow-sm select-text transition" style="padding: 10px 20px;">
-                帮我看下我这台服务器配置
+                我现在的讨论是阿里云的不是香草云的别老去改香草云的
+              </div>
+
+              <!-- 内联就地编辑框 (默认隐藏，点击编辑也可在此展开就近修改) -->
+              <div id="userMsgInlineEditor" class="hidden flex-col items-end space-y-2 w-full max-w-2xl animate-in fade-in">
+                <textarea id="userMsgInlineInput" rows="2" class="w-full px-4 py-2.5 rounded-xl bg-surface-900 border border-teal-500/80 text-slate-100 text-xs focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none shadow-md" placeholder="编辑内容并重新发送..."></textarea>
+                <div class="flex items-center space-x-2">
+                  <button type="button" onclick="cancelUserPromptInlineEdit()" class="px-2.5 py-1 rounded-md text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition">取消</button>
+                  <button type="button" onclick="submitUserPromptInlineEdit()" class="px-3 py-1 rounded-md text-xs bg-teal-500 hover:bg-teal-600 text-white font-medium transition shadow-sm flex items-center space-x-1">
+                    <i data-lucide="send" class="w-3 h-3"></i>
+                    <span>保存并重新发送</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -7478,6 +8086,72 @@
                     </tbody>
                   </table>
                 </div>
+                              <!-- 卡片底部对话交互操作工具栏 (严格对齐截图 1、2、3: 复制 / 连过程复制 / 重新生成 / 从这里分叉) -->
+                <div class="flex items-center justify-between pt-3 border-t border-slate-800/80 select-none">
+                  <div class="flex items-center space-x-1 text-[11px] text-slate-400">
+                    <!-- 1. 复制回答 (统一倒三角悬浮气泡) -->
+                    <div class="relative group/aicopy inline-flex items-center">
+                      <button type="button" onclick="copyCurrentChatResponse(this)" class="chat-action-btn flex items-center space-x-1 px-2.5 py-1 rounded-lg hover:bg-surface-800 hover:text-slate-200 transition cursor-pointer border border-transparent hover:border-slate-700/60" aria-label="复制">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span>复制</span>
+                      </button>
+                      <div class="hidden group-hover/aicopy:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none whitespace-nowrap">
+                        <div class="px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-700/80 text-white text-[11px] leading-relaxed shadow-xl backdrop-blur-sm select-none font-sans chat-custom-tooltip">
+                          复制回答正文（纯文本）
+                        </div>
+                        <div class="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-700/80 -mt-[1px]"></div>
+                      </div>
+                    </div>
+
+                    <!-- 2. 连过程复制 (统一倒三角悬浮气泡) -->
+                    <div class="relative group/aiprocess inline-flex items-center">
+                      <button type="button" onclick="copyChatWithExecutionProcess(this)" class="chat-action-btn flex items-center space-x-1 px-2.5 py-1 rounded-lg hover:bg-surface-800 hover:text-slate-200 transition cursor-pointer border border-transparent hover:border-slate-700/60" aria-label="连过程复制">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        <span>连过程复制</span>
+                      </button>
+                      <div class="hidden group-hover/aiprocess:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none whitespace-nowrap">
+                        <div class="px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-700/80 text-white text-[11px] leading-relaxed shadow-xl backdrop-blur-sm select-none font-sans chat-custom-tooltip">
+                          连带思考与执行过程复制（Markdown格式）
+                        </div>
+                        <div class="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-700/80 -mt-[1px]"></div>
+                      </div>
+                    </div>
+
+                    <!-- 3. 重新生成 (统一倒三角悬浮气泡) -->
+                    <div class="relative group/airegen inline-flex items-center">
+                      <button type="button" onclick="regenerateCurrentChatResponse()" class="chat-action-btn flex items-center space-x-1 px-2.5 py-1 rounded-lg hover:bg-surface-800 hover:text-slate-200 transition cursor-pointer border border-transparent hover:border-slate-700/60" aria-label="重新生成">
+                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                        <span>重新生成</span>
+                      </button>
+                      <div class="hidden group-hover/airegen:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none whitespace-nowrap">
+                        <div class="px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-700/80 text-white text-[11px] leading-relaxed shadow-xl backdrop-blur-sm select-none font-sans chat-custom-tooltip">
+                          重新思考并重新生成本轮回复
+                        </div>
+                        <div class="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-700/80 -mt-[1px]"></div>
+                      </div>
+                    </div>
+
+                    <!-- 4. 从这里分叉 (统一倒三角悬浮气泡，对齐截图 3) -->
+                    <div class="relative group/aifork inline-flex items-center">
+                      <button type="button" onclick="forkChatFromHere()" class="chat-action-btn flex items-center space-x-1 px-2.5 py-1 rounded-lg hover:bg-surface-800 hover:text-slate-200 transition cursor-pointer border border-transparent hover:border-slate-700/60" aria-label="从这里分叉">
+                        <i data-lucide="git-fork" class="w-3.5 h-3.5"></i>
+                        <span>从这里分叉</span>
+                      </button>
+                      <div class="hidden group-hover/aifork:flex flex-col items-center absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none whitespace-nowrap">
+                        <div class="px-2.5 py-1.5 rounded-lg bg-slate-900/95 border border-slate-700/80 text-white text-[11px] leading-relaxed shadow-xl backdrop-blur-sm select-none font-sans chat-custom-tooltip">
+                          剪裁到这一轮为止，另存为一条新对话并切过去（原对话保持不变）
+                        </div>
+                        <div class="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-700/80 -mt-[1px]"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 右侧继续按钮 (对齐截图 1、2) -->
+                  <button type="button" onclick="sendQuickPrompt('继续')" class="px-3 py-1 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-medium flex items-center space-x-1 transition cursor-pointer shadow-sm">
+                    <span>继续</span>
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -7567,6 +8241,51 @@
         <!-- 5. 底部输入区 (对齐截图 1、2、3) -->
         <div class="px-5 pb-4 pt-1 shrink-0 space-y-2 select-none">
           <!-- 辅助状态与快捷标签 -->
+          <!-- 核心安全场景模拟入口 (对齐白名单与危险命令规则库联动) -->
+          <div class="flex flex-wrap items-center justify-between gap-1.5 pb-1 select-none">
+            <div class="flex items-center space-x-1.5 text-[11px]">
+              <span class="text-slate-400 font-sans flex items-center space-x-1">
+                <i data-lucide="shield" class="w-3.5 h-3.5 text-brand-400"></i>
+                <span>策略矩阵模拟:</span>
+              </span>
+              <button type="button" onclick="sendQuickPrompt('帮我检查一下机器的健康度与系统配置')" class="px-2 py-0.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="只读操作：命中受控白名单，免审直接执行">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>⚡ 低危免审 (白名单查配置)</span>
+              </button>
+              <button type="button" onclick="switchToScenario('waiting_approval')" class="px-2 py-0.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="对齐截图 1: 执行过程内嵌等待审批，含顶部待审批指令条、审批...与拒绝按钮">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <span>⏳ 对话审批执行中 (截图1)</span>
+              </button>
+              <button type="button" onclick="switchToScenario('target_correction')" class="px-2 py-0.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="对齐最新截图：用户消息复制与修改、多轮阿里云/香草云纠偏分析">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                <span>💬 纠偏与消息编辑 (最新截图)</span>
+              </button>
+              <button type="button" onclick="switchToScenario('rejected')" class="px-2 py-0.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="对齐截图 2: 点击拒绝后两步失败表格与引导分析、底部已锁定提示">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                <span>❌ 审批被拒与锁定 (截图2)</span>
+              </button>
+              <button type="button" onclick="sendQuickPrompt('清理系统临时无用日志：rm -rf /*')" class="px-2 py-0.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="破坏性操作：命中极高危规则，系统物理强拒，禁止审批绕过">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span>🛑 极高危强拒 (物理熔断)</span>
+              </button>
+              <button type="button" onclick="startDefaultVersionDownloadSimulation()" class="px-2 py-0.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="对齐截图 1: 重新开始模拟下载进度递增 (1.2.0-1.2.1 ↻ 进度动态增长)">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                <span>📥 重新模拟下载过程 (截图1)</span>
+              </button>
+              <button type="button" onclick="applyUpdateReadyState()" class="px-2 py-0.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="对齐截图 2+4: 立即填充主题样式颜色并弹出右下角升级通知">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>✨ 填充样式就绪 (截图2+4)</span>
+              </button>
+              <button type="button" onclick="openAppUpdateModal()" class="px-2 py-0.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition cursor-pointer font-sans text-[11px] flex items-center space-x-1" title="对齐截图 3: 打开 OpsPub 软件更新内容弹窗">
+                <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                <span>📋 弹出版升级内容 (截图3)</span>
+              </button>
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono hidden md:block">
+              规则引擎: v2.5 · 4级矩阵就绪
+            </div>
+          </div>
+
           <div class="flex items-center justify-between text-[11px] text-slate-500">
             <div class="flex items-center space-x-2 font-mono">
               <span class="text-slate-400">可见4台</span>
@@ -9845,9 +10564,9 @@
             <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
             <span>安全闸门策略配置</span>
           </button>
-          <button onclick="switchSecuritySubTab('blacklist')" id="secTabBtn-blacklist" class="px-3 py-1.5 rounded-lg bg-surface-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 font-medium flex items-center space-x-1.5 transition">
-            <i data-lucide="ban" class="w-3.5 h-3.5"></i>
-            <span>高危指令拦截库 (Blacklist)</span>
+                    <button onclick="switchSecuritySubTab('blacklist')" id="secTabBtn-blacklist" class="px-3 py-1.5 rounded-lg bg-surface-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 font-medium flex items-center space-x-1.5 transition">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span>危险命令规则库 (4级矩阵)</span>
           </button>
         </div>
 
@@ -10060,40 +10779,257 @@
         </div>
 
         <!-- ======================= PANEL 4: 高危指令黑名单 ======================= -->
-        <div id="secPanel-blacklist" class="hidden space-y-3">
-          <div class="glass-card p-4 rounded-xl border border-slate-800 space-y-3">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-sm font-bold text-white">高危命令硬拦截规则库 (Zero-Tolerance Blacklist)</h3>
-                <p class="text-[11px] text-slate-400 mt-0.5">只要命令中包含以下高危特征，哪怕通过 AI 解锁也一律在 Agent 底层直接拒绝，杜绝删库跑路风险</p>
+        <div id="secPanel-blacklist" class="hidden space-y-4">
+          <!-- 1. 白名单与危险规则库协同机制全景架构卡片 -->
+          <div class="glass-card p-4 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-surface-900 via-indigo-950/20 to-surface-900 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+                  <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <span>受控白名单与危险命令规则库协同体系</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">四级防御矩阵</span>
+                  </h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">白名单为受控动作免审通道；未命中极高危命令自动转入人工审批流，杜绝“非白即死”死板拦截</p>
+                </div>
               </div>
-              <button onclick="alert('支持按团队安全合规要求添加企业专有黑名单规则');" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 text-xs border border-slate-700">+ 新增拦截正则</button>
+              <div class="flex items-center space-x-2 text-xs">
+                <span class="px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px]">⚡ 白名单只读 → 秒级放行</span>
+                <span class="px-2 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[11px]">📋 中高危改动 → 工单审批</span>
+                <span class="px-2 py-1 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[11px]">🔒 极高危破坏 → 物理强拒</span>
+              </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono">
-              <div class="p-2.5 rounded-lg bg-surface-950 border border-rose-500/30 text-rose-300 flex items-center justify-between">
-                <span>^rm\s+-(rf|fr)\s+/(.*)?$</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">根目录强制删除</span>
+            <!-- 协同流向示意图 -->
+            <div class="p-3 rounded-lg bg-surface-950/80 border border-slate-800 text-xs font-mono grid grid-cols-1 md:grid-cols-4 gap-2 text-center">
+              <div class="p-2 rounded bg-surface-900 border border-slate-700/60">
+                <div class="text-slate-400 text-[11px]">1. 用户聊天请求</div>
+                <div class="text-white font-bold mt-1 text-xs">意图理解 & 技能匹配</div>
+                <div class="text-[10px] text-indigo-400 mt-0.5">输出结构化操作计划</div>
               </div>
-              <div class="p-2.5 rounded-lg bg-surface-950 border border-rose-500/30 text-rose-300 flex items-center justify-between">
-                <span>^mkfs(\.[a-z0-9]+)?\s+/dev/.*$</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">格式化块设备</span>
+              <div class="p-2 rounded bg-surface-900 border border-slate-700/60">
+                <div class="text-slate-400 text-[11px]">2. 命令脱壳 & 识别</div>
+                <div class="text-amber-300 font-bold mt-1 text-xs">参数感知与变量展开</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">防空变量与参数污染</div>
               </div>
-              <div class="p-2.5 rounded-lg bg-surface-950 border border-rose-500/30 text-rose-300 flex items-center justify-between">
-                <span>^dd\s+if=.*\s+of=/dev/[a-z]+$</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">底层裸盘复写</span>
+              <div class="p-2 rounded bg-surface-900 border border-slate-700/60">
+                <div class="text-slate-400 text-[11px]">3. 规则库策略判定</div>
+                <div class="text-cyan-300 font-bold mt-1 text-xs">4 级风险矩阵路由</div>
+                <div class="text-[10px] text-emerald-400 mt-0.5">白名单免审 / 强拒 / 审批</div>
               </div>
-              <div class="p-2.5 rounded-lg bg-surface-950 border border-rose-500/30 text-rose-300 flex items-center justify-between">
-                <span>^iptables\s+-(F|X|Z)$</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">清空所有防护链</span>
+              <div class="p-2 rounded bg-surface-900 border border-slate-700/60">
+                <div class="text-slate-400 text-[11px]">4. 执行与闭环验真</div>
+                <div class="text-emerald-300 font-bold mt-1 text-xs">TOCTOU终检 & 后置探测</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">服务健康确认 + 审计入库</div>
               </div>
-              <div class="p-2.5 rounded-lg bg-surface-950 border border-rose-500/30 text-rose-300 flex items-center justify-between">
-                <span>DROP\s+DATABASE\s+.*</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">直接删除主数据库</span>
+            </div>
+          </div>
+
+          <!-- 2. 四级规则库矩阵分类切换与列表 -->
+          <div class="glass-card p-4 rounded-xl border border-slate-800 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <h3 class="text-sm font-bold text-white">危险命令规则矩阵 (Command Risk Rules)</h3>
+                <span class="text-[11px] text-slate-500">共 19 条系统级安全规则</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-surface-950 border border-rose-500/30 text-rose-300 flex items-center justify-between">
-                <span>^chmod\s+-R\s+777\s+/$</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">根目录危险越权</span>
+              <!-- 级别过滤切换 -->
+              <div class="flex items-center space-x-1 text-xs">
+                <button onclick="filterRiskRules('all')" id="riskFilter-all" class="px-2.5 py-1 rounded-lg bg-white/20 text-white border border-white/40 text-[11px] font-bold transition cursor-pointer shadow-sm">全部 (19)</button>
+                <button onclick="filterRiskRules('critical')" id="riskFilter-critical" class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-medium transition cursor-pointer">极高危 (6)</button>
+                <button onclick="filterRiskRules('high')" id="riskFilter-high" class="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-medium transition cursor-pointer">高危 (5)</button>
+                <button onclick="filterRiskRules('medium')" id="riskFilter-medium" class="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-medium transition cursor-pointer">中危 (4)</button>
+                <button onclick="filterRiskRules('low')" id="riskFilter-low" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium transition cursor-pointer">低危白名单 (4)</button>
+              </div>
+            </div>
+
+            <!-- 规则列表网格 -->
+            <div id="riskRulesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs font-mono">
+              <!-- 极高危 1 -->
+              <div class="risk-card risk-card-critical p-3 rounded-xl bg-surface-950 border border-rose-500/40 text-rose-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-rose-400">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>R-CRIT-001 · 系统根目录递归删除</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">🔒 永久强拒 (不可绕过)</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-rose-500/20 text-[11px] text-slate-200">^rm\s+-(rf|fr)\s+/(.*)?$</div>
+                <div class="text-[11px] text-slate-400 font-sans">拦截 rm -rf / 或根目录通配符，防止整盘毁灭，禁止任何审批绕过</div>
+              </div>
+
+              <!-- 极高危 2 -->
+              <div class="risk-card risk-card-critical p-3 rounded-xl bg-surface-950 border border-rose-500/40 text-rose-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-rose-400">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>R-CRIT-002 · 块设备直接覆写与格式化</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">🔒 永久强拒 (不可绕过)</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-rose-500/20 text-[11px] text-slate-200">^(mkfs(\.[a-z0-9]+)?|dd\s+if=.*\s+of=)/dev/.*$</div>
+                <div class="text-[11px] text-slate-400 font-sans">拦截底层块设备格式化与 dd 扇区强写，防止数据盘彻底报废</div>
+              </div>
+
+              <!-- 极高危 3 -->
+              <div class="risk-card risk-card-critical p-3 rounded-xl bg-surface-950 border border-rose-500/40 text-rose-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-rose-400">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>R-CRIT-003 · 反弹 Shell 与外部投毒</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">🔒 永久强拒 (不可绕过)</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-rose-500/20 text-[11px] text-slate-200">(/dev/tcp/|nc\s+-e|curl.*\|\s*(ba)?sh)</div>
+                <div class="text-[11px] text-slate-400 font-sans">拦截网络反弹 Shell 终端与直接管道输送 bash 脚本执行，防远程攻击</div>
+              </div>
+
+              <!-- 极高危 4 -->
+              <div class="risk-card risk-card-critical p-3 rounded-xl bg-surface-950 border border-rose-500/40 text-rose-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-rose-400">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span>R-CRIT-004 · 窃取凭据与破坏内核安全</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">🔒 永久强拒 (不可绕过)</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-rose-500/20 text-[11px] text-slate-200">(cat\s+/etc/shadow|cat.*id_rsa|setenforce\s+0)</div>
+                <div class="text-[11px] text-slate-400 font-sans">严禁读取系统加密密码散列、私钥凭证或关闭系统级 SELinux 防护</div>
+              </div>
+
+              <!-- 高危 1 -->
+              <div class="risk-card risk-card-high p-3 rounded-xl bg-surface-950 border border-amber-500/40 text-amber-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-amber-400">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span>R-HIGH-101 · 数据库整库清空与删除</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">🛡️ 强制人工审批 (生产双人)</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-amber-500/20 text-[11px] text-slate-200">DROP\s+(DATABASE|SCHEMA|TABLE)\s+.*</div>
+                <div class="text-[11px] text-slate-400 font-sans">业务数据库删库操作，必须生成工单，并要求二次或双人签字确认</div>
+              </div>
+
+              <!-- 高危 2 -->
+              <div class="risk-card risk-card-high p-3 rounded-xl bg-surface-950 border border-amber-500/40 text-amber-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-amber-400">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span>R-HIGH-102 · 清空防火墙安全边界</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">🛡️ 强制人工审批</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-amber-500/20 text-[11px] text-slate-200">^(iptables\s+-(F|X|Z)|ufw\s+disable)</div>
+                <div class="text-[11px] text-slate-400 font-sans">清空网络安全防火墙规则将直接暴漏端口，强制人工审核影响范围</div>
+              </div>
+
+              <!-- 高危 3 -->
+              <div class="risk-card risk-card-high p-3 rounded-xl bg-surface-950 border border-amber-500/40 text-amber-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-amber-400">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span>R-HIGH-103 · 修改 SSH 核心接入配置</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">🛡️ 强制人工审批</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-amber-500/20 text-[11px] text-slate-200">(/etc/ssh/sshd_config|PermitRootLogin|PasswordAuthentication)</div>
+                <div class="text-[11px] text-slate-400 font-sans">防止误改导致整机 SSH 失联，审批单必须附带配置备份与测试连接计划</div>
+              </div>
+
+              <!-- 中危 1 -->
+              <div class="risk-card risk-card-medium p-3 rounded-xl bg-surface-950 border border-blue-500/40 text-blue-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-blue-400">
+                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                    <span>R-MED-201 · 核心系统服务重启与停止</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">📋 普通人工审批</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-blue-500/20 text-[11px] text-slate-200">^systemctl\s+(restart|stop|reload)\s+([a-zA-Z0-9_-]+)</div>
+                <div class="text-[11px] text-slate-400 font-sans">重启 Nginx、Redis、Docker 等核心服务，需审核短时抖动与后置健康检查</div>
+              </div>
+
+              <!-- 中危 2 -->
+              <div class="risk-card risk-card-medium p-3 rounded-xl bg-surface-950 border border-blue-500/40 text-blue-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-blue-400">
+                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                    <span>R-MED-202 · 修改应用配置与安装软件包</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">📋 普通人工审批</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-blue-500/20 text-[11px] text-slate-200">(sed\s+-i|apt\s+install|yum\s+install|docker\s+compose\s+up)</div>
+                <div class="text-[11px] text-slate-400 font-sans">非白名单改动动作，由 AI 输出标准化操作计划后生成工单审批</div>
+              </div>
+
+              <!-- 低危白名单 1 -->
+              <div class="risk-card risk-card-low p-3 rounded-xl bg-surface-950 border border-emerald-500/40 text-emerald-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>W-LOW-301 · 系统基础指标只读探测</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">⚡ 受控白名单 (自动放行)</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-emerald-500/20 text-[11px] text-slate-200">^(free|uptime|uname|top\s+-b\s+-n|nproc|lscpu)</div>
+                <div class="text-[11px] text-slate-400 font-sans">只读查看 CPU、内存、系统架构、负载情况，无副作用，符合策略时秒级执行</div>
+              </div>
+
+              <!-- 低危白名单 2 -->
+              <div class="risk-card risk-card-low p-3 rounded-xl bg-surface-950 border border-emerald-500/40 text-emerald-300 space-y-1.5">
+                <div class="flex items-center justify-between font-sans">
+                  <div class="flex items-center space-x-1.5 font-bold text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>W-LOW-302 · 受控目录日志查看与端口监听</span>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">⚡ 受控白名单 (自动放行)</span>
+                </div>
+                <div class="p-1.5 rounded bg-surface-900 border border-emerald-500/20 text-[11px] text-slate-200">^(cat\s+/var/log/.*|tail\s+.*|ss\s+-tulpn|netstat|df\s+-h)</div>
+                <div class="text-[11px] text-slate-400 font-sans">只读排查日志与网络连接端口，严格限制在 /var/log/ 等受控目录下</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. 在线命令风险识别模拟器 (Command Risk Tester) -->
+          <div class="glass-card p-4 rounded-xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="scan" class="w-4 h-4 text-brand-400"></i>
+                <h3 class="text-sm font-bold text-white">在线命令风险识别模拟器 (Risk Engine Tester)</h3>
+              </div>
+              <span class="text-[11px] text-slate-400">输入命令实时验证规则命中、白名单判定与审批流向</span>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <input id="testRiskCommandInput" type="text" value="rm -rf /" placeholder="输入要测试的 Shell 命令..." class="flex-1 bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+              <button onclick="evaluateCommandRisk()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow">
+                <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                <span>立即评测</span>
+              </button>
+            </div>
+
+            <!-- 快捷测试示例药丸 -->
+            <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <span class="text-slate-500">快捷预设测试：</span>
+              <button onclick="setAndTestRiskCommand('rm -rf /')" class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 transition font-mono">rm -rf / (极高危)</button>
+              <button onclick="setAndTestRiskCommand('systemctl reload nginx')" class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition font-mono">systemctl reload nginx (中高危审批)</button>
+              <button onclick="setAndTestRiskCommand('cat /var/log/nginx/access.log')" class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition font-mono">cat /var/log/nginx/access.log (白名单免审)</button>
+              <button onclick="setAndTestRiskCommand('DROP DATABASE production_db')" class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition font-mono">DROP DATABASE (高危生产双人)</button>
+            </div>
+
+            <!-- 评测结果展示区 -->
+            <div id="riskTestResultBox" class="p-3.5 rounded-xl bg-surface-950 border border-rose-500/40 space-y-2 font-mono text-xs animate-in fade-in">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-400 flex items-center space-x-2">
+                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                  <span>评测结论: 【极高危 · 永久拒绝】(Hard Refusal · 物理熔断)</span>
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">永久拒绝 · 严禁审批绕过</span>
+              </div>
+              <div class="text-[11px] text-slate-300 font-sans leading-relaxed">
+                命中规则: <strong>R-CRIT-001 (系统根目录递归删除)</strong> · 白名单状态: <strong>不在白名单内</strong>。<br>
+                处理流向: 触发系统物理熔断，严禁向后端或底层终端下发执行，不生成工单，保护系统边界。
               </div>
             </div>
           </div>
@@ -11188,30 +12124,217 @@
           </div>
 
           <!-- 卡片 16: 法律声明 -->
-          <div id="setting-card-legal" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
-            <div>
-              <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="file-text" class="w-4 h-4 text-teal-400"></i>
-                <span>法律声明与隐私保障</span>
+          <!-- 卡片 16: 法律声明、隐私主权与合规保障 (深度完善版) -->
+          <div id="setting-card-legal" class="p-6 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-xl text-xs space-y-5 scroll-mt-6 select-none font-sans">
+            <!-- 1. 卡片主头部与资质微标群 -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+              <div class="space-y-1">
+                <div class="font-bold text-sm text-white flex items-center space-x-2">
+                  <div class="w-6 h-6 rounded-lg bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400">
+                    <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+                  </div>
+                  <span>法律声明、隐私主权与合规保障</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-mono border border-teal-500/30">Legal & Compliance</span>
+                </div>
+                <p class="text-slate-400 text-xs">OpsPub 严格恪守本地优先（Local-First）与数据主权独立原则：全量数据驻留本地，禁止任何未经授权的静默遥测外传。</p>
               </div>
-              <p class="text-slate-400 text-xs mt-1">OpsPub 坚守数据主权独立原则：全量数据驻留本地，禁止任何未经授权的遥测外传</p>
+
+              <!-- 资质胶囊 -->
+              <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-medium flex items-center space-x-1">
+                  <i data-lucide="shield-check" class="w-3 h-3"></i>
+                  <span>零数据上云</span>
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/30 text-[11px] font-medium flex items-center space-x-1">
+                  <i data-lucide="lock" class="w-3 h-3"></i>
+                  <span>AES-256 本地加密</span>
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/30 text-[11px] font-medium flex items-center space-x-1">
+                  <i data-lucide="file-code" class="w-3 h-3"></i>
+                  <span>Apache-2.0 许可</span>
+                </span>
+              </div>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
-                <div class="text-teal-400 font-bold mb-1">零数据上云</div>
-                <div class="text-[10px] text-slate-500">主机密码私钥均不离机</div>
+
+            <!-- 2. 四大合规支柱卡片 (图文并茂，结构化阐述) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <!-- 支柱 1: 零遥测隐私承诺 -->
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-1.5 hover:border-teal-500/40 transition">
+                <div class="flex items-center space-x-2 text-teal-400 font-bold text-xs">
+                  <i data-lucide="shield" class="w-4 h-4 shrink-0"></i>
+                  <span>数据主权 · 零遥测</span>
+                </div>
+                <p class="text-[11px] text-slate-300/90 leading-relaxed font-sans">
+                  无任何商业打点、崩溃强传或用户行为追踪。主机密码、SSH 私钥 100% 封存于操作系统钥匙串（Keychain / DPAPI），即使断网也具备全量功能。
+                </p>
+                <div class="text-[10px] text-slate-500 pt-1 border-t border-slate-800/80 font-mono">100% 物理隔离离线可用</div>
               </div>
-              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
-                <div class="text-teal-400 font-bold mb-1">本地优先存储</div>
-                <div class="text-[10px] text-slate-500">SQLite AES-256 加密</div>
+
+              <!-- 支柱 2: AI 大模型脱敏隔离 -->
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-1.5 hover:border-indigo-500/40 transition">
+                <div class="flex items-center space-x-2 text-indigo-400 font-bold text-xs">
+                  <i data-lucide="bot" class="w-4 h-4 shrink-0"></i>
+                  <span>AI 通信 · 严格脱敏</span>
+                </div>
+                <p class="text-[11px] text-slate-300/90 leading-relaxed font-sans">
+                  与云端或本地模型通信时，内置确定性数据脱敏过滤器（Sanitizer），真实密码、敏感私钥永不外传。AI 生成计划需本地策略引擎双重验证。
+                </p>
+                <div class="text-[10px] text-slate-500 pt-1 border-t border-slate-800/80 font-mono">支持内网私有模型闭环</div>
               </div>
-              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
-                <div class="text-teal-400 font-bold mb-1">开源审计透明</div>
-                <div class="text-[10px] text-slate-500">核心 Rust 源码可查验</div>
+
+              <!-- 支柱 3: 运维操作责任与免责界定 -->
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-1.5 hover:border-amber-500/40 transition">
+                <div class="flex items-center space-x-2 text-amber-400 font-bold text-xs">
+                  <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                  <span>责任界定 · 免责声明</span>
+                </div>
+                <p class="text-[11px] text-slate-300/90 leading-relaxed font-sans">
+                  本软件作为辅助连接与运维管理工具，使用者对其发起的命令、高危操作及最终执行结果负有决策责任。四级危险规则已熔断，但无法规避人为误操作风险。
+                </p>
+                <div class="text-[10px] text-slate-500 pt-1 border-t border-slate-800/80 font-mono">操作终审权归属用户</div>
               </div>
-              <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800 text-center">
-                <div class="text-teal-400 font-bold mb-1">MCP 标准协议</div>
-                <div class="text-[10px] text-slate-500">Anthropic 开放规范</div>
+
+              <!-- 支柱 4: 开源许可与知识产权 -->
+              <div class="p-3.5 rounded-xl bg-[#141a22] border border-slate-800 space-y-1.5 hover:border-purple-500/40 transition">
+                <div class="flex items-center space-x-2 text-purple-400 font-bold text-xs">
+                  <i data-lucide="file-check" class="w-4 h-4 shrink-0"></i>
+                  <span>开源许可 · 商业友好</span>
+                </div>
+                <p class="text-[11px] text-slate-300/90 leading-relaxed font-sans">
+                  采用宽松的 Apache-2.0 开源许可协议，允许企业与团队自由商用、集成与定制开发。核心依赖公开透明（SBOM 可追溯），知识产权清晰无争议。
+                </p>
+                <div class="text-[10px] text-slate-500 pt-1 border-t border-slate-800/80 font-mono">Apache-2.0 · 源码可审计</div>
+              </div>
+            </div>
+
+            <!-- 3. 条款全文多标签交互阅读器 (EULA / 隐私政策 / AI 安全准则 / 第三方开源声明) -->
+            <div class="rounded-xl border border-slate-800/90 bg-[#121720] overflow-hidden space-y-0">
+              <!-- 切换标签头 -->
+              <div class="flex items-center space-x-1 p-2 bg-[#0c1017] border-b border-slate-800 overflow-x-auto custom-scrollbar">
+                <button type="button" onclick="switchLegalTermsTab('eula')" id="btnLegalTab-eula" class="px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer select-none">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5 text-teal-400"></i>
+                  <span>最终用户许可协议 (EULA)</span>
+                </button>
+                <button type="button" onclick="switchLegalTermsTab('privacy')" id="btnLegalTab-privacy" class="px-3 py-1.5 rounded-lg bg-surface-850 text-slate-400 hover:text-slate-200 border border-transparent text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer select-none">
+                  <i data-lucide="shield" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>数据安全与隐私政策</span>
+                </button>
+                <button type="button" onclick="switchLegalTermsTab('aiops')" id="btnLegalTab-aiops" class="px-3 py-1.5 rounded-lg bg-surface-850 text-slate-400 hover:text-slate-200 border border-transparent text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer select-none">
+                  <i data-lucide="bot" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>AI 运维免责与安全边界</span>
+                </button>
+                <button type="button" onclick="switchLegalTermsTab('sbom')" id="btnLegalTab-sbom" class="px-3 py-1.5 rounded-lg bg-surface-850 text-slate-400 hover:text-slate-200 border border-transparent text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer select-none">
+                  <i data-lucide="layers" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>第三方开源许可证清单 (SBOM)</span>
+                </button>
+              </div>
+
+              <!-- 条款内容容器 (带舒适阅读排版与滚动区) -->
+              <div class="p-4 max-h-64 overflow-y-auto custom-scrollbar text-xs leading-relaxed text-slate-300 select-text font-sans">
+                <!-- 1. EULA -->
+                <div id="legalPanel-eula" class="space-y-3">
+                  <div class="font-bold text-white text-xs flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span>OpsPub 桌面客户端最终用户许可协议 (End User License Agreement)</span>
+                    <span class="text-[10px] text-slate-500 font-mono">生效日期: 2026年1月 · 版本 2.5.0</span>
+                  </div>
+                  <p>
+                    欢迎使用 OpsPub（以下简称“本软件”）。本协议是您（个人或合法机构使用者）与 OpsPub 开源项目发起方及贡献者团队之间订立的法律协议。在使用本软件前，请仔细阅读以下条款：
+                  </p>
+                  <div class="space-y-1.5 pl-2 border-l-2 border-teal-500/40">
+                    <p><strong>1. 许可授予：</strong>本软件基于 Apache License 2.0 开源许可发布。您享有免费、全球性、永久性的非排他权利，可自由用于个人学习、企业内部运维管理及商业化部署。</p>
+                    <p><strong>2. 权利限制：</strong>您不得利用本软件从事任何违反中华人民共和国法律法规、侵犯他人服务器资产安全、未经授权的渗透探测或网络攻击行为。</p>
+                    <p><strong>3. 免责限制：</strong>本软件按“现状 (AS IS)”提供，不附带任何明示或暗示的担保。在任何情况下，开发者均不对因使用本软件造成的生产停机、数据丢失、网络阻断负间接或附带赔偿责任。</p>
+                    <p><strong>4. 终止与权利保留：</strong>如果您严重违反本协议中关于合规使用的条款，您依据本许可获得的全部权利将自动终止。</p>
+                  </div>
+                </div>
+
+                <!-- 2. Privacy -->
+                <div id="legalPanel-privacy" class="hidden space-y-3">
+                  <div class="font-bold text-white text-xs flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span>数据安全存储与隐私主权声明 (Privacy Policy)</span>
+                    <span class="text-[10px] text-slate-500 font-mono">符合国家网络安全法 · 等保2.0合规</span>
+                  </div>
+                  <p>
+                    OpsPub 坚定践行“本地优先存储（Local-First Storage）”理念，坚信运维凭据是企业基础设施的最核心命脉。我们的隐私承诺包括：
+                  </p>
+                  <div class="space-y-1.5 pl-2 border-l-2 border-indigo-500/40">
+                    <p><strong>1. 凭据存储绝对本地化：</strong>所有 SSH 私钥、主机登录口令、跳板机凭证均采用系统原生安全钥匙串托管，数据库连接信息使用 AES-256-GCM 算法单机加密存入本机 SQLite，不经过任何云端中继。</p>
+                    <p><strong>2. 零外部遥测与数据回传：</strong>OpsPub 客户端代码内坚决剔除任何第三方用户画像分析 SDK、广告追踪插件及行为采集探针，网络通信仅发生在您配置的主机连接与指定的模型端点之间。</p>
+                    <p><strong>3. 彻底的数据被遗忘权：</strong>用户可随时在“备份与还原”或“系统重置”中一键擦除本地所有连接配置与审计日志，擦除后磁盘数据将执行多重随机覆写，确保不可物理恢复。</p>
+                  </div>
+                </div>
+
+                <!-- 3. AIOps Safety -->
+                <div id="legalPanel-aiops" class="hidden space-y-3">
+                  <div class="font-bold text-white text-xs flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span>AI 自动化运维免责与安全边界准则 (AIOps Safety Boundary)</span>
+                    <span class="text-[10px] text-slate-500 font-mono">四级危险规则防御准则</span>
+                  </div>
+                  <p>
+                    OpsPub 深度集成了大语言模型（LLM）与 MCP 协议用于智能辅助排障，但 AI 具有概率性与幻觉风险，因此设立以下严格的安全约束与免责界定：
+                  </p>
+                  <div class="space-y-1.5 pl-2 border-l-2 border-amber-500/40">
+                    <p><strong>1. 极高危命令绝对熔断：</strong>无论用户是否开启“信任 (trusted)”档位，针对系统根目录递归删除（rm -rf /）、磁盘格式化、反弹 Shell 等极高危指令，底层策略引擎将执行物理熔断拦截，连审批单都不予生成。</p>
+                    <p><strong>2. 终审决策权与责任归属：</strong>AI 识别意图并生成的仅为“建议性结构化操作计划（Action Plan）”，所有改动型操作（如服务重启、配置修改）均需运维工程师人工点击批准或手机扫码复核，操作决策后果由签署批准的使用者全权承担。</p>
+                    <p><strong>3. TOCTOU 执行前二次校验：</strong>从生成工单到执行批准，系统强制执行防篡改哈希、总锁状态、服务器策略三重复验，防止并发时序攻击与环境变动风险。</p>
+                  </div>
+                </div>
+
+                <!-- 4. SBOM -->
+                <div id="legalPanel-sbom" class="hidden space-y-3">
+                  <div class="font-bold text-white text-xs flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span>第三方开源软件清单与版权声明 (Software Bill of Materials)</span>
+                    <span class="text-[10px] text-slate-500 font-mono">透明审计 · 知识产权合规</span>
+                  </div>
+                  <p>
+                    OpsPub 的诞生离不开全球开源社区优秀项目的基石贡献。以下为核心引入组件的开源许可公示：
+                  </p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                    <div class="p-2 rounded-lg bg-surface-900 border border-slate-800">
+                      <div class="text-white font-bold">Tauri 2.x Framework</div>
+                      <div class="text-slate-400 text-[10px]">Copyright © 2026 Tauri Programme · MIT / Apache-2.0</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-surface-900 border border-slate-800">
+                      <div class="text-white font-bold">rusqlite (SQLite for Rust)</div>
+                      <div class="text-slate-400 text-[10px]">Copyright © The rusqlite developers · MIT License</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-surface-900 border border-slate-800">
+                      <div class="text-white font-bold">React 19 & React Router</div>
+                      <div class="text-slate-400 text-[10px]">Copyright © Meta Platforms, Inc. · MIT License</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-surface-900 border border-slate-800">
+                      <div class="text-white font-bold">Lucide React Icons</div>
+                      <div class="text-slate-400 text-[10px]">Copyright © Lucide Contributors · ISC License</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-surface-900 border border-slate-800">
+                      <div class="text-white font-bold">Model Context Protocol (MCP)</div>
+                      <div class="text-slate-400 text-[10px]">Anthropic, PBC · Open Protocol Specification (MIT)</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-surface-900 border border-slate-800">
+                      <div class="text-white font-bold">Tailwind CSS 4.x</div>
+                      <div class="text-slate-400 text-[10px]">Tailwind Labs, Inc. · MIT License</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. 底部合规工具箱与操作栏 -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-800 text-[11px]">
+              <div class="flex items-center space-x-2 text-slate-400">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>安全与合规审计问题咨询：<a href="mailto:security@opspub.dev" class="text-teal-400 hover:underline">security@opspub.dev</a></span>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <button type="button" onclick="downloadLegalWhitepaper()" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-750 text-slate-200 border border-slate-700/80 transition flex items-center space-x-1.5 cursor-pointer">
+                  <i data-lucide="download" class="w-3.5 h-3.5 text-teal-400"></i>
+                  <span>下载合规白皮书 (PDF)</span>
+                </button>
+                <button type="button" onclick="exportComplianceReport()" class="px-3 py-1.5 rounded-lg bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/40 font-medium transition flex items-center space-x-1.5 cursor-pointer shadow-sm">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-teal-400"></i>
+                  <span>一键生成本地合规证明</span>
+                </button>
               </div>
             </div>
           </div>
@@ -16700,12 +17823,559 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
     // ==========================================
     // 远程终端全套交互与会话管理 (对齐 OpsPub 原型设计)
     // ==========================================
-    let currentTerminalTab = 'quick-connect'; // 'quick-connect' | 'session-tencent'
+    let currentTerminalTab = 'session-tencent'; // 'quick-connect' | 'session-tencent'
     let currentSplitMode = 'single'; // 'single' | 'dual-h' | 'dual-v' | 'quad'
     let isSyncInputActive = false;
     let isTerminalDrawerOpen = false;
 
     // 切换终端顶层标签页 (快速连接 vs 会话)
+    
+    // =========================================================================
+    // 终端鼠标左键选择、右键快捷菜单与交互逻辑 (1:1 严格对齐最新截图)
+    // =========================================================================
+    let terminalSavedSelectionText = '';
+
+    function handleTerminalContextMenu(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const menu = document.getElementById('terminalContextMenu');
+      if (!menu) return;
+
+      // 捕获鼠标当前选中的文本
+      terminalSavedSelectionText = window.getSelection().toString().trim();
+
+      // 定位到鼠标指针点击位置
+      const menuWidth = 192;
+      const menuHeight = 240;
+      let x = e.clientX;
+      let y = e.clientY;
+
+      // 边缘防止溢出屏幕
+      if (x + menuWidth > window.innerWidth) {
+        x = window.innerWidth - menuWidth - 10;
+      }
+      if (y + menuHeight > window.innerHeight) {
+        y = window.innerHeight - menuHeight - 10;
+      }
+
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      menu.classList.remove('hidden');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeTerminalContextMenu() {
+      const menu = document.getElementById('terminalContextMenu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    // 全局点击或按下 ESC 时关闭右键菜单
+    document.addEventListener('click', () => {
+      closeTerminalContextMenu();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeTerminalContextMenu();
+    });
+
+    // 终端菜单专属快捷键监听调度：
+    // 1. Ctrl+C: 如果鼠标选中文本则复制；如果没有选中则发送中断信号 (^C) 停止当前执行的任务
+    // 2. Ctrl+V: 快捷粘贴剪贴板内容到当前终端流输入栏
+    document.addEventListener('keydown', (e) => {
+      // 仅在终端标签页处于激活展示状态时生效
+      const termTab = document.getElementById('tab-terminal');
+      const isTermActive = termTab && !termTab.classList.contains('hidden');
+      if (!isTermActive) return;
+
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      if (!isCtrlOrMeta) return;
+
+      const key = e.key ? e.key.toLowerCase() : '';
+
+      // ==========================================
+      // 快捷键 1: Ctrl + C (复制 或 停止任务)
+      // ==========================================
+      if (key === 'c') {
+        // 1.1 检查页面中是否有鼠标拖选的文字
+        let selText = '';
+        const winSel = window.getSelection();
+        if (winSel && winSel.toString()) {
+          selText = winSel.toString().trim();
+        }
+
+        // 1.2 检查输入框内是否有选中文本
+        const activeEl = document.activeElement;
+        if (!selText && activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+          if (typeof activeEl.selectionStart === 'number' && typeof activeEl.selectionEnd === 'number' && activeEl.selectionStart !== activeEl.selectionEnd) {
+            selText = activeEl.value.substring(activeEl.selectionStart, activeEl.selectionEnd).trim();
+          }
+        }
+
+        // 判定 A: 【如果有选中文本】 -> 按照用户要求执行复制，并显示醒目的“复制成功”提示反馈
+        if (selText) {
+          executeTerminalCopy(selText);
+          return; // 正常复制完成，绝不中断任务
+        }
+
+        // 判定 B: 【如果没有选中文本】 -> 按照用户要求执行停止当前在执行的任务 (SIGINT 信号)
+        e.preventDefault();
+        e.stopPropagation();
+        triggerTerminalInterrupt();
+        return;
+      }
+
+      // ==========================================
+      // 快捷键 2: Ctrl + V (粘贴)
+      // ==========================================
+      if (key === 'v') {
+        const streamInput = document.getElementById('terminalStreamInput');
+        // 若光标已在流输入框内，允许原生粘贴并同步光标处高亮
+        if (document.activeElement === streamInput) {
+          setTimeout(() => {
+            const val = streamInput.value;
+            const cursorLine = document.getElementById('termCursorLine');
+            if (cursorLine && val) {
+              cursorLine.innerHTML = `<span class="text-emerald-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># <span class="text-emerald-300 font-bold">${escapeHtml(val)}</span><span class="w-2 h-4 bg-emerald-400 ml-1 inline-block animate-pulse align-middle"></span>`;
+            }
+          }, 10);
+          showToast('📋 已粘贴剪贴板内容到终端流输入栏');
+          return;
+        }
+
+        // 若用户点击在终端窗格、输出区按 Ctrl+V，直接将剪贴板内容写入流输入栏
+        e.preventDefault();
+        e.stopPropagation();
+        terminalMenuPaste();
+      }
+    });
+
+    // 终端停止当前任务与发送中断信号 (^C / SIGINT)
+    function triggerTerminalInterrupt() {
+      const waitingNotice = document.getElementById('termAIWaitingNotice');
+      const pendingBar = document.getElementById('terminalAIPendingBar');
+      const streamBar = document.getElementById('terminalStreamBar');
+      const inp = document.getElementById('terminalStreamInput');
+      const codeBlock = document.getElementById('termOutputCode');
+      const cursorLine = document.getElementById('termCursorLine');
+      const pane = document.getElementById('termPane1');
+
+      let currentInputText = inp ? inp.value.trim() : '';
+
+      // 1. 如果当前有 AI 操作处于等待放行阶段，立即终止
+      if (pendingBar && !pendingBar.classList.contains('hidden')) {
+        cancelTermAIOp();
+      } else if (waitingNotice && waitingNotice.innerText.includes('等待开启')) {
+        waitingNotice.innerHTML = '<span class="text-slate-400 font-mono">^C [AI 操作已取消]</span>';
+      }
+
+      // 2. 在终端屏幕中输出 ^C 字符并另起终端提示符
+      if (codeBlock && cursorLine) {
+        const interruptBlock = document.createElement('div');
+        interruptBlock.className = 'py-0.5 font-mono text-[12px] select-text';
+        interruptBlock.style.userSelect = 'text';
+
+        if (currentInputText) {
+          interruptBlock.innerHTML = `
+            <div class="text-slate-300">
+              <span class="text-emerald-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># <span class="text-slate-200">${escapeHtml(currentInputText)}</span><span class="text-amber-400 font-bold ml-1">^C</span>
+            </div>
+          `;
+        } else {
+          interruptBlock.innerHTML = `
+            <div class="text-slate-300 flex items-center flex-wrap">
+              <span class="text-emerald-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># <span class="text-amber-400 font-bold">^C</span>
+              <span class="text-slate-500 text-[11px] font-sans ml-2">[已终止当前任务 · SIGINT 信号中断]</span>
+            </div>
+          `;
+        }
+
+        codeBlock.insertBefore(interruptBlock, cursorLine);
+
+        // 重置光标行
+        cursorLine.innerHTML = `<span class="text-emerald-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># <span class="w-2 h-4 bg-emerald-400 ml-1 inline-block animate-pulse align-middle"></span>`;
+      }
+
+      // 3. 清空底栏输入框
+      if (inp) {
+        inp.value = '';
+      }
+
+      // 4. 平滑滚动到底端
+      if (pane) {
+        pane.scrollTop = pane.scrollHeight;
+      }
+
+      showToast('⏹ 已发送中断信号 (Ctrl+C)，停止当前执行的任务');
+    }
+
+    // 统一终端复制执行函数（弹窗 Toast 与选区浮动微气泡双重保障，醒目提示“复制成功”）
+    function executeTerminalCopy(text) {
+      if (!text) return;
+
+      const onCopySuccess = () => {
+        // 1. 弹出醒目的全局复制成功 Toast 提示
+        showToast('✓ 复制成功！已复制到剪贴板');
+
+        // 2. 在鼠标选区上方弹出灵动的局部微气泡提示 (复制成功)
+        showCopySuccessBubble();
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(onCopySuccess).catch(() => {
+          fallbackCopyText(text);
+          onCopySuccess();
+        });
+      } else {
+        fallbackCopyText(text);
+        onCopySuccess();
+      }
+    }
+
+    // 在选区上方展示轻巧灵动的“复制成功”浮动反馈微气泡
+    function showCopySuccessBubble() {
+      try {
+        const winSel = window.getSelection();
+        let top = 0;
+        let left = 0;
+        if (winSel && winSel.rangeCount > 0) {
+          const rect = winSel.getRangeAt(0).getBoundingClientRect();
+          if (rect && rect.width > 0) {
+            top = rect.top - 32;
+            left = rect.left + rect.width / 2;
+          }
+        }
+        if (!top || !left) {
+          const termPane = document.getElementById('termPane1');
+          if (termPane) {
+            const pRect = termPane.getBoundingClientRect();
+            top = pRect.top + 24;
+            left = pRect.left + pRect.width / 2;
+          }
+        }
+
+        if (top && left) {
+          const bubble = document.createElement('div');
+          bubble.className = 'fixed z-[9999] -translate-x-1/2 px-2.5 py-1 rounded-lg bg-emerald-600/95 text-white text-xs font-sans shadow-xl flex items-center space-x-1.5 pointer-events-none transition-all duration-300';
+          bubble.style.top = Math.max(10, top) + 'px';
+          bubble.style.left = left + 'px';
+          bubble.innerHTML = '<span class="font-bold flex items-center space-x-1"><span>✓</span><span>复制成功</span></span>';
+          document.body.appendChild(bubble);
+
+          setTimeout(() => {
+            bubble.style.opacity = '0';
+            bubble.style.transform = 'translate(-50%, -8px)';
+            setTimeout(() => {
+              if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+            }, 300);
+          }, 900);
+        }
+      } catch (e) {
+        // 优雅降级
+      }
+    }
+
+    // 1. 复制选中文字
+    function terminalMenuCopy() {
+      closeTerminalContextMenu();
+      const sel = terminalSavedSelectionText || window.getSelection().toString().trim();
+      if (sel) {
+        executeTerminalCopy(sel);
+      } else {
+        const defaultCmd = 'docker --help';
+        fallbackCopyText(defaultCmd);
+        showToast('✓ 复制成功 (已默认复制当前终端命令)');
+        showCopySuccessBubble();
+      }
+    }
+
+    // 2. 粘贴剪贴板内容
+    function terminalMenuPaste() {
+      closeTerminalContextMenu();
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(text => {
+          applyPastedTextToTerminal(text || 'docker ps -a');
+        }).catch(() => {
+          applyPastedTextToTerminal('docker ps -a');
+        });
+      } else {
+        applyPastedTextToTerminal('docker ps -a');
+      }
+    }
+
+    function applyPastedTextToTerminal(text) {
+      const inp = document.getElementById('terminalStreamInput');
+      if (inp) {
+        inp.value = (inp.value ? inp.value + ' ' : '') + text;
+        inp.focus();
+      }
+      // 屏幕光标处回显
+      const cursorLine = document.getElementById('termCursorLine');
+      if (cursorLine) {
+        cursorLine.innerHTML = `<span class="text-emerald-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># <span class="text-emerald-300 font-bold">${escapeHtml(text)}</span><span class="w-2 h-4 bg-emerald-400 ml-1 inline-block animate-pulse align-middle"></span>`;
+      }
+      showToast('📋 已将剪贴板内容粘贴至终端命令行');
+    }
+
+    // 3. 全选可执行
+    function terminalMenuSelectAll() {
+      closeTerminalContextMenu();
+      const codeBlock = document.getElementById('termOutputCode');
+      if (codeBlock && window.getSelection) {
+        const range = document.createRange();
+        range.selectNodeContents(codeBlock);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        showToast('🖥️ 已全选终端输出文本');
+      }
+    }
+
+    // 4. 问 AI: 解释选中 (核心优化：绝不跳转右侧！直接在当前终端窗口内原位回答)
+    function terminalMenuAskAI() {
+      closeTerminalContextMenu();
+      let sel = terminalSavedSelectionText || window.getSelection().toString().trim();
+      if (!sel) sel = 'Block until one or more containers stop, then print their exit codes';
+
+      openTermInlineAIQuery(sel);
+    }
+
+    // 触发当前终端的原位 AI 提问与等待放行 (严格对齐截图交互)
+    function openTermInlineAIQuery(targetText) {
+      const container = document.getElementById('termInlineAIContainer');
+      const waitingNotice = document.getElementById('termAIWaitingNotice');
+      const pendingBar = document.getElementById('terminalAIPendingBar');
+      const streamBar = document.getElementById('terminalStreamBar');
+      const pendingCmd = document.getElementById('termAIPendingCmd');
+      const answerBox = document.getElementById('termInlineAIAnswerBox');
+
+      if (container) container.classList.remove('hidden');
+      if (answerBox) answerBox.classList.add('hidden');
+
+      if (waitingNotice) {
+        waitingNotice.innerHTML = '<div class="text-amber-300 font-semibold py-0.5">  ⏸ 等待开启 AI 操作 —— 点底部状态条「开启并继续」( 5 分钟内有效, Ctrl+C 取消)</div>';
+      }
+
+      if (pendingCmd) {
+        pendingCmd.innerText = `ssh_exec: docker --version; docker wait --help 2>&1 | head -20`;
+      }
+
+      if (pendingBar && streamBar) {
+        pendingBar.classList.remove('hidden');
+        pendingBar.classList.add('flex');
+        streamBar.classList.add('hidden');
+      }
+
+      if (window.lucide) lucide.createIcons();
+
+      // 滚动到底部
+      const pane = document.getElementById('termPane1');
+      if (pane) pane.scrollTop = pane.scrollHeight;
+
+      showToast('⚡ AI 提问已就绪，请在底部点击「开启并继续」直接在当前终端流中查看回答');
+    }
+
+    // 确认开启 AI 操作并原位在终端输出解答 (核心：直接在当前窗口纯终端字符流回答，绝不在右侧显示，不弹浮层卡片)
+    function confirmTermAIOpAndContinue() {
+      const waitingNotice = document.getElementById('termAIWaitingNotice');
+      const answerBox = document.getElementById('termInlineAIAnswerBox');
+      const pendingBar = document.getElementById('terminalAIPendingBar');
+      const streamBar = document.getElementById('terminalStreamBar');
+
+      if (waitingNotice) {
+        waitingNotice.innerHTML = `
+          <div class="text-amber-300 font-semibold py-0.5">  ⏸ 等待开启 AI 操作 —— 点底部状态条「开启并继续」( 5 分钟内有效, Ctrl+C 取消)</div>
+          <div class="text-emerald-400 font-semibold py-0.5">  ↳ 已开启 AI 操作，继续执行</div>
+          <div class="text-slate-400 font-mono text-[11px] py-0.5 truncate">  ↳ {"stdout":"Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2\\nUsage:  docker wait CONTAINER [CONT...</div>
+        `;
+      }
+
+      let sel = terminalSavedSelectionText || 'Block until one or more containers stop, then print their exit codes';
+
+      if (answerBox) {
+        answerBox.classList.remove('hidden');
+        answerBox.className = 'space-y-3 pt-2 text-xs font-mono text-slate-200 select-text leading-relaxed';
+        answerBox.innerHTML = `
+          <div class="font-medium text-white flex items-center space-x-1.5">
+            <span>🤖 这是 <span class="text-teal-300 font-semibold">docker wait</span> 子命令的帮助说明文本，不是报错。</span>
+          </div>
+
+          <div class="text-slate-100 font-medium">结论：没有问题，它只是 Docker 的用法描述。</div>
+
+          <div class="space-y-1">
+            <div class="text-white font-bold">它是什么</div>
+            <div class="text-slate-300">在你这台机器上确认了，它出自 <span class="text-teal-300 font-semibold">docker wait --help</span> (Docker 29.1.3) :</div>
+          </div>
+
+          <div class="py-1 text-slate-300 space-y-0.5 font-mono">
+            <div>Usage:  docker wait CONTAINER [CONTAINER...]</div>
+            <div>Block until one or more containers stop, then print their exit codes</div>
+          </div>
+
+          <div class="text-slate-300 leading-normal">
+            含义：<span class="text-teal-300 font-semibold">docker wait 容器名...</span> 会<strong class="text-white font-bold">阻塞</strong>，直到指定容器停止，然后打印它的退出码（每行一个，按命令行给的容器顺序）。常用于脚本里「等某一个一次性任务跑完再取结果」。
+          </div>
+
+          <div class="space-y-1 pt-1">
+            <div class="text-white font-bold">退出码速查：</div>
+            <div class="inline-block font-mono text-xs py-1">
+              <div class="text-teal-300 font-bold pb-1 flex space-x-8">
+                <span class="w-12">码</span>
+                <span>含义</span>
+              </div>
+              <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-emerald-400 font-bold">0</span><span>正常退出</span></div>
+              <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-amber-400 font-bold">1</span><span>应用自身报错</span></div>
+              <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-rose-400 font-bold">137</span><span>被 kill -9 / OOM 杀掉</span></div>
+              <div class="flex space-x-8 text-slate-300 py-0.5"><span class="w-12 text-indigo-400 font-bold">143</span><span>被 SIGTERM 优雅停止</span></div>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 pt-1">
+            <div class="text-white font-bold">需要注意的点（不是故障，是用法坑）</div>
+            <div class="text-slate-300">1. 没有超时：容器一直不退出，这条命令就一直挂着。你看到的大概率只是帮助文本，但如果真在跑 <span class="text-teal-300">docker wait</span>, Ctrl+C 可中断（不影响容器）。</div>
+            <div class="text-slate-300">2. 只给退出码，不给原因：想知道为什么挂了要看日志。</div>
+            <div class="text-slate-300">3. 想限制等待时间：</div>
+            <div class="text-cyan-300 font-mono py-0.5 pl-2">timeout 60 docker wait 容器名 || echo "超时未退出"</div>
+            <div class="text-slate-300">4. 想看日志又等结果，用 <span class="text-teal-300">docker logs -f 容器名</span>，-f 结束时会自动带日志，比 <span class="text-teal-300">wait</span> 直观。</div>
+          </div>
+        `;
+      }
+
+      // 切换底栏为常规全宽输入栏
+      if (pendingBar && streamBar) {
+        pendingBar.classList.add('hidden');
+        pendingBar.classList.remove('flex');
+        streamBar.classList.remove('hidden');
+      }
+
+      if (window.lucide) lucide.createIcons();
+
+      // 滚动到底部
+      const pane = document.getElementById('termPane1');
+      if (pane) pane.scrollTop = pane.scrollHeight;
+
+      showToast('✅ AI 已直接在当前终端流中输出解答！');
+    }
+
+    // 取消当前 AI 等待操作
+    function cancelTermAIOp() {
+      const waitingNotice = document.getElementById('termAIWaitingNotice');
+      const pendingBar = document.getElementById('terminalAIPendingBar');
+      const streamBar = document.getElementById('terminalStreamBar');
+
+      if (waitingNotice) {
+        waitingNotice.innerHTML = '<span class="text-slate-400 font-mono">^C [AI 操作已取消]</span>';
+      }
+
+      if (pendingBar && streamBar) {
+        pendingBar.classList.add('hidden');
+        pendingBar.classList.remove('flex');
+        streamBar.classList.remove('hidden');
+      }
+
+      showToast('⏸ 已取消当前 AI 操作');
+    }
+
+    // 5. 存为命令片段
+    function terminalMenuSaveSnippet() {
+      closeTerminalContextMenu();
+      let sel = terminalSavedSelectionText || window.getSelection().toString().trim();
+      if (!sel) sel = 'docker COMMAND --help';
+      showToast(`💾 已将命令片段保存至常用脚本库: "${sel.slice(0, 25)}..."`);
+    }
+
+    // 6. 存为经验
+    function terminalMenuSaveExperience() {
+      closeTerminalContextMenu();
+      let sel = terminalSavedSelectionText || window.getSelection().toString().trim();
+      if (!sel) sel = 'Docker 常用命令清单与说明';
+      showToast('💡 已将选中终端输出沉淀至团队知识经验库');
+    }
+
+    // 7. 清屏
+    function terminalMenuClear() {
+      closeTerminalContextMenu();
+      const codeBlock = document.getElementById('termOutputCode');
+      if (codeBlock) {
+        codeBlock.innerHTML = `
+          <div class="text-slate-500 pb-1 border-b border-slate-900 font-sans text-[11px] flex justify-between select-none">
+            <span class="text-cyan-400 font-bold font-mono">root@VM-0-12-ubuntu (111.231.166.192:22)</span>
+            <span>终端屏幕已清空 · xterm-256color · UTF-8</span>
+          </div>
+          <div id="termCursorLine" class="text-slate-200 flex items-center pt-2 font-mono">
+            <span class="text-emerald-400 font-semibold">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># 
+            <span class="w-2 h-4 bg-emerald-400 ml-1 inline-block animate-pulse align-middle"></span>
+          </div>
+        `;
+      }
+      const inp = document.getElementById('terminalStreamInput');
+      if (inp) inp.value = '';
+      showToast('🧹 终端屏幕已清空');
+    }
+
+    // 终端底栏流输入键盘响应 (Enter 执行指令，Ctrl+C 无选中文本时发送中断)
+    function handleTerminalStreamInputKey(e) {
+      if (e.key === 'Enter') {
+        executeCurrentTerminalInput();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        const selInInput = typeof e.target.selectionStart === 'number' && typeof e.target.selectionEnd === 'number' && e.target.selectionStart !== e.target.selectionEnd;
+        if (selInInput) {
+          const selText = e.target.value.substring(e.target.selectionStart, e.target.selectionEnd).trim();
+          if (selText) {
+            executeTerminalCopy(selText);
+          }
+        } else {
+          e.preventDefault();
+          triggerTerminalInterrupt();
+        }
+      }
+    }
+
+    function executeCurrentTerminalInput() {
+      const inp = document.getElementById('terminalStreamInput');
+      if (!inp) return;
+      const cmd = inp.value.trim();
+      if (!cmd) return;
+
+      const codeBlock = document.getElementById('termOutputCode');
+      if (codeBlock) {
+        const newBlock = document.createElement('div');
+        newBlock.className = 'pt-2 font-mono text-xs select-text';
+        newBlock.style.userSelect = 'text';
+
+        let mockResult = '';
+        if (cmd === 'clear') {
+          terminalMenuClear();
+          return;
+        } else if (/ls/i.test(cmd)) {
+          mockResult = '<span class="text-cyan-400">app.html</span>  <span class="text-indigo-400">down.png</span>  <span class="text-slate-300">index.html</span>  <span class="text-emerald-400">start.sh</span>';
+        } else if (/docker\s+ps/i.test(cmd)) {
+          mockResult = 'CONTAINER ID   IMAGE          COMMAND       CREATED         STATUS         PORTS\n9f83a028c11e   nginx:alpine   "/docker..."  2 hours ago     Up 2 hours     0.0.0.0:80->80/tcp';
+        } else {
+          mockResult = `<span class="text-slate-400">[执行成功] exit code 0 · output logged</span>`;
+        }
+
+        newBlock.innerHTML = `
+          <div class="text-slate-300"><span class="text-emerald-400">root@VM-0-12-ubuntu</span>:<span class="text-indigo-400">~</span># <span class="text-white font-bold">${escapeHtml(cmd)}</span></div>
+          <div class="text-slate-400 py-1 whitespace-pre-wrap">${mockResult}</div>
+        `;
+        
+        const cursorLine = document.getElementById('termCursorLine');
+        if (cursorLine) {
+          codeBlock.insertBefore(newBlock, cursorLine);
+        } else {
+          codeBlock.appendChild(newBlock);
+        }
+
+        // 滚动到底部
+        const pane1 = document.getElementById('termPane1');
+        if (pane1) pane1.scrollTop = pane1.scrollHeight;
+      }
+
+      inp.value = '';
+      showToast(`⚡ 执行指令: ${cmd}`);
+    }
+
     function switchTerminalTab(tabId) {
       currentTerminalTab = tabId;
       const tabQuick = document.getElementById('termTab-quick-connect');
@@ -20608,7 +22278,330 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       }
     }
 
-    function executeChatFlow(val) {
+    
+    // =========================================================================
+    // 危险命令规则库与白名单协同逻辑 & 场景模拟器
+    // =========================================================================
+    let currentRiskFilter = 'all';
+    let currentChatScenario = 'low_whitelist'; // 'low_whitelist' | 'high_approval' | 'critical'
+
+    function filterRiskRules(level) {
+      currentRiskFilter = level;
+      const btns = ['all', 'critical', 'high', 'medium', 'low'];
+      btns.forEach(b => {
+        const el = document.getElementById('riskFilter-' + b);
+        if (el) {
+          if (b === level) {
+            el.className = 'px-2.5 py-1 rounded-lg bg-white/20 text-white border border-white/40 text-[11px] font-bold transition cursor-pointer shadow-sm';
+          } else {
+            el.className = 'px-2.5 py-1 rounded-lg bg-surface-800 text-slate-400 hover:text-slate-200 border border-slate-700/60 text-[11px] font-medium transition cursor-pointer';
+          }
+        }
+      });
+
+      const cards = document.querySelectorAll('#riskRulesContainer .risk-card');
+      cards.forEach(c => {
+        if (level === 'all') {
+          c.classList.remove('hidden');
+        } else if (c.classList.contains('risk-card-' + level)) {
+          c.classList.remove('hidden');
+        } else {
+          c.classList.add('hidden');
+        }
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function setAndTestRiskCommand(cmd) {
+      const inp = document.getElementById('testRiskCommandInput');
+      if (inp) inp.value = cmd;
+      evaluateCommandRisk();
+    }
+
+    function evaluateCommandRisk() {
+      const inp = document.getElementById('testRiskCommandInput');
+      const box = document.getElementById('riskTestResultBox');
+      if (!inp || !box) return;
+      const cmd = inp.value.trim();
+      if (!cmd) return;
+
+      let level = 'medium';
+      let title = '';
+      let badge = '';
+      let desc = '';
+      let borderColor = 'border-blue-500/40';
+      let textColor = 'text-blue-400';
+
+      if (/rm\s+-(rf|fr)\s+\/(.*)?/i.test(cmd) || /mkfs/i.test(cmd) || /dd\s+if=/i.test(cmd) || /dev\/tcp/i.test(cmd) || /setenforce/i.test(cmd) || /cat\s+\/etc\/shadow/i.test(cmd)) {
+        level = 'critical';
+        borderColor = 'border-rose-500/40';
+        textColor = 'text-rose-400';
+        title = '【极高危 · 永久拒绝】(Hard Refusal · 物理熔断)';
+        badge = '<span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">永久拒绝 · 严禁审批绕过</span>';
+        desc = '命中规则: <strong>R-CRIT 极高危规则</strong> · 白名单状态: <strong>不在白名单内</strong>。<br>' +
+               '处理方式: <strong>系统物理熔断，严禁生成审批单，不可人工审批绕过</strong>。<br>' +
+               '防范理由: 该命令包含毁灭性系统底层破坏、未授权反弹提权或核心凭据窥探，一旦执行系统无法自愈。';
+      } else if (/drop\s+(database|table)/i.test(cmd) || /iptables\s+-(F|X|Z)/i.test(cmd) || /ufw\s+disable/i.test(cmd) || /sshd_config/i.test(cmd)) {
+        level = 'high';
+        borderColor = 'border-amber-500/40';
+        textColor = 'text-amber-400';
+        title = '【高危 · 强制人工审批】(Production Approval)';
+        badge = '<span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">强制审批 · 生产双人复核</span>';
+        desc = '命中规则: <strong>R-HIGH 高危规则</strong> · 白名单状态: <strong>非受控白名单 (需人工审批)</strong>。<br>' +
+               '处理方式: <strong>进入人工工单审批流，生产服务器建议要求双人签字或二次密码认证</strong>。<br>' +
+               '防范理由: 涉及核心数据库清空、网络安全边界放开或 SSH 接入配置，需明确爆炸半径与备份回滚方案。';
+      } else if (/^(free|uptime|uname|top|nproc|cat\s+\/var\/log\/|tail|df\s+-h|ss\s+-tulpn)/i.test(cmd)) {
+        level = 'low';
+        borderColor = 'border-emerald-500/40';
+        textColor = 'text-emerald-400';
+        title = '【低危 · 受控白名单】(Fast Path · 自动放行)';
+        badge = '<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">白名单动作 · 免审秒级放行</span>';
+        desc = '命中规则: <strong>W-LOW 受控只读白名单</strong> · 白名单状态: <strong>已命中白名单免审池</strong>。<br>' +
+               '处理方式: <strong>在当前服务器 AI 策略允许下，直接通过受控工具秒级执行并落审计</strong>。<br>' +
+               '防范理由: 属于系统状态与指标读取操作，无文件写入或环境破坏风险。';
+      } else {
+        level = 'medium';
+        borderColor = 'border-blue-500/40';
+        textColor = 'text-blue-400';
+        title = '【中危 · 普通人工审批】(Standard Approval)';
+        badge = '<span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">普通审批 · 需工单确认</span>';
+        desc = '命中规则: <strong>R-MED 中危规则 (或未命中白名单常规改动)</strong> · 白名单状态: <strong>常规变更动作</strong>。<br>' +
+               '处理方式: <strong>生成结构化审批单，运维工程师确认影响范围与服务重启说明后执行</strong>。<br>' +
+               '防范理由: 涉及服务重启、配置文件修改或软件包安装，具有一定服务抖动影响，需受控审批。';
+      }
+
+      box.className = 'p-3.5 rounded-xl bg-surface-950 border ' + borderColor + ' space-y-2 font-mono text-xs animate-in fade-in';
+      box.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="font-bold ${textColor} flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-current animate-pulse"></span>
+            <span>评测结论: ${title}</span>
+          </span>
+          ${badge}
+        </div>
+        <div class="text-[11px] text-slate-300 font-sans leading-relaxed">
+          ${desc}
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    
+    // =========================================================================
+    // AI 助手对话与执行审批、快捷交互控制器 (完全对齐截图 1、2、3)
+    // =========================================================================
+    currentChatScenario = 'low_whitelist'; // 'low_whitelist' | 'waiting_approval' | 'rejected' | 'critical'
+    let chatForkCounter = 1;
+
+    // 复制当前 AI 回答正文 (对齐截图 1、2、3: [复制])
+    function copyCurrentChatResponse(btn) {
+      const resultMd = document.getElementById('executionResultMarkdown');
+      const text = resultMd ? resultMd.innerText : '';
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 已复制正文回答到剪贴板');
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span class="text-emerald-400">已复制</span>';
+          if (window.lucide) lucide.createIcons();
+          setTimeout(() => {
+            btn.innerHTML = original;
+            if (window.lucide) lucide.createIcons();
+          }, 1500);
+        }
+      });
+    }
+
+    // 连过程复制：将提问、工具执行轮次与回复导出为标准 Markdown (对齐截图 1、2、3: [连过程复制])
+    function copyChatWithExecutionProcess(btn) {
+      const userBubble = document.getElementById('userPromptBubble');
+      const userPrompt = userBubble ? userBubble.innerText.trim() : '';
+      const execBody = document.getElementById('executionStepsBody');
+      const execText = execBody ? execBody.innerText.trim() : '工具依次执行完成';
+      const resultMd = document.getElementById('executionResultMarkdown');
+      const resultText = resultMd ? resultMd.innerText.trim() : '';
+
+      const fullReport = `### 运维对话排障记录 (OpsPub AI Copilot)
+- **目标服务器**: 我的香草云 (生产边缘 / 156.226.177.226:22000)
+- **用户提问**: ${userPrompt}
+- **时间**: ${new Date().toLocaleString()}
+
+#### 工具调用与执行过程
+${execText}
+
+#### AI 产出与决策建议
+${resultText}
+`;
+
+      navigator.clipboard.writeText(fullReport).then(() => {
+        showToast('📝 已完整复制会话与执行过程报告 (Markdown 格式)');
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span class="text-emerald-400">已复制过程</span>';
+          if (window.lucide) lucide.createIcons();
+          setTimeout(() => {
+            btn.innerHTML = original;
+            if (window.lucide) lucide.createIcons();
+          }, 1500);
+        }
+      });
+    }
+
+    // 重新生成回复 (对齐截图 1、2、3: [重新生成])
+    function regenerateCurrentChatResponse() {
+      showToast('🔄 正在重新思考并重新生成本轮回复...');
+      const userBubble = document.getElementById('userPromptBubble');
+      const prompt = userBubble ? userBubble.innerText.trim() : '帮我看下我这台服务器配置';
+      executeChatFlow(prompt);
+    }
+
+    // 从这里分叉新对话 (对齐截图 3: [从这里分叉])
+    function forkChatFromHere() {
+      const forkName = '会话分支 #' + chatForkCounter++;
+      showToast('🔀 已从当前轮次分叉出新会话「' + forkName + '」并切入，原对话已完整保留');
+      const statusPill = document.getElementById('aiCardStatusPill');
+      if (statusPill) {
+        statusPill.innerHTML = '<i data-lucide="git-fork" class="w-3 h-3 text-cyan-400"></i><span>' + forkName + '</span>';
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 快捷切换体验各种场景状态
+    
+    // =========================================================================
+    // 用户消息气泡操作：复制内容 & 编辑修改 (1:1 对齐截图 Tooltip 与行为逻辑)
+    // =========================================================================
+    function copyUserPromptMessage() {
+      const bubble = document.getElementById('userPromptBubble');
+      if (!bubble) return;
+      const text = bubble.innerText.trim();
+      if (!text) return;
+
+      const onCopied = () => {
+        const icon = document.getElementById('userMsgCopyIcon');
+        if (icon) {
+          icon.setAttribute('data-lucide', 'check');
+          icon.classList.add('text-emerald-400');
+          if (window.lucide) lucide.createIcons();
+          setTimeout(() => {
+            icon.setAttribute('data-lucide', 'copy');
+            icon.classList.remove('text-emerald-400');
+            if (window.lucide) lucide.createIcons();
+          }, 1500);
+        }
+        showToast('✓ 已复制发送内容到剪贴板');
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(onCopied).catch(() => {
+          fallbackCopyText(text);
+          onCopied();
+        });
+      } else {
+        fallbackCopyText(text);
+        onCopied();
+      }
+    }
+
+    function editUserPromptMessage() {
+      const bubble = document.getElementById('userPromptBubble');
+      if (!bubble) return;
+      const text = bubble.innerText.trim();
+      const chatInput = document.getElementById('chatInput');
+      
+      // 核心逻辑 1：内容覆盖底部输入框，聚焦高亮并平滑定位 (对齐 Tooltip 说明)
+      if (chatInput) {
+        chatInput.value = text;
+        chatInput.focus();
+        chatInput.select();
+        chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        chatInput.classList.add('ring-2', 'ring-teal-500', 'border-teal-500');
+        setTimeout(() => {
+          chatInput.classList.remove('ring-2', 'ring-teal-500', 'border-teal-500');
+        }, 2200);
+      }
+
+      // 核心逻辑 2：同时展开内联就地编辑框，方便用户就近直接修改
+      const editor = document.getElementById('userMsgInlineEditor');
+      const inlineInput = document.getElementById('userMsgInlineInput');
+      if (editor && inlineInput) {
+        inlineInput.value = text;
+        bubble.classList.add('hidden');
+        editor.classList.remove('hidden');
+        editor.classList.add('flex');
+        inlineInput.focus();
+        inlineInput.select();
+      }
+
+      showToast('📝 内容已覆盖输入框，修改后重新发送将重新生成后续对话');
+    }
+
+    function cancelUserPromptInlineEdit() {
+      const bubble = document.getElementById('userPromptBubble');
+      const editor = document.getElementById('userMsgInlineEditor');
+      if (bubble && editor) {
+        editor.classList.add('hidden');
+        editor.classList.remove('flex');
+        bubble.classList.remove('hidden');
+      }
+    }
+
+    function submitUserPromptInlineEdit() {
+      const inlineInput = document.getElementById('userMsgInlineInput');
+      const bubble = document.getElementById('userPromptBubble');
+      const editor = document.getElementById('userMsgInlineEditor');
+      if (!inlineInput) return;
+      const val = inlineInput.value.trim();
+      if (!val) {
+        showToast('⚠️ 发送内容不能为空');
+        return;
+      }
+      if (editor && bubble) {
+        editor.classList.add('hidden');
+        editor.classList.remove('flex');
+        bubble.classList.remove('hidden');
+      }
+      showToast('🚀 正在根据修改后的内容重新生成回复...');
+      executeChatFlow(val);
+    }
+
+    function switchToScenario(sc) {
+      currentChatScenario = sc;
+      let promptText = '继续';
+      if (sc === 'waiting_approval') promptText = '执行脚本：备份原二维码并安装 qrencode';
+      else if (sc === 'rejected') promptText = '继续执行被拒绝的剩余操作';
+      else if (sc === 'critical') promptText = '清理系统临时无用日志：rm -rf /*';
+      else if (sc === 'target_correction') promptText = '我现在的讨论是阿里云的不是香草云的别老去改香草云的';
+      else promptText = '帮我检查一下机器的健康度与系统配置';
+
+      executeChatFlow(promptText, sc);
+    }
+
+    // 顶部待审批横幅与内嵌审批条中的【审批通过】(对齐截图 1)
+    function approveCurrentPendingTicket() {
+      showToast('⚡ 已确认放行指令，正在向底层终端下发执行并触发后置验证...');
+      const banner = document.getElementById('pendingInstructionBanner');
+      if (banner) banner.classList.add('hidden');
+
+      currentChatScenario = 'low_whitelist';
+      setChatInputThinkingState(true);
+      setTimeout(() => {
+        finishAIChatThinking();
+        showToast('✅ 审批指令已成功执行并通过健康验证！');
+      }, 1000);
+    }
+
+    // 顶部待审批横幅与内嵌审批条中的【拒绝】(直接流转到截图 2 状态)
+    function rejectCurrentPendingTicket() {
+      const banner = document.getElementById('pendingInstructionBanner');
+      if (banner) banner.classList.add('hidden');
+
+      currentChatScenario = 'rejected';
+      finishAIChatThinking();
+      showToast('❌ 你在审批单里点了「拒绝」，执行已中断');
+    }
+
+    // 执行对话流
+    function executeChatFlow(val, forceScenario) {
       const inp = document.getElementById('chatInput');
       if (inp) inp.value = '';
 
@@ -20620,9 +22613,35 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       const userBubble = document.getElementById('userPromptBubble');
       if (userBubble) userBubble.innerText = val;
 
-      // 切换输入框为思考中形态 (对齐截图 1)
+      // 控制上一轮历史对话流展示 (仅在 target_correction 场景显示多轮上下文)
+      const prevTurn = document.getElementById('previousTurnContainer');
+      if (prevTurn) {
+        if (currentChatScenario === 'target_correction') prevTurn.classList.remove('hidden');
+        else prevTurn.classList.add('hidden');
+      }
+      // 确保重置内联编辑状态
+      cancelUserPromptInlineEdit();
+
+
+      if (forceScenario) {
+        currentChatScenario = forceScenario;
+      } else {
+        if (/rm\s+-(rf|fr)\s+\/(.*)?/i.test(val) || /format/i.test(val) || /反弹/i.test(val) || /shadow/i.test(val) || /极高危/i.test(val)) {
+          currentChatScenario = 'critical';
+        } else if (/(拒绝|被拒|锁定|不同)/i.test(val)) {
+          currentChatScenario = 'rejected';
+        } else if (/(待审批|审批|qrencode|down\.png|二维码)/i.test(val)) {
+          currentChatScenario = 'waiting_approval';
+        } else if (/(阿里云|香草云|别老去改|讨论是)/i.test(val)) {
+          currentChatScenario = 'target_correction';
+        } else {
+          currentChatScenario = 'low_whitelist';
+        }
+      }
+
       setChatInputThinkingState(true);
 
+      const banner = document.getElementById('pendingInstructionBanner');
       const execBody = document.getElementById('executionStepsBody');
       const execChevron = document.getElementById('execChevron');
       const execToggleText = document.getElementById('execToggleText');
@@ -20632,14 +22651,273 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       const thinkingRow = document.getElementById('aiThinkingStatusRow');
       const resultMd = document.getElementById('executionResultMarkdown');
 
-      if (execBody) execBody.classList.remove('hidden');
+      // 控制顶部待审批横幅 (仅在 waiting_approval 时显示，对齐截图 1)
+      if (banner) {
+        if (currentChatScenario === 'waiting_approval') banner.classList.remove('hidden');
+        else banner.classList.add('hidden');
+      }
+
+      if (execBody) {
+        execBody.classList.remove('hidden');
+        if (currentChatScenario === 'waiting_approval') {
+          // 严格对齐截图 1: 执行过程进行中，含 ssh_exec_script 展开等待审批条
+          execBody.innerHTML = `
+            <div class="space-y-3 font-sans text-xs">
+              <div class="text-slate-300 text-xs">开始执行。第 1-3 步：备份旧二维码、安装 qrencode、生成新二维码。</div>
+              <div class="text-indigo-400 text-[11px] flex items-center space-x-1 font-mono">
+                <i data-lucide="settings" class="w-3 h-3"></i>
+                <span>批次 2 个 (依次执行)</span>
+              </div>
+              <div class="space-y-2 font-mono">
+                <!-- 工具 1: 等待审批 -->
+                <div class="rounded-xl border border-amber-500/40 bg-[#0d121a] overflow-hidden">
+                  <div class="flex items-center justify-between p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-xs">
+                    <div class="flex items-center space-x-2 min-w-0">
+                      <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                      <span class="text-amber-300 font-bold">ssh_exec_script</span>
+                      <span class="text-slate-400 text-[11px]">@我的香草云</span>
+                      <span class="text-slate-300 text-[11px] truncate">set -e SITE=/opt/1panel/www/sites/re... timeoutSecs=180</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold shrink-0">⏳ 等待审批</span>
+                  </div>
+                  <!-- 内嵌危险审批警示条与按钮 (对齐截图 1) -->
+                  <div class="p-3 bg-rose-950/20 border-t border-rose-500/30 space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <span class="text-rose-300 flex items-center space-x-1.5 font-sans">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+                        <span>危险审批 · 我的香草云 · 288秒后自动拒绝</span>
+                      </span>
+                      <div class="flex items-center space-x-2 shrink-0 font-sans">
+                        <button type="button" onclick="approveCurrentPendingTicket()" class="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition cursor-pointer shadow">审批...</button>
+                        <button type="button" onclick="rejectCurrentPendingTicket()" class="px-3 py-1 rounded-lg bg-surface-800 hover:bg-surface-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer">拒绝</button>
+                      </div>
+                    </div>
+                    <div class="p-2 rounded bg-surface-950 text-[11px] text-slate-300 truncate select-all">
+                      set -e SITE=/opt/1panel/www/sites/remote.remotedig.com/index STAMP=$(date +%Y%m%d%H%M%S) # 1) 备份原二维码 cp -a "$SITE/down.png" "$SITE/down.png.bak.$STAMP" ech...
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 工具 2: 排队中 -->
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-[#0d121a] border border-slate-800/80 text-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                    <span class="text-slate-400 font-bold">sftp_write</span>
+                    <span class="text-slate-500 text-[11px]">@我的香草云</span>
+                    <span class="text-slate-500 truncate text-[11px]">/opt/1panel/www/sites/remote.remoted... content=&lt;!DOCTYPE html&gt; html lang=...</span>
+                  </div>
+                  <span class="text-slate-500 text-[10px] shrink-0">排队中</span>
+                </div>
+              </div>
+            </div>
+          `;
+        } else if (currentChatScenario === 'rejected') {
+          // 截图 2 执行过程头
+          execBody.innerHTML = `
+            <div class="space-y-1.5 border-l-2 border-rose-500 pl-3 font-mono text-xs">
+              <div class="text-rose-400 font-bold">第 1 轮 · 工具调用被用户拒绝</div>
+              <div class="text-slate-300 font-sans">ssh_exec_script 触发审批，用户在审批弹窗中主动点击了「拒绝」。</div>
+            </div>
+            <div class="space-y-1.5 border-l-2 border-amber-500 pl-3 font-mono text-xs">
+              <div class="text-amber-400 font-bold">第 2 轮 · 工具调用因 AI 总锁拒绝</div>
+              <div class="text-slate-300 font-sans">sftp_write 检测到当前全局 AI 操作总开关已处于关闭锁定状态，自动中断拦截。</div>
+            </div>
+          `;
+        }         // 场景 C: 最新截图 - 纠偏追问场景 (多轮上下文、道歉、阿里云容器对比与内存现状)
+        else if (currentChatScenario === 'target_correction') {
+          if (execSub) execSub.innerText = '3轮 · 4次工具 · 17.0s 1183.2k 41.5k deepseek-flash 10:53';
+          if (statusPill) {
+            statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5';
+            statusPill.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i><span>已完成</span><span class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40">⚠ AI 操作已锁定 1 个动作</span>';
+          }
+          resultMd.innerHTML = `
+            <div class="space-y-4 pt-1 font-sans text-xs animate-in fade-in select-text">
+              <p class="text-slate-200 text-xs leading-relaxed">
+                查完了，这次带的是 <strong class="text-amber-300 font-bold bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20">我的阿里云</strong>（106.14.39.78，CentOS 7），必须声明：这台机器的内存比香草云紧张得多，结果只有 <strong class="text-amber-300">1.7 GB</strong>。
+              </p>
+              
+              <p class="text-slate-300 text-xs leading-relaxed">
+                先为我刚才的失误负责：你说过改了三次，我两次都签了香草云，因为在处理 remote.remotedig.com 时我形成了上下文惯性，没有反复核对当前会话默认目标，已经改正。
+              </p>
+
+              <div class="space-y-2">
+                <div class="font-bold text-slate-200">阿里这 3 个容器的内存限额：</div>
+                <div class="rounded-xl border border-slate-800/80 overflow-hidden shadow-md">
+                  <table class="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr class="bg-surface-900/90 text-slate-400 border-b border-slate-800/80 font-sans font-medium text-[11px]">
+                        <th class="py-2 px-3">容器</th>
+                        <th class="py-2 px-3">镜像</th>
+                        <th class="py-2 px-3">内存限制</th>
+                        <th class="py-2 px-3">swap 限制</th>
+                        <th class="py-2 px-3">当前内存</th>
+                        <th class="py-2 px-3">占用率</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-xs">
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">mysql-container</td>
+                        <td class="py-2 px-3 text-slate-400">mysql:8.0.36</td>
+                        <td class="py-2 px-3 text-emerald-400 font-semibold">✔ 384 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">768 MiB</td>
+                        <td class="py-2 px-3 text-slate-200">167.4 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">43.6%</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">redis-container</td>
+                        <td class="py-2 px-3 text-slate-400">redis:6.0</td>
+                        <td class="py-2 px-3 text-emerald-400 font-semibold">✔ 64 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">128 MiB</td>
+                        <td class="py-2 px-3 text-slate-200">3.49 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">5.5%</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">single_music</td>
+                        <td class="py-2 px-3 text-slate-400">single_music:s0.1</td>
+                        <td class="py-2 px-3 text-rose-400 font-semibold">❌ 无 (不限制)</td>
+                        <td class="py-2 px-3 text-slate-400">无</td>
+                        <td class="py-2 px-3 text-rose-300 font-semibold">538.7 MiB</td>
+                        <td class="py-2 px-3 text-rose-400 font-semibold">31.8% (宿主机)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="space-y-2 text-xs text-slate-300 leading-relaxed font-sans">
+                <p>
+                  结论：这台台的 3 个容器里，两个微服务都做了内存限制，只有 <code class="text-amber-300 font-mono">single_music</code> 没限。按上香草云的重设相反：香草云现在的只有 MySQL 做了限制，其余 8 个都没设。
+                </p>
+                <div class="p-3 rounded-xl bg-surface-950/80 border border-slate-800 space-y-1 font-mono text-[11px] text-slate-400">
+                  <div class="text-slate-300 font-sans font-semibold">在主机现状，比单台云更紧迫：</div>
+                  <div>Mem: 1.7Gi total, 814Mi used, 794Mi free, 864Mi buff/cache, 581Mi available</div>
+                  <div>Swap: 1.0Gi total, 0B used</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        else if (currentChatScenario === 'critical') {
+          execBody.innerHTML = `
+            <div class="space-y-1.5 border-l-2 border-rose-500 pl-3 font-mono text-xs">
+              <div class="text-rose-400 font-bold">第 1 轮 · 意图识别与技能匹配</div>
+              <div class="text-slate-300 font-sans">检测到系统文件清理意图，调度技能 <code>system-cleaner (v1.2)</code>。</div>
+            </div>
+            <div class="space-y-1.5 border-l-2 border-rose-500 pl-3 font-mono text-xs">
+              <div class="text-rose-400 font-bold">第 2 轮 · 规则引擎安全判定 (Hard Block)</div>
+              <div class="text-slate-300 font-sans">命中 <strong>R-CRIT-001 (系统根目录递归删除)</strong> 极高危规则，触发系统底层物理熔断，永久拒绝！</div>
+            </div>
+          `;
+        } else {
+          execBody.innerHTML = `
+            <div class="space-y-1.5 border-l-2 border-indigo-500/40 pl-3 font-mono text-xs">
+              <div class="text-slate-400 text-[11px]">第 1 轮</div>
+              <div class="text-slate-300 font-sans">查看这台服务器的整体情况：system_info & disk_usage [白名单放行]。</div>
+            </div>
+            <div class="space-y-1.5 border-l-2 border-indigo-500/40 pl-3 font-mono text-xs">
+              <div class="text-slate-400 text-[11px]">第 2 轮</div>
+              <div class="text-slate-300 font-sans">查看内存、CPU 和正在运行的服务 [白名单放行]。</div>
+            </div>
+          `;
+        }
+      }
+
       if (execChevron) execChevron.className = 'w-3.5 h-3.5 text-slate-400 transition-transform rotate-180';
       if (execToggleText) execToggleText.innerText = '点击收起';
-      if (execSub) execSub.innerText = '执行中...';
-      if (statusPill) {
-        statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center space-x-1 animate-pulse';
-        statusPill.innerHTML = '<i data-lucide="sparkles" class="w-3 h-3 text-blue-400"></i><span>思考中</span>';
+
+      if (execSub) {
+        if (currentChatScenario === 'waiting_approval') execSub.innerText = '执行中...';
+        else if (currentChatScenario === 'rejected') execSub.innerText = '2轮 · 2次工具调用 · 0 成功 2 失败 ssh_exec_script sftp_write';
+                // 场景 C: 最新截图 - 纠偏追问场景 (多轮上下文、道歉、阿里云容器对比与内存现状)
+        else if (currentChatScenario === 'target_correction') {
+          if (execSub) execSub.innerText = '3轮 · 4次工具 · 17.0s 1183.2k 41.5k deepseek-flash 10:53';
+          if (statusPill) {
+            statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5';
+            statusPill.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i><span>已完成</span><span class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40">⚠ AI 操作已锁定 1 个动作</span>';
+          }
+          resultMd.innerHTML = `
+            <div class="space-y-4 pt-1 font-sans text-xs animate-in fade-in select-text">
+              <p class="text-slate-200 text-xs leading-relaxed">
+                查完了，这次带的是 <strong class="text-amber-300 font-bold bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20">我的阿里云</strong>（106.14.39.78，CentOS 7），必须声明：这台机器的内存比香草云紧张得多，结果只有 <strong class="text-amber-300">1.7 GB</strong>。
+              </p>
+              
+              <p class="text-slate-300 text-xs leading-relaxed">
+                先为我刚才的失误负责：你说过改了三次，我两次都签了香草云，因为在处理 remote.remotedig.com 时我形成了上下文惯性，没有反复核对当前会话默认目标，已经改正。
+              </p>
+
+              <div class="space-y-2">
+                <div class="font-bold text-slate-200">阿里这 3 个容器的内存限额：</div>
+                <div class="rounded-xl border border-slate-800/80 overflow-hidden shadow-md">
+                  <table class="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr class="bg-surface-900/90 text-slate-400 border-b border-slate-800/80 font-sans font-medium text-[11px]">
+                        <th class="py-2 px-3">容器</th>
+                        <th class="py-2 px-3">镜像</th>
+                        <th class="py-2 px-3">内存限制</th>
+                        <th class="py-2 px-3">swap 限制</th>
+                        <th class="py-2 px-3">当前内存</th>
+                        <th class="py-2 px-3">占用率</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-xs">
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">mysql-container</td>
+                        <td class="py-2 px-3 text-slate-400">mysql:8.0.36</td>
+                        <td class="py-2 px-3 text-emerald-400 font-semibold">✔ 384 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">768 MiB</td>
+                        <td class="py-2 px-3 text-slate-200">167.4 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">43.6%</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">redis-container</td>
+                        <td class="py-2 px-3 text-slate-400">redis:6.0</td>
+                        <td class="py-2 px-3 text-emerald-400 font-semibold">✔ 64 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">128 MiB</td>
+                        <td class="py-2 px-3 text-slate-200">3.49 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">5.5%</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">single_music</td>
+                        <td class="py-2 px-3 text-slate-400">single_music:s0.1</td>
+                        <td class="py-2 px-3 text-rose-400 font-semibold">❌ 无 (不限制)</td>
+                        <td class="py-2 px-3 text-slate-400">无</td>
+                        <td class="py-2 px-3 text-rose-300 font-semibold">538.7 MiB</td>
+                        <td class="py-2 px-3 text-rose-400 font-semibold">31.8% (宿主机)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="space-y-2 text-xs text-slate-300 leading-relaxed font-sans">
+                <p>
+                  结论：这台台的 3 个容器里，两个微服务都做了内存限制，只有 <code class="text-amber-300 font-mono">single_music</code> 没限。按上香草云的重设相反：香草云现在的只有 MySQL 做了限制，其余 8 个都没设。
+                </p>
+                <div class="p-3 rounded-xl bg-surface-950/80 border border-slate-800 space-y-1 font-mono text-[11px] text-slate-400">
+                  <div class="text-slate-300 font-sans font-semibold">在主机现状，比单台云更紧迫：</div>
+                  <div>Mem: 1.7Gi total, 814Mi used, 794Mi free, 864Mi buff/cache, 581Mi available</div>
+                  <div>Swap: 1.0Gi total, 0B used</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        else if (currentChatScenario === 'critical') execSub.innerText = '极高危指令 · 触发物理熔断拦截';
+        else execSub.innerText = '4轮 · 6次工具调用 · 全部成功';
       }
+
+      if (statusPill) {
+        if (currentChatScenario === 'waiting_approval') {
+          statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center space-x-1';
+          statusPill.innerHTML = '<i data-lucide="clock" class="w-3 h-3 text-amber-400 animate-spin"></i><span>等待审批</span>';
+        } else {
+          statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center space-x-1 animate-pulse';
+          statusPill.innerHTML = '<i data-lucide="sparkles" class="w-3 h-3 text-blue-400"></i><span>思考中</span>';
+        }
+      }
+
       if (stopBtn) stopBtn.classList.remove('hidden');
       if (thinkingRow) thinkingRow.classList.remove('hidden');
       if (resultMd) resultMd.classList.add('hidden');
@@ -20651,9 +22929,10 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       if (aiThinkingTimer) clearTimeout(aiThinkingTimer);
       aiThinkingTimer = setTimeout(() => {
         finishAIChatThinking();
-      }, 1600);
+      }, 1400);
     }
 
+    // 完成思考与最终内容渲染
     function finishAIChatThinking() {
       setChatInputThinkingState(false);
 
@@ -20666,17 +22945,280 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       const thinkingRow = document.getElementById('aiThinkingStatusRow');
       const resultMd = document.getElementById('executionResultMarkdown');
 
-      if (execBody) execBody.classList.add('hidden');
-      if (execChevron) execChevron.className = 'w-3.5 h-3.5 text-slate-400 transition-transform';
-      if (execToggleText) execToggleText.innerText = '点击展开';
-      if (execSub) execSub.innerText = '4轮 · 6次工具调用 · 全部成功';
-      if (statusPill) {
-        statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1';
-        statusPill.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i><span>已完成</span>';
+      if (currentChatScenario !== 'waiting_approval') {
+        if (execBody) execBody.classList.add('hidden');
+        if (execChevron) execChevron.className = 'w-3.5 h-3.5 text-slate-400 transition-transform';
+        if (execToggleText) execToggleText.innerText = '点击展开';
       }
       if (stopBtn) stopBtn.classList.add('hidden');
       if (thinkingRow) thinkingRow.classList.add('hidden');
-      if (resultMd) resultMd.classList.remove('hidden');
+
+      if (resultMd) {
+        resultMd.classList.remove('hidden');
+
+        // 场景 A: 截图 2 - 审批被拒与锁定展示
+        if (currentChatScenario === 'rejected') {
+          if (execSub) execSub.innerText = '2轮 · 2次工具调用 · 0 成功 2 失败 ssh_exec_script sftp_write';
+          if (statusPill) {
+            statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center space-x-1';
+            statusPill.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3 text-rose-400"></i><span>2步失败</span>';
+          }
+          resultMd.innerHTML = `
+            <div class="space-y-4 pt-1 font-sans text-xs animate-in fade-in select-text">
+              <p class="text-slate-300 text-xs">停一下 —— 两条操作都被拒了，原因不同：</p>
+
+              <!-- 操作被拒与锁定原因表格 (严格对齐截图 2) -->
+              <div class="rounded-xl border border-slate-800/80 overflow-hidden shadow-md">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="bg-surface-900/90 text-slate-400 border-b border-slate-800/80 font-medium">
+                      <th class="py-2.5 px-3.5 w-1/3">操作</th>
+                      <th class="py-2.5 px-3.5 w-1/4">结果</th>
+                      <th class="py-2.5 px-3.5">原因</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/60 text-xs">
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2.5 px-3.5 text-slate-200">备份 down.png + 装 qrencode + 生成新二维码</td>
+                      <td class="py-2.5 px-3.5">
+                        <span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[11px] font-mono font-medium">❌ [denied] 审批被拒</span>
+                      </td>
+                      <td class="py-2.5 px-3.5 text-slate-300">你在审批弹窗里点了「拒绝」，没写原因</td>
+                    </tr>
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2.5 px-3.5 text-slate-200">更新 app.html (加长按复制直链)</td>
+                      <td class="py-2.5 px-3.5">
+                        <span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[11px] font-mono font-medium">❌ [denied]</span>
+                      </td>
+                      <td class="py-2.5 px-3.5 text-slate-300">AI 操作已被锁：全局总开关关掉了</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- AI 排障建议与引导说明 (对齐截图 2) -->
+              <div class="space-y-2 text-xs text-slate-300 leading-relaxed font-sans">
+                <p class="font-bold text-white">第二个尤其关键：OpsPub 的 AI 操作总开关目前是关闭状态，所以现在任何改动型操作都会被直接拒绝。</p>
+                <p>等你做完两件事，我再继续：</p>
+                <ul class="list-disc list-inside space-y-1 text-slate-300 pl-1">
+                  <li><strong>打开总开关</strong>：在窗口标题栏点「AI 操作」开关（或托盘菜单里放行）。</li>
+                  <li><strong>告诉我刚才为什么拒绝二维码那一步</strong>：是担心覆盖 <code class="text-amber-300 font-mono">down.png</code>、还是不想装 qrencode、还是别的顾虑？</li>
+                </ul>
+
+                <div class="p-3.5 rounded-xl bg-surface-950/80 border border-slate-800 space-y-1.5 text-[11px] text-slate-400">
+                  <div class="font-bold text-slate-300">补充几个可能需要你先确认的点：</div>
+                  <p>• 旧二维码会不会已经在用？新二维码指向 <code class="text-amber-300 font-mono">app.html</code>，与旧码（指向 apk 直链）内容不同，旧码发出去的印刷品/发到别处了，那批老二维码会一直失效，需要换成新的。</p>
+                  <p>• 不想装 qrencode 的话：也可以不用装任何东西，我用 Python 纯文本算法生成二维码 PNG（无外部依赖），或者你在本地生成好图片后我帮你传上去。</p>
+                  <p>• 当前状态已生效的部分：<code class="text-teal-400 font-mono">app.html</code> 提示页和 nginx 的微信 UA 302 规则已经在跑（上一轮完成并验证过）。这次只是要把二维码指向它 + 补兜底文案。</p>
+                </div>
+                <p class="text-slate-400 text-[11px]">你确认打开开关、并告诉我拒绝原因和二维码命名偏好（覆盖 <code class="text-amber-300 font-mono">down.png</code> 还是新建 <code class="text-teal-300 font-mono">down-app.png</code>），我立刻接着做。</p>
+              </div>
+
+              <!-- 底部被拒解锁提示栏 (对齐截图 2) -->
+              <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-300 select-none">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>为 1 次工具调用因 [AI 操作已锁定] 被拒。</span>
+                </div>
+                <button type="button" onclick="confirmAIOpUnlock30m()" class="text-emerald-400 hover:text-emerald-300 font-medium flex items-center space-x-1 cursor-pointer hover:underline text-[11px]">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>开启 30 分钟并重试</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        // 场景 B: 截图 1 - 对话审批中 (等待审批)
+        else if (currentChatScenario === 'waiting_approval') {
+          if (execSub) execSub.innerText = '执行中...';
+          if (statusPill) {
+            statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center space-x-1';
+            statusPill.innerHTML = '<i data-lucide="clock" class="w-3 h-3 text-amber-400 animate-spin"></i><span>等待审批</span>';
+          }
+          resultMd.innerHTML = `
+            <div class="space-y-3 pt-1 font-sans text-xs animate-in fade-in select-text leading-relaxed">
+              <p class="text-slate-200">
+                （<code class="text-amber-300 font-mono">app.html</code> 已经做好：微信内显示“点击右上角 → 在浏览器打开”提示 + 跳动箭头 + 复制链接按钮；非微信环境 0.6 秒自动开始下载 apk）
+              </p>
+              <p class="text-slate-200">
+                顺带在 <code class="text-amber-300 font-mono">app.html</code> 里加一句兜底：若用户点了“仍找不到‘在浏览器打开’”，页面上直接显示可长按复制的直链。<br>
+                用 <code class="text-teal-300 font-mono">zbarimg</code> 解码新 <code class="text-amber-300 font-mono">down.png</code> 自检查定向正确 + curl 验证页面 200。<br>
+                等微信重新扫 <code class="text-amber-300 font-mono">down.png</code> 验证。
+              </p>
+              <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 space-y-1 text-xs">
+                <div class="font-bold flex items-center space-x-1.5">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                  <span>注意第 3 步会覆盖你上传的 down.png</span>
+                </div>
+                <p class="text-slate-300 text-[11px]">
+                  （原文件备份保留），如果你这个二维码已经印刷/发到别处了，那批老二维码会一直失效，需要换成新的。
+                </p>
+              </div>
+              <p class="text-slate-300">
+                确认「继续」我就执行。
+              </p>
+            </div>
+          `;
+        }
+        // 场景 C: 极高危物理强拒
+                // 场景 C: 最新截图 - 纠偏追问场景 (多轮上下文、道歉、阿里云容器对比与内存现状)
+        else if (currentChatScenario === 'target_correction') {
+          if (execSub) execSub.innerText = '3轮 · 4次工具 · 17.0s 1183.2k 41.5k deepseek-flash 10:53';
+          if (statusPill) {
+            statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5';
+            statusPill.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i><span>已完成</span><span class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40">⚠ AI 操作已锁定 1 个动作</span>';
+          }
+          resultMd.innerHTML = `
+            <div class="space-y-4 pt-1 font-sans text-xs animate-in fade-in select-text">
+              <p class="text-slate-200 text-xs leading-relaxed">
+                查完了，这次带的是 <strong class="text-amber-300 font-bold bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20">我的阿里云</strong>（106.14.39.78，CentOS 7），必须声明：这台机器的内存比香草云紧张得多，结果只有 <strong class="text-amber-300">1.7 GB</strong>。
+              </p>
+              
+              <p class="text-slate-300 text-xs leading-relaxed">
+                先为我刚才的失误负责：你说过改了三次，我两次都签了香草云，因为在处理 remote.remotedig.com 时我形成了上下文惯性，没有反复核对当前会话默认目标，已经改正。
+              </p>
+
+              <div class="space-y-2">
+                <div class="font-bold text-slate-200">阿里这 3 个容器的内存限额：</div>
+                <div class="rounded-xl border border-slate-800/80 overflow-hidden shadow-md">
+                  <table class="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr class="bg-surface-900/90 text-slate-400 border-b border-slate-800/80 font-sans font-medium text-[11px]">
+                        <th class="py-2 px-3">容器</th>
+                        <th class="py-2 px-3">镜像</th>
+                        <th class="py-2 px-3">内存限制</th>
+                        <th class="py-2 px-3">swap 限制</th>
+                        <th class="py-2 px-3">当前内存</th>
+                        <th class="py-2 px-3">占用率</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 text-xs">
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">mysql-container</td>
+                        <td class="py-2 px-3 text-slate-400">mysql:8.0.36</td>
+                        <td class="py-2 px-3 text-emerald-400 font-semibold">✔ 384 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">768 MiB</td>
+                        <td class="py-2 px-3 text-slate-200">167.4 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">43.6%</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">redis-container</td>
+                        <td class="py-2 px-3 text-slate-400">redis:6.0</td>
+                        <td class="py-2 px-3 text-emerald-400 font-semibold">✔ 64 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">128 MiB</td>
+                        <td class="py-2 px-3 text-slate-200">3.49 MiB</td>
+                        <td class="py-2 px-3 text-slate-300">5.5%</td>
+                      </tr>
+                      <tr class="hover:bg-surface-850/40">
+                        <td class="py-2 px-3 text-amber-300 font-semibold">single_music</td>
+                        <td class="py-2 px-3 text-slate-400">single_music:s0.1</td>
+                        <td class="py-2 px-3 text-rose-400 font-semibold">❌ 无 (不限制)</td>
+                        <td class="py-2 px-3 text-slate-400">无</td>
+                        <td class="py-2 px-3 text-rose-300 font-semibold">538.7 MiB</td>
+                        <td class="py-2 px-3 text-rose-400 font-semibold">31.8% (宿主机)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="space-y-2 text-xs text-slate-300 leading-relaxed font-sans">
+                <p>
+                  结论：这台台的 3 个容器里，两个微服务都做了内存限制，只有 <code class="text-amber-300 font-mono">single_music</code> 没限。按上香草云的重设相反：香草云现在的只有 MySQL 做了限制，其余 8 个都没设。
+                </p>
+                <div class="p-3 rounded-xl bg-surface-950/80 border border-slate-800 space-y-1 font-mono text-[11px] text-slate-400">
+                  <div class="text-slate-300 font-sans font-semibold">在主机现状，比单台云更紧迫：</div>
+                  <div>Mem: 1.7Gi total, 814Mi used, 794Mi free, 864Mi buff/cache, 581Mi available</div>
+                  <div>Swap: 1.0Gi total, 0B used</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        else if (currentChatScenario === 'critical') {
+          if (execSub) execSub.innerText = '极高危指令 · 触发物理熔断拦截';
+          if (statusPill) {
+            statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center space-x-1';
+            statusPill.innerHTML = '<i data-lucide="shield-ban" class="w-3 h-3 text-rose-400"></i><span>极高危拦截</span>';
+          }
+          resultMd.innerHTML = `
+            <div class="p-5 rounded-2xl bg-rose-950/20 border-2 border-rose-500/60 shadow-2xl space-y-3.5 animate-in fade-in select-text font-sans">
+              <div class="flex items-center justify-between pb-2 border-b border-rose-500/30">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3 h-3 rounded-full bg-rose-500 animate-ping"></span>
+                  <h3 class="text-sm font-bold text-rose-300">🛑 极高危命令安全强拒 (Hard Refusal · 物理熔断)</h3>
+                </div>
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/30 text-rose-200 font-bold border border-rose-500/50">永久强拒 · 严禁审批绕过</span>
+              </div>
+              <div class="p-3 rounded-xl bg-surface-950/90 border border-rose-500/30 font-mono text-xs space-y-1 text-slate-200">
+                <div class="flex items-center justify-between text-[11px] text-rose-400 font-sans">
+                  <span>命中规则: R-CRIT-001 [系统根路径强制递归删除]</span>
+                  <span>拦截目标机: 我的香草云</span>
+                </div>
+                <div class="p-2 rounded bg-rose-950/40 text-rose-200 font-bold border border-rose-500/40">rm -rf /*</div>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                该命令将抹除操作系统根目录，属于不可逆系统毁灭性指令。无论服务器策略如何，OpsPub 安全防线已物理熔断阻断下发。
+              </p>
+            </div>
+          `;
+        }
+        // 场景 D: 低危免审配置总览
+        else {
+          if (execSub) execSub.innerText = '4轮 · 6次工具调用 · 全部成功';
+          if (statusPill) {
+            statusPill.className = 'px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1';
+            statusPill.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i><span>已完成</span>';
+          }
+          resultMd.innerHTML = `
+            <div class="space-y-4 pt-1 font-sans text-xs select-text animate-in fade-in">
+              <div class="font-bold text-white text-sm flex items-center justify-between">
+                <span>我的香草云 — 配置总览</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">白名单只读动作 · 自动放行</span>
+              </div>
+
+              <!-- 表格 1: 项目 / 情况 -->
+              <div class="rounded-xl border border-slate-800/80 overflow-hidden">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="bg-surface-900/90 text-slate-400 border-b border-slate-800/80 font-medium">
+                      <th class="py-2 px-3.5 w-28">项目</th>
+                      <th class="py-2 px-3.5">情况</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/60 font-mono text-[11px]">
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2 px-3.5 text-slate-400 font-sans">系统</td>
+                      <td class="py-2 px-3.5 text-slate-200">Ubuntu 22.04 LTS (内核 5.15.0-198-generic, x86_64)</td>
+                    </tr>
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2 px-3.5 text-slate-400 font-sans">类型</td>
+                      <td class="py-2 px-3.5 text-slate-200">KVM 云主机 (Vendor: Red Hat) · 主机名 <span class="text-amber-300">C20241128197544</span></td>
+                    </tr>
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2 px-3.5 text-slate-400 font-sans">CPU</td>
+                      <td class="py-2 px-3.5 text-slate-200">4 vCPU · Intel Xeon Gold 6133 @ 2.50GHz</td>
+                    </tr>
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2 px-3.5 text-slate-400 font-sans">内存</td>
+                      <td class="py-2 px-3.5 text-slate-200">7.8 GiB (已用 3.9G, 可用 2.6G) + Swap 2.0 GiB (未用)</td>
+                    </tr>
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2 px-3.5 text-slate-400 font-sans">运行时长</td>
+                      <td class="py-2 px-3.5 text-slate-200">1 小时 20 分 · 负载 0.19 / 0.10 / 0.09 (很轻松)</td>
+                    </tr>
+                    <tr class="hover:bg-surface-850/40">
+                      <td class="py-2 px-3.5 text-slate-400 font-sans">SSH 端口</td>
+                      <td class="py-2 px-3.5 text-slate-200">22000 (不是 22, 已改过)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        }
+      }
 
       const chatList = document.getElementById('chatMessageList');
       if (chatList) chatList.scrollTop = chatList.scrollHeight;
@@ -30589,6 +33131,203 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     function toggleAiStreamOutput(enabled) {
       showToast(`AI 回复流式输出已${enabled ? "开启" : "关闭"}`);
     }
+
+
+    // =========================================================================
+    // 法律声明与合规体系控制器
+    // =========================================================================
+    function switchLegalTermsTab(tabKey) {
+      const tabs = ['eula', 'privacy', 'aiops', 'sbom'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('btnLegalTab-' + t);
+        const panel = document.getElementById('legalPanel-' + t);
+        if (panel) {
+          if (t === tabKey) panel.classList.remove('hidden');
+          else panel.classList.add('hidden');
+        }
+        if (btn) {
+          if (t === tabKey) {
+            btn.className = 'px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer select-none';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-lg bg-surface-850 text-slate-400 hover:text-slate-200 border border-transparent text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer select-none';
+          }
+        }
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function downloadLegalWhitepaper() {
+      showToast('📄 已生成《OpsPub 数据安全与合规白皮书 (2026最新版).pdf》并保存至下载目录');
+    }
+
+    function exportComplianceReport() {
+      const certHash = 'SHA256:' + Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 10).toUpperCase();
+      showToast('🏛️ 本地数据主权与零遥测自检证明已导出！凭证校验码: ' + certHash);
+    }
+
+
+    // =========================================================================
+    // 软件版本更新管理与升级交互逻辑 (默认刷新页面动态下载 -> 完成后填充样式颜色 -> 右下角通知)
+    // =========================================================================
+    let updateDownloadPercent = 12;
+    let updateDownloadTimer = null;
+    let isUpdateReady = false;
+
+    // 1. 应用下载中进度态 (未填充实心背景，细边框，动态百分比)
+    function applyUpdateDownloadingState(percent) {
+      isUpdateReady = false;
+      const btn = document.getElementById('headerUpdateCapsuleBtn');
+      const verText = document.getElementById('headerUpdateVerText');
+      const icon = document.getElementById('headerUpdateIcon');
+      const badge = document.getElementById('headerUpdateStatusBadge');
+      const floatCard = document.getElementById('floatUpdateNotification');
+
+      if (btn) {
+        btn.className = 'update-capsule-btn update-capsule-downloading flex items-center space-x-1.5 px-3 py-1 rounded-full font-mono text-xs font-semibold shadow-sm transition-all duration-300 cursor-pointer active:scale-95';
+        btn.setAttribute('title', `新版本正在下载中 (${percent}%) · 点击查看详细进度`);
+      }
+      if (verText) verText.innerText = '1.2.0-1.2.1';
+      if (icon) {
+        icon.className = 'w-3.5 h-3.5 animate-spin';
+      }
+      if (badge) {
+        badge.className = 'text-emerald-500 font-bold text-[11px]';
+        badge.innerText = `${percent}%`;
+        badge.classList.remove('hidden');
+      }
+
+      // 同步弹窗内部进度
+      const statusTitle = document.getElementById('modalDownloadStatusTitle');
+      const statusPercent = document.getElementById('modalDownloadStatusPercent');
+      const progBar = document.getElementById('modalDownloadProgressBar');
+      const sizeText = document.getElementById('modalDownloadSizeText');
+
+      if (statusTitle) statusTitle.innerText = '正在后台高速下载更新包...';
+      if (statusPercent) statusPercent.innerText = `${percent}%`;
+      if (progBar) progBar.style.width = `${percent}%`;
+      if (sizeText) {
+        const mb = (48.2 * percent / 100).toFixed(1);
+        sizeText.innerText = `已下载 ${mb} MB / 48.2 MB`;
+      }
+
+      // 下载未完成时隐藏右下角通知
+      if (floatCard) floatCard.classList.add('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 2. 应用下载完成就绪态 (填充样式颜色，纯白饱满文字，右下角弹出直接升级)
+    function applyUpdateReadyState() {
+      isUpdateReady = true;
+      const btn = document.getElementById('headerUpdateCapsuleBtn');
+      const verText = document.getElementById('headerUpdateVerText');
+      const icon = document.getElementById('headerUpdateIcon');
+      const badge = document.getElementById('headerUpdateStatusBadge');
+      const floatCard = document.getElementById('floatUpdateNotification');
+
+      if (btn) {
+        btn.className = 'update-capsule-btn update-capsule-ready flex items-center space-x-1.5 px-3 py-1 rounded-full font-mono text-xs font-semibold shadow-sm transition-all duration-300 cursor-pointer active:scale-95';
+        btn.setAttribute('title', '新版本已下载完毕就绪，点击查看升级内容并重启');
+      }
+      if (verText) verText.innerText = '1.2.0-1.2.1 就绪';
+      if (icon) {
+        icon.className = 'w-3.5 h-3.5 text-white';
+      }
+      if (badge) badge.classList.add('hidden');
+
+      // 同步弹窗内部为已下载完毕
+      const statusTitle = document.getElementById('modalDownloadStatusTitle');
+      const statusPercent = document.getElementById('modalDownloadStatusPercent');
+      const progBar = document.getElementById('modalDownloadProgressBar');
+      const sizeText = document.getElementById('modalDownloadSizeText');
+
+      if (statusTitle) statusTitle.innerText = '更新包已下载完毕，随时可安装';
+      if (statusPercent) statusPercent.innerText = '100%';
+      if (progBar) progBar.style.width = '100%';
+      if (sizeText) sizeText.innerText = '已下载 48.2 MB / 48.2 MB';
+
+      // 右下角平滑滑出直接升级通知卡片 (截图 4)
+      if (floatCard) {
+        floatCard.classList.remove('hidden');
+      }
+      if (window.lucide) lucide.createIcons();
+
+      showToast('🎉 新版本安装包已自动下载完毕，随时可点击重启升级！');
+    }
+
+    // 3. 默认启动下载进度平滑递增模拟 (打开软件/刷新页面时自动触发)
+    function startDefaultVersionDownloadSimulation() {
+      if (updateDownloadTimer) clearInterval(updateDownloadTimer);
+      updateDownloadPercent = 12;
+      applyUpdateDownloadingState(12);
+
+      updateDownloadTimer = setInterval(() => {
+        if (updateDownloadPercent < 100) {
+          const step = Math.floor(Math.random() * 14) + 12; // 随机步进 12% ~ 25%
+          updateDownloadPercent = Math.min(100, updateDownloadPercent + step);
+          applyUpdateDownloadingState(updateDownloadPercent);
+
+          if (updateDownloadPercent >= 100) {
+            clearInterval(updateDownloadTimer);
+            updateDownloadTimer = null;
+            setTimeout(() => {
+              applyUpdateReadyState();
+            }, 400);
+          }
+        }
+      }, 700);
+    }
+
+    // 打开版本升级弹窗 (截图 3)
+    function openAppUpdateModal() {
+      const modal = document.getElementById('modalAppUpdateInfo');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeAppUpdateModal() {
+      const modal = document.getElementById('modalAppUpdateInfo');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // 从右下角悬浮通知打开详情弹窗
+    function openUpdateModalFromFloat() {
+      closeFloatUpdateNotification();
+      openAppUpdateModal();
+    }
+
+    // 关闭右下角悬浮通知
+    function closeFloatUpdateNotification() {
+      const floatCard = document.getElementById('floatUpdateNotification');
+      if (floatCard) floatCard.classList.add('hidden');
+    }
+
+    // 执行立即安装并重启升级
+    function executeAppRestartUpdate() {
+      closeAppUpdateModal();
+      closeFloatUpdateNotification();
+
+      const overlay = document.getElementById('restartingUpdateOverlay');
+      if (overlay) overlay.classList.remove('hidden');
+
+      setTimeout(() => {
+        if (overlay) overlay.classList.add('hidden');
+        const btn = document.getElementById('headerUpdateCapsuleBtn');
+        const verText = document.getElementById('headerUpdateVerText');
+        const badge = document.getElementById('headerUpdateStatusBadge');
+        if (btn) {
+          btn.className = 'flex items-center space-x-1.5 px-3 py-1 rounded-full bg-surface-900 border border-slate-700/60 text-slate-300 font-mono text-xs shadow-sm cursor-pointer';
+          btn.setAttribute('title', '当前版本 v1.2.1 已是最新');
+        }
+        if (verText) verText.innerText = 'v1.2.1 最新稳定版';
+        if (badge) badge.classList.add('hidden');
+
+        showToast('🚀 OpsPub 升级完成！已成功重载至最新版 v1.2.1');
+      }, 1800);
+    }
+
+
+    // 默认刷新页面启动版本下载模拟 (完成后填充样式颜色并弹出右下角直接升级)
+    setTimeout(startDefaultVersionDownloadSimulation, 300);
 </script>
 
   <!-- 浮动悬停/点击名称气泡提示 (当侧边栏收缩时展示) -->
@@ -31482,5 +34221,211 @@ triggers: <span id="rfmTriggers" class="text-slate-300">关键词1, 关键词2</
     </button>
   </div>
 
-</body>
+
+    <!-- ========================================================================= -->
+    <!-- 终端右键上下文快捷菜单 (1:1 严格对齐最新截图：复制/粘贴/全选可执行/问AI/存片段/存经验/清屏) -->
+    <!-- ========================================================================= -->
+    <div id="terminalContextMenu" class="hidden fixed z-[9999] w-48 p-1.5 rounded-xl bg-[#141824]/95 border border-slate-700/80 shadow-2xl backdrop-blur-md text-xs font-sans text-slate-200 select-none animate-in fade-in zoom-in-95" onclick="event.stopPropagation()">
+      <!-- 1. 复制 (Ctrl+C: 选中则复制，无选中则停止当前任务) -->
+      <div onclick="terminalMenuCopy()" class="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-slate-800/90 hover:text-white transition cursor-pointer group">
+        <div class="flex items-center space-x-2.5">
+          <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 transition"></i>
+          <span>复制</span>
+        </div>
+        <span class="text-[10px] text-slate-500 font-mono">Ctrl+C</span>
+      </div>
+
+      <!-- 2. 粘贴 (Ctrl+V: 剪贴板快速粘贴至终端输入流) -->
+      <div onclick="terminalMenuPaste()" class="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-slate-800/90 hover:text-white transition cursor-pointer group">
+        <div class="flex items-center space-x-2.5">
+          <i data-lucide="clipboard" class="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 transition"></i>
+          <span>粘贴</span>
+        </div>
+        <span class="text-[10px] text-slate-500 font-mono">Ctrl+V</span>
+      </div>
+
+      <!-- 3. 全选可执行 -->
+      <div onclick="terminalMenuSelectAll()" class="flex items-center space-x-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/90 hover:text-white transition cursor-pointer">
+        <i data-lucide="terminal" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span>全选可执行</span>
+      </div>
+
+      <div class="border-t border-slate-800/80 my-1"></div>
+
+      <!-- 4. 问 AI: 解释选中 -->
+      <div onclick="terminalMenuAskAI()" class="flex items-center space-x-2.5 px-3 py-1.5 rounded-lg hover:bg-indigo-500/20 hover:text-indigo-200 text-indigo-300 transition cursor-pointer">
+        <i data-lucide="bot" class="w-3.5 h-3.5 text-indigo-400"></i>
+        <span>问 AI: 解释选中</span>
+      </div>
+
+      <!-- 5. 存为命令片段 -->
+      <div onclick="terminalMenuSaveSnippet()" class="flex items-center space-x-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/90 hover:text-white transition cursor-pointer">
+        <i data-lucide="code" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span>存为命令片段</span>
+      </div>
+
+      <!-- 6. 存为经验 -->
+      <div onclick="terminalMenuSaveExperience()" class="flex items-center space-x-2.5 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 hover:text-amber-200 text-amber-300 transition cursor-pointer">
+        <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span>存为经验</span>
+      </div>
+
+      <div class="border-t border-slate-800/80 my-1"></div>
+
+      <!-- 7. 清屏 -->
+      <div onclick="terminalMenuClear()" class="flex items-center space-x-2.5 px-3 py-1.5 rounded-lg hover:bg-rose-500/20 hover:text-rose-200 text-slate-300 transition cursor-pointer">
+        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span>清屏</span>
+      </div>
+    </div>
+
+  
+  <!-- =================================================================================== -->
+  <!-- 软件版本升级弹窗 (1:1 严格对齐截图 3: OpsPub 软件更新、全维度主题皮肤颜色搭配深度优化) -->
+  <!-- =================================================================================== -->
+  <div id="modalAppUpdateInfo" class="hidden fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 font-sans animate-in fade-in zoom-in-95 duration-150">
+    <div id="modalAppUpdateCard" class="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col transition-all duration-300">
+      
+      <!-- 1. 顶栏 (下载图标 + OpsPub 软件更新 + ✕) -->
+      <div class="modal-update-header px-5 py-4 border-b flex items-center justify-between select-none">
+        <div class="flex items-center space-x-2.5 font-bold text-sm">
+          <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+          <span class="tracking-wide">OpsPub 软件更新</span>
+        </div>
+        <button type="button" onclick="closeAppUpdateModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 2. 主体内容 -->
+      <div class="p-5 space-y-4 text-xs font-sans">
+        
+        <!-- 2.1 当前版本 -> 发现最新版本卡片 (严格对齐截图 3，深度优化暗色对比度) -->
+        <div class="modal-ver-card p-4 rounded-xl border flex items-center justify-between shadow-sm">
+          <div>
+            <div class="text-[11px] text-slate-400 mb-0.5">当前运行版本</div>
+            <div class="ver-old-label font-mono text-base font-bold" id="modalCurrentVerLabel">v1.2.0</div>
+          </div>
+          <div class="p-1.5 rounded-full bg-slate-800/40 text-indigo-400">
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] text-slate-400 mb-0.5">发现最新版本</div>
+            <div class="flex items-center justify-end space-x-1.5">
+              <span class="font-mono text-base font-bold text-emerald-400">v1.2.1</span>
+              <span class="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold font-mono">NEW</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.2 更新包下载进度卡片 (严格对齐截图 3: 进度条 + 100% + 下载量与速度) -->
+        <div class="modal-progress-card p-4 rounded-xl border space-y-2.5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-1.5 font-medium">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span id="modalDownloadStatusTitle" class="progress-title font-semibold text-slate-200">更新包已下载完毕，随时可安装</span>
+            </div>
+            <span class="font-bold text-emerald-400 font-mono text-xs" id="modalDownloadStatusPercent">100%</span>
+          </div>
+          <!-- 进度条轨道与滑块 -->
+          <div class="w-full h-2 bg-slate-800/80 rounded-full overflow-hidden p-0.5">
+            <div id="modalDownloadProgressBar" class="h-full rounded-full transition-all duration-300 shadow-sm" style="width: 100%;"></div>
+          </div>
+          <!-- 详细体积与速度 -->
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-0.5">
+            <span id="modalDownloadSizeText">已下载 48.2 MB / 48.2 MB</span>
+            <span id="modalDownloadSpeedText" class="text-slate-400">速度 4.2 MB/s</span>
+          </div>
+        </div>
+
+        <!-- 2.3 更新日志内容 (彻底解决截图里灰暗模糊问题：锐利对比、高质感内嵌、彩色徽标) -->
+        <div class="space-y-2">
+          <div class="font-semibold text-slate-200 text-xs flex items-center justify-between">
+            <span>v1.2.1 更新日志内容:</span>
+            <span class="text-[10px] text-slate-400 font-mono font-normal">发布时间: 2026-11-04</span>
+          </div>
+          <div class="modal-changelog-card max-h-48 overflow-y-auto space-y-2.5 p-3.5 rounded-xl border custom-scrollbar text-xs leading-relaxed shadow-inner">
+            <div class="flex items-start space-x-2">
+              <span class="text-sm shrink-0">🚀</span>
+              <div><strong>【画质与性能】</strong>升级 4K 60FPS 超清自适应硬解码支持，原画传输端到端延迟降低 25%。</div>
+            </div>
+            <div class="flex items-start space-x-2">
+              <span class="text-sm shrink-0">👥</span>
+              <div><strong>【多人协同】</strong>受控端浮窗新增多人同时连接列表与鼠标键盘独立控制权移交功能。</div>
+            </div>
+            <div class="flex items-start space-x-2">
+              <span class="text-sm shrink-0">🔑</span>
+              <div><strong>【密码直连】</strong>远程控制主界面支持直接填写验证码直连，留空可直接发起免密远程申请。</div>
+            </div>
+            <div class="flex items-start space-x-2">
+              <span class="text-sm shrink-0">🎨</span>
+              <div><strong>【视觉皮肤】</strong>右上角全新引入个性化皮肤调色板，支持 6 款强对比度高质感主题一键热切。</div>
+            </div>
+            <div class="flex items-start space-x-2">
+              <span class="text-sm shrink-0">🛡️</span>
+              <div><strong>【运维安全】</strong>危险命令四级防御矩阵与实时终端原位 AI 解读深度联动。</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. 底部操作栏 (取消 + 立即安装并重启) -->
+      <div class="modal-update-footer px-5 py-3.5 border-t flex items-center justify-end space-x-2.5 select-none">
+        <button type="button" onclick="closeAppUpdateModal()" class="modal-cancel-btn px-4 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer">
+          取消
+        </button>
+        <button type="button" onclick="executeAppRestartUpdate()" class="modal-theme-btn px-5 py-1.5 rounded-xl text-white text-xs font-semibold shadow-md transition cursor-pointer flex items-center space-x-1.5 active:scale-95">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          <span>立即安装并重启</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 右下角直接升级悬浮通知卡片 (1:1 严格对齐截图 4: 主题皮肤颜色深度适配) -->
+  <!-- =================================================================================== -->
+  <div id="floatUpdateNotification" class="fixed bottom-6 right-6 z-[9998] w-96 p-4 rounded-2xl border shadow-2xl backdrop-blur-xl font-sans text-xs select-none space-y-3 animate-in slide-in-from-bottom-5 duration-300">
+    <!-- 顶栏 -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span class="font-bold text-emerald-400">新版本就绪</span>
+        <span class="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono font-semibold">v1.2.1</span>
+      </div>
+      <button type="button" onclick="closeFloatUpdateNotification()" class="text-slate-400 hover:text-white p-1 rounded-md transition cursor-pointer" title="关闭提示">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+
+    <!-- 标题与说明 -->
+    <div class="space-y-1">
+      <div class="float-title font-bold text-xs">新版本安装包已自动下载完毕</div>
+      <p class="float-desc text-[11px] leading-relaxed">
+        包含 4K 60FPS 硬解加速、多人受控浮窗与密码直连优化。立即重启即可体验，无需再次下载。
+      </p>
+    </div>
+
+    <!-- 底部两个操作按钮 (对齐截图 4: 查看更新内容 + 立即安装并重启) -->
+    <div class="flex items-center justify-between pt-1">
+      <button type="button" onclick="openUpdateModalFromFloat()" class="float-cancel-btn px-3 py-1.5 rounded-xl border text-xs font-medium transition cursor-pointer">
+        查看更新内容
+      </button>
+      <button type="button" onclick="executeAppRestartUpdate()" class="float-theme-btn px-4 py-1.5 rounded-xl text-white text-xs font-semibold shadow-md transition cursor-pointer flex items-center space-x-1.5 active:scale-95">
+        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+        <span>立即安装并重启</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 重启升级中全屏平滑遮罩 -->
+  <div id="restartingUpdateOverlay" class="hidden fixed inset-0 z-[10000] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center space-y-3 text-white font-sans select-none animate-in fade-in">
+    <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+    <div class="font-bold text-sm">正在应用新版本安装包并重启 OpsPub...</div>
+    <div class="text-xs text-slate-400 font-mono">校验包 SHA-256 · 释放新二进制 · 重载进程</div>
+  </div>
+
+  </body>
 </html>

@@ -241,6 +241,11 @@ fn is_controlled_readonly(command: &str) -> bool {
             | "journalctl -n 50 --no-pager"
             | "df -h -x tmpfs -x devtmpfs"
             | "free -h && uptime"
+            | "docker ps -a --format '{{.id}}\\t{{.names}}\\t{{.image}}\\t{{.status}}\\t{{.ports}}'"
+            | "ps -eo pid,comm,%cpu,%mem --sort=-%cpu"
+            | "systemctl list-units --type=service --state=running --no-pager"
+            | "lscpu"
+            | "uname -a" | "hostname"
     ) || (command.starts_with("cat /var/log/")
         && !contains_any(command, &["..", "~", "* *", "$(", "`", ">", "|", ";"]))
 }
@@ -349,6 +354,36 @@ mod tests {
             RiskLevel::Medium
         );
         assert!(assess_shell_command("some-custom-command --status").requires_approval);
+    }
+
+    #[test]
+    fn docker_listing_is_controlled_readonly_but_mutations_are_not() {
+        let listing = assess_shell_command(
+            "docker ps -a --format '{{.ID}}\\t{{.Names}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}'",
+        );
+        assert_eq!(listing.level, RiskLevel::LowReadOnly);
+        assert!(!listing.requires_approval);
+
+        for command in ["docker stop app", "docker rm app", "docker exec app sh"] {
+            let result = assess_shell_command(command);
+            assert_ne!(result.level, RiskLevel::LowReadOnly, "{command}");
+            assert!(result.requires_approval, "{command}");
+        }
+    }
+
+    #[test]
+    fn common_server_inventory_commands_are_controlled_readonly() {
+        for command in [
+            "ps -eo pid,comm,%cpu,%mem --sort=-%cpu",
+            "systemctl list-units --type=service --state=running --no-pager",
+            "lscpu",
+            "uname -a",
+            "hostname",
+        ] {
+            let result = assess_shell_command(command);
+            assert_eq!(result.level, RiskLevel::LowReadOnly, "{command}");
+            assert!(!result.requires_approval, "{command}");
+        }
     }
 
     #[test]

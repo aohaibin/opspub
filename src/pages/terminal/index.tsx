@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { SshConnectModal } from "@/components/server/SshConnectModal";
 import { TerminalPane } from "@/components/terminal/TerminalPane";
+import { TerminalSnippets } from "@/components/terminal/TerminalSnippets";
+import { TERMINAL_PASTE_EVENT } from "@/lib/terminal-interactions";
 import { getErrorMessage } from "@/lib/api/client";
 import { serverApi } from "@/lib/api/server";
 import { ServerFormModal } from "@/pages/servers/components/ServerFormModal";
@@ -419,6 +421,9 @@ export default function TerminalPage() {
           setCommandHistory((current) => [...current.slice(-99), command]);
         }
         buffer = "";
+      } else if (character === "\x03") {
+        // 被 Ctrl+C 取消的半行不应混入下一条命令历史。
+        buffer = "";
       } else if (character === "\x7f" || character === "\x08") {
         buffer = buffer.slice(0, -1);
       } else if (character >= " " && character !== "\x1b") {
@@ -455,7 +460,10 @@ export default function TerminalPage() {
       message.warning("请先选择一个已连接的终端会话");
       return;
     }
-    writeToSession(activeSession.sessionId, `${value}${execute ? "\r" : ""}`);
+    if (execute) writeToSession(activeSession.sessionId, `${value}\r`);
+    else window.dispatchEvent(new CustomEvent(TERMINAL_PASTE_EVENT, {
+      detail: { sessionId: activeSession.sessionId, text: value },
+    }));
   };
 
   return (
@@ -1149,17 +1157,7 @@ function TerminalDrawer({
             : <DrawerEmpty icon={<Clock3 size={18} />} text="暂无命令记录" />
         )}
         {tab === "snippets" && (
-          <div className="space-y-2">
-            {[
-              "journalctl -xeu nginx.service --no-pager | tail -n 80",
-              "find /var/log -type f -size +100M -printf '%s %p\\n' | sort -nr | head",
-              "docker stats --no-stream",
-            ].map((item) => (
-              <button key={item} type="button" className="ops-terminal-command-item" onClick={() => onInsertCommand(item)}>
-                <span>{item}</span><Code2 size={13} />
-              </button>
-            ))}
-          </div>
+          <TerminalSnippets onInsert={onInsertCommand} />
         )}
       </div>
     </aside>

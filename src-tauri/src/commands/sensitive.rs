@@ -1,5 +1,7 @@
 use crate::error::CommandError;
-use crate::models::{SensitiveEntry, SensitiveListFilter, SensitiveScanRequest, SensitiveScanResult};
+use crate::models::{
+    SensitiveEntry, SensitiveListFilter, SensitiveScanRequest, SensitiveScanResult,
+};
 use crate::services::sensitive::SensitiveService;
 use crate::state::AppState;
 

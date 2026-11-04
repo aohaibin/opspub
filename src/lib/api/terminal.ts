@@ -20,4 +20,7 @@ export const terminalApi = {
 
   close: (sessionId: string) =>
     invoke<void>("close_terminal_session", { sessionId }),
+
+  explainSelection: (profileId: string, serverId: number, selection: string) =>
+    invoke<string>("explain_terminal_selection", { profileId, serverId, selection }),
 };

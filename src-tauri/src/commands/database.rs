@@ -168,8 +168,11 @@ pub async fn list_database_columns(
             connection_id,
             database_name.as_deref(),
             &table_name,
-        ).map_err(CommandError::from)
-    }).await.map_err(database_task_error)?
+        )
+        .map_err(CommandError::from)
+    })
+    .await
+    .map_err(database_task_error)?
 }
 
 #[tauri::command]
@@ -180,7 +183,9 @@ pub async fn add_database_column(
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         DatabaseConnectionService::add_database_column(&state.db, input).map_err(CommandError::from)
-    }).await.map_err(database_task_error)?
+    })
+    .await
+    .map_err(database_task_error)?
 }
 
 #[tauri::command]
@@ -199,8 +204,11 @@ pub async fn drop_database_column(
             database_name.as_deref(),
             &table_name,
             &column_name,
-        ).map_err(CommandError::from)
-    }).await.map_err(database_task_error)?
+        )
+        .map_err(CommandError::from)
+    })
+    .await
+    .map_err(database_task_error)?
 }
 
 #[tauri::command]
@@ -217,8 +225,11 @@ pub async fn get_table_ddl(
             connection_id,
             database_name.as_deref(),
             &table_name,
-        ).map_err(CommandError::from)
-    }).await.map_err(database_task_error)?
+        )
+        .map_err(CommandError::from)
+    })
+    .await
+    .map_err(database_task_error)?
 }
 
 #[tauri::command]

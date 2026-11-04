@@ -18,7 +18,9 @@ impl AlertService {
         match Self::webhook_entry()?.get_password() {
             Ok(_) => Ok(true),
             Err(KeyringError::NoEntry) => Ok(false),
-            Err(error) => Err(AppError::Custom(format!("读取 Webhook 凭据状态失败: {error}"))),
+            Err(error) => Err(AppError::Custom(format!(
+                "读取 Webhook 凭据状态失败: {error}"
+            ))),
         }
     }
 
@@ -54,7 +56,10 @@ impl AlertService {
             .send()
             .map_err(|error| AppError::Custom(format!("发送 Webhook 失败: {error}")))?;
         if !response.status().is_success() {
-            return Err(AppError::Custom(format!("Webhook 返回 HTTP {}", response.status())));
+            return Err(AppError::Custom(format!(
+                "Webhook 返回 HTTP {}",
+                response.status()
+            )));
         }
         Ok(())
     }
@@ -69,7 +74,9 @@ fn validate_url(url: &str) -> Result<reqwest::Url, AppError> {
     let parsed = reqwest::Url::parse(url.trim())
         .map_err(|error| AppError::InvalidInput(format!("Webhook 地址无效: {error}")))?;
     if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
-        return Err(AppError::InvalidInput("Webhook 仅支持有效的 http 或 https 地址".into()));
+        return Err(AppError::InvalidInput(
+            "Webhook 仅支持有效的 http 或 https 地址".into(),
+        ));
     }
     Ok(parsed)
 }
@@ -80,8 +87,7 @@ mod tests {
 
     #[test]
     fn rejects_non_http_urls() {
-        let error = validate_url("file:///tmp/alert")
-            .expect_err("file URL should be rejected");
+        let error = validate_url("file:///tmp/alert").expect_err("file URL should be rejected");
         assert!(error.to_string().contains("http") || error.to_string().contains("Webhook"));
     }
 }

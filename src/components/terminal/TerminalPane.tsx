@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useSettingsStore } from "@/store";
+import { TerminalInteractions } from "@/components/terminal/TerminalInteractions";
 import type { Server, TerminalSessionInfo } from "@/types";
 
 const TERMINAL_THEMES = {
@@ -51,6 +52,7 @@ export function TerminalPane({
   const terminalTheme = TERMINAL_THEMES[themeId];
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
+  const [activeTerminal, setActiveTerminal] = useState<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const writtenOutputRef = useRef("");
   const inputHandlerRef = useRef(onInput);
@@ -80,6 +82,7 @@ export function TerminalPane({
     terminal.loadAddon(fit);
     terminal.open(host);
     terminalRef.current = terminal;
+    setActiveTerminal(terminal);
     fitRef.current = fit;
 
     const dataDisposable = terminal.onData((data) => {
@@ -149,7 +152,7 @@ export function TerminalPane({
   return (
     <div
       className={`ops-terminal-pane ${disconnected ? "is-disconnected" : ""}`}
-      onMouseDown={() => onFocus(session.sessionId)}
+      onMouseDown={(event) => { if (event.button === 0) onFocus(session.sessionId); }}
     >
       <div className="ops-terminal-pane-head">
         <span>
@@ -161,6 +164,14 @@ export function TerminalPane({
       <div className="ops-terminal-viewport">
         <div className="ops-terminal-xterm" ref={hostRef} />
       </div>
+      <TerminalInteractions
+        key={session.sessionId}
+        terminal={activeTerminal}
+        server={server}
+        sessionId={session.sessionId}
+        connected={session.status === "connected"}
+        onInterrupt={() => onInput(session.sessionId, "\x03")}
+      />
       {disconnected && (
         <div className="ops-terminal-disconnected">
           <strong>{session.status === "error" ? "会话异常中断" : "会话已断开"}</strong>

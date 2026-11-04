@@ -64,6 +64,158 @@ textarea {
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
+.ops-copilot-page {
+  font-size: 14px;
+}
+
+.ops-copilot-page [class~="text-[10px]"],
+.ops-copilot-page [class~="text-[11px]"] {
+  font-size: 13px;
+}
+
+.ops-copilot-page [class~="text-xs"] {
+  font-size: 14px;
+}
+
+.ops-copilot-page [class~="text-sm"] {
+  font-size: 15px;
+}
+
+.ops-copilot-page textarea {
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+.copilot-markdown {
+  min-width: 0;
+  color: #dbe2ec;
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.copilot-markdown > :first-child {
+  margin-top: 0;
+}
+
+.copilot-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.copilot-markdown p,
+.copilot-markdown ul,
+.copilot-markdown ol,
+.copilot-markdown blockquote,
+.copilot-markdown pre,
+.copilot-markdown table,
+.copilot-markdown h1,
+.copilot-markdown h2,
+.copilot-markdown h3 {
+  margin-top: 0.85em;
+  margin-bottom: 0.85em;
+}
+
+.copilot-markdown h1,
+.copilot-markdown h2,
+.copilot-markdown h3 {
+  color: #f1f5f9;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.copilot-markdown h1 {
+  font-size: 1.25em;
+}
+
+.copilot-markdown h2 {
+  font-size: 1.15em;
+}
+
+.copilot-markdown h3 {
+  font-size: 1.05em;
+}
+
+.copilot-markdown ul,
+.copilot-markdown ol {
+  padding-left: 1.5em;
+}
+
+.copilot-markdown li + li {
+  margin-top: 0.3em;
+}
+
+.copilot-markdown strong {
+  color: #f8fafc;
+  font-weight: 650;
+}
+
+.copilot-markdown blockquote {
+  border-left: 3px solid #475569;
+  padding-left: 1em;
+  color: #aab6c7;
+}
+
+.copilot-markdown code {
+  border: 1px solid rgb(148 163 184 / 16%);
+  border-radius: 4px;
+  background: rgb(148 163 184 / 10%);
+  padding: 0.08em 0.35em;
+  color: #fbbf24;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.copilot-markdown pre {
+  overflow: auto;
+  border: 1px solid rgb(148 163 184 / 16%);
+  border-radius: 8px;
+  background: #090c12;
+  padding: 0.9em 1em;
+  white-space: pre;
+}
+
+.copilot-markdown pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #cbd5e1;
+  font-size: 0.92em;
+}
+
+.copilot-markdown table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.92em;
+  line-height: 1.55;
+}
+
+.copilot-markdown th,
+.copilot-markdown td {
+  min-width: 7rem;
+  border: 1px solid rgb(148 163 184 / 18%);
+  padding: 0.55em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.copilot-markdown th {
+  background: rgb(148 163 184 / 9%);
+  color: #cbd5e1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.copilot-markdown td {
+  color: #d1d8e2;
+}
+
+.copilot-markdown hr {
+  border: 0;
+  border-top: 1px solid rgb(148 163 184 / 18%);
+}
+
 /* 链接默认样式 */
 a {
   color: var(--accent);

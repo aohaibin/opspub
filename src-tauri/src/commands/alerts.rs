@@ -17,10 +17,7 @@ pub fn delete_alert_webhook_url() -> Result<(), CommandError> {
 }
 
 #[tauri::command]
-pub async fn send_alert_webhook(
-    title: String,
-    body: String,
-) -> Result<(), CommandError> {
+pub async fn send_alert_webhook(title: String, body: String) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || AlertService::send_webhook(&title, &body))
         .await
         .map_err(|error| CommandError {

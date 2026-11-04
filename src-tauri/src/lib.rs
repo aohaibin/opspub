@@ -181,6 +181,7 @@ pub fn run() {
             commands::server::import_ssh_config,
             // 交互式终端模块
             commands::terminal::open_terminal_session,
+            commands::terminal::explain_terminal_selection,
             commands::terminal::list_terminal_sessions,
             commands::terminal::close_all_terminal_sessions,
             commands::terminal::write_terminal_session,

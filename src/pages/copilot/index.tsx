@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Spin, Tag, message } from "antd";
+import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Spin, Tag, Tooltip, message } from "antd";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -918,8 +918,12 @@ export default function CopilotPage() {
             <div key={item.id} className="group flex w-full justify-end pr-1 sm:pr-2">
               <div className="flex max-w-2xl items-end gap-1.5">
                 <div className="flex shrink-0 items-center gap-0.5 self-end pb-1 opacity-60 transition group-hover:opacity-100 focus-within:opacity-100">
-                  <Button size="small" type="text" title="复制这条消息" aria-label="复制这条消息" icon={<Copy size={14} />} onClick={() => void copyUserMessage(item)} />
-                  <Button size="small" type="text" title="编辑此消息；内容会放回输入框，并移除这条消息之后的回复" aria-label="编辑这条消息" icon={<Pencil size={14} />} onClick={() => editUserMessage(item.id)} disabled={loading} />
+                  <Tooltip title="复制这条消息" placement="top" mouseEnterDelay={0.15}>
+                    <span className="inline-flex"><Button size="small" type="text" aria-label="复制这条消息" icon={<Copy size={14} />} onClick={() => void copyUserMessage(item)} /></span>
+                  </Tooltip>
+                  <Tooltip title="编辑此消息；内容会放回输入框，并移除这条消息之后的回复" placement="top" mouseEnterDelay={0.15}>
+                    <span className="inline-flex"><Button size="small" type="text" aria-label="编辑这条消息" icon={<Pencil size={14} />} onClick={() => editUserMessage(item.id)} disabled={loading} /></span>
+                  </Tooltip>
                 </div>
                 <article className="inline-flex items-center rounded-2xl rounded-tr-md border border-slate-700/80 bg-[#1e2330] px-5 py-2.5 text-xs leading-normal text-slate-100 shadow-sm transition hover:bg-[#242a3a]"><div className="whitespace-pre-wrap break-words">{item.content}</div></article>
               </div>
@@ -992,10 +996,10 @@ export default function CopilotPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 pt-2">
                 <span className="text-[10px] text-slate-600">{item.modelName ? `由 ${item.modelName} 生成` : "OpsPub 受控助手"}</span>
                 <div className="flex items-center gap-1">
-                  <Button size="small" type="text" title="复制纯文本回答" aria-label="复制回答" icon={<Copy size={14} />} onClick={() => void copyAssistantMessage(item)}>复制</Button>
-                  <Button size="small" type="text" title="复制包含问题和工具执行过程的 Markdown 报告" aria-label="复制回答和过程摘要" icon={<FileText size={14} />} onClick={() => void copyAssistantMessage(item, true)}>连过程复制</Button>
-                  {(() => { const latestAssistant = messageIndex === messages.length - 1 && messages.reduce((last, entry, currentIndex) => entry.role === "assistant" ? currentIndex : last, -1) === messageIndex; const hasPendingApproval = item.toolCalls?.some((tool) => tool.status === "pending" || (typeof tool.approvalId === "number" && ["pending", "executing"].includes(approvalDetailById.get(tool.approvalId)?.approval.status ?? ""))) ?? false; const hasExecutedMutation = item.toolCalls?.some((tool) => tool.status === "success" && isMutatingTool(tool.tool)) ?? false; const canRegenerate = latestAssistant && !hasPendingApproval && !hasExecutedMutation && Boolean(sourceRequest); return <Button size="small" type="text" title={canRegenerate ? "重新思考并重新生成本轮回复" : "仅最新且未涉及审批或变更的回答可以重新生成"} aria-label="重新生成回答" disabled={!canRegenerate || loading} icon={<RotateCw size={14} />} onClick={() => regenerateMessage(item)}>重新生成</Button>; })()}
-                  <Button size="small" type="text" title="剪裁到这一轮为止，另存为一条新对话并切换过去" aria-label="从这里分叉" disabled={loading} icon={<GitFork size={14} />} onClick={() => forkFromMessage(item.id)}>从这里分叉</Button>
+                  <Tooltip title="复制纯文本回答" placement="top" mouseEnterDelay={0.15}><span className="inline-flex"><Button size="small" type="text" aria-label="复制回答" icon={<Copy size={14} />} onClick={() => void copyAssistantMessage(item)}>复制</Button></span></Tooltip>
+                  <Tooltip title="复制包含问题和工具执行过程的 Markdown 报告" placement="top" mouseEnterDelay={0.15}><span className="inline-flex"><Button size="small" type="text" aria-label="复制回答和过程摘要" icon={<FileText size={14} />} onClick={() => void copyAssistantMessage(item, true)}>连过程复制</Button></span></Tooltip>
+                  {(() => { const latestAssistant = messageIndex === messages.length - 1 && messages.reduce((last, entry, currentIndex) => entry.role === "assistant" ? currentIndex : last, -1) === messageIndex; const hasPendingApproval = item.toolCalls?.some((tool) => tool.status === "pending" || (typeof tool.approvalId === "number" && ["pending", "executing"].includes(approvalDetailById.get(tool.approvalId)?.approval.status ?? ""))) ?? false; const hasExecutedMutation = item.toolCalls?.some((tool) => tool.status === "success" && isMutatingTool(tool.tool)) ?? false; const canRegenerate = latestAssistant && !hasPendingApproval && !hasExecutedMutation && Boolean(sourceRequest); return <Tooltip title={canRegenerate ? "重新思考并重新生成本轮回复" : "仅最新且未涉及审批或变更的回答可以重新生成"} placement="top" mouseEnterDelay={0.15}><span className="inline-flex"><Button size="small" type="text" aria-label="重新生成回答" disabled={!canRegenerate || loading} icon={<RotateCw size={14} />} onClick={() => regenerateMessage(item)}>重新生成</Button></span></Tooltip>; })()}
+                  <Tooltip title="剪裁到这一轮为止，另存为一条新对话并切换过去" placement="top" mouseEnterDelay={0.15}><span className="inline-flex"><Button size="small" type="text" aria-label="从这里分叉" disabled={loading} icon={<GitFork size={14} />} onClick={() => forkFromMessage(item.id)}>从这里分叉</Button></span></Tooltip>
                 </div>
               </div>
             </article>

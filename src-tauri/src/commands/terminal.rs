@@ -25,6 +25,27 @@ pub async fn open_terminal_session(
     })?
 }
 
+/// 只解释选中的终端文本，复用模型出站脱敏链路，不进入 SSH 执行分支。
+#[tauri::command]
+pub async fn explain_terminal_selection(
+    app: tauri::AppHandle,
+    profile_id: String,
+    server_id: i64,
+    selection: String,
+) -> Result<String, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::copilot::CopilotService::explain_terminal_selection(
+            &app, &profile_id, server_id, &selection,
+        )
+        .map_err(CommandError::from)
+    })
+    .await
+    .map_err(|error| CommandError {
+        code: "INTERNAL".into(),
+        message: format!("终端文本解析任务异常终止: {error}"),
+    })?
+}
+
 /// 列出当前进程仍保持的终端会话，用于切换菜单后恢复标签和屏幕输出。
 #[tauri::command]
 pub fn list_terminal_sessions(

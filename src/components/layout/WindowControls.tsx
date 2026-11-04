@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
 import { Checkbox, Modal, Radio, theme as antdTheme } from "antd";
 import { exit } from "@tauri-apps/plugin-process";
-import { Check, Copy, Minus, Minimize2, Power, Shield, Square, X } from "lucide-react";
+import { Check, Copy, Minus, Minimize2, Power, Square, X } from "lucide-react";
 import { configApi } from "@/lib/api";
 import { terminalApi } from "@/lib/api/terminal";
 import { sftpApi } from "@/lib/api/sftp";
 import { useSettingsStore } from "@/store";
 import { SETTINGS_KEYS } from "@/store/settings";
+import "./window-controls.css";
 
 type CloseBehavior = "ask" | "minimize" | "exit";
 type CloseChoice = Exclude<CloseBehavior, "ask">;
@@ -115,12 +116,71 @@ export function WindowControls() {
         <button style={{ ...baseStyle, ...getButtonStyle("close") }} onMouseEnter={() => setHovered("close")} onMouseLeave={() => setHovered(null)} onClick={requestClose} title="关闭客户端"><X size={15} strokeWidth={1.5} /></button>
       </div>
 
-      <Modal open={closeModalOpen} centered width={460} maskClosable={false} onCancel={() => setCloseModalOpen(false)} onOk={confirmClose} okText="确定" cancelText="取消" okButtonProps={{ icon: <Check size={14} /> }} title={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, background: "var(--nav-active-bg)", color: "var(--nav-active-icon)" }}><Shield size={17} /></span><span><span style={{ display: "block", fontSize: 14 }}>关闭客户端确认</span><span style={{ display: "block", marginTop: 2, fontSize: 11, fontWeight: 400, color: "var(--text-secondary)" }}>请选择您希望执行的关闭操作</span></span></div>} styles={{ header: { margin: 0, padding: "16px 18px", borderBottom: "1px solid var(--border)" }, body: { padding: "16px 18px" }, footer: { margin: 0, padding: "12px 18px", borderTop: "1px solid var(--border)" } }}>
-        <Radio.Group value={closeChoice} onChange={(event) => setCloseChoice(event.target.value)} style={{ display: "grid", gap: 10, width: "100%" }}>
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: 12, borderRadius: 10, border: `1px solid ${closeChoice === "minimize" ? "var(--nav-active-border)" : "var(--border)"}`, background: closeChoice === "minimize" ? "var(--nav-active-bg)" : "var(--surface-950)", cursor: "pointer" }}><Radio value="minimize" /><span style={{ flex: 1 }}><span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--text-primary)" }}><Minimize2 size={14} style={{ color: "var(--nav-active-icon)" }} />最小化到系统托盘</span><span style={{ display: "block", marginTop: 5, fontSize: 11, lineHeight: 1.6, color: "var(--text-secondary)" }}>程序将在后台继续运行，保持服务器监控和 MCP 服务；双击托盘图标可重新打开窗口。</span></span></label>
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: 12, borderRadius: 10, border: `1px solid ${closeChoice === "exit" ? "rgba(239,68,68,.45)" : "var(--border)"}`, background: closeChoice === "exit" ? "rgba(127,29,29,.16)" : "var(--surface-950)", cursor: "pointer" }}><Radio value="exit" /><span style={{ flex: 1 }}><span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--text-primary)" }}><Power size={14} style={{ color: "var(--danger)" }} />彻底退出应用</span><span style={{ display: "block", marginTop: 5, fontSize: 11, lineHeight: 1.6, color: "var(--text-secondary)" }}>退出程序并断开当前连接，释放本地 MCP 服务和系统资源。</span></span></label>
+      <Modal
+        open={closeModalOpen}
+        centered
+        width={560}
+        className="ops-close-modal"
+        classNames={{
+          container: "ops-close-modal__container",
+          header: "ops-close-modal__header",
+          body: "ops-close-modal__body",
+          footer: "ops-close-modal__footer",
+        }}
+        mask={{ closable: false }}
+        onCancel={() => setCloseModalOpen(false)}
+        onOk={confirmClose}
+        okText="确定"
+        cancelText="取消"
+        okButtonProps={{ icon: <Check size={16} />, className: "ops-close-modal__button" }}
+        cancelButtonProps={{ className: "ops-close-modal__button" }}
+        title={
+          <div className="ops-close-modal__heading">
+            <img className="ops-close-modal__logo" src="/logo.png" alt="" />
+            <div>
+              <span className="ops-close-modal__title">关闭客户端确认</span>
+              <span className="ops-close-modal__subtitle">请选择您希望执行的关闭操作</span>
+            </div>
+          </div>
+        }
+        footer={(_, { OkBtn, CancelBtn }) => (
+          <div className="ops-close-modal__actions">
+            <span className="ops-close-modal__escape">按 Esc 键可直接取消</span>
+            <div className="ops-close-modal__buttons"><CancelBtn /><OkBtn /></div>
+          </div>
+        )}
+      >
+        <Radio.Group
+          className="ops-close-modal__options"
+          aria-label="关闭操作"
+          value={closeChoice}
+          onChange={(event) => setCloseChoice(event.target.value)}
+        >
+          <Radio value="minimize" className="ops-close-option ops-close-option--minimize">
+            <span className="ops-close-option__heading">
+              <span className="ops-close-option__title"><Minimize2 size={17} />最小化到系统托盘</span>
+              <span className="ops-close-option__badge ops-close-option__badge--recommended">推荐 · 后台运行</span>
+            </span>
+            <span className="ops-close-option__description">
+              程序将在后台继续运行，保持服务器监控和 MCP 服务；双击托盘图标可重新打开窗口。
+            </span>
+          </Radio>
+          <Radio value="exit" className="ops-close-option ops-close-option--exit">
+            <span className="ops-close-option__heading">
+              <span className="ops-close-option__title"><Power size={17} />彻底退出应用</span>
+              <span className="ops-close-option__badge">安全注销</span>
+            </span>
+            <span className="ops-close-option__description">
+              退出 OpsPub 并断开当前连接，释放本地 MCP 服务和系统资源。
+            </span>
+          </Radio>
         </Radio.Group>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border)", fontSize: 11, color: "var(--text-secondary)" }}><Checkbox checked={rememberCloseChoice} onChange={(event) => setRememberCloseChoice(event.target.checked)}>记住我的选择，以后不再提示</Checkbox><span style={{ color: "var(--text-muted)" }}>可在系统设置修改</span></div>
+        <div className="ops-close-modal__remember">
+          <Checkbox checked={rememberCloseChoice} onChange={(event) => setRememberCloseChoice(event.target.checked)}>
+            记住我的选择，以后不再提示
+          </Checkbox>
+          <span>可在【系统设置】随时修改</span>
+        </div>
       </Modal>
     </>
   );

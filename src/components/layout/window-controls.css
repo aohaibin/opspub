@@ -1,0 +1,249 @@
+.ops-close-modal {
+  max-width: calc(100vw - 32px);
+  padding-bottom: 0;
+  font-family: var(--font-ui);
+}
+
+/* 仅主体滚动，让小窗口中标题和确认按钮始终可见。 */
+.ops-close-modal .ops-close-modal__container {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-900);
+  box-shadow: var(--shadow-lg);
+}
+
+.ops-close-modal .ops-close-modal__header {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 20px 56px 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+}
+
+.ops-close-modal .ant-modal-close {
+  inset-block-start: 20px;
+  inset-inline-end: 18px;
+  color: var(--text-secondary);
+}
+
+.ops-close-modal__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ops-close-modal__logo {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.ops-close-modal__title {
+  display: block;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.ops-close-modal__subtitle {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.ops-close-modal .ops-close-modal__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 24px;
+}
+
+.ops-close-modal__options {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.ops-close-modal .ops-close-option {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-950);
+  white-space: normal;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.ops-close-option:hover {
+  border-color: var(--text-muted);
+}
+
+.ops-close-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.ops-close-option > .ant-radio {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.ops-close-option > span:last-child {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 12px 0;
+}
+
+.ops-close-option--minimize.ant-radio-wrapper-checked {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+}
+
+.ops-close-option--exit.ant-radio-wrapper-checked {
+  border-color: color-mix(in srgb, var(--danger) 50%, var(--border));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-900));
+}
+
+.ops-close-option--minimize .ant-radio-checked {
+  border-color: var(--nav-active-icon);
+  background: var(--nav-active-icon);
+}
+
+.ops-close-option--exit .ant-radio-checked {
+  border-color: var(--danger);
+  background: var(--danger);
+}
+
+.ops-close-option__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ops-close-option__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.ops-close-option__title svg {
+  flex-shrink: 0;
+  color: var(--nav-active-icon);
+}
+
+.ops-close-option--exit .ops-close-option__title svg {
+  color: var(--danger);
+}
+
+.ops-close-option__badge {
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ops-close-option__badge--recommended {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+}
+
+.ops-close-option__description {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.ops-close-modal__remember {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ops-close-modal__remember .ant-checkbox-wrapper {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.ops-close-modal .ops-close-modal__footer {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-950);
+}
+
+.ops-close-modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ops-close-modal__escape {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.ops-close-modal__buttons {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.ops-close-modal .ops-close-modal__button {
+  min-width: 80px;
+  height: 36px;
+  margin: 0;
+  padding-inline: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .ops-close-modal .ops-close-modal__header {
+    padding-inline-start: 18px;
+  }
+
+  .ops-close-modal .ops-close-modal__body,
+  .ops-close-modal .ops-close-modal__footer {
+    padding: 16px 18px;
+  }
+
+  .ops-close-modal .ops-close-option {
+    padding: 14px 12px;
+  }
+}

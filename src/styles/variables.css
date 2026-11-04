@@ -821,7 +821,10 @@
 .ops-terminal-online-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--success); }
 .ops-terminal-online-dot[data-status="closed"],
 .ops-terminal-online-dot[data-status="error"] { background: var(--danger); }
-.ops-terminal-xterm { min-width: 0; min-height: 0; flex: 1 1 auto; padding: 8px 6px 4px 10px; }
+.ops-terminal-viewport { display: flex; min-width: 0; min-height: 0; flex: 1 1 0; flex-direction: column; padding: 8px 10px 0; }
+/* FitAddon 按宿主的完整高度计算行数，留白须放在宿主之外，避免长输出覆盖底部空间。 */
+.ops-terminal-viewport::after { content: ""; flex: 0 0 20%; min-height: 32px; max-height: 144px; }
+.ops-terminal-xterm { min-width: 0; min-height: 0; flex: 1 1 0; overflow: hidden; }
 .ops-terminal-xterm .xterm { height: 100%; }
 .ops-terminal-xterm .xterm-viewport { scrollbar-width: thin; scrollbar-color: #334155 #020409; }
 .ops-terminal-disconnected { position: absolute; inset: 31px 0 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: color-mix(in srgb, #020409 86%, transparent); color: #94a3b8; backdrop-filter: blur(2px); }

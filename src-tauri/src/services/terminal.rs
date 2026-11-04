@@ -85,6 +85,9 @@ impl TerminalManager {
         channel
             .shell()
             .map_err(|error| AppError::Custom(format!("启动远程 Shell 失败: {error}")))?;
+        // 保持空闲 SSH 会话存活，避免服务端空闲超时后用户下一次按键才发现断线。
+        // keepalive_send 在工作线程中处理，不阻塞 Tauri IPC。
+        session.set_keepalive(true, 15);
         session.set_blocking(false);
 
         let sequence = self.sequence.fetch_add(1, Ordering::Relaxed);
@@ -249,6 +252,7 @@ fn run_terminal(
     let mut pending_resize: Option<(u32, u32)> = None;
     let mut close_requested = false;
     let mut failure_message = None;
+    let mut last_keepalive = std::time::Instant::now();
 
     while !close_requested {
         loop {
@@ -276,6 +280,21 @@ fn run_terminal(
                     // 降级，不是会话故障，不能因为它关闭用户正在使用的终端。
                     log::warn!("调整 SSH 终端尺寸失败，保持当前会话: {error}");
                     pending_resize = None;
+                }
+            }
+        }
+
+        if last_keepalive.elapsed() >= Duration::from_secs(10) {
+            match session.keepalive_send() {
+                Ok(_) => last_keepalive = std::time::Instant::now(),
+                // 非阻塞模式下 keepalive 也可能返回 EAGAIN。更新时间戳后
+                // 再等待下一周期，避免在 socket 暂不可写时忙循环占满线程。
+                Err(error) if is_retryable_ssh_error(&error) => {
+                    last_keepalive = std::time::Instant::now();
+                }
+                Err(error) => {
+                    failure_message = Some(format!("SSH 终端保活失败: {error}"));
+                    break;
                 }
             }
         }

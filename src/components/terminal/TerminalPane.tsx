@@ -158,7 +158,9 @@ export function TerminalPane({
         </span>
         <span>{session.status === "connected" ? "SSH PTY · UTF-8" : statusMessage}</span>
       </div>
-      <div className="ops-terminal-xterm" ref={hostRef} />
+      <div className="ops-terminal-viewport">
+        <div className="ops-terminal-xterm" ref={hostRef} />
+      </div>
       {disconnected && (
         <div className="ops-terminal-disconnected">
           <strong>{session.status === "error" ? "会话异常中断" : "会话已断开"}</strong>

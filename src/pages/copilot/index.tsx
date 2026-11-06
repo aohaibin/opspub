@@ -25,6 +25,7 @@ import {
   Send,
   ShieldAlert,
   ShieldCheck,
+  Settings2,
   TerminalSquare,
   Unlock,
   X,
@@ -71,6 +72,8 @@ interface CopilotExperience {
 
 const CHAT_SESSIONS_KEY = "ops_copilot_sessions";
 const ACTIVE_CHAT_SESSION_KEY = "ops_copilot_active_session";
+const RUNTIME_CHAT_SESSION_KEY = "ops_copilot_runtime_session";
+const RUNTIME_POLICY_NOTICE_DISMISSED_KEY = "ops_copilot_policy_notice_dismissed";
 const LEGACY_HISTORY_KEY = "ops_copilot_history";
 const EXPERIENCES_KEY = "ops_copilot_experiences";
 
@@ -89,6 +92,8 @@ const INITIAL_MESSAGE: ChatMessage = {
   content: "你好，我是 OpsPub 运维助手。你可以直接用自然语言查询服务器信息，不需要逐条创建模板。查询命令会先由后端校验为安全只读操作；改动操作仍受风险策略和人工审批约束。",
 };
 
+let initialChatState: { sessions: ChatSession[]; activeSessionId: string } | null = null;
+
 function sessionTitle(messages: ChatMessage[]) {
   const firstUser = messages.find((item) => item.role === "user" && item.content.trim());
   if (!firstUser) return "新建对话";
@@ -102,33 +107,44 @@ function newChatSession(messages: ChatMessage[] = [INITIAL_MESSAGE]): ChatSessio
 }
 
 function loadChatState(): { sessions: ChatSession[]; activeSessionId: string } {
+  if (initialChatState) return initialChatState;
+
   try {
     const stored = localStorage.getItem(CHAT_SESSIONS_KEY);
     const parsed = stored ? JSON.parse(stored) as ChatSession[] : [];
-    const valid = Array.isArray(parsed)
+    let sessions = Array.isArray(parsed)
       ? parsed.filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages))
       : [];
-    if (valid.length > 0) {
-      const sessions = valid.map((item) => ({
+    if (sessions.length > 0) {
+      sessions = sessions.map((item) => ({
         ...item,
         title: typeof item.title === "string" ? item.title : sessionTitle(item.messages),
         createdAt: Number.isFinite(item.createdAt) ? item.createdAt : Date.now(),
         updatedAt: Number.isFinite(item.updatedAt) ? item.updatedAt : Date.now(),
         skillIds: Array.isArray(item.skillIds) ? item.skillIds.filter((id): id is string => typeof id === "string") : [],
       }));
-      const savedActiveId = localStorage.getItem(ACTIVE_CHAT_SESSION_KEY);
-      return {
-        sessions,
-        activeSessionId: sessions.some((item) => item.id === savedActiveId) ? savedActiveId! : sessions[0].id,
-      };
+    } else {
+      const legacy = localStorage.getItem(LEGACY_HISTORY_KEY);
+      const oldMessages = legacy ? JSON.parse(legacy) as ChatMessage[] : [];
+      if (Array.isArray(oldMessages) && oldMessages.length > 0) {
+        sessions = [newChatSession(oldMessages)];
+      }
     }
-    const legacy = localStorage.getItem(LEGACY_HISTORY_KEY);
-    const oldMessages = legacy ? JSON.parse(legacy) as ChatMessage[] : [];
-    const session = newChatSession(Array.isArray(oldMessages) && oldMessages.length > 0 ? oldMessages : [INITIAL_MESSAGE]);
-    return { sessions: [session], activeSessionId: session.id };
+
+    const runtimeSessionId = sessionStorage.getItem(RUNTIME_CHAT_SESSION_KEY);
+    let activeSession = sessions.find((session) => session.id === runtimeSessionId);
+    if (!activeSession) {
+      activeSession = newChatSession();
+      sessions = [activeSession, ...sessions];
+      sessionStorage.setItem(RUNTIME_CHAT_SESSION_KEY, activeSession.id);
+    }
+    initialChatState = { sessions, activeSessionId: activeSession.id };
+    return initialChatState;
   } catch {
     const session = newChatSession();
-    return { sessions: [session], activeSessionId: session.id };
+    sessionStorage.setItem(RUNTIME_CHAT_SESSION_KEY, session.id);
+    initialChatState = { sessions: [session], activeSessionId: session.id };
+    return initialChatState;
   }
 }
 
@@ -178,6 +194,7 @@ export default function CopilotPage() {
   const [input, setInput] = useState("");
   const [chatState] = useState(loadChatState);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showPolicyNotice, setShowPolicyNotice] = useState(() => sessionStorage.getItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY) !== "true");
   const [historyQuery, setHistoryQuery] = useState("");
   const [experienceSaveOpen, setExperienceSaveOpen] = useState(false);
   const [experienceLibraryOpen, setExperienceLibraryOpen] = useState(false);
@@ -501,6 +518,7 @@ export default function CopilotPage() {
       localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions));
       localStorage.setItem(ACTIVE_CHAT_SESSION_KEY, activeSessionId);
       localStorage.removeItem(LEGACY_HISTORY_KEY);
+      initialChatState = { sessions, activeSessionId };
     } catch {
       message.warning("本机历史记录空间不足，较早对话可能无法继续保存");
     }
@@ -559,6 +577,7 @@ export default function CopilotPage() {
 
   useEffect(() => {
     localStorage.setItem(ACTIVE_CHAT_SESSION_KEY, activeSessionId);
+    sessionStorage.setItem(RUNTIME_CHAT_SESSION_KEY, activeSessionId);
   }, [activeSessionId]);
 
   const serverOptions = useMemo(() => [
@@ -772,20 +791,36 @@ export default function CopilotPage() {
       <Modal
         open={lockedPromptOpen}
         centered
-        width={480}
+        width={520}
         footer={null}
         closable
         maskClosable={false}
         onCancel={() => { setLockedPromptOpen(false); setPendingPrompt(null); setPendingRegenerateMessageId(null); }}
-        title={<span className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/20 text-amber-400"><ShieldAlert size={16} /></span><span className="text-sm font-bold">AI 操作当前已锁定</span></span>}
+        title={
+          <span className="flex items-center gap-2.5" style={{ color: "var(--text-primary)" }}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/20 text-amber-400">
+              <ShieldAlert size={18} />
+            </span>
+            <span className="text-base font-bold">AI 操作当前已锁定</span>
+          </span>
+        }
+        styles={{
+          body: { paddingTop: 8 },
+        }}
       >
-        <div className="space-y-2 text-xs leading-relaxed text-slate-300">
-          <p className="m-0 font-medium text-slate-200">是否开启 AI 操作 30 分钟，让 AI 能运行改动型工具？</p>
-          <p className="m-0 text-[11px] text-slate-400">选择“仅只读模式”：AI 只能运行 system_info、disk_usage、tail_log 等只读工具，本会话内不再询问；也可以随时在上方状态条开启。</p>
+        <div className="space-y-3 text-sm leading-7" style={{ color: "var(--text-secondary)" }}>
+          <p className="m-0 text-[15px] font-semibold leading-6" style={{ color: "var(--text-primary)" }}>
+            是否开启 AI 操作 30 分钟，让 AI 能运行改动型工具？
+          </p>
+          <p className="m-0 text-[13px] leading-6" style={{ color: "var(--text-secondary)" }}>
+            选择“仅只读模式”：AI 只能运行 system_info、disk_usage、tail_log 等只读工具，本会话内不再询问；也可以随时在上方状态条开启。
+          </p>
         </div>
-        <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-          <Button size="small" onClick={() => void continuePendingPrompt("readonly")}>仅只读模式</Button>
-          <Button size="small" type="primary" loading={lockSaving} disabled={lockSaving} onClick={() => void continuePendingPrompt("unlock")}><span className="inline-flex items-center gap-1.5"><Unlock size={13} />开启 30 分钟</span></Button>
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <Button onClick={() => void continuePendingPrompt("readonly")}>仅只读模式</Button>
+          <Button type="primary" loading={lockSaving} disabled={lockSaving} onClick={() => void continuePendingPrompt("unlock")}>
+            <span className="inline-flex items-center gap-1.5"><Unlock size={15} />开启 30 分钟</span>
+          </Button>
         </div>
       </Modal>
       <Modal
@@ -831,7 +866,7 @@ export default function CopilotPage() {
 
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-surface-950/60 px-5 py-2 text-xs">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Bot size={14} className="text-indigo-400" /><span className="text-[11px]">内置对话</span><Select size="small" variant="borderless" className="min-w-44" value={modelProfileId ?? "local-safe-tools"} onChange={(value) => setModelProfileId(value === "local-safe-tools" ? null : value)} options={[{ value: "local-safe-tools", label: "本地受控工具" }, ...modelProfiles.map((profile) => ({ value: profile.id, label: `${profile.name} · ${profile.model || "未指定模型"}` }))]} /></label>
+          <div className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Bot size={14} className="text-indigo-400" /><span className="text-[11px]">内置对话</span><Select size="small" variant="borderless" className="min-w-44" value={modelProfileId ?? "local-safe-tools"} onChange={(value) => setModelProfileId(value === "local-safe-tools" ? null : value)} options={[{ value: "local-safe-tools", label: "本地受控工具" }, ...modelProfiles.map((profile) => ({ value: profile.id, label: `${profile.name} · ${profile.model || "未指定模型"}` }))]} /><Button type="text" size="small" aria-label="配置模型服务" title="配置模型服务" icon={<Settings2 size={14} />} onClick={() => navigate("/settings", { state: { from: "copilot" } })} className="!h-6 !w-6 !p-0 !text-slate-400 hover:!text-white" /></div>
           <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Database size={14} className="text-teal-400" /><span className="sr-only">目标服务器</span><Select size="small" variant="borderless" className="min-w-52 max-w-72" value={serverId} onChange={(value) => setActiveServerId(value === null || value === undefined ? null : Number(value))} options={serverOptions} /></label>
           <Button size="small" className="!h-8 !border-slate-800 !bg-[#0e131b] !text-slate-300" icon={<Puzzle size={14} className="text-amber-400" />} onClick={() => message.info("AI 工具由当前服务器策略和 MCP 接入配置共同控制")}>外部工具</Button>
           <div className="flex min-h-8 w-full max-w-[32rem] items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400">
@@ -1011,7 +1046,7 @@ export default function CopilotPage() {
         </div>
       </main>
 
-      <div className="mx-5 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs text-amber-300"><div className="flex min-w-0 items-center gap-2"><ShieldAlert size={15} className="shrink-0 text-amber-400" /><span className="leading-relaxed">改动型操作受 AI 总开关、服务器策略和人工审批共同约束；模型服务仅接收当前对话及脱敏结果，不会收到 SSH 凭据。</span></div><button type="button" onClick={() => void navigate("/settings")} className="shrink-0 font-medium underline decoration-amber-500/50 underline-offset-2 hover:text-white">查看策略</button></div>
+      {showPolicyNotice && <div className="mx-5 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs text-amber-300"><div className="flex min-w-0 items-center gap-2"><ShieldAlert size={15} className="shrink-0 text-amber-400" /><span className="leading-relaxed">改动型操作受 AI 总开关、服务器策略和人工审批共同约束；模型服务仅接收当前对话及脱敏结果，不会收到 SSH 凭据。</span></div><div className="flex shrink-0 items-center gap-3"><button type="button" onClick={() => void navigate("/settings")} className="font-medium underline decoration-amber-500/50 underline-offset-2 hover:text-white">查看策略</button><button type="button" aria-label="关闭安全提示" title="关闭提示" onClick={() => { sessionStorage.setItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY, "true"); setShowPolicyNotice(false); }} className="rounded p-1 text-amber-300/70 transition hover:bg-amber-500/15 hover:text-white"><X size={15} /></button></div></div>}
 
       <footer className="shrink-0 bg-surface-900 px-5 pb-4 pt-1"><div className="w-full space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500"><div className="flex items-center gap-2"><span className="text-slate-400">{serverId === null ? `可见 ${servers.length} 台` : "已选定服务器"}</span><span>·</span><span className="text-slate-400">{modelProfiles.find((profile) => profile.id === modelProfileId)?.model ?? (modelProfileId ? "已配置模型" : "本地受控工具")}</span></div><div className="flex flex-wrap items-center gap-1.5">{["继续", "建议", "验证", "重试", "说明", "总结"].map((chip) => <button key={chip} type="button" disabled={loading} onClick={() => setInput((current) => current ? `${current} ${chip}` : chip)} className="rounded border border-slate-800 bg-[#131924] px-2 py-0.5 text-[11px] text-slate-400 transition hover:bg-[#1a2332] hover:text-slate-200 disabled:opacity-50">{chip}</button>)}</div></div>

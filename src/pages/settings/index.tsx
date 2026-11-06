@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Input, Modal, Select, message, Switch } from "antd";
+import { useLocation, useNavigate } from "react-router-dom";
 import { enable as enableAutoStart, disable as disableAutoStart, isEnabled as isAutoStartEnabled } from "@tauri-apps/plugin-autostart";
 import {
   AlertTriangle,
+  ArrowLeft,
   AppWindow,
   Archive,
   Check,
@@ -94,6 +96,9 @@ const NAV_GROUPS: Array<{ title: string; items: Array<{ id: SettingsSection; lab
 ];
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const returnToCopilot = (location.state as { from?: string } | null)?.from === "copilot";
   const [activeSection, setActiveSection] = useState<SettingsSection>("language");
   const settings = useSettingsStore();
   const theme = useAppStore((state) => state.theme);
@@ -118,6 +123,15 @@ export default function SettingsPage() {
   useEffect(() => {
     document.documentElement.lang = settings.language;
   }, [settings.language]);
+
+  useEffect(() => {
+    if (!returnToCopilot) return;
+    setActiveSection("models");
+    const timer = window.setTimeout(() => {
+      contentRef.current?.querySelector<HTMLElement>('[data-settings-section="models"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [returnToCopilot]);
 
   async function persistSetting(key: string, value: string) {
     try {
@@ -278,7 +292,7 @@ export default function SettingsPage() {
         </SettingCard>
 
         <SettingCard id="models" icon={<Sparkles size={15} />} title="模型服务" desc="通过 ai-profile 管理服务商预置、模型端点和系统凭据。">
-          <ModelServiceSettings />
+          <ModelServiceSettings showReturnToCopilot={returnToCopilot} onReturnToCopilot={() => void navigate("/copilot")} />
         </SettingCard>
 
         <SettingCard id="proxy" icon={<Network size={15} />} title="网络代理" desc="为服务器安装、模型请求和远程访问配置本机代理。">
@@ -349,7 +363,7 @@ const EMPTY_MODEL_DRAFT: ModelDraft = {
   name: "", presetKey: null, protocol: "openai_compatible", baseUrl: "", model: "", extra: {}, apiKey: "",
 };
 
-function ModelServiceSettings() {
+function ModelServiceSettings({ showReturnToCopilot, onReturnToCopilot }: { showReturnToCopilot: boolean; onReturnToCopilot: () => void }) {
   const [profiles, setProfiles] = useState<ModelProfile[]>([]);
   const [vendors, setVendors] = useState<ModelVendor[]>([]);
   const [presets, setPresets] = useState<ModelPreset[]>([]);
@@ -529,6 +543,10 @@ function ModelServiceSettings() {
     .some((field) => field.required && !(draft.extra[field.key] ?? "").trim()) ?? false;
 
   return <div className="space-y-3">
+    {showReturnToCopilot && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-3 py-2.5">
+      <div className="min-w-0"><div className="text-xs font-semibold text-indigo-200">AI 助手模型配置</div><p className="m-0 mt-0.5 text-[11px] leading-relaxed text-slate-400">配置完成后返回 AI 助手即可直接使用本次选择的模型。</p></div>
+      <Button size="small" type="primary" ghost icon={<ArrowLeft size={13} />} onClick={onReturnToCopilot}>返回 AI 助手</Button>
+    </div>}
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="text-xs text-slate-400">{profiles.length} 条配置 · API 密钥由系统凭据管理器托管</div>
       <div className="flex gap-2"><Button size="small" onClick={() => setImportOpen(true)}>粘贴导入</Button><Button size="small" type="primary" onClick={openNew}>新增模型服务</Button></div>

@@ -26,7 +26,10 @@ export function VersionBadge() {
   useEffect(() => {
     systemApi
       .getSystemInfo()
-      .then((info) => setVersion(info.appVersion))
+      .then((info) => {
+        const appVersion = info.appVersion?.trim();
+        if (appVersion) setVersion(appVersion);
+      })
       .catch(() => {
         // 后端未就绪时保留默认版本号，不阻塞顶栏渲染
       });
@@ -62,7 +65,7 @@ export function VersionBadge() {
             onClick={toggle}
             title={`当前版本 v${version} · 点击检查更新与更新日志`}
             aria-label={`当前版本 v${version}，点击检查更新与更新日志`}
-            style={{ fontFamily: "var(--font-mono)" }}
+            style={{ fontFamily: "var(--font-mono)", flexShrink: 0, whiteSpace: "nowrap" }}
           >
             <span style={{ fontFamily: "var(--font-sans)", fontWeight: 500 }}>版本</span>
             <span>v{version}</span>

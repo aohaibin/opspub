@@ -19,6 +19,20 @@ interface SshSessionStore {
 export const useSshSessionStore = create<SshSessionStore>((set, get) => ({
   credentialsByServer: {},
   setCredentials: async (serverId, credentials) => {
+    const hasCredential = Boolean(
+      credentials.password?.trim()
+      || credentials.privateKeyPath?.trim()
+    );
+    if (!hasCredential) {
+      // 空值只用于标记后端已通过系统凭据库验证成功，不覆盖凭据库中的秘密。
+      set((state) => ({
+        credentialsByServer: {
+          ...state.credentialsByServer,
+          [serverId]: {},
+        },
+      }));
+      return;
+    }
     // 先落到系统凭据管理器，成功后只在前端保留一个空对象作为“已托管”标记。
     // 后续连接请求可以不携带凭据，由 Rust 在本机凭据库中回读，避免密码进入长期内存。
     await serverApi.saveSshCredentials(serverId, credentials);

@@ -244,6 +244,10 @@ fn run_terminal(
     );
     emit_status(&app, &session_id, "connected", "SSH 终端已连接");
     let mut pending = VecDeque::<u8>::new();
+    // libssh2 在非阻塞模式下返回 EAGAIN 时，下一次 write 必须收到完全相同
+    // 的 buffer 指针和长度。把正在重试的数据从 pending 中移出，避免高频
+    // Backspace 输入导致 VecDeque 扩容/整理后改变指针，进而触发 transport read。
+    let mut pending_write: Option<Vec<u8>> = None;
     let mut stdout = [0_u8; 8192];
     let mut stderr = [0_u8; 4096];
     let mut stderr_stream = channel.stderr();
@@ -253,6 +257,10 @@ fn run_terminal(
     let mut close_requested = false;
     let mut failure_message = None;
     let mut last_keepalive = std::time::Instant::now();
+    // libssh2 在非阻塞模式下写入前会主动读取窗口更新。Windows 的 socket
+    // 暂时超时会被包装成 "Failure while draining incoming flow"，这不是断线，
+    // 不能因为一次按键恰好撞上该窗口就结束整个会话。
+    let mut transient_io_failures = 0_u16;
 
     while !close_requested {
         loop {
@@ -271,51 +279,66 @@ fn run_terminal(
             }
         }
 
-        if let Some((cols, rows)) = pending_resize {
-            match channel.request_pty_size(cols, rows, None, None) {
-                Ok(()) => pending_resize = None,
-                Err(error) if is_retryable_ssh_error(&error) => {}
-                Err(error) => {
-                    // 部分 SSH 服务端不支持运行时调整 PTY 尺寸；这是显示能力
-                    // 降级，不是会话故障，不能因为它关闭用户正在使用的终端。
-                    log::warn!("调整 SSH 终端尺寸失败，保持当前会话: {error}");
-                    pending_resize = None;
-                }
-            }
+        if pending_write.is_none() && !pending.is_empty() {
+            pending_write = Some(pending.drain(..).collect());
         }
 
-        if last_keepalive.elapsed() >= Duration::from_secs(10) {
-            match session.keepalive_send() {
-                Ok(_) => last_keepalive = std::time::Instant::now(),
-                // 非阻塞模式下 keepalive 也可能返回 EAGAIN。更新时间戳后
-                // 再等待下一周期，避免在 socket 暂不可写时忙循环占满线程。
-                Err(error) if is_retryable_ssh_error(&error) => {
-                    last_keepalive = std::time::Instant::now();
-                }
-                Err(error) => {
-                    failure_message = Some(format!("SSH 终端保活失败: {error}"));
-                    break;
-                }
-            }
-        }
-
-        if !pending.is_empty() {
-            let contiguous = pending.make_contiguous();
-            match channel.write(contiguous) {
-                Ok(0) => {}
+        // 必须优先完成上一次 EAGAIN 的 write。期间不调用会产生其他 SSH
+        // 出站数据的 resize/keepalive，也不调用 flush（flush 会丢弃尚未
+        // 读取的远端输出），保证 libssh2 的同一 buffer 合同不被破坏。
+        let mut write_blocked = false;
+        if let Some(buffer) = pending_write.as_mut() {
+            match channel.write(buffer.as_slice()) {
+                Ok(0) => write_blocked = true,
                 Ok(written) => {
-                    pending.drain(..written);
-                    if let Err(error) = channel.flush() {
-                        if !is_retryable_io(&error) {
-                            failure_message = Some(format!("刷新 SSH 终端写入失败: {error}"));
-                            break;
-                        }
+                    transient_io_failures = 0;
+                    buffer.drain(..written);
+                    if buffer.is_empty() {
+                        pending_write = None;
                     }
                 }
-                Err(error) if is_retryable_io(&error) => {}
+                Err(error) if is_retryable_io(&error) => {
+                    // 短暂的入站窗口排空失败稍后重试；连续多次都失败才认为
+                    // 连接确实不可用，避免真实断线时工作线程永久空转。
+                    transient_io_failures = transient_io_failures.saturating_add(1);
+                    write_blocked = true;
+                    if transient_io_failures >= 250 {
+                        failure_message = Some(format!("写入 SSH 终端持续失败: {error}"));
+                        break;
+                    }
+                }
                 Err(error) => {
                     failure_message = Some(format!("写入 SSH 终端失败: {error}"));
                     break;
+                }
+            }
+        }
+        if !write_blocked && pending_write.is_none() {
+            if let Some((cols, rows)) = pending_resize {
+                match channel.request_pty_size(cols, rows, None, None) {
+                    Ok(()) => pending_resize = None,
+                    Err(error) if is_retryable_ssh_error(&error) => {}
+                    Err(error) => {
+                        // 部分 SSH 服务端不支持运行时调整 PTY 尺寸；这是显示能力
+                        // 降级，不是会话故障，不能因为它关闭用户正在使用的终端。
+                        log::warn!("调整 SSH 终端尺寸失败，保持当前会话: {error}");
+                        pending_resize = None;
+                    }
+                }
+            }
+
+            if last_keepalive.elapsed() >= Duration::from_secs(10) {
+                match session.keepalive_send() {
+                    Ok(_) => last_keepalive = std::time::Instant::now(),
+                    // 非阻塞模式下 keepalive 也可能返回 EAGAIN。更新时间戳后
+                    // 再等待下一周期，避免在 socket 暂不可写时忙循环占满线程。
+                    Err(error) if is_retryable_ssh_error(&error) => {
+                        last_keepalive = std::time::Instant::now();
+                    }
+                    Err(error) => {
+                        failure_message = Some(format!("SSH 终端保活失败: {error}"));
+                        break;
+                    }
                 }
             }
         }
@@ -354,7 +377,7 @@ fn run_terminal(
         }
         if !received_output {
             thread::sleep(Duration::from_millis(
-                if pending.is_empty() && pending_resize.is_none() {
+                if pending.is_empty() && pending_write.is_none() && pending_resize.is_none() {
                     12
                 } else {
                     4
@@ -446,6 +469,7 @@ fn is_retryable_io(error: &std::io::Error) -> bool {
         || message.contains("timed out")
         || message.contains("window full")
         || message.contains("window exceeded")
+        || message.contains("failure while draining incoming flow")
 }
 
 fn is_retryable_ssh_error(error: &ssh2::Error) -> bool {
@@ -508,6 +532,20 @@ mod tests {
         assert!(!is_retryable_io(&IoError::new(
             ErrorKind::BrokenPipe,
             "socket disconnected",
+        )));
+        assert!(!is_retryable_io(&IoError::new(
+            ErrorKind::Other,
+            "transport read",
+        )));
+    }
+
+    #[test]
+    fn libssh2_incoming_flow_timeout_is_retried() {
+        // libssh2-sys reports a temporary non-blocking socket timeout with this
+        // wrapper text when channel.write drains pending window updates.
+        assert!(is_retryable_io(&IoError::new(
+            ErrorKind::Other,
+            "Failure while draining incoming flow",
         )));
     }
 }

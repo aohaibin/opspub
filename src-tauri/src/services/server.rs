@@ -8,7 +8,8 @@ use ssh2::{HashType, HostKeyType, Session};
 use crate::database::Database;
 use crate::error::AppError;
 use crate::models::{
-    ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult, TerminalOpenRequest,
+    ConnectivityResult, Server, SshConfigHost, SshProbeRequest, SshProbeResult,
+    StoredSshCredential, TerminalOpenRequest,
 };
 use crate::services::credential::CredentialService;
 
@@ -306,16 +307,55 @@ impl ServerService {
 
     /// 建立真实 SSH 会话并读取远端系统摘要。
     ///
-    /// 密码、私钥路径和口令只存在于当前调用栈；验证成功后由命令层显式写入系统凭据管理器，
+    /// 密码、私钥路径和口令只存在于当前调用栈；验证成功后写入系统凭据管理器，
     /// 服务器数据库只保存验证状态、主机指纹和系统摘要。
-    pub fn test_ssh(db: &Database, request: SshProbeRequest) -> Result<SshProbeResult, AppError> {
+    pub fn test_ssh(
+        db: &Database,
+        mut request: SshProbeRequest,
+    ) -> Result<SshProbeResult, AppError> {
         let server = db
             .get_server_by_id(request.server_id)?
             .ok_or_else(|| AppError::NotFound(format!("服务器 {} 不存在", request.server_id)))?;
 
+        // 已保存凭据不会回传 WebView。空字段从系统凭据管理器补齐，允许用户
+        // 在首次确认主机指纹时直接复用新增服务器时托管的认证信息。
+        if request.password.as_deref().unwrap_or_default().is_empty()
+            || request
+                .private_key_path
+                .as_deref()
+                .unwrap_or_default()
+                .is_empty()
+            || request.passphrase.is_none()
+        {
+            if let Some(stored) = CredentialService::get(request.server_id)? {
+                if request.password.as_deref().unwrap_or_default().is_empty() {
+                    request.password = stored.password;
+                }
+                if request
+                    .private_key_path
+                    .as_deref()
+                    .unwrap_or_default()
+                    .is_empty()
+                {
+                    request.private_key_path = stored.private_key_path;
+                }
+                if request.passphrase.is_none() {
+                    request.passphrase = stored.passphrase;
+                }
+            }
+        }
+
         match probe_ssh(&server, &request) {
             Ok(result) => {
                 if result.connected {
+                    CredentialService::save(
+                        server.id,
+                        &StoredSshCredential {
+                            password: request.password.clone(),
+                            private_key_path: request.private_key_path.clone(),
+                            passphrase: request.passphrase.clone(),
+                        },
+                    )?;
                     db.record_ssh_result(
                         server.id,
                         "verified",
@@ -358,6 +398,13 @@ impl ServerService {
             .map_err(|failure| AppError::Custom(failure.message))?;
         stream.set_read_timeout(Some(Duration::from_millis(SSH_TIMEOUT_MS.into())))?;
         stream.set_write_timeout(Some(Duration::from_millis(SSH_TIMEOUT_MS.into())))?;
+        // 交互式终端在握手后会切换到 libssh2 非阻塞 API。保留 TCP 的
+        // SO_RCVTIMEO/SO_SNDTIMEO 会让 Windows 在按键触发窗口排空时返回
+        // WSAETIMEDOUT，libssh2 随后只能包装成 "transport read"，被误判为断线。
+        // 用共享 socket 句柄清掉超时，握手阶段仍由 session.set_timeout 控制。
+        let timeout_socket = stream
+            .try_clone()
+            .map_err(|error| AppError::Custom(format!("复制 SSH socket 失败: {error}")))?;
 
         let mut session = Session::new()
             .map_err(|error| AppError::Custom(format!("初始化 SSH 会话失败: {error}")))?;
@@ -366,6 +413,12 @@ impl ServerService {
         session
             .handshake()
             .map_err(|error| AppError::Custom(format!("SSH 握手失败: {error}")))?;
+        timeout_socket
+            .set_read_timeout(None)
+            .map_err(|error| AppError::Custom(format!("清除 SSH 读取超时失败: {error}")))?;
+        timeout_socket
+            .set_write_timeout(None)
+            .map_err(|error| AppError::Custom(format!("清除 SSH 写入超时失败: {error}")))?;
 
         let fingerprint = session
             .host_key_hash(HashType::Sha256)

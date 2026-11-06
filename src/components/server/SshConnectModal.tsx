@@ -66,7 +66,7 @@ export function SshConnectModal({
               type="warning"
               showIcon
               message="这是该服务器的首次 SSH 连接"
-              description="请核对主机公钥指纹。确认后会保存指纹，后续如发生变化将自动拒绝认证。"
+              description="请核对主机公钥指纹。确认后会保存指纹，后续如发生变化将自动拒绝认证。已保存的 SSH 凭据会自动从系统凭据管理器读取。"
             />
             <Descriptions size="small" column={1} bordered>
               <Descriptions.Item label="服务器">
@@ -191,7 +191,7 @@ export function SshConnectModal({
             showIcon
             className="mb-4"
             message={`${server?.username ?? ""}@${server?.hostname ?? ""}:${server?.port ?? ""}`}
-            description="凭据仅用于本次 SSH 认证；验证成功后由本地系统凭据管理器安全托管，不写入资产库或审计日志。"
+            description="留空将尝试使用系统凭据管理器中已保存的凭据；输入新凭据则在验证成功后更新托管凭据。凭据不会写入资产库或审计日志。"
           />
 
           {server?.auth_type === "key" ? (
@@ -199,11 +199,10 @@ export function SshConnectModal({
               <Form.Item
                 name="privateKeyPath"
                 label="私钥路径"
-                rules={[{ required: true, message: "请输入私钥文件路径" }]}
               >
                 <Input
                   prefix={<KeyRound size={14} />}
-                  placeholder="~/.ssh/id_ed25519"
+                  placeholder="留空使用已保存凭据，或输入 ~/.ssh/id_ed25519"
                   autoComplete="off"
                 />
               </Form.Item>
@@ -215,9 +214,8 @@ export function SshConnectModal({
             <Form.Item
               name="password"
               label="SSH 登录密码"
-              rules={[{ required: true, message: "请输入 SSH 登录密码" }]}
             >
-              <Input.Password autoComplete="new-password" placeholder="输入本次连接凭据" />
+              <Input.Password autoComplete="new-password" placeholder="留空使用已保存密码，或输入新密码" />
             </Form.Item>
           )}
         </Form>

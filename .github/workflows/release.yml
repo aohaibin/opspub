@@ -158,12 +158,6 @@ jobs:
           # macOS 代码签名 + 公证（Developer ID，仅 macos-latest runner 生效，Win/Linux 忽略）
           # 缺这 6 个 secret 时 tauri-action 自动跳过 mac 签名、出未签 mac（不报错）。
           # 要签需同时配 tauri.conf.json 的 macOS.hardenedRuntime+entitlements（本项目已加）。
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           # TODO: 修改为你的应用名称

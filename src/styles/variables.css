@@ -1666,6 +1666,18 @@
   background: var(--bg-hover);
 }
 
+.header-pill-ready {
+  color: #fff;
+  border-color: transparent;
+  background: var(--success);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--success) 32%, transparent);
+}
+
+.header-pill-ready:hover {
+  color: #fff;
+  background: var(--success);
+}
+
 /* SFTP server picker tree view */
 .ops-sftp-page { min-width: 0; min-height: 0; color: var(--text-primary); font-size: 13px; line-height: 1.5; }
 .ops-sftp-header { min-height: 48px; padding-block: 8px; background: var(--surface-950); }

@@ -13,6 +13,7 @@ $sourceRepo = 'aohaibin/opspub'
 $version = $Tag.Substring(1)
 $temporaryDownload = $null
 $packageRoot = $PackageDirectory
+$sourceRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
 function Invoke-Git {
   param([string]$Repository, [string[]]$Arguments)
@@ -26,6 +27,28 @@ function Write-Utf8NoBom {
   param([string]$Path, [string]$Content)
   $encoding = New-Object System.Text.UTF8Encoding($false)
   [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
+function Get-ReleaseNotes {
+  param([string]$RepositoryPath, [string]$ReleaseTag)
+
+  $previousTag = (& git -C $RepositoryPath describe --tags --abbrev=0 "$ReleaseTag^" 2>$null)
+  if ($LASTEXITCODE -eq 0 -and $previousTag) {
+    $range = "$previousTag..$ReleaseTag"
+  } else {
+    $range = $ReleaseTag
+  }
+
+  $subjects = @(& git -C $RepositoryPath log $range --no-merges --format=%s -n 12 2>$null)
+  if ($LASTEXITCODE -ne 0 -or $subjects.Count -eq 0) {
+    return "- 优化应用体验并修复已知问题。"
+  }
+
+  $notes = @()
+  foreach ($subject in $subjects) {
+    $notes += ('- ' + $subject)
+  }
+  return ($notes -join [Environment]::NewLine)
 }
 
 try {
@@ -61,21 +84,31 @@ try {
 
   $assets = @(Get-ChildItem -LiteralPath $packageRoot -File)
   $setup = @($assets | Where-Object { $_.Name -match '(?i)-setup\.exe$' })
+  $windowsUpdater = @($assets | Where-Object { $_.Name -match '(?i)-setup\.nsis\.zip$' })
   $armDmg = @($assets | Where-Object { $_.Name -match '(?i)_aarch64\.dmg$' })
+  $armUpdater = @($assets | Where-Object { $_.Name -match '(?i)_aarch64\.app\.tar\.gz$' })
   $intelDmg = @($assets | Where-Object { $_.Name -match '(?i)_x64\.dmg$' })
+  $intelUpdater = @($assets | Where-Object { $_.Name -match '(?i)_x64\.app\.tar\.gz$' })
   $debs = @($assets | Where-Object { $_.Extension -ieq '.deb' })
   $appImages = @($assets | Where-Object { $_.Extension -ieq '.AppImage' })
-  if ($setup.Count -ne 1 -or $armDmg.Count -ne 1 -or $intelDmg.Count -ne 1 -or $debs.Count -ne 1 -or $appImages.Count -ne 1) {
-    throw "Expected exactly one Windows NSIS installer, macOS ARM/Intel DMG, Linux DEB and AppImage in $packageRoot."
+  $linuxUpdater = @($assets | Where-Object { $_.Name -match '(?i)_amd64\.AppImage\.tar\.gz$' })
+  if ($setup.Count -ne 1 -or $windowsUpdater.Count -ne 1 -or $armDmg.Count -ne 1 -or $armUpdater.Count -ne 1 -or $intelDmg.Count -ne 1 -or $intelUpdater.Count -ne 1 -or $debs.Count -ne 1 -or $appImages.Count -ne 1 -or $linuxUpdater.Count -ne 1) {
+    throw "Expected Windows installer/updater, macOS ARM/Intel DMG/updater, Linux DEB/AppImage/updater in $packageRoot."
   }
 
-  $windowsSignature = Join-Path $packageRoot ($setup[0].Name + '.sig')
-  if (-not (Test-Path -LiteralPath $windowsSignature -PathType Leaf)) {
-    throw "Windows updater signature is missing: $windowsSignature"
+  $updaterAssets = @($windowsUpdater[0], $armUpdater[0], $intelUpdater[0], $linuxUpdater[0])
+  $updaterSignatures = @{}
+  foreach ($asset in $updaterAssets) {
+    $signaturePath = Join-Path $packageRoot ($asset.Name + '.sig')
+    if (-not (Test-Path -LiteralPath $signaturePath -PathType Leaf)) {
+      throw "Updater signature is missing: $signaturePath"
+    }
+    $assetSignature = (Get-Content -LiteralPath $signaturePath -Raw -Encoding utf8).Trim()
+    try { [void][Convert]::FromBase64String($assetSignature) }
+    catch { throw "Updater signature is not valid base64: $signaturePath" }
+    $updaterSignatures[$asset.Name] = $assetSignature
   }
-  $signature = (Get-Content -LiteralPath $windowsSignature -Raw -Encoding utf8).Trim()
-  try { [void][Convert]::FromBase64String($signature) }
-  catch { throw "Windows updater signature is not valid base64: $windowsSignature" }
+  $signature = $updaterSignatures[$windowsUpdater[0].Name]
 
   $releaseDirectory = Join-Path $backupRoot (Join-Path 'releases' $Tag)
   New-Item -ItemType Directory -Force -Path $releaseDirectory | Out-Null
@@ -84,8 +117,8 @@ try {
   }
 
   $assetBaseUrl = "https://gitee.com/aohai/opspub/raw/master/releases/$Tag"
-  $encodedInstaller = [System.Uri]::EscapeDataString($setup[0].Name)
-  $notes = "OpsPub $Tag desktop release. Windows, macOS and Linux packages are available on the official website."
+  $encodedInstaller = [System.Uri]::EscapeDataString($windowsUpdater[0].Name)
+  $notes = Get-ReleaseNotes -RepositoryPath $sourceRoot -ReleaseTag $Tag
   $update = [ordered]@{
     version = $version
     notes = $notes
@@ -100,6 +133,12 @@ try {
   $updatePath = Join-Path $backupRoot 'update.json'
   Write-Utf8NoBom -Path $updatePath -Content (($update | ConvertTo-Json -Depth 8) + "`n")
 
+  $websiteAssetNames = @{
+    Windows = 'OpsPub-updater-windows-x86_64.nsis.zip'
+    Arm = 'OpsPub-updater-darwin-aarch64.app.tar.gz'
+    Intel = 'OpsPub-updater-darwin-x86_64.app.tar.gz'
+    Linux = 'OpsPub-updater-linux-x86_64.AppImage.tar.gz'
+  }
   $websitePackages = @(
     @{ Source = $setup[0].FullName; Name = 'OpsPub-Setup.exe' },
     @{ Source = $armDmg[0].FullName; Name = 'OpsPub-aarch64.dmg' },
@@ -110,9 +149,18 @@ try {
   foreach ($package in $websitePackages) {
     Copy-Item -LiteralPath $package.Source -Destination (Join-Path $websiteDownload $package.Name) -Force
   }
-  $latestNames = @($websitePackages | ForEach-Object { $_.Name }) + 'version.json'
+  $websiteUpdaterPackages = @(
+    @{ Source = $windowsUpdater[0].FullName; Name = $websiteAssetNames.Windows },
+    @{ Source = $armUpdater[0].FullName; Name = $websiteAssetNames.Arm },
+    @{ Source = $intelUpdater[0].FullName; Name = $websiteAssetNames.Intel },
+    @{ Source = $linuxUpdater[0].FullName; Name = $websiteAssetNames.Linux }
+  )
+  foreach ($package in $websiteUpdaterPackages) {
+    Copy-Item -LiteralPath $package.Source -Destination (Join-Path $websiteDownload $package.Name) -Force
+  }
+  $latestNames = @($websitePackages | ForEach-Object { $_.Name }) + @($websiteUpdaterPackages | ForEach-Object { $_.Name }) + 'version.json' + 'update.json'
   Get-ChildItem -LiteralPath $websiteDownload -File |
-    Where-Object { $_.Name -match '(?i)^opspub(?:[ _-].*)?\.(exe|dmg|deb|appimage|zip|sig)$' -and $_.Name -notin $latestNames } |
+    Where-Object { $_.Name -match '(?i)^opspub(?:[ _-].*)?\.(exe|dmg|deb|appimage|zip|sig|gz)$' -and $_.Name -notin $latestNames } |
     Remove-Item -Force
   $manifest = [ordered]@{
     version = $version
@@ -122,13 +170,40 @@ try {
   }
   Write-Utf8NoBom -Path (Join-Path $websiteDownload 'version.json') -Content (($manifest | ConvertTo-Json -Depth 5) + "`n")
 
+  $websiteBaseUrl = 'https://www.opspub.com/download'
+  $websiteUpdate = [ordered]@{
+    version = $version
+    notes = $notes
+    pub_date = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+    platforms = [ordered]@{
+      'windows-x86_64' = [ordered]@{
+        signature = $signature
+        url = "$websiteBaseUrl/$($websiteAssetNames.Windows)"
+      }
+      'darwin-aarch64' = [ordered]@{
+        signature = $updaterSignatures[$armUpdater[0].Name]
+        url = "$websiteBaseUrl/$($websiteAssetNames.Arm)"
+      }
+      'darwin-x86_64' = [ordered]@{
+        signature = $updaterSignatures[$intelUpdater[0].Name]
+        url = "$websiteBaseUrl/$($websiteAssetNames.Intel)"
+      }
+      'linux-x86_64' = [ordered]@{
+        signature = $updaterSignatures[$linuxUpdater[0].Name]
+        url = "$websiteBaseUrl/$($websiteAssetNames.Linux)"
+      }
+    }
+  }
+  Write-Utf8NoBom -Path (Join-Path $websiteDownload 'update.json') -Content (($websiteUpdate | ConvertTo-Json -Depth 8) + "`n")
+
   $websiteFiles = @(
     'download/OpsPub-Setup.exe',
     'download/OpsPub-aarch64.dmg',
     'download/OpsPub-x64.dmg',
     'download/OpsPub-amd64.deb',
     'download/OpsPub-x86_64.AppImage',
-    'download/version.json'
+    'download/version.json',
+    'download/update.json'
   )
   Invoke-Git -Repository $backupRoot -Arguments @('add', '--', "releases/$Tag", 'update.json')
   $staged = @(& git -C $backupRoot diff --cached --name-only)

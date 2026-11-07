@@ -28,7 +28,10 @@
   },
   "plugins": {
     "updater": {
-      "endpoints": ["https://gitee.com/aohai/opspub/raw/master/update.json"],
+      "endpoints": [
+        "https://www.opspub.com/download/update.json",
+        "https://gitee.com/aohai/opspub/raw/master/update.json"
+      ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM2Mzg0RTk4MDg5MDgyQTYKUldTbWdwQUltRTQ0eGdoREhkVDUvaXBuNXRsdEo5TlB0UEF0VDM0dGFUWkRZVnY3Q2JtOEovNEEK"
     }
   },

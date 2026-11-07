@@ -31,6 +31,12 @@ on:
     tags:
       - 'v*.*.*'
       - 'mobile-v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build (for example v0.1.0)
+        required: true
+        type: string
 
 jobs:
   # ===========================================================================
@@ -43,7 +49,7 @@ jobs:
   # 变量由 /release 流程按 .claude/signing.local.json 的 mode 通过 Sigil 预先设好。
   prepare:
     # 跳过 mobile-v* tag（矩阵仅供桌面端 release job 使用）
-    if: ${{ !startsWith(github.ref_name, 'mobile-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.ref_name, 'mobile-') }}
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -72,7 +78,7 @@ jobs:
   # ===========================================================================
   release:
     # 跳过 mobile-v* tag（交给 release-android job）
-    if: ${{ !startsWith(github.ref_name, 'mobile-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.ref_name, 'mobile-') }}
     needs: prepare
     permissions:
       contents: write
@@ -87,6 +93,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Validate release tag and updater signing key
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid desktop release tag: $RELEASE_TAG" >&2; exit 1; }
+          [[ -n "$TAURI_SIGNING_PRIVATE_KEY" ]] || { echo "Missing GitHub Actions secret TAURI_SIGNING_PRIVATE_KEY; updater artifacts cannot be signed." >&2; exit 1; }
 
       # Linux 必需系统依赖（Tauri v2 官方推荐组合，参考 https://v2.tauri.app/start/prerequisites/）：
       # - webkit2gtk-4.1: WebView 内核
@@ -130,7 +147,7 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -148,9 +165,9 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tagName: ${{ github.ref_name }}
+          tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           # TODO: 修改为你的应用名称
-          releaseName: '${{ github.ref_name }}'
+          releaseName: "OpsPub ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
           releaseBody: 'See the assets to download and install this version.'
           releaseDraft: true
           prerelease: false

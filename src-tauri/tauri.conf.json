@@ -28,8 +28,8 @@
   },
   "plugins": {
     "updater": {
-      "endpoints": ["https://gitee.com/<用户名>/<项目名>-release/raw/master/update.json"],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc1RkVGQTc4MjE0NTQ5NEIKUldSTFNVVWhlUHIrZGY4TUpLSWkraXZKcGYyVkVYc1NvTDI0Tm83NC9UMHlhU2JmTHFFUzdRTmQK"
+      "endpoints": ["https://gitee.com/aohai/opspub/raw/master/update.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM2Mzg0RTk4MDg5MDgyQTYKUldTbWdwQUltRTQ0eGdoREhkVDUvaXBuNXRsdEo5TlB0UEF0VDM0dGFUWkRZVnY3Q2JtOEovNEEK"
     }
   },
   "bundle": {

@@ -11,17 +11,21 @@
 
 import { Fragment } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useSettingsStore } from "@/store/settings";
 import {
   NAV_MODULES,
   PINNED_MODULES,
   modulePath,
   type ModuleDef,
 } from "@/navigation/modules";
+import { translateModule } from "@/navigation/translations";
 
 /** 核心运维组有几项 —— 原型在这之后插一条分割线，与 AI/安全组分开 */
 const CORE_COUNT = NAV_MODULES.filter((m) => m.group === "core").length;
 
 export function NavRail() {
+  const language = useSettingsStore((state) => state.language);
+
   return (
     <aside
       className="h-full flex flex-col shrink-0 select-none"
@@ -46,7 +50,7 @@ export function NavRail() {
       >
         {NAV_MODULES.map((mod, idx) => (
           <Fragment key={mod.key}>
-            <NavRailItem mod={mod} />
+            <NavRailItem mod={mod} language={language} />
             {idx === CORE_COUNT - 1 && (
               <div
                 style={{
@@ -69,21 +73,26 @@ export function NavRail() {
         }}
       >
         {PINNED_MODULES.map((mod) => (
-          <NavRailItem key={mod.key} mod={mod} />
+          <NavRailItem key={mod.key} mod={mod} language={language} />
         ))}
       </div>
     </aside>
   );
 }
 
-function NavRailItem({ mod }: { mod: ModuleDef }) {
+function NavRailItem({ mod, language }: { mod: ModuleDef; language: "zh-CN" | "en-US" }) {
   const location = useLocation();
   const path = modulePath(mod.key);
   const active = location.pathname === path;
   const Icon = mod.icon;
+  const labels = translateModule(mod, language);
 
   // 悬停提示沿用原型的 title 写法：模块全名 + 括号副标题
-  const tooltip = mod.subtitle ? `${mod.title} (${mod.subtitle})` : mod.title;
+  const tooltip = language === "en-US"
+    ? labels.title
+    : mod.subtitle
+      ? `${labels.title} (${mod.subtitle})`
+      : labels.title;
 
   return (
     <Link
@@ -96,7 +105,7 @@ function NavRailItem({ mod }: { mod: ModuleDef }) {
         <Icon size={20} style={active ? { color: "var(--nav-active-icon)" } : undefined} />
         {mod.dot && <span className={`nav-dot nav-dot-${mod.dot}`} />}
       </span>
-      <span className="nav-rail-label">{mod.navLabel}</span>
+      <span className="nav-rail-label">{labels.navLabel}</span>
     </Link>
   );
 }

@@ -1464,6 +1464,65 @@
   line-height: 1.5;
 }
 
+/* 设置中心按原型的字号阶梯统一放大，避免 Tailwind 默认 text-xs/text-sm 在桌面窗口中偏小。 */
+.ops-settings-page {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ops-settings-page [class~="text-[8px]"],
+.ops-settings-page [class~="text-[9px]"],
+.ops-settings-page [class~="text-[10px]"] {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+.ops-settings-page [class~="text-[11px]"] {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+.ops-settings-page .text-xs {
+  font-size: 13.5px !important;
+  line-height: 1.48 !important;
+}
+
+.ops-settings-page .text-sm {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.ops-settings-page .text-base {
+  font-size: 16.5px !important;
+  line-height: 1.55 !important;
+}
+
+.ops-settings-page .text-lg {
+  font-size: 18.5px !important;
+  line-height: 1.45 !important;
+}
+
+.ops-settings-page .text-xl {
+  font-size: 21px !important;
+  line-height: 1.4 !important;
+}
+
+.ops-settings-page button {
+  font-size: 13.5px;
+}
+
+.ops-settings-page button.text-xs {
+  font-size: 13px !important;
+}
+
+.ops-settings-page input:not([type="checkbox"]):not([type="radio"]),
+.ops-settings-page select,
+.ops-settings-page textarea,
+.ops-settings-page .ant-select,
+.ops-settings-page .ant-btn {
+  font-size: 13.5px;
+}
+
 .ops-skill-editor .ant-drawer-header {
   display: none;
 }

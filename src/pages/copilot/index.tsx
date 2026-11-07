@@ -864,32 +864,36 @@ export default function CopilotPage() {
         </div>
       </header>
 
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-surface-950/60 px-5 py-2 text-xs">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <div className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Bot size={14} className="text-indigo-400" /><span className="text-[11px]">内置对话</span><Select size="small" variant="borderless" className="min-w-44" value={modelProfileId ?? "local-safe-tools"} onChange={(value) => setModelProfileId(value === "local-safe-tools" ? null : value)} options={[{ value: "local-safe-tools", label: "本地受控工具" }, ...modelProfiles.map((profile) => ({ value: profile.id, label: `${profile.name} · ${profile.model || "未指定模型"}` }))]} /><Button type="text" size="small" aria-label="配置模型服务" title="配置模型服务" icon={<Settings2 size={14} />} onClick={() => navigate("/settings", { state: { from: "copilot" } })} className="!h-6 !w-6 !p-0 !text-slate-400 hover:!text-white" /></div>
-          <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Database size={14} className="text-teal-400" /><span className="sr-only">目标服务器</span><Select size="small" variant="borderless" className="min-w-52 max-w-72" value={serverId} onChange={(value) => setActiveServerId(value === null || value === undefined ? null : Number(value))} options={serverOptions} /></label>
-          <Button size="small" className="!h-8 !border-slate-800 !bg-[#0e131b] !text-slate-300" icon={<Puzzle size={14} className="text-amber-400" />} onClick={() => message.info("AI 工具由当前服务器策略和 MCP 接入配置共同控制")}>外部工具</Button>
-          <div className="flex min-h-8 w-full max-w-[32rem] items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400">
-            <Puzzle size={14} className="shrink-0 text-amber-400" /><span className="shrink-0 text-xs">本轮技能</span>
-            <Select aria-label="本轮技能" mode="multiple" size="small" variant="borderless" allowClear showSearch maxTagCount="responsive" className="min-w-0 flex-1" placeholder="输入问题后自动匹配，也可手动补充" value={visibleSkillIds} disabled={loading} optionFilterProp="label" onChange={(ids: string[]) => {
+      <div className="flex shrink-0 flex-col gap-2 border-b border-slate-800/80 bg-surface-950/60 px-5 py-2 text-xs">
+        <div className="flex items-center justify-between gap-2.5 flex-wrap">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Bot size={14} className="text-indigo-400" /><span className="text-[11px]">内置对话</span><Select size="small" variant="borderless" className="min-w-44" value={modelProfileId ?? "local-safe-tools"} onChange={(value) => setModelProfileId(value === "local-safe-tools" ? null : value)} options={[{ value: "local-safe-tools", label: "本地受控工具" }, ...modelProfiles.map((profile) => ({ value: profile.id, label: `${profile.name} · ${profile.model || "未指定模型"}` }))]} /><Button type="text" size="small" aria-label="配置模型服务" title="配置模型服务" icon={<Settings2 size={14} />} onClick={() => navigate("/settings", { state: { from: "copilot" } })} className="!h-6 !w-6 !p-0 !text-slate-400 hover:!text-white" /></div>
+            <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Database size={14} className="text-teal-400" /><span className="sr-only">目标服务器</span><Select size="small" variant="borderless" className="min-w-52 max-w-72" value={serverId} onChange={(value) => setActiveServerId(value === null || value === undefined ? null : Number(value))} options={serverOptions} /></label>
+          </div>
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            <Button size="small" className="!h-8 !border-slate-800 !bg-[#0e131b] !text-slate-300" icon={<Puzzle size={14} className="text-amber-400" />} onClick={() => message.info("AI 工具由当前服务器策略和 MCP 接入配置共同控制")}>外部工具</Button>
+            <div className="flex min-h-8 min-w-[240px] max-w-[32rem] flex-1 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400">
+              <Puzzle size={14} className="shrink-0 text-amber-400" /><span className="shrink-0 text-xs">本轮技能</span>
+              <Select aria-label="本轮技能" mode="multiple" size="small" variant="borderless" allowClear showSearch maxTagCount="responsive" className="min-w-0 flex-1" placeholder="输入问题后自动匹配，也可手动补充" value={visibleSkillIds} disabled={loading} optionFilterProp="label" onChange={(ids: string[]) => {
               // 删除某个自动技能时，不要把其余自动匹配项变成会话固定项。
               setSelectedSkillIds(ids.filter((id) => selectedSkillIds.includes(id) || suppressedAutoSkillIds.includes(id) || !matchedSkills.some((skill) => skill.id === id)));
               setSuppressedAutoSkillIds(matchedSkills.filter((skill) => !ids.includes(skill.id)).map((skill) => skill.id));
             }} options={chatSkills.map((skill) => ({ value: skill.id, label: `${skill.name} · ${matchedSkills.some((item) => item.id === skill.id) && !selectedSkillIds.includes(skill.id) ? "自动" : skill.source === "user" ? "用户" : "内置"}`, title: skill.description }))} />
           </div>
-          <span className="text-xs text-slate-500">技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定</span>
-          <span className="px-1 text-[11px] text-slate-500">{sessions.length} 个会话</span>
-        </div>
-        <div className="flex items-center gap-3 text-slate-400">
-          <button type="button" onClick={() => setHistoryOpen(true)} className="flex items-center gap-1 transition hover:text-white"><History size={14} />历史</button>
-          <button type="button" onClick={openExperienceSave} className="flex items-center gap-1 transition hover:text-white"><Bookmark size={14} />存为经验</button>
-          <button type="button" onClick={() => setExperienceLibraryOpen(true)} className="flex items-center gap-1 transition hover:text-white">经验库{experiences.length > 0 ? ` (${experiences.length})` : ""}</button>
-          <button type="button" onClick={createSession} className="flex items-center gap-1 font-medium text-slate-300 transition hover:text-white"><Plus size={14} />新对话</button>
-          <Popconfirm title="清空当前对话内容？" okText="清空" cancelText="取消" onConfirm={clearHistory}><button type="button" className="text-[11px] transition hover:text-rose-300">清空</button></Popconfirm>
+            </div>
+          </div>
+        <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+          <div className="flex min-w-0 items-center gap-2 text-[11px] text-slate-500"><span>技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定</span><span className="shrink-0">{sessions.length} 个会话</span></div>
+          <div className="flex items-center gap-3 text-slate-400">
+            <button type="button" onClick={() => void navigate("/credentials")} className="flex items-center gap-1 transition hover:text-white"><ShieldCheck size={14} />查看凭据状态</button>
+            <button type="button" onClick={() => setHistoryOpen(true)} className="flex items-center gap-1 transition hover:text-white"><History size={14} />历史</button>
+            <button type="button" onClick={openExperienceSave} className="flex items-center gap-1 transition hover:text-white"><Bookmark size={14} />存为经验</button>
+            <button type="button" onClick={() => setExperienceLibraryOpen(true)} className="flex items-center gap-1 transition hover:text-white">经验库{experiences.length > 0 ? ` (${experiences.length})` : ""}</button>
+            <button type="button" onClick={createSession} className="flex items-center gap-1 font-medium text-slate-300 transition hover:text-white"><Plus size={14} />新对话</button>
+            <Popconfirm title="清空当前对话内容？" okText="清空" cancelText="取消" onConfirm={clearHistory}><button type="button" className="flex items-center gap-1 text-slate-400 transition hover:text-rose-300"><X size={13} />清空</button></Popconfirm>
+          </div>
         </div>
       </div>
-
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-amber-500/20 bg-amber-950/15 px-4 py-1.5 text-[11px]"><div className="flex items-center gap-2 text-amber-200"><ShieldAlert size={13} /><span>选择模型后，当前问题、最近对话和脱敏后的只读结果会发送给对应模型服务商；SSH 凭据不会发送。</span></div><Button type="link" size="small" className="text-emerald-400" onClick={() => void navigate("/credentials")}>查看凭据状态</Button></div>
 
       {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div key={item.id} className="mb-2 rounded border border-slate-700 px-2 py-2"><div className="flex flex-wrap items-center justify-between gap-2"><span>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</span><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div key={item.id} className="border-b border-slate-800 py-1">#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
 

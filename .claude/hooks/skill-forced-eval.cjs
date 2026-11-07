@@ -104,6 +104,7 @@ const instructions = `## 强制技能激活流程（必须执行）
 - tauri-events: 事件/emit/listen/前后端事件/EventTarget/Emitter/全局事件
 - tauri-updater: 更新/自动更新/updater/版本检查/增量更新/签名验证
 - release-publish: 发布版本/发布更新/release/推送Gitee/签名构建/update.json/版本发布
+- opspub-release: OpsPub发版/GitHub Actions发版/同步安装包/官网download/Gitee归档
 
 ### 步骤 2 - 激活
 对每个匹配的技能逐个激活：一次激活一个，等它返回后再激活下一个（不要一次性批量激活）。无匹配则跳过本步。

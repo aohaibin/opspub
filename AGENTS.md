@@ -223,6 +223,7 @@ tauri/
 | `project-init` | 新项目、创建项目、初始化项目、开新项目、项目初始化、new project、init project、新建项目 |
 | `project-navigator` | 项目结构、在哪里、怎么找、代码位置、目录、文件、导航、定位 |
 | `release-publish` | 发布、release、版本发布、推送、打Tag、update.json、签名构建 |
+| `opspub-release` | OpsPub发版、GitHub Actions发版、同步安装包、官网download、Gitee归档 |
 | `rust-fundamentals` | Rust、所有权、借用、生命周期、编译错误、borrow、move、lifetime、async、trait |
 | `security-permissions` | 权限、Capabilities、安全、CSP、permission、安全策略、sandbox |
 | `store-management` | 状态管理、state、store、全局状态、共享状态、Zustand、Context、持久化 |

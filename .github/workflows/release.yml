@@ -62,7 +62,7 @@ jobs:
         run: |
           WIN='{"platform":"windows-latest","args":"--bundles nsis"}'
           MAC_ARM='{"platform":"macos-latest","args":"--bundles app,dmg","target":"aarch64-apple-darwin"}'
-          MAC_X64='{"platform":"macos-latest","args":"--bundles app,dmg","target":"x86_64-apple-darwin"}'
+          MAC_X64='{"platform":"macos-15-intel","args":"--bundles app,dmg","target":"x86_64-apple-darwin"}'
           LINUX='{"platform":"ubuntu-22.04","args":"--bundles deb,appimage"}'
           if [ "$RELEASE_WINDOWS" = "skip" ]; then
             echo "跳过 Windows CI 构建（RELEASE_WINDOWS=skip，本地 evsign 签名档）"
@@ -125,6 +125,12 @@ jobs:
             file \
             libssl-dev \
             libxdo-dev
+
+      - name: Install OpenSSL (macOS Intel)
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: |
+          brew install openssl@3
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

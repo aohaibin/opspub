@@ -3,9 +3,9 @@ mod copilot_policy;
 mod policy_rules;
 pub mod schema;
 
-use std::sync::Mutex;
+use std::{path::PathBuf, sync::Mutex};
 
-use rusqlite::{Connection, OptionalExtension};
+use rusqlite::{backup::Backup, Connection, OptionalExtension};
 
 use crate::error::AppError;
 use crate::models::{
@@ -15,6 +15,7 @@ use crate::models::{
 /// 数据库封装，线程安全
 pub struct Database {
     conn: Mutex<Connection>,
+    path: PathBuf,
 }
 
 /// servers 表的完整列清单
@@ -162,7 +163,92 @@ impl Database {
 
         Ok(Self {
             conn: Mutex::new(conn),
+            path: PathBuf::from(db_path),
         })
+    }
+
+    /// 将当前 SQLite 文件安全地快照出来。凭据本身不在 SQLite 中，而是由系统凭据管理器托管。
+    pub fn export_snapshot(&self) -> Result<Vec<u8>, AppError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let snapshot_path = self
+            .path
+            .with_extension(format!("snapshot-{}.db", uuid::Uuid::new_v4()));
+        let result = (|| {
+            let mut destination = Connection::open(&snapshot_path)?;
+            {
+                let backup = Backup::new(&conn, &mut destination)?;
+                backup.run_to_completion(16, std::time::Duration::from_millis(20), None)?;
+            }
+            drop(destination);
+            std::fs::read(&snapshot_path).map_err(AppError::from)
+        })();
+        let _ = std::fs::remove_file(&snapshot_path);
+        result
+    }
+
+    /// 将已解密的 SQLite 快照恢复到当前工作区，并保留现有连接句柄。
+    pub fn restore_snapshot(&self, bytes: &[u8]) -> Result<(), AppError> {
+        if !bytes.starts_with(b"SQLite format 3\0") {
+            return Err(AppError::InvalidInput(
+                "备份文件不是有效的 SQLite 工作区快照".into(),
+            ));
+        }
+
+        let temp_path = self.path.with_extension("restore.tmp");
+        std::fs::write(&temp_path, bytes)?;
+        let result = (|| {
+            let source = Connection::open(&temp_path)?;
+            let integrity: String =
+                source.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+            if integrity != "ok" {
+                return Err(AppError::InvalidInput(format!(
+                    "备份数据库完整性校验失败: {integrity}"
+                )));
+            }
+            schema::migrate(&source)?;
+            let tables = {
+                let mut stmt = source.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")?;
+                let names = stmt
+                    .query_map([], |row| row.get::<_, String>(0))?
+                    .collect::<Result<Vec<_>, _>>()?;
+                names
+            };
+            drop(source);
+
+            let conn = self
+                .conn
+                .lock()
+                .map_err(|e| AppError::Custom(e.to_string()))?;
+            conn.execute(
+                "ATTACH DATABASE ?1 AS backup_db",
+                [&temp_path.to_string_lossy().to_string()],
+            )?;
+            let copy_result = (|| {
+                conn.execute_batch("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;")?;
+                for table in tables {
+                    let identifier = table.replace('"', "\"\"");
+                    conn.execute_batch(&format!("DELETE FROM main.\"{identifier}\"; INSERT INTO main.\"{identifier}\" SELECT * FROM backup_db.\"{identifier}\";"))?;
+                }
+                conn.execute_batch(
+                    "DELETE FROM main.sqlite_sequence;
+                     INSERT INTO main.sqlite_sequence SELECT * FROM backup_db.sqlite_sequence;",
+                )?;
+                conn.execute_batch("COMMIT; PRAGMA foreign_keys=ON;")?;
+                Ok::<(), AppError>(())
+            })();
+            if copy_result.is_err() {
+                let _ = conn.execute_batch("ROLLBACK; PRAGMA foreign_keys=ON;");
+            }
+            let detach_result = conn
+                .execute_batch("DETACH DATABASE backup_db;")
+                .map_err(AppError::from);
+            copy_result.and(detach_result)
+        })();
+        let _ = std::fs::remove_file(&temp_path);
+        result
     }
 
     // ─── 配置 DAO ────────────────────────────────────
@@ -848,5 +934,40 @@ impl Database {
             .map_err(|e| AppError::Custom(e.to_string()))?;
         let affected = conn.execute("DELETE FROM sensitive_entries WHERE id = ?1", [id])?;
         Ok(affected > 0)
+    }
+}
+
+#[cfg(test)]
+mod backup_snapshot_tests {
+    use super::Database;
+
+    #[test]
+    fn restore_snapshot_restores_workspace_rows() {
+        let path =
+            std::env::temp_dir().join(format!("opspub-backup-test-{}.db", uuid::Uuid::new_v4()));
+        let database =
+            Database::init(path.to_str().expect("temp path")).expect("initialize database");
+        database
+            .set_config("backup-test", "before")
+            .expect("write original value");
+        let snapshot = database.export_snapshot().expect("export snapshot");
+        database
+            .set_config("backup-test", "after")
+            .expect("write updated value");
+
+        database
+            .restore_snapshot(&snapshot)
+            .expect("restore snapshot");
+        assert_eq!(
+            database
+                .get_config("backup-test")
+                .expect("read restored value")
+                .as_deref(),
+            Some("before")
+        );
+        drop(database);
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(path.with_extension("db-wal"));
+        let _ = std::fs::remove_file(path.with_extension("db-shm"));
     }
 }

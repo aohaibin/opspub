@@ -250,6 +250,7 @@ mod tests {
         conn.execute("INSERT INTO servers(alias,hostname,ai_policy,os_type) VALUES('test','localhost','approval','linux')", []).expect("server");
         Database {
             conn: Mutex::new(conn),
+            path: std::path::PathBuf::new(),
         }
     }
 

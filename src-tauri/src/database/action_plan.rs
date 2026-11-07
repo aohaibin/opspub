@@ -362,6 +362,7 @@ mod tests {
         schema::migrate(&conn).expect("migrate database");
         Database {
             conn: Mutex::new(conn),
+            path: std::path::PathBuf::new(),
         }
     }
 

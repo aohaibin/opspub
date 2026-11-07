@@ -1985,17 +1985,58 @@
     }
     #appSidebar .nav-btn {
       width: 62px !important;
-      padding-top: 6px !important;
-      padding-bottom: 6px !important;
+      padding-top: 5px !important;
+      padding-bottom: 5px !important;
+      flex-shrink: 0 !important;
+      min-height: 48px !important;
     }
     #appSidebar .nav-label {
-      font-size: 12px !important;
+      font-size: 11px !important;
       font-weight: 500 !important;
       max-width: 60px !important;
+      letter-spacing: -0.01em !important;
+      line-height: 1.2 !important;
+      margin-top: 3px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      text-align: center !important;
+      display: block !important;
     }
     #appSidebar svg {
-      width: 22px !important;
-      height: 22px !important;
+      width: 20px !important;
+      height: 20px !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* 英文语言环境下左侧 Dock 侧边栏紧凑自适应，防止单词过长溢出、截断或换行拥挤 */
+    html[lang="en"] #appSidebar {
+      width: 78px !important;
+    }
+    html[lang="en"] #appSidebar .nav-btn {
+      width: 68px !important;
+      padding-top: 4px !important;
+      padding-bottom: 4px !important;
+      flex-shrink: 0 !important;
+      min-height: 46px !important;
+    }
+    html[lang="en"] #appSidebar .nav-label {
+      font-size: 9.5px !important;
+      font-weight: 600 !important;
+      max-width: 66px !important;
+      letter-spacing: -0.03em !important;
+      line-height: 1.15 !important;
+      margin-top: 2px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      text-align: center !important;
+      display: block !important;
+    }
+    html[lang="en"] #appSidebar svg {
+      width: 19px !important;
+      height: 19px !important;
+      flex-shrink: 0 !important;
     }
 
     /* 9. 弹窗和侧滑抽屉同步 1440x900 字体层级 */
@@ -7679,59 +7720,112 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
           </div>
         </div>
 
-        <!-- 2. 上下文筛选工具条 (对齐截图 1、2: 内置对话 / 服务器选择 / 外部工具 / 历史 / 存为经验 / 新对话) -->
-        <div class="px-5 py-2 border-b border-slate-800/80 bg-surface-950/60 flex items-center justify-between text-xs shrink-0 select-none">
-          <div class="flex items-center space-x-2">
-            <!-- 内置对话模型选择 -->
-            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#0e131b] border border-slate-800 text-slate-300">
-              <i data-lucide="message-square" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span class="text-slate-400 text-[11px]">内置对话</span>
-              <select id="copilotModelSelect" class="bg-transparent border-0 text-white font-mono text-xs focus:outline-none cursor-pointer">
-                <option value="deepseek-reasoner">deppseek · deepseek-reasoner</option>
+        <!-- 2. 上下文筛选与技能配置工具条 (精简为两排：模型与参数配置 / 技能匹配与操作组) -->
+        <div class="px-5 py-2.5 border-b border-slate-800/80 bg-surface-950/70 space-y-2 text-xs shrink-0 select-none">
+          <!-- Row 1: 模型选择(带齿轮设置直跳模型配置) + 目标服务器 + 外部工具 + 本轮技能 -->
+          <div class="flex items-center space-x-2.5 flex-wrap gap-y-2">
+            <!-- 内置对话模型选择 + 齿轮设置按钮 (点击直跳设置页模型配置，支持一键返回) -->
+            <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-[#0e131b] border border-slate-800 text-slate-300">
+              <i data-lucide="message-square" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+              <span class="text-slate-400 text-xs shrink-0">内置对话</span>
+              <select id="copilotModelSelect" onchange="onCopilotModelChanged(this.value)" class="bg-transparent border-0 text-white font-mono text-xs focus:outline-none cursor-pointer pr-1">
+                <option value="deepseek0209-flash">deepseek0209 · deepseek-flash</option>
+                <option value="deepseek-reasoner">deepseek · deepseek-reasoner</option>
                 <option value="claude-3-7-sonnet">anthropic · claude-3-7-sonnet</option>
                 <option value="gpt-4o">openai · gpt-4o</option>
               </select>
+              <!-- 齿轮设置按钮：点击直接跳到设置菜单下的模型配置 -->
+              <button type="button" onclick="jumpToModelSettingsFromCopilot()" title="前往系统设置配置模型与 API Key" class="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent hover:border-slate-700/80 transition active:scale-95 cursor-pointer ml-0.5" id="copilotModelSettingGearBtn">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+              </button>
             </div>
 
             <!-- 目标服务器选择 -->
-            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#0e131b] border border-slate-800 text-slate-300">
-              <i data-lucide="server" class="w-3.5 h-3.5 text-teal-400"></i>
-              <select id="copilotHostSelect" class="bg-transparent border-0 text-white text-xs focus:outline-none cursor-pointer">
-                <option value="vanilla-cloud">我的香草云 (生产边缘)</option>
-                <option value="prod-api-01">我的腾讯云0209 (prod-api-01)</option>
-                <option value="prod-db-master">我的阿里云 (核心库)</option>
-                <option value="prod-node-3845">我的阿里云3845</option>
+            <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-[#0e131b] border border-slate-800 text-slate-300">
+              <i data-lucide="server" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+              <select id="copilotHostSelect" class="bg-transparent border-0 text-white text-xs focus:outline-none cursor-pointer pr-1">
+                <option value="vanilla-cloud">香草云 · 156.226.177.226</option>
+                <option value="prod-api-01">我的腾讯云0209 · 124.222.89.21</option>
+                <option value="prod-db-master">我的阿里云 (核心库) · 10.0.1.20</option>
+                <option value="prod-node-3845">我的阿里云3845 · 47.98.112.90</option>
               </select>
             </div>
 
-            <!-- 跨机白名单互信联动标识 -->
-            <div class="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs select-none" title="当前主操作机已与阿里云核心库建立跨机白名单互信关系">
-              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span class="text-slate-400 text-[11px]">关联白名单:</span>
-              <span class="font-medium text-[11px]">我的阿里云(核心库)</span>
-              <span class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">互信</span>
-            </div>
-
             <!-- 外部工具 -->
-            <button type="button" onclick="showToast('已挂载 6 个 MCP 外部系统工具 (read_file, ssh_exec, sftp_write, system_info, disk_usage, tail_log)')" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#0e131b] hover:bg-surface-850 border border-slate-800 text-slate-400 hover:text-slate-200 transition">
-              <i data-lucide="puzzle" class="w-3.5 h-3.5 text-amber-400"></i>
+            <button type="button" onclick="toggleExternalToolsModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#0e131b] hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition cursor-pointer">
+              <i data-lucide="plug" class="w-3.5 h-3.5 text-slate-400"></i>
               <span>外部工具</span>
             </button>
+
+            <!-- 本轮技能选择器 -->
+            <div class="relative inline-block">
+              <button type="button" onclick="toggleCopilotSkillSelector(event)" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#0e131b] hover:bg-slate-800/80 border border-slate-800 text-slate-300 transition cursor-pointer">
+                <div class="flex items-center space-x-1.5">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span class="text-slate-300 font-medium">本轮技能</span>
+                </div>
+                <span id="copilotSkillSelectorLabel" class="text-slate-500 text-xs truncate max-w-[260px]">输入问题后自动匹配，也可手动补充</span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500"></i>
+              </button>
+
+              <!-- 下拉技能补充选择浮层 -->
+              <div id="copilotSkillDropdown" onclick="event.stopPropagation()" class="hidden absolute left-0 top-10 z-50 w-72 p-3 rounded-xl bg-[#0f141c] border border-slate-700 shadow-2xl text-xs space-y-2 font-sans animate-in fade-in zoom-in-95">
+                <div class="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                  <span class="font-bold text-white text-xs">补充自选技能 (最多 3 项)</span>
+                  <button type="button" onclick="toggleCopilotSkillSelector(event)" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                </div>
+                <div class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                  <label class="flex items-center justify-between p-1.5 rounded hover:bg-slate-800 cursor-pointer">
+                    <span class="text-slate-300 text-xs">🛠️ Linux 应急排障 (Top/Iostat)</span>
+                    <input type="checkbox" checked onchange="updateCopilotSkillTags()" class="accent-teal-500 rounded">
+                  </label>
+                  <label class="flex items-center justify-between p-1.5 rounded hover:bg-slate-800 cursor-pointer">
+                    <span class="text-slate-300 text-xs">🐳 Docker 容器生命周期诊断</span>
+                    <input type="checkbox" checked onchange="updateCopilotSkillTags()" class="accent-teal-500 rounded">
+                  </label>
+                  <label class="flex items-center justify-between p-1.5 rounded hover:bg-slate-800 cursor-pointer">
+                    <span class="text-slate-300 text-xs">🌐 Nginx 链路与反向代理调优</span>
+                    <input type="checkbox" onchange="updateCopilotSkillTags()" class="accent-teal-500 rounded">
+                  </label>
+                  <label class="flex items-center justify-between p-1.5 rounded hover:bg-slate-800 cursor-pointer">
+                    <span class="text-slate-300 text-xs">🗄️ MySQL 慢查询及锁等待分析</span>
+                    <input type="checkbox" onchange="updateCopilotSkillTags()" class="accent-teal-500 rounded">
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="flex items-center space-x-3 text-slate-400">
-            <button type="button" onclick="showToast('⏱ 已加载近 7 天共 14 条历史运维对话会话')" class="hover:text-white flex items-center space-x-1 transition cursor-pointer">
-              <i data-lucide="history" class="w-3.5 h-3.5"></i>
-              <span>历史</span>
-            </button>
-            <button type="button" onclick="showToast('⭐ 已将当前服务器排障总结存为团队经验知识库')" class="hover:text-white flex items-center space-x-1 transition cursor-pointer">
-              <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
-              <span>存为经验</span>
-            </button>
-            <button type="button" onclick="resetCopilotChat()" class="hover:text-white flex items-center space-x-1 transition cursor-pointer font-medium text-slate-300">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>新对话</span>
-            </button>
+          <!-- Row 2: 技能匹配说明 + 历史 / 存为经验 / 经验库 / + 新对话 / 清空 -->
+          <div class="flex items-center justify-between text-xs flex-wrap gap-y-1.5">
+            <!-- 左侧辅助说明 -->
+            <div class="text-[11px] text-slate-500">
+              技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定 2 个会话
+            </div>
+
+            <!-- 右侧操作按钮组 -->
+            <div class="flex items-center space-x-3 text-slate-400">
+              <button type="button" onclick="showCopilotHistoryDrawer()" class="hover:text-white flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                <span>历史</span>
+              </button>
+              <button type="button" onclick="saveCurrentChatAsRunbook()" class="hover:text-white flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
+                <span>存为经验</span>
+              </button>
+              <button type="button" onclick="switchTab('tab-skills')" class="hover:text-white flex items-center space-x-1 transition cursor-pointer">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span>经验库</span>
+              </button>
+              <button type="button" onclick="resetCopilotChat()" class="hover:text-white flex items-center space-x-1 transition cursor-pointer font-medium text-slate-300">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>新对话</span>
+              </button>
+              <button type="button" onclick="clearCopilotMessages()" class="hover:text-rose-400 flex items-center space-x-1 transition cursor-pointer text-slate-400">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>清空</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -11373,7 +11467,7 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
         </aside>
 
         <!-- 右侧设置配置详情滚动区 (全景卡片流) -->
-        <div id="settingsContentPanel" class="flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar p-6 space-y-4 bg-surface-950/40">
+        <div id="settingsContentPanel" onscroll="onSettingsPanelScroll()" class="flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar p-6 space-y-4 bg-surface-950/40">
           
           <!-- 卡片 1: 界面语言 (对齐截图) -->
           <div id="setting-card-language" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3 scroll-mt-6">
@@ -11390,16 +11484,25 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
             </div>
           </div>
 
-          <!-- 卡片 2: 启动行为 (对齐截图) -->
+          <!-- 卡片 2: 启动行为 (严格对齐截图) -->
           <div id="setting-card-startup" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
             <div>
               <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="power" class="w-4 h-4 text-teal-400"></i>
+                <i data-lucide="power" class="w-4 h-4 text-indigo-400"></i>
                 <span>启动行为</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1 leading-relaxed">
-                系统登录后自动启动 OpsPub（用户级注册表，无需管理员权限）。Windows 写 HKCU\...\Run；macOS 写 LaunchAgent；Linux 写 ~/.config/autostart。
-              </p>
+              <div class="flex items-center mt-1 text-slate-400 text-xs flex-wrap gap-y-1">
+                <span id="desc-startup-main">登录系统后自动启动 OpsPub，不需要管理员权限</span>
+                <!-- 气泡提示 Tooltip (严格对齐截图悬浮气泡) -->
+                <div class="group relative inline-flex items-center ml-1 cursor-pointer">
+                  <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400 hover:text-slate-200 transition"></i>
+                  <!-- 悬浮弹出的 Tooltip 气泡 -->
+                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-72 p-2.5 bg-[#1e232d] text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700/80 pointer-events-none leading-relaxed transition-all">
+                    <span id="tooltip-startup-content">Windows 写 HKCU\...\Run；macOS 写 LaunchAgent；Linux 写 ~/.config/autostart (均为用户级)</span>
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e232d]"></div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="space-y-3.5 pt-1">
               <div class="flex items-center">
@@ -11409,14 +11512,15 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
                 </div>
                 <span id="note-setting-autostart" class="text-xs text-slate-400 ml-3">下次开机不会自动启动，需手动打开</span>
               </div>
-              <div class="flex items-center">
-                <span class="text-xs text-slate-300 w-28 shrink-0">自启后收进托盘:</span>
-                <div onclick="toggleSettingTrayOnStart()" id="toggle-setting-tray" class="w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0">
+              <div class="flex items-start sm:items-center">
+                <span class="text-xs text-slate-300 w-28 shrink-0 pt-0.5 sm:pt-0">自启后收进托盘:</span>
+                <div onclick="toggleSettingTrayOnStart()" id="toggle-setting-tray" class="w-9 h-5 bg-[#5b64c2] rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0 mt-0.5 sm:mt-0">
                   <div id="thumb-setting-tray" class="w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow"></div>
                 </div>
-                <span class="text-xs text-slate-400 ml-3">
-                  被系统开机自启拉起时不显窗口、不占任务栏，只留托盘图标（手动打开始终正常显示窗口），点托盘图标唤回 <span class="text-amber-400 font-medium">（需先开启上方「开机自启」才生效）</span>
-                </span>
+                <div class="text-[11.5px] text-slate-400 ml-3 leading-relaxed tracking-tight">
+                  <span>被系统开机自启拉起时不出窗口、不占任务栏，只常驻托盘图标 (手动打开始终正常显示窗口)，点击托盘图标唤回</span>
+                  <span class="text-amber-400 font-normal ml-1 inline-block whitespace-nowrap">(需先开启上方「开机自启」才生效)</span>
+                </div>
               </div>
             </div>
           </div>
@@ -11534,42 +11638,7 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
                 </div>
               </div>
             </div>
-          
-            <!-- 字体风格偏好设置 (消除卡尺感 / 现代圆润黑体与温润幼圆一键切换) -->
-            <div class="pt-4 border-t border-slate-800/80">
-              <div class="flex items-center justify-between mb-2.5">
-                <div>
-                  <div class="font-medium text-xs text-white flex items-center space-x-1.5">
-                    <span>🔤</span>
-                    <span>文字字体风格（消除机械卡尺感）</span>
-                  </div>
-                  <p class="text-[11px] text-slate-400 mt-0.5">告别老旧机械方折卡尺感，切换现代圆润抗锯齿平滑字体栈</p>
-                </div>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button type="button" onclick="selectFontStyle('modern-round')" id="font-btn-modern-round" class="px-3.5 py-2.5 rounded-xl border-2 border-teal-500 bg-teal-500/10 text-teal-400 text-xs font-medium flex items-center justify-between transition cursor-pointer select-none">
-                  <div class="flex items-center space-x-2.5">
-                    <span class="text-base">✨</span>
-                    <div class="text-left">
-                      <div class="font-bold text-slate-100">现代圆润 (推荐默认)</div>
-                      <div class="text-[10px] text-slate-400 font-normal">Plus Jakarta + 鸿蒙/苹方/雅黑UI · 几何平滑</div>
-                    </div>
-                  </div>
-                  <span class="text-[10px] font-mono font-bold text-teal-400">✓ 激活</span>
-                </button>
-                <button type="button" onclick="selectFontStyle('rounded-soft')" id="font-btn-rounded-soft" class="px-3.5 py-2.5 rounded-xl border border-slate-700 bg-surface-900 text-slate-300 text-xs font-medium flex items-center justify-between hover:bg-surface-850 transition cursor-pointer select-none">
-                  <div class="flex items-center space-x-2.5">
-                    <span class="text-base">🌸</span>
-                    <div class="text-left">
-                      <div class="font-bold text-slate-200">温润幼圆风格</div>
-                      <div class="text-[10px] text-slate-400 font-normal">幼圆 / 华文幼圆 · 圆弧倒角饱满亲和</div>
-                    </div>
-                  </div>
-                  <span class="text-[10px] font-mono text-slate-500">点击切换</span>
-                </button>
-              </div>
-            </div>
-</div>
+          </div>
 
           <!-- 卡片 5: 终端主题 -->
           <div id="setting-card-terminal-theme" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
@@ -11628,6 +11697,25 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
 
           <!-- 卡片 6: 模型服务 —— 内置 AI 对话页 (1:1 严格对齐用户截图 1) -->
           <div id="setting-card-models" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+            <!-- 从 AI 助手跳转过来的专属一键返回条 (支持配置完成后一键切回 AI 助手) -->
+            <div id="settingsCopilotReturnBar" class="hidden flex items-center justify-between p-3 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-300 text-xs shadow-sm transition-all duration-300">
+              <div class="flex items-center space-x-2.5">
+                <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand-500/20 text-brand-400 shrink-0">
+                  <i data-lucide="bot" class="w-4 h-4"></i>
+                </span>
+                <div>
+                  <div class="font-medium text-white flex items-center space-x-2">
+                    <span>AI 助手模型配置联动面板</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30 font-medium">配置联动中</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">在此维护 API 服务商、Key 密匙与模型端点，配置完成后点击右侧即可一键返回</div>
+                </div>
+              </div>
+              <button type="button" onclick="returnToCopilotFromSettings()" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs shadow-md hover:shadow-brand-500/20 transition active:scale-95 cursor-pointer shrink-0">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>一键返回 AI 助手</span>
+              </button>
+            </div>
             <!-- 头部：标题与右侧操作按钮 (粘贴导入 + 新建模型服务) -->
             <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <div class="space-y-1">
@@ -12054,24 +12142,309 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
               <button type="button" onclick="showToast('✅ 审计保留策略已保存：保留 90 天')" class="px-4 py-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer shadow-sm active:scale-98">保存</button>
             </div>
           </div>
-          <!-- 卡片 13: 备份与还原 -->
+          <!-- 卡片 13: 备份与还原 (严格对齐截图) -->
           <div id="setting-card-backup" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
             <div>
               <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="database" class="w-4 h-4 text-teal-400"></i>
+                <i data-lucide="hard-drive" class="w-4 h-4 text-indigo-400"></i>
                 <span>备份与还原</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1">所有服务器连接信息、审计日志、凭据均存储在本地 SQLite 数据库中，支持加密打包导出与一键还原</p>
+              <p class="text-slate-400 text-xs mt-1">把服务器、凭据、知识库、部署、设置等全部数据导出一份加密备份文件，便于迁移到新设备或灾难恢复。</p>
             </div>
-            <div class="flex items-center space-x-3 pt-1">
-              <button type="button" onclick="showToast('已导出本地数据包: opspub_backup_20261001.db')" class="px-4 py-2 rounded-xl bg-[#141a22] hover:bg-slate-800 text-slate-200 font-medium border border-slate-700 flex items-center space-x-2 transition">
-                <i data-lucide="download" class="w-4 h-4 text-teal-400"></i>
-                <span>导出本地加密数据包</span>
+
+            <!-- 顶部警示框 (对齐截图琥珀色背景) -->
+            <div class="rounded-xl p-3.5 bg-amber-500/10 border border-amber-500/30 flex items-start space-x-3 text-xs">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400 shrink-0 mt-0.5"></i>
+              <div class="space-y-1">
+                <div class="font-bold text-amber-300">备份包含全部凭据，请妥善保管</div>
+                <div class="text-[11px] text-amber-200/80 leading-relaxed">
+                  备份密码独立于应用主密码，一旦丢失将无法找回、备份也无法还原。备份文件已加密保护。备份内含服务器密码 / 私钥 / API Key 等全部凭据，请像保管密码一样妥善保管备份文件。
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 个子 Tab 切换导航 -->
+            <div class="border-b border-slate-800/80 flex items-center space-x-6 text-xs select-none">
+              <button type="button" onclick="switchBackupSubTab('local')" id="backup-subtab-local" class="pb-2.5 font-medium flex items-center space-x-1.5 transition text-indigo-400 border-b-2 border-indigo-500 cursor-pointer">
+                <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+                <span>本地备份</span>
               </button>
-              <button type="button" onclick="showToast('请选择需要还原的 .db 文件')" class="px-4 py-2 rounded-xl bg-[#141a22] hover:bg-slate-800 text-slate-200 font-medium border border-slate-700 flex items-center space-x-2 transition">
-                <i data-lucide="upload" class="w-4 h-4 text-indigo-400"></i>
-                <span>从备份文件还原工作区</span>
+              <button type="button" onclick="switchBackupSubTab('cloud')" id="backup-subtab-cloud" class="pb-2.5 font-medium flex items-center space-x-1.5 transition text-slate-400 hover:text-slate-200 border-b-2 border-transparent cursor-pointer">
+                <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+                <span>云端同步</span>
               </button>
+              <button type="button" onclick="switchBackupSubTab('sync')" id="backup-subtab-sync" class="pb-2.5 font-medium flex items-center space-x-1.5 transition text-slate-400 hover:text-slate-200 border-b-2 border-transparent cursor-pointer">
+                <i data-lucide="repeat" class="w-3.5 h-3.5"></i>
+                <span>多设备同步</span>
+              </button>
+              <button type="button" onclick="switchBackupSubTab('storage')" id="backup-subtab-storage" class="pb-2.5 font-medium flex items-center space-x-1.5 transition text-slate-400 hover:text-slate-200 border-b-2 border-transparent cursor-pointer">
+                <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                <span>存储端</span>
+              </button>
+            </div>
+
+            <!-- 本地备份主体内容区 (左右两栏对齐截图) -->
+            <div id="backup-panel-local" class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+              <!-- 左栏: 导出备份 -->
+              <div class="rounded-xl p-4 bg-[#111622] border border-slate-800/90 space-y-4 flex flex-col justify-between">
+                <div class="space-y-3.5">
+                  <div class="flex items-center space-x-2 text-xs font-medium text-slate-200">
+                    <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
+                    <span>选择要备份的类别</span>
+                    <span class="text-[11px] text-slate-500 font-normal ml-1">审计日志 / 聊天历史默认不含，按需勾选</span>
+                  </div>
+
+                  <!-- 备份类别 Checkboxes (4列网格排布) -->
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px] text-slate-300">
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>服务器与凭据</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>SSH 密钥库</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>API 档案与证书账户</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>敏感库与已装服务</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>知识库 (技能经验)</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>部署</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>命令片段与策略</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>监控与告警</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>远程备份任务</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" checked class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>应用设置</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>审计日志</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                      <input type="checkbox" class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#5b64c2]">
+                      <span>聊天历史</span>
+                    </label>
+                  </div>
+
+                  <!-- 设置备份密码 -->
+                  <div class="space-y-2 pt-2">
+                    <div class="text-xs font-medium text-slate-300">设置备份密码</div>
+                    <div class="relative">
+                      <input type="password" id="backupPwdInput1" placeholder="备份密码（≥12 位含 3 类字符，或 ≥16 位）" class="w-full px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/80 pr-9 transition">
+                      <button type="button" onclick="toggleBackupPwdVisibility('backupPwdInput1', 'backupPwdEye1')" class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                        <i id="backupPwdEye1" data-lucide="eye-off" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                    <div class="relative">
+                      <input type="password" id="backupPwdInput2" placeholder="再次输入备份密码" class="w-full px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/80 pr-9 transition">
+                      <button type="button" onclick="toggleBackupPwdVisibility('backupPwdInput2', 'backupPwdEye2')" class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer">
+                        <i id="backupPwdEye2" data-lucide="eye-off" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 导出按钮 -->
+                <button type="button" onclick="executeBackupExportAction()" class="w-full py-2.5 px-4 rounded-xl border border-slate-700/80 bg-[#161c2b] hover:bg-[#1c2438] text-slate-300 hover:text-white text-xs font-medium flex items-center justify-center space-x-2 transition cursor-pointer active:scale-98 mt-2">
+                  <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
+                  <span>选择保存位置并导出</span>
+                </button>
+              </div>
+
+              <!-- 右栏: 本地还原 -->
+              <div class="rounded-xl p-4 bg-[#111622] border border-slate-800/90 space-y-4">
+                <div class="flex items-center space-x-2 text-xs font-medium text-slate-200">
+                  <i data-lucide="download" class="w-3.5 h-3.5 text-indigo-400"></i>
+                  <span>本地备份</span>
+                </div>
+
+                <!-- 选择备份文件框 -->
+                <button type="button" onclick="executeBackupImportAction()" class="w-full py-3.5 px-4 rounded-xl border border-dashed border-slate-700/80 hover:border-indigo-500/80 bg-[#141926]/60 hover:bg-[#181f30] text-slate-300 text-xs flex items-center space-x-2.5 transition cursor-pointer group">
+                  <i data-lucide="folder-open" class="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition"></i>
+                  <span>选择备份文件 (.opspubbak)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. 云端同步面板 (对齐截图 1: media_1794050227475_f762679b.png) -->
+            <div id="backup-panel-cloud" class="hidden rounded-xl bg-[#111622] border border-slate-800/90 p-8 min-h-[300px] flex flex-col items-center justify-center text-center">
+              <div class="w-16 h-12 rounded-xl border-2 border-dashed border-slate-700/80 flex items-center justify-center mb-4 text-slate-500 bg-slate-800/20 shadow-inner">
+                <i data-lucide="archive" class="w-6 h-6 text-slate-500"></i>
+              </div>
+              <div class="text-xs font-medium text-slate-300">还没有配置备份存储端</div>
+              <div class="text-[11px] text-slate-500 mt-1 max-w-sm">先到「存储端」页签添加一个 WebDAV，就能在这里推送与拉取备份</div>
+              <button type="button" onclick="switchBackupSubTab('storage')" class="mt-5 px-4 py-2 rounded-full bg-[#5b64c2]/25 hover:bg-[#5b64c2]/35 text-indigo-300 border border-indigo-500/40 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm group">
+                <i data-lucide="cloud" class="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform"></i>
+                <span>去配置存储端</span>
+              </button>
+            </div>
+
+            <!-- 3. 多设备同步面板 (对齐截图 2: media_1794050237479_9f052bfe.png) -->
+            <div id="backup-panel-sync" class="hidden rounded-xl bg-[#111622] border border-slate-800/90 p-8 min-h-[300px] flex flex-col items-center justify-center text-center">
+              <div class="w-16 h-12 rounded-xl border-2 border-dashed border-slate-700/80 flex items-center justify-center mb-4 text-slate-500 bg-slate-800/20 shadow-inner">
+                <i data-lucide="archive" class="w-6 h-6 text-slate-500"></i>
+              </div>
+              <div class="text-xs text-slate-400 max-w-md">还没配置 WebDAV 存储端 —— 同步需要一个双方都能访问的地方</div>
+              <button type="button" onclick="switchBackupSubTab('storage')" class="mt-5 px-5 py-2 rounded-full bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+                <span>去配置存储端</span>
+              </button>
+            </div>
+
+            <!-- 4. 存储端面板 (包含列表视图与新增表单视图，对齐截图 3 & 截图 4) -->
+            <div id="backup-panel-storage" class="hidden rounded-xl bg-[#111622] border border-slate-800/90 p-5 space-y-4">
+              
+              <!-- 视图 A: 存储端列表 (对齐截图 3: media_1794050248874_1dc00f9e.jpg) -->
+              <div id="backup-storage-list-view" class="space-y-4">
+                <!-- 顶部说明与新增按钮 -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <p class="text-xs text-slate-400 leading-relaxed">
+                    存储端 = 一份 WebDAV 账号 + 一个远端目录。应用端通过云同步与多设备备份的其他用户共享使用它。
+                  </p>
+                  <button type="button" onclick="openAddStorageForm()" class="px-3 py-1.5 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm shrink-0">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>新增存储端</span>
+                  </button>
+                </div>
+
+                <!-- 存储端表格 -->
+                <div class="overflow-x-auto rounded-lg border border-slate-800/80">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="bg-[#0c1017] border-b border-slate-800/80 text-[11px] text-slate-400 font-medium select-none">
+                        <th class="py-2.5 px-4 font-medium w-[22%]">名称</th>
+                        <th class="py-2.5 px-4 font-medium w-[34%]">地址</th>
+                        <th class="py-2.5 px-4 font-medium w-[20%]">账号</th>
+                        <th class="py-2.5 px-4 font-medium w-[12%]">密码</th>
+                        <th class="py-2.5 px-4 font-medium w-[12%] text-right">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="backup-storage-tbody" class="divide-y divide-slate-800/60">
+                      <!-- 默认空状态行 -->
+                      <tr id="backup-storage-empty-row">
+                        <td colspan="5" class="py-14 text-center">
+                          <div class="flex flex-col items-center justify-center space-y-3">
+                            <div class="w-14 h-11 rounded-lg border-2 border-dashed border-slate-700/80 flex items-center justify-center text-slate-600 bg-slate-800/20">
+                              <i data-lucide="inbox" class="w-5 h-5 text-slate-500"></i>
+                            </div>
+                            <div class="text-xs text-slate-400">还没有存储端，点「新增存储端」配置一个</div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- 视图 B: 新增/编辑存储端表单 (对齐截图 4: media_1794050267059_a2123ea2.png) -->
+              <div id="backup-storage-form-view" class="hidden space-y-4">
+                <!-- 返回顶部导航 -->
+                <div class="flex items-center space-x-2 text-xs font-medium text-white pb-2 border-b border-slate-800/80">
+                  <button type="button" onclick="closeAddStorageForm()" class="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition cursor-pointer flex items-center space-x-1.5">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span class="text-xs font-medium">新增存储端</span>
+                  </button>
+                </div>
+
+                <!-- 表单字段群 -->
+                <div class="space-y-4 max-w-2xl pt-1">
+                  <!-- 1. 名称 -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-medium text-slate-300">
+                      <span class="text-rose-500">*</span> 名称
+                    </label>
+                    <input type="text" id="storageFormName" placeholder="坚果云-运维" class="w-full px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition">
+                  </div>
+
+                  <!-- 2. WebDAV 地址 -->
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs font-medium text-slate-300">
+                        <span class="text-rose-500">*</span> WebDAV 地址
+                      </label>
+                      <div class="text-[11px] text-slate-400 flex items-center space-x-2 select-none">
+                        <span>快速填充</span>
+                        <button type="button" onclick="quickFillWebdav('jianguoyun')" class="text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer">坚果云</button>
+                        <button type="button" onclick="quickFillWebdav('infinicloud')" class="text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer">InfiniCLOUD</button>
+                        <button type="button" onclick="quickFillWebdav('nextcloud')" class="text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer">NextCloud</button>
+                      </div>
+                    </div>
+                    <input type="text" id="storageFormUrl" placeholder="https://dav.jianguoyun.com/dav/" class="w-full px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 font-mono transition">
+                    <p class="text-[11px] text-slate-500">只填服务根地址，子目录交给下面的「远端目录」</p>
+                  </div>
+
+                  <!-- 3. 账号 -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-medium text-slate-300">
+                      <span class="text-rose-500">*</span> 账号
+                    </label>
+                    <input type="text" id="storageFormUser" placeholder="登录邮箱 / 用户名" class="w-full px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition">
+                  </div>
+
+                  <!-- 4. 密码 -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-medium text-slate-300">
+                      <span class="text-rose-500">*</span> 密码
+                    </label>
+                    <div class="relative">
+                      <input type="password" id="storageFormPwd" placeholder="应用密码" class="w-full px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 pr-9 transition">
+                      <button type="button" onclick="toggleStoragePwdVisibility()" class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer" title="显示/隐藏密码">
+                        <i id="storageFormPwdEye" data-lucide="eye-off" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                    <p class="text-[11px] text-slate-500">多数网盘要用「应用密码」，不是登录密码</p>
+                  </div>
+
+                  <!-- 5. 远端目录 -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-medium text-slate-300">远端目录</label>
+                    <div class="relative">
+                      <input type="text" id="storageFormDir" value="opspub" placeholder="opspub" class="w-full px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 pr-8 font-mono transition">
+                      <button type="button" onclick="document.getElementById('storageFormDir').value=''" class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer" title="清空">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                    <p class="text-[11px] text-slate-500">相对上面的地址，可多级（如 opspub/backups）；留空 = 直接放在根目录</p>
+                  </div>
+
+                  <!-- 6. 启用 -->
+                  <div class="space-y-1.5 pt-1">
+                    <label class="block text-xs font-medium text-slate-300">启用</label>
+                    <div id="storageToggleEnable" onclick="toggleStorageEnableSwitch()" class="w-9 h-5 bg-[#5b64c2] rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0">
+                      <div id="storageThumbEnable" class="w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow"></div>
+                    </div>
+                  </div>
+
+                  <!-- 7. 底部操作按钮群 -->
+                  <div class="flex items-center space-x-3 pt-3 border-t border-slate-800/80">
+                    <button type="button" onclick="saveStorageEndpoint()" class="px-4 py-2 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium transition cursor-pointer shadow-sm">保存</button>
+                    <button type="button" onclick="testStorageConnection()" id="btnTestStorage" class="px-3 py-2 rounded-lg bg-[#141a23] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer">
+                      <i data-lucide="radio" class="w-3.5 h-3.5 text-indigo-400"></i>
+                      <span id="btnTestStorageText">测试连接</span>
+                    </button>
+                    <button type="button" onclick="closeAddStorageForm()" class="px-3 py-2 text-slate-400 hover:text-slate-200 text-xs transition cursor-pointer">取消</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -12339,26 +12712,133 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
             </div>
           </div>
 
-          <!-- 卡片 17: 作者 & 社区 -->
-          <div id="setting-card-community" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
-            <div>
-              <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="users" class="w-4 h-4 text-teal-400"></i>
-                <span>作者 & 社区</span>
-              </div>
-              <p class="text-slate-400 text-xs mt-1">感谢所有开发者、运维架构师与开源社区对 OpsPub 项目的支持与贡献</p>
+          <!-- 卡片 17: 作者 & 社区 (严格对齐截图) -->
+          <div id="setting-card-community" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-2 scroll-mt-6">
+            <div class="font-bold text-base text-white pb-1">
+              <span>作者 & 社区</span>
             </div>
-            <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#141a22] border border-slate-800">
-              <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center font-bold">R</div>
-                <div>
-                  <div class="font-bold text-white">OpsPub Desktop Core Team</div>
-                  <div class="text-[11px] text-slate-400 font-mono">v2.3.0 · Built with Tauri 2.x & Rust 2021</div>
+
+            <!-- 详细社区与联系方式列表 (对齐截图样式) -->
+            <div class="divide-y divide-slate-800/70">
+              <!-- 1. 作者 -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="user" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">作者</div>
+                    <div class="text-xs text-slate-200 font-medium mt-0.5">软宁Java 全栈 AI 架构师</div>
+                  </div>
                 </div>
               </div>
-              <div class="flex items-center space-x-2">
-                <button type="button" onclick="showToast('正在打开官方 GitHub 仓库页面...')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700">GitHub</button>
-                <button type="button" onclick="showToast('欢迎加入技术交流群：opspub-community')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700">技术交流群</button>
+
+              <!-- 2. B 站主页 -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="video" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">B 站主页</div>
+                    <a href="https://space.bilibili.com/" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 font-medium mt-0.5 inline-block hover:underline transition">点击访问 B 站主页</a>
+                  </div>
+                </div>
+                <a href="https://space.bilibili.com/" target="_blank" class="text-slate-500 hover:text-slate-300 transition p-1" title="在浏览器中打开">
+                  <i data-lucide="external-link" class="w-4 h-4"></i>
+                </a>
+              </div>
+
+              <!-- 3. 视频讲解 -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="video" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">视频讲解</div>
+                    <a href="https://www.bilibili.com/" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 font-medium mt-0.5 inline-block hover:underline transition">B 站使用教程 / 功能演示</a>
+                  </div>
+                </div>
+                <a href="https://www.bilibili.com/" target="_blank" class="text-slate-500 hover:text-slate-300 transition p-1" title="在浏览器中打开">
+                  <i data-lucide="external-link" class="w-4 h-4"></i>
+                </a>
+              </div>
+
+              <!-- 4. QQ 交流群 (群号替换为 4545458) -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="message-square" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">QQ 交流群</div>
+                    <div class="text-xs text-slate-200 mt-0.5 flex items-center flex-wrap gap-x-2">
+                      <span class="font-bold text-white font-mono text-sm tracking-wide">4545458</span>
+                      <span class="text-[11px] text-slate-500">Bug 反馈 / 使用交流 / 新功能讨论</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-3 shrink-0 ml-3">
+                  <button type="button" onclick="navigator.clipboard.writeText('4545458'); showToast('QQ 交流群号已复制：4545458');" class="text-blue-400 hover:text-blue-300 text-xs font-medium cursor-pointer transition">加群</button>
+                  <button type="button" onclick="navigator.clipboard.writeText('4545458'); showToast('QQ 交流群号已复制：4545458');" class="text-slate-500 hover:text-slate-300 transition p-1 cursor-pointer" title="复制群号">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 5. QQ 号 (来自 OpsPub) -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="message-square" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">QQ 号</div>
+                    <div class="text-xs text-slate-200 mt-0.5 flex items-center flex-wrap gap-x-2">
+                      <span class="font-bold text-white font-mono text-sm tracking-wide">2397344434</span>
+                      <span class="text-[11px] text-slate-500">添加时请备注「来自 OpsPub」</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" onclick="navigator.clipboard.writeText('2397344434'); showToast('QQ 号已复制：2397344434 (备注来自 OpsPub)');" class="text-slate-500 hover:text-slate-300 transition p-1 cursor-pointer shrink-0 ml-3" title="复制 QQ 号">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+
+              <!-- 6. 微信号 (来自 OpsPub) -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="message-square" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">微信号</div>
+                    <div class="text-xs text-slate-200 mt-0.5 flex items-center flex-wrap gap-x-2">
+                      <span class="font-bold text-white font-mono text-sm tracking-wide">aohai3045</span>
+                      <span class="text-[11px] text-slate-500">添加时请备注「来自 OpsPub」</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" onclick="navigator.clipboard.writeText('aohai3045'); showToast('微信号已复制：aohai3045 (备注来自 OpsPub)');" class="text-slate-500 hover:text-slate-300 transition p-1 cursor-pointer shrink-0 ml-3" title="复制微信号">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+
+              <!-- 7. 官网 -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="globe" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">官网</div>
+                    <a href="https://www.opspub.com/" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 font-mono mt-0.5 inline-block hover:underline transition">https://www.opspub.com/</a>
+                  </div>
+                </div>
+                <a href="https://www.opspub.com/" target="_blank" class="text-slate-500 hover:text-slate-300 transition p-1 shrink-0 ml-3" title="在浏览器中打开官网">
+                  <i data-lucide="external-link" class="w-4 h-4"></i>
+                </a>
+              </div>
+
+              <!-- 8. 下载 -->
+              <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <i data-lucide="download" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="text-[11px] text-slate-400 leading-tight">下载</div>
+                    <a href="https://www.opspub.com/download" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 font-mono mt-0.5 inline-block hover:underline transition">https://www.opspub.com/download</a>
+                  </div>
+                </div>
+                <a href="https://www.opspub.com/download" target="_blank" class="text-slate-500 hover:text-slate-300 transition p-1 shrink-0 ml-3" title="在浏览器中打开下载页">
+                  <i data-lucide="external-link" class="w-4 h-4"></i>
+                </a>
               </div>
             </div>
           </div>
@@ -16018,6 +16498,22 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       const activeEl = document.getElementById(tabId);
       if (activeEl) activeEl.classList.remove('hidden');
+
+      // 设置页切换联动：隐藏专有返回条 + 初始化右侧滚动实时定位
+      if (tabId === 'tab-settings') {
+        if (!window._justJumpedFromCopilot) {
+          const returnBar = document.getElementById('settingsCopilotReturnBar');
+          if (returnBar) returnBar.classList.add('hidden');
+        }
+        if (typeof initSettingsScrollSpy === 'function') {
+          initSettingsScrollSpy();
+        }
+        setTimeout(() => {
+          if (typeof syncSettingsActiveSectionOnScroll === 'function') {
+            syncSettingsActiveSectionOnScroll();
+          }
+        }, 50);
+      }
 
       // 终端、SFTP 与新版工作台界面无外层包边卡片，直顶顶部与左侧
       const mainEl = document.getElementById('appMainContent') || document.querySelector('main');
@@ -23298,6 +23794,116 @@ ${resultText}
     }
 
     // ==========================================
+    // AI 助手 (Copilot) 顶部工具栏与模型配置联动函数
+    // ==========================================
+    function jumpToModelSettingsFromCopilot() {
+      window._copilotSourceActive = true;
+      window._justJumpedFromCopilot = true;
+      switchTab('tab-settings');
+      window._justJumpedFromCopilot = false;
+
+      if (typeof switchSettingSubTab === 'function') {
+        switchSettingSubTab('llm');
+      } else if (typeof scrollSettingsTo === 'function') {
+        scrollSettingsTo('models');
+      }
+
+      // 仅从 AI 聊天齿轮跳转进入时显式展示返回条
+      const returnBar = document.getElementById('settingsCopilotReturnBar');
+      if (returnBar) {
+        returnBar.classList.remove('hidden');
+        returnBar.classList.add('ring-2', 'ring-brand-400', 'bg-brand-500/25');
+        setTimeout(() => {
+          returnBar.classList.remove('ring-2', 'ring-brand-400');
+          returnBar.classList.add('bg-brand-500/10');
+        }, 2200);
+      }
+      showToast('⚙️ 已跳转至大模型配置中心，配置完成后可点击顶部「一键返回 AI 助手」');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function returnToCopilotFromSettings() {
+      const returnBar = document.getElementById('settingsCopilotReturnBar');
+      if (returnBar) {
+        returnBar.classList.add('hidden');
+      }
+      window._copilotSourceActive = false;
+      switchTab('tab-copilot');
+      showToast('🤖 已返回 AI 助手，模型配置已同步生效');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function clearCopilotMessages() {
+      const activeConv = document.getElementById('activeConversationContainer');
+      const welcome = document.getElementById('welcomeCardsContainer');
+      if (activeConv) activeConv.classList.add('hidden');
+      if (welcome) welcome.classList.remove('hidden');
+      const inp = document.getElementById('chatInput');
+      if (inp) inp.value = '';
+      if (typeof setChatInputThinkingState === 'function') {
+        setChatInputThinkingState(false);
+      }
+      showToast('🧹 已清空当前会话所有消息与操作记录');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function onCopilotModelChanged(val) {
+      const modelMap = {
+        'deepseek0209-flash': 'deepseek0209 · deepseek-flash',
+        'deepseek-reasoner': 'deepseek · deepseek-reasoner',
+        'claude-3-7-sonnet': 'anthropic · claude-3-7-sonnet',
+        'gpt-4o': 'openai · gpt-4o'
+      };
+      const name = modelMap[val] || val;
+      showToast('🤖 已切换默认模型为：' + name);
+    }
+
+    function toggleCopilotSkillSelector(event) {
+      if (event) event.stopPropagation();
+      const dropdown = document.getElementById('copilotSkillDropdown');
+      if (!dropdown) return;
+      dropdown.classList.toggle('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateCopilotSkillTags() {
+      const dropdown = document.getElementById('copilotSkillDropdown');
+      if (!dropdown) return;
+      const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+      const label = document.getElementById('copilotSkillSelectorLabel');
+      if (!label) return;
+      if (checkboxes.length === 0) {
+        label.innerText = '输入问题后自动匹配，也可手动补充';
+        label.className = 'text-slate-500 text-xs truncate max-w-[260px]';
+      } else {
+        label.innerText = '已启用 ' + checkboxes.length + ' 项自选技能 (优先介入)';
+        label.className = 'text-brand-300 font-medium text-xs truncate max-w-[260px]';
+      }
+    }
+
+    function toggleExternalToolsModal() {
+      showToast('🔌 已挂载 6 个 MCP 外部系统工具 (read_file, ssh_exec, sftp_write, system_info, disk_usage, tail_log)');
+    }
+
+    function showCopilotHistoryDrawer() {
+      showToast('⏱ 已加载近 7 天共 14 条历史运维对话会话');
+    }
+
+    function saveCurrentChatAsRunbook() {
+      showToast('⭐ 已将当前服务器排障总结存为团队经验知识库');
+    }
+
+    // 全局点击事件：点击外部时自动收起技能选择下拉框
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('copilotSkillDropdown');
+      if (dropdown && !dropdown.classList.contains('hidden')) {
+        if (!dropdown.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      }
+    });
+
+    // ==========================================
     // 凭据与敏感库交互逻辑 (截图 1 & 2)
     // ==========================================
     // ==========================================
@@ -24269,23 +24875,59 @@ ${resultText}
     let settingAiKillswitchEnabled = true;
     let settingLanguage = 'zh-CN';
 
-    function scrollSettingsTo(sectionId) {
-      const tabSettings = document.getElementById('tab-settings');
-      if (tabSettings && tabSettings.classList.contains('hidden')) {
-        if (typeof switchTab === 'function') switchTab('tab-settings');
-      }
+    // 设置项卡片与左侧二级菜单的一一映射清单 (按垂直展示顺序)
+    const settingSubnavSections = [
+      'language',
+      'startup',
+      'window',
+      'appearance',
+      'terminal-theme',
+      'models',
+      'proxy',
+      'whitelist',
+      'ssh-keys',
+      'lock',
+      'blacklist',
+      'audit-retention',
+      'backup',
+      'mobile-pairing',
+      'license',
+      'legal',
+      'community',
+      'apps'
+    ];
 
+    let isSettingsScrollingByClick = false;
+    let settingsClickScrollTimer = null;
+    let settingsScrollTicking = false;
+
+    // 高亮指定左侧二级菜单标题
+    function highlightSettingSubnav(sectionId) {
+      if (!sectionId || currentSettingSubnav === sectionId) return;
       currentSettingSubnav = sectionId;
+
       document.querySelectorAll('.set-subnav-btn').forEach(btn => {
         btn.classList.remove('bg-teal-500/10', 'text-teal-400', 'border-teal-500/30', 'font-medium');
         btn.classList.add('text-slate-400', 'border-transparent');
       });
+
       const activeBtn = document.getElementById('set-subnav-' + sectionId);
       if (activeBtn) {
         activeBtn.classList.remove('text-slate-400', 'border-transparent');
         activeBtn.classList.add('bg-teal-500/10', 'text-teal-400', 'border-teal-500/30', 'font-medium');
+
+        // 如果左侧二级导航高度受限出现滚动条，确保高亮项始终在视野内
+        const asideMenu = activeBtn.closest('.overflow-y-auto');
+        if (asideMenu) {
+          const asideRect = asideMenu.getBoundingClientRect();
+          const btnRect = activeBtn.getBoundingClientRect();
+          if (btnRect.top < asideRect.top + 8 || btnRect.bottom > asideRect.bottom - 8) {
+            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
       }
 
+      // 黑名单卡片按需懒渲染
       if (sectionId === 'blacklist' && typeof renderBlacklistTable === 'function') {
         try {
           renderBlacklistTable(currentBlacklistPage || 1);
@@ -24293,11 +24935,95 @@ ${resultText}
           console.error(e);
         }
       }
+    }
+
+    // 右侧内容滚动时，实时计算当前处于视口顶部的卡片并同步左侧高亮颜色 (ScrollSpy)
+    function syncSettingsActiveSectionOnScroll() {
+      if (isSettingsScrollingByClick) return;
+
+      const panel = document.getElementById('settingsContentPanel');
+      if (!panel) return;
+
+      const panelRect = panel.getBoundingClientRect();
+      const scrollTop = panel.scrollTop;
+      const scrollHeight = panel.scrollHeight;
+      const clientHeight = panel.clientHeight;
+
+      // 1. 底部边界检测：滚至最底端时直接激活最后一个卡片 (推荐应用 apps)
+      if (scrollTop + clientHeight >= scrollHeight - 35) {
+        highlightSettingSubnav(settingSubnavSections[settingSubnavSections.length - 1]);
+        return;
+      }
+
+      // 2. 顶部边界检测：滚至最顶端时直接激活第一个卡片 (界面语言 language)
+      if (scrollTop <= 25) {
+        highlightSettingSubnav(settingSubnavSections[0]);
+        return;
+      }
+
+      // 3. 正常滚动视口检测：
+      // 遍历所有卡片，寻找顶部距离 panel 顶部处于感应线 (85px) 之上的最后一个卡片
+      let currentActive = settingSubnavSections[0];
+      const offsetThreshold = 85;
+
+      for (let i = 0; i < settingSubnavSections.length; i++) {
+        const secId = settingSubnavSections[i];
+        const card = document.getElementById('setting-card-' + secId);
+        if (!card) continue;
+        const cardRect = card.getBoundingClientRect();
+        const distanceToPanelTop = cardRect.top - panelRect.top;
+
+        if (distanceToPanelTop <= offsetThreshold) {
+          currentActive = secId;
+        } else {
+          break; // 因为卡片按文档流顺序自上而下排列，后续卡片更靠下，直接中断
+        }
+      }
+
+      highlightSettingSubnav(currentActive);
+    }
+
+    // 节流处理滚动事件，保证 60fps 丝滑响应
+    function onSettingsPanelScroll() {
+      if (isSettingsScrollingByClick) return;
+      if (!settingsScrollTicking) {
+        window.requestAnimationFrame(() => {
+          syncSettingsActiveSectionOnScroll();
+          settingsScrollTicking = false;
+        });
+        settingsScrollTicking = true;
+      }
+    }
+
+    // 初始化滚动监听
+    function initSettingsScrollSpy() {
+      const panel = document.getElementById('settingsContentPanel');
+      if (panel && !panel._hasScrollSpyAttached) {
+        panel._hasScrollSpyAttached = true;
+        panel.addEventListener('scroll', onSettingsPanelScroll, { passive: true });
+      }
+    }
+
+    // 点击左侧导航时的精准平滑跳转
+    function scrollSettingsTo(sectionId) {
+      const tabSettings = document.getElementById('tab-settings');
+      if (tabSettings && tabSettings.classList.contains('hidden')) {
+        if (typeof switchTab === 'function') switchTab('tab-settings');
+      }
+
+      // 锁定状态，避免点击跳转途中的平滑滚动引发左侧导航过度闪烁
+      isSettingsScrollingByClick = true;
+      if (settingsClickScrollTimer) clearTimeout(settingsClickScrollTimer);
+      settingsClickScrollTimer = setTimeout(() => {
+        isSettingsScrollingByClick = false;
+      }, 700);
+
+      // 立即更新被点击菜单的高亮
+      highlightSettingSubnav(sectionId);
 
       const targetCard = document.getElementById('setting-card-' + sectionId);
       const panel = document.getElementById('settingsContentPanel');
       if (targetCard && panel) {
-        // 精准滚动定位：直接控制右侧 settingsContentPanel 滚动容器
         const panelRect = panel.getBoundingClientRect();
         const cardRect = targetCard.getBoundingClientRect();
         const currentScroll = panel.scrollTop;
@@ -24323,36 +25049,349 @@ ${resultText}
       scrollSettingsTo(aliasMap[subKey] || subKey);
     }
 
-    function selectSettingLanguage(lang) {
+    // ==========================================
+    // 全局中英文多语言切换 (i18n) 引擎与词库
+    // ==========================================
+    const I18N_TRANSLATIONS = {
+      // 左侧一级主导航栏 (优化为简洁专业的桌面 Dock 单词，避免过长被截断)
+      mainNav: {
+        'nav-tab-servers': { zh: '服务器', en: 'Servers' },
+        'nav-tab-terminal': { zh: '终端', en: 'Terminal' },
+        'nav-tab-workbench': { zh: '工作台', en: 'Console' },
+        'nav-tab-sftp': { zh: 'SFTP', en: 'SFTP' },
+        'nav-tab-database': { zh: '数据库', en: 'Database' },
+        'nav-tab-batch': { zh: '批量', en: 'Batch' },
+        'nav-tab-deploy': { zh: '部署', en: 'Deploy' },
+        'nav-tab-copilot': { zh: 'AI助手', en: 'Copilot' },
+        'nav-tab-mcp': { zh: 'MCP接入', en: 'MCP' },
+        'nav-tab-skills': { zh: '技能', en: 'Skills' },
+        'nav-tab-inspector': { zh: '巡检', en: 'Inspect' },
+        'nav-tab-sensitive': { zh: '敏感库', en: 'Secrets' },
+        'nav-tab-credentials': { zh: '服务凭据', en: 'Vault' },
+        'nav-tab-alerts': { zh: '告警', en: 'Alerts' },
+        'nav-tab-security': { zh: '审批', en: 'Security' },
+        'nav-tab-audit': { zh: '审计', en: 'Audit' },
+        'nav-tab-settings': { zh: '设置', en: 'Settings' }
+      },
+
+      // 设置页左侧二级导航项
+      subnav: {
+        'set-subnav-language': { zh: '界面语言', en: 'Language' },
+        'set-subnav-startup': { zh: '启动行为', en: 'Startup Behavior' },
+        'set-subnav-window': { zh: '窗口与托盘', en: 'Window & Tray' },
+        'set-subnav-appearance': { zh: '外观主题', en: 'Appearance' },
+        'set-subnav-terminal-theme': { zh: '终端主题', en: 'Terminal Theme' },
+        'set-subnav-models': { zh: '模型服务', en: 'Model Services' },
+        'set-subnav-proxy': { zh: '网络代理', en: 'Network Proxy' },
+        'set-subnav-whitelist': { zh: '出站地址白名单', en: 'Outbound Whitelist' },
+        'set-subnav-ssh-keys': { zh: 'SSH 密钥', en: 'SSH Keys' },
+        'set-subnav-lock': { zh: '主密码 / 应用锁定', en: 'Master Password & Lock' },
+        'set-subnav-blacklist': { zh: '命令黑名单', en: 'Command Blacklist' },
+        'set-subnav-audit-retention': { zh: '审计保留', en: 'Audit Retention' },
+        'set-subnav-backup': { zh: '备份与还原', en: 'Backup & Restore' },
+        'set-subnav-mobile-pairing': { zh: '手机配对', en: 'Mobile Pairing' },
+        'set-subnav-license': { zh: '授权管理', en: 'License & Editions' },
+        'set-subnav-legal': { zh: '法律声明', en: 'Legal Notices' },
+        'set-subnav-community': { zh: '作者 & 社区', en: 'Author & Community' },
+        'set-subnav-apps': { zh: '推荐应用', en: 'Recommended Apps' }
+      },
+
+      // 设置右侧各卡片头部及描述
+      cards: {
+        'setting-card-language': {
+          title: { zh: '界面语言', en: 'Interface Language' },
+          desc: { zh: '切换后立即生效，本设置会持久化', en: 'Takes effect immediately and persists across sessions' }
+        },
+        'setting-card-startup': {
+          title: { zh: '启动行为', en: 'Startup Behavior' },
+          desc: { zh: '登录系统后自动启动 OpsPub，不需要管理员权限', en: 'Launch OpsPub automatically after login without admin privileges' },
+          tooltip: { zh: 'Windows 写 HKCU\\...\\Run；macOS 写 LaunchAgent；Linux 写 ~/.config/autostart (均为用户级)', en: 'Windows writes HKCU\\...\\Run; macOS writes LaunchAgent; Linux writes ~/.config/autostart (All user-level)' }
+        },
+        'setting-card-window': {
+          title: { zh: '窗口与托盘', en: 'Window & System Tray' },
+          desc: { zh: '点击主窗口关闭按钮时的行为。OpsPub 是常驻后台的 MCP 网关，建议保持「最小化到托盘」—— 关闭后仍持续为 AI 提供服务，可随时从托盘图标重新打开，或在托盘菜单里彻底退出。', en: 'Behavior when clicking close button. OpsPub acts as a background MCP gateway. Keeping it in tray ensures continuous service for AI assistants.' }
+        },
+        'setting-card-appearance': {
+          title: { zh: '外观主题', en: 'Appearance Theme' },
+          desc: { zh: '整个界面的调色主题。3 套暗色 + 3 套亮色，点选即时切换（终端配色自动跟随所选主题）。', en: 'Interface color themes: 3 dark + 3 light themes with instant live preview (terminal colors follow chosen theme).' }
+        },
+        'setting-card-terminal-theme': {
+          title: { zh: '终端主题', en: 'Terminal Theme' },
+          desc: { zh: '定制内置 Xterm 终端的高保真配色方案、字体字号与光标渲染样式', en: 'Customize built-in terminal color palette, typography and cursor style' }
+        },
+        'setting-card-models': {
+          title: { zh: '模型服务 —— 内置 AI 对话页', en: 'Model Services — Built-in AI Chat' },
+          desc: { zh: '支持 Anthropic + OpenAI 兼容 (DeepSeek / Groq / 月之暗面 / 智谱 / 本地 Ollama / vLLM ...) ；API key 走 AES-256-GCM 加密 + OS 钥匙串主密钥，明文绝不入库，前端永远拿不到明文。', en: 'Supports Anthropic + OpenAI compatible models (DeepSeek, Groq, Moonshot, Ollama, vLLM...). API keys encrypted via AES-256-GCM + OS Keychain.' }
+        },
+        'setting-card-proxy': {
+          title: { zh: '网络代理', en: 'Network Proxy' },
+          desc: { zh: '本机代理地址（如 clash 的 127.0.0.1:7890），配好后可在服务器编辑页打开「借用本机代理上网」——服务借助 SSH 反向隧道用你本机的代理上网，解决国内服务器装 GitHub 源码应用 / git clone 慢或不通的问题。', en: 'Local proxy address (e.g. 127.0.0.1:7890). Allows remote servers to tunnel through local proxy via reverse SSH for faster downloads.' }
+        },
+        'setting-card-whitelist': {
+          title: { zh: 'AI 出站地址白名单', en: 'AI Outbound Address Whitelist' },
+          desc: { zh: 'AI 执行的命令若发出外网请求，地址必须在白名单内或需显式审批。与命令黑名单互补：黑名单管「命令又改什么」（改个写注销删等），白名单管「命令要连去哪儿」——双重收割杜绝哪怕黑名单漏网也绝逃不掉的后门外带。', en: 'Outbound network requests issued by AI commands must match whitelist or require explicit approval. Complements command blacklist for defense in depth.' }
+        },
+        'setting-card-ssh-keys': {
+          title: { zh: 'SSH 密钥管理', en: 'SSH Key Management' },
+          desc: { zh: '管理用于连接远程服务器的本地 SSH 公私钥对；私钥经系统主密钥加密封存，仅在发起安全握手时解密装载进内存。', en: 'Manage local SSH keypairs for server connections; private keys sealed securely via system keychain.' }
+        },
+        'setting-card-lock': {
+          title: { zh: '主密码 / 应用锁定', en: 'Master Password & App Lock' },
+          desc: { zh: '设置进入应用或恢复挂起时的主密码锁；保护所有服务器凭据、API Keys 与排障记录不被无授权查阅。', en: 'Set master passcode for application access; prevents unauthorized inspection of servers and API credentials.' }
+        },
+        'setting-card-blacklist': {
+          title: { zh: '危险命令黑名单', en: 'Dangerous Command Blacklist' },
+          desc: { zh: '全局拦截匹配高危风险的执行命令；AI 与批量工具在执行前强制做 AST 语法分析与正则匹配，命中直接触发安全审批。', en: 'Intercept high-risk commands globally; AST syntax analysis and regex patterns trigger approval before execution.' }
+        },
+        'setting-card-audit-retention': {
+          title: { zh: '审计日志保留策略', en: 'Audit Retention Policy' },
+          desc: { zh: '配置本地与远端安全审计记录的滚动归档天数及脱敏规则；支持导出不可篡改的 SHA-256 签名存证包。', en: 'Configure retention periods and redaction rules for tamper-evident SHA-256 audit logs.' }
+        },
+        'setting-card-backup': {
+          title: { zh: '备份与还原', en: 'Backup & Restore' },
+          desc: { zh: '把服务器、凭据、知识库、部署、设置等全部数据导出一份加密备份文件，便于迁移到新设备或灾难恢复。', en: 'Export an encrypted backup file containing servers, credentials, knowledge bases, deployments and settings for easy migration or disaster recovery.' }
+        },
+        'setting-card-mobile-pairing': {
+          title: { zh: '手机应急配对 (移动端)', en: 'Mobile Emergency Pairing (Mobile App)' },
+          desc: { zh: '通过 E2EE 端到端加密二维码与 OpsPub 手机 App 配对；离开电脑时可在手机上远程审批 AI 危险指令与紧急断网。', en: 'Pair with OpsPub Mobile App via end-to-end encrypted QR code for remote emergency approval and kill-switch control.' }
+        },
+        'setting-card-license': {
+          title: { zh: '商业授权与版本管理', en: 'Commercial License & Editions' },
+          desc: { zh: '查看当前软件授权版本、激活状态、机器码与技术支持到期日；支持离线 License 导入与在线续期。', en: 'Check license tier, activation status, machine ID and updates; supports offline license key import.' }
+        },
+        'setting-card-legal': {
+          title: { zh: '法律声明与隐私合规', en: 'Legal Notices & Privacy Compliance' },
+          desc: { zh: '本地优先架构设计说明与第三方开源组件许可清单；承诺不上传用户资产信息与服务器 SSH 鉴权信息。', en: 'Local-first architecture statement and open source licenses; guarantees zero telemetry on SSH credentials.' }
+        },
+        'setting-card-community': {
+          title: { zh: '作者 & 开源社区', en: 'Author & Open Source Community' },
+          desc: { zh: '参与 OpsPub 社区交流、提交 Bug 反馈、贡献代码或查看最新路线图。', en: 'Join the OpsPub developer community, report issues, contribute plugins or view the roadmap.' }
+        },
+        'setting-card-apps': {
+          title: { zh: '生态推荐应用 (MCP 生态)', en: 'Recommended Ecosystem Apps (MCP)' },
+          desc: { zh: '精选与 OpsPub 原生互通的优质开发运维生态工具与 MCP 服务器扩展。', en: 'Curated ecosystem tools and MCP servers seamlessly integrated with OpsPub.' }
+        }
+      },
+
+      // 零散常用文本映射表
+      commonTexts: {
+        '开机自启:': 'Auto-start:',
+        '自启后收进托盘:': 'Start Minimized:',
+        '下次开机不会自动启动，需手动打开': 'Will not launch automatically on next boot; launch manually',
+        '开机自启已开启，下次登录系统时自动在后台启动': 'Auto-start enabled; will launch in background on login',
+        '登录系统后自动启动 OpsPub，不需要管理员权限': 'Launch OpsPub automatically after login without admin privileges',
+        '被系统开机自启拉起时不出窗口、不占任务栏，只常驻托盘图标 (手动打开始终正常显示窗口)，点击托盘图标唤回': 'When launched at boot, stay minimized to tray without opening window. Click tray icon to restore',
+        '(需先开启上方「开机自启」才生效)': '(Requires "Auto-start" enabled first)',
+        '每次询问': 'Ask Every Time',
+        '最小化到托盘': 'Minimize to Tray',
+        '直接退出': 'Quit Directly',
+        '关闭窗口 = 退出 OpsPub（停止后台 MCP 服务）。': 'Close window = Quit OpsPub (stop background MCP services).',
+        '关闭窗口 = 最小化到托盘（保持后台 MCP 服务与 SSH 连接）。': 'Close window = Minimize to tray (keep MCP services & SSH connections active).',
+        '界面失联时失效 AI 权限:': 'Revoke AI permissions when UI disconnects:',
+        '界面崩溃且自动重启无效时，立即停止 AI 总开关，拒绝全部待审批并锁定应用（推荐：界面没了就没人盯着 AI，而空闲自动锁定也能随界面一起失效）。': 'Immediately disable the global AI switch, reject pending approvals and lock the app when UI disconnects or crashes.',
+        '配色方案': 'Color Scheme',
+        '终端字体': 'Terminal Font',
+        '字体大小': 'Font Size',
+        '光标样式': 'Cursor Style',
+        '粘贴导入': 'Paste Import',
+        '新建模型服务': 'New Model Service',
+        'AI 回复流式输出': 'Stream AI Responses',
+        'AI 助手模型配置联动面板': 'AI Copilot Model Linkage Panel',
+        '一键返回 AI 助手': 'Back to AI Copilot',
+        '在此维护 API 服务商、Key 密匙与模型端点，配置完成后点击右侧即可一键返回对话': 'Manage API providers, keys and endpoints here; click to return to conversation',
+        '配置联动中': 'Active Linkage',
+        '保存': 'Save',
+        '留空 = 全局禁用。仅能连到服务器本机 127.0.0.1，不对外暴露你的代理。': 'Leave empty = Disabled globally. Connects to server 127.0.0.1 only, without exposing your proxy.',
+        '+ 添加出站白名单': '+ Add Whitelist',
+        '+ 添加白名单': '+ Add Whitelist',
+        '+ 生成密钥对': '+ Generate Keypair',
+        '导入私钥': 'Import Private Key',
+        '+ 添加黑名单规则': '+ Add Rule',
+        '立即备份': 'Backup Now',
+        '还原备份': 'Restore Backup',
+        '打开终端...': 'Open terminal...',
+        '同步输入': 'Sync Input',
+        '本地安全模式 · MCP 仅监听 127.0.0.1': 'Local Safe Mode · MCP 127.0.0.1',
+        '本地备份': 'Local Backup',
+        '云端同步': 'Cloud Sync',
+        '多设备同步': 'Multi-device Sync',
+        '存储端': 'Storage Endpoints',
+        '选择要备份的类别': 'Select Categories to Backup',
+        '设置备份密码': 'Set Backup Password',
+        '选择保存位置并导出': 'Choose Location & Export',
+        '选择备份文件 (.opspubbak)': 'Select Backup File (.opspubbak)'
+      }
+    };
+
+    // 应用多语言翻译逻辑
+    function applyAppLanguage(lang) {
+      document.documentElement.lang = (lang === 'en' ? 'en' : 'zh-CN');
+
+      // 1. 翻译左侧主导航栏按钮 (精确匹配 .nav-label，绝对禁止污染 .absolute 状态红/黄圆点)
+      if (I18N_TRANSLATIONS.mainNav) {
+        Object.keys(I18N_TRANSLATIONS.mainNav).forEach(id => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          
+          // 确保清理状态圆点中可能被误塞入的文字
+          const dots = btn.querySelectorAll('.absolute');
+          dots.forEach(d => { if (d.innerText) d.innerText = ''; });
+
+          // 仅对文本标签 .nav-label 进行中英文替换
+          const labelSpan = btn.querySelector('.nav-label');
+          if (labelSpan) {
+            if (!labelSpan.dataset.i18nZh) labelSpan.dataset.i18nZh = labelSpan.innerText.trim();
+            labelSpan.innerText = (lang === 'en' ? (I18N_TRANSLATIONS.mainNav[id].en || labelSpan.innerText) : labelSpan.dataset.i18nZh);
+          }
+        });
+      }
+
+      // 2. 翻译设置页左侧二级导航
+      if (I18N_TRANSLATIONS.subnav) {
+        Object.keys(I18N_TRANSLATIONS.subnav).forEach(id => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          const spans = btn.querySelectorAll('span');
+          const labelSpan = spans[spans.length - 1];
+          if (labelSpan) {
+            if (!labelSpan.dataset.i18nZh) labelSpan.dataset.i18nZh = labelSpan.innerText.trim();
+            labelSpan.innerText = (lang === 'en' ? (I18N_TRANSLATIONS.subnav[id].en || labelSpan.innerText) : labelSpan.dataset.i18nZh);
+          }
+        });
+      }
+
+      // 3. 设置页左侧二级导航分组标题
+      const asideGroups = document.querySelectorAll('#tab-settings aside .text-\\[11px\\].font-medium.text-slate-500, #tab-settings aside [class*="text-slate-500"][class*="font-medium"]');
+      const groupTitles = {
+        'zh-CN': ['外观与交互', 'AI 与网络', '安全', '数据', '关于'],
+        'en': ['Appearance & Interaction', 'AI & Network', 'Security', 'Data & Storage', 'About']
+      };
+      asideGroups.forEach((el, index) => {
+        if (!el.dataset.i18nZh) el.dataset.i18nZh = el.innerText.trim();
+        if (lang === 'en' && groupTitles.en[index]) {
+          el.innerText = groupTitles.en[index];
+        } else if (lang === 'zh-CN' && groupTitles['zh-CN'][index]) {
+          el.innerText = groupTitles['zh-CN'][index];
+        }
+      });
+
+      // 设置页左侧顶栏标题
+      const settingsAsideHeader = document.querySelector('#tab-settings aside h2');
+      const settingsAsideSub = document.querySelector('#tab-settings aside p');
+      if (settingsAsideHeader) {
+        if (!settingsAsideHeader.dataset.i18nZh) settingsAsideHeader.dataset.i18nZh = settingsAsideHeader.innerText.trim();
+        settingsAsideHeader.innerText = (lang === 'en' ? 'Settings' : settingsAsideHeader.dataset.i18nZh);
+      }
+      if (settingsAsideSub) {
+        if (!settingsAsideSub.dataset.i18nZh) settingsAsideSub.dataset.i18nZh = settingsAsideSub.innerText.trim();
+        settingsAsideSub.innerText = (lang === 'en' ? 'Model services, host ops & system policies' : settingsAsideSub.dataset.i18nZh);
+      }
+
+      // 4. 翻译设置卡片头部标题与说明
+      if (I18N_TRANSLATIONS.cards) {
+        Object.keys(I18N_TRANSLATIONS.cards).forEach(cardId => {
+          const card = document.getElementById(cardId);
+          if (!card) return;
+          const conf = I18N_TRANSLATIONS.cards[cardId];
+          
+          // 查找标题 span
+          const titleContainer = card.querySelector('div.font-medium.text-sm.text-white');
+          if (titleContainer) {
+            const spans = titleContainer.querySelectorAll('span');
+            const titleSpan = spans.length > 0 ? spans[spans.length - 1] : null;
+            if (titleSpan) {
+              if (!titleSpan.dataset.i18nZh) titleSpan.dataset.i18nZh = titleSpan.innerText.trim();
+              titleSpan.innerText = (lang === 'en' ? conf.title.en : titleSpan.dataset.i18nZh);
+            }
+          }
+
+          // 查找描述 p
+          const descEl = card.querySelector('p.text-slate-400.text-xs, p.text-\\[11px\\].text-slate-400');
+          if (descEl) {
+            if (!descEl.dataset.i18nZh) descEl.dataset.i18nZh = descEl.innerText.trim();
+            descEl.innerText = (lang === 'en' ? conf.desc.en : descEl.dataset.i18nZh);
+          }
+
+          // 针对启动行为卡片内的特殊描述与 Tooltip 气泡
+          if (cardId === 'setting-card-startup') {
+            const startupMain = document.getElementById('desc-startup-main');
+            const startupTooltip = document.getElementById('tooltip-startup-content');
+            if (startupMain) {
+              startupMain.innerText = (lang === 'en' ? conf.desc.en : conf.desc.zh);
+            }
+            if (startupTooltip && conf.tooltip) {
+              startupTooltip.innerText = (lang === 'en' ? conf.tooltip.en : conf.tooltip.zh);
+            }
+          }
+        });
+      }
+
+      // 5. 常见交互文本与按钮的智能替换
+      if (I18N_TRANSLATIONS.commonTexts) {
+        const textElements = document.querySelectorAll('#tab-settings button, #tab-settings span, #tab-settings label, #tab-settings p, #appHeader span, #appHeader button');
+        textElements.forEach(el => {
+          // 跳过包含多个复杂子标签的容器，仅处理叶子文本节点或纯文本
+          if (el.children.length > 0 && !el.classList.contains('set-subnav-btn')) return;
+          const currentTxt = el.innerText.trim();
+          
+          if (lang === 'en') {
+            if (I18N_TRANSLATIONS.commonTexts[currentTxt]) {
+              el.dataset.i18nZh = currentTxt;
+              el.innerText = I18N_TRANSLATIONS.commonTexts[currentTxt];
+            }
+          } else {
+            if (el.dataset.i18nZh) {
+              el.innerText = el.dataset.i18nZh;
+            }
+          }
+        });
+      }
+
+      // 6. 顶栏安全模式与输入框占位符
+      const headerSearchInput = document.getElementById('terminalInputSearch') || document.querySelector('#appHeader input[type="text"]');
+      if (headerSearchInput) {
+        if (!headerSearchInput.dataset.i18nZh) headerSearchInput.dataset.i18nZh = headerSearchInput.placeholder || '打开终端...';
+        headerSearchInput.placeholder = (lang === 'en' ? 'Open terminal...' : headerSearchInput.dataset.i18nZh);
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 设置语言入口函数
+    function selectSettingLanguage(lang, silent = false) {
       settingLanguage = lang;
       const btnZh = document.getElementById('btn-lang-zh');
       const btnEn = document.getElementById('btn-lang-en');
+      
       if (lang === 'zh-CN') {
         if (btnZh) {
-          btnZh.className = 'px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-medium text-xs shadow-sm transition';
+          btnZh.className = 'px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-medium text-xs shadow-sm transition cursor-pointer';
         }
         if (btnEn) {
-          btnEn.className = 'px-4 py-1.5 rounded-lg bg-[#141a22] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs transition';
+          btnEn.className = 'px-4 py-1.5 rounded-lg bg-[#141a22] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs transition cursor-pointer';
         }
-        showToast('已切换界面语言为：简体中文 (已持久化)');
+        applyAppLanguage('zh-CN');
+        try { localStorage.setItem('opspub_language', 'zh-CN'); } catch(e){}
+        if (!silent) showToast('已切换界面语言为：简体中文 (已持久化)');
       } else {
         if (btnZh) {
-          btnZh.className = 'px-4 py-1.5 rounded-lg bg-[#141a22] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs transition';
+          btnZh.className = 'px-4 py-1.5 rounded-lg bg-[#141a22] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs transition cursor-pointer';
         }
         if (btnEn) {
-          btnEn.className = 'px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-medium text-xs shadow-sm transition';
+          btnEn.className = 'px-4 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-medium text-xs shadow-sm transition cursor-pointer';
         }
-        showToast('Language switched to: English (Persisted)');
+        applyAppLanguage('en');
+        try { localStorage.setItem('opspub_language', 'en'); } catch(e){}
+        if (!silent) showToast('Language switched to: English (Persisted)');
       }
     }
-
     function toggleSettingAutostart() {
       settingAutostartEnabled = !settingAutostartEnabled;
       const toggle = document.getElementById('toggle-setting-autostart');
       const thumb = document.getElementById('thumb-setting-autostart');
       const note = document.getElementById('note-setting-autostart');
       if (settingAutostartEnabled) {
-        if (toggle) toggle.className = 'w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        if (toggle) toggle.className = 'w-9 h-5 bg-[#5b64c2] rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
         if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow';
         if (note) note.textContent = '开机自启已开启，下次登录系统时自动在后台启动';
         showToast('开机自启已开启 (写入 HKCU Run 注册表)');
@@ -24369,7 +25408,7 @@ ${resultText}
       const toggle = document.getElementById('toggle-setting-tray');
       const thumb = document.getElementById('thumb-setting-tray');
       if (settingTrayOnStartEnabled) {
-        if (toggle) toggle.className = 'w-9 h-5 bg-teal-500 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        if (toggle) toggle.className = 'w-9 h-5 bg-[#5b64c2] rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
         if (thumb) thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow';
         showToast('已开启：自启后收进托盘');
       } else {
@@ -24565,6 +25604,12 @@ ${resultText}
 
     // 在 DOM 载入后初始化气泡监听与拖拽分栏
     window.addEventListener('load', () => {
+      try {
+        const savedLang = localStorage.getItem('opspub_language');
+        if (savedLang === 'en') {
+          selectSettingLanguage('en', true);
+        }
+      } catch (e) {}
       initSidebarTooltips();
       initServerGroupResizer();
     });
@@ -24922,57 +25967,9 @@ ${resultText}
     }
 
     
-    // 字体风格偏好控制 (现代圆润 / 温润幼圆)
-    function selectFontStyle(styleKey, quiet = false) {
-      if (styleKey === 'rounded-soft') {
-        document.documentElement.setAttribute('data-font', 'rounded');
-      } else {
-        document.documentElement.removeAttribute('data-font');
-      }
-      try {
-        localStorage.setItem('opspub_font_style', styleKey);
-      } catch (e) {}
-
-      updateFontStyleUI(styleKey);
-      if (!quiet) {
-        showToast(styleKey === 'rounded-soft' ? '🌸 已切换为「温润幼圆」风格' : '✨ 已切换为「现代圆润」风格');
-      }
-    }
-
-    function updateFontStyleUI(styleKey) {
-      const btnModern = document.getElementById('font-btn-modern-round');
-      const btnSoft = document.getElementById('font-btn-rounded-soft');
-      if (!btnModern || !btnSoft) return;
-
-      if (styleKey === 'rounded-soft') {
-        btnModern.className = 'px-3.5 py-2.5 rounded-xl border border-slate-700 bg-surface-900 text-slate-300 text-xs font-medium flex items-center justify-between hover:bg-surface-850 transition cursor-pointer select-none';
-        const span1 = btnModern.querySelector('span:last-child');
-        if (span1) {
-          span1.className = 'text-[10px] font-mono text-slate-500';
-          span1.innerText = '点击切换';
-        }
-
-        btnSoft.className = 'px-3.5 py-2.5 rounded-xl border-2 border-teal-500 bg-teal-500/10 text-teal-400 text-xs font-medium flex items-center justify-between transition cursor-pointer select-none';
-        const span2 = btnSoft.querySelector('span:last-child');
-        if (span2) {
-          span2.className = 'text-[10px] font-mono font-bold text-teal-400';
-          span2.innerText = '✓ 激活';
-        }
-      } else {
-        btnModern.className = 'px-3.5 py-2.5 rounded-xl border-2 border-teal-500 bg-teal-500/10 text-teal-400 text-xs font-medium flex items-center justify-between transition cursor-pointer select-none';
-        const span1 = btnModern.querySelector('span:last-child');
-        if (span1) {
-          span1.className = 'text-[10px] font-mono font-bold text-teal-400';
-          span1.innerText = '✓ 激活';
-        }
-
-        btnSoft.className = 'px-3.5 py-2.5 rounded-xl border border-slate-700 bg-surface-900 text-slate-300 text-xs font-medium flex items-center justify-between hover:bg-surface-850 transition cursor-pointer select-none';
-        const span2 = btnSoft.querySelector('span:last-child');
-        if (span2) {
-          span2.className = 'text-[10px] font-mono text-slate-500';
-          span2.innerText = '点击切换';
-        }
-      }
+    // 默认采用高质感现代圆润字体栈 (无需手动切换)
+    function selectFontStyle(styleKey) {
+      document.documentElement.removeAttribute('data-font');
     }
 
     function selectThemeSkin(themeKey, quiet = false) {
@@ -33328,6 +34325,259 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
 
     // 默认刷新页面启动版本下载模拟 (完成后填充样式颜色并弹出右下角直接升级)
     setTimeout(startDefaultVersionDownloadSimulation, 300);
+
+    // =========================================================================
+    // 备份与还原 (Backup & Restore) 4 个子 Tab 与存储端管理核心交互
+    // =========================================================================
+    let currentBackupSubTab = 'local';
+    let storageEndpointEnabled = true;
+    let savedStorageEndpoints = [];
+
+    // 1. 切换备份卡片的 4 个子 Tab (local / cloud / sync / storage)
+    function switchBackupSubTab(tabKey) {
+      currentBackupSubTab = tabKey;
+      const subTabs = ['local', 'cloud', 'sync', 'storage'];
+      
+      subTabs.forEach(k => {
+        const btn = document.getElementById(`backup-subtab-${k}`);
+        const panel = document.getElementById(`backup-panel-${k}`);
+        
+        if (btn) {
+          if (k === tabKey) {
+            btn.className = 'pb-2.5 font-medium flex items-center space-x-1.5 transition text-indigo-400 border-b-2 border-indigo-500 cursor-pointer';
+          } else {
+            btn.className = 'pb-2.5 font-medium flex items-center space-x-1.5 transition text-slate-400 hover:text-slate-200 border-b-2 border-transparent cursor-pointer';
+          }
+        }
+        
+        if (panel) {
+          if (k === tabKey) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        }
+      });
+
+      // 如果切换到存储端 storage，确保展示列表视图
+      if (tabKey === 'storage') {
+        closeAddStorageForm();
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 2. 本地备份密码显隐切换
+    function toggleBackupPwdVisibility(inputId, eyeId) {
+      const input = document.getElementById(inputId);
+      const eye = document.getElementById(eyeId);
+      if (!input || !eye) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        eye.setAttribute('data-lucide', 'eye');
+      } else {
+        input.type = 'password';
+        eye.setAttribute('data-lucide', 'eye-off');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 3. 执行导出备份模拟
+    function executeBackupExportAction() {
+      const pwd1 = document.getElementById('backupPwdInput1')?.value;
+      const pwd2 = document.getElementById('backupPwdInput2')?.value;
+      if (!pwd1) {
+        showToast('⚠️ 请设置备份密码 (≥12位含3类字符，或≥16位)');
+        return;
+      }
+      if (pwd1 !== pwd2) {
+        showToast('⚠️ 两次输入的备份密码不一致');
+        return;
+      }
+      showToast('📦 备份导出成功！已保存至：opspub-backup-20261107.opspubbak (AES-256 加密)');
+    }
+
+    // 4. 执行本地备份文件导入
+    function executeBackupImportAction() {
+      showToast('📂 已选择备份文件：opspub-backup-20261107.opspubbak，校验解密密码中...');
+    }
+
+    // 5. 打开新增存储端表单 (对齐截图 4)
+    function openAddStorageForm() {
+      const listView = document.getElementById('backup-storage-list-view');
+      const formView = document.getElementById('backup-storage-form-view');
+      if (listView) listView.classList.add('hidden');
+      if (formView) formView.classList.remove('hidden');
+      
+      const nameInput = document.getElementById('storageFormName');
+      if (nameInput) {
+        nameInput.value = '';
+        setTimeout(() => nameInput.focus(), 60);
+      }
+      const dirInput = document.getElementById('storageFormDir');
+      if (dirInput && !dirInput.value) dirInput.value = 'opspub';
+      
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 6. 关闭新增存储端表单，返回列表 (对齐截图 3)
+    function closeAddStorageForm() {
+      const listView = document.getElementById('backup-storage-list-view');
+      const formView = document.getElementById('backup-storage-form-view');
+      if (listView) listView.classList.remove('hidden');
+      if (formView) formView.classList.add('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 7. 快速填充 WebDAV 服务商配置
+    function quickFillWebdav(provider) {
+      const nameInput = document.getElementById('storageFormName');
+      const urlInput = document.getElementById('storageFormUrl');
+      const dirInput = document.getElementById('storageFormDir');
+      
+      if (provider === 'jianguoyun') {
+        if (nameInput && !nameInput.value) nameInput.value = '坚果云-运维';
+        if (urlInput) urlInput.value = 'https://dav.jianguoyun.com/dav/';
+        if (dirInput) dirInput.value = 'opspub';
+        showToast('已填入「坚果云」WebDAV 根地址配置');
+      } else if (provider === 'infinicloud') {
+        if (nameInput && !nameInput.value) nameInput.value = 'InfiniCLOUD-备用';
+        if (urlInput) urlInput.value = 'https://teracloud.jp/dav/';
+        if (dirInput) dirInput.value = 'opspub';
+        showToast('已填入「InfiniCLOUD」WebDAV 根地址配置');
+      } else if (provider === 'nextcloud') {
+        if (nameInput && !nameInput.value) nameInput.value = '私有云-NextCloud';
+        if (urlInput) urlInput.value = 'https://nextcloud.ops.local/remote.php/dav/files/';
+        if (dirInput) dirInput.value = 'opspub';
+        showToast('已填入「NextCloud」WebDAV 根地址配置');
+      }
+    }
+
+    // 8. 存储端应用密码显隐切换
+    function toggleStoragePwdVisibility() {
+      const input = document.getElementById('storageFormPwd');
+      const eye = document.getElementById('storageFormPwdEye');
+      if (!input || !eye) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        eye.setAttribute('data-lucide', 'eye');
+      } else {
+        input.type = 'password';
+        eye.setAttribute('data-lucide', 'eye-off');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 9. 存储端启用开关切换
+    function toggleStorageEnableSwitch() {
+      storageEndpointEnabled = !storageEndpointEnabled;
+      const toggle = document.getElementById('storageToggleEnable');
+      const thumb = document.getElementById('storageThumbEnable');
+      if (!toggle || !thumb) return;
+      if (storageEndpointEnabled) {
+        toggle.className = 'w-9 h-5 bg-[#5b64c2] rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-4 shadow';
+      } else {
+        toggle.className = 'w-9 h-5 bg-slate-700 rounded-full inline-flex items-center p-0.5 cursor-pointer relative transition-colors duration-200 select-none shrink-0';
+        thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform duration-200 transform translate-x-0 shadow';
+      }
+    }
+
+    // 10. 测试 WebDAV 连接
+    function testStorageConnection() {
+      const url = document.getElementById('storageFormUrl')?.value?.trim();
+      if (!url) {
+        showToast('⚠️ 请先填写 WebDAV 地址');
+        return;
+      }
+      
+      const btn = document.getElementById('btnTestStorage');
+      const txt = document.getElementById('btnTestStorageText');
+      if (btn) btn.classList.add('opacity-70', 'pointer-events-none');
+      if (txt) txt.textContent = '测试连接中...';
+
+      setTimeout(() => {
+        if (btn) btn.classList.remove('opacity-70', 'pointer-events-none');
+        if (txt) txt.textContent = '测试连接';
+        showToast('✅ [WebDAV] 连接成功！响应 HTTP 207 Multi-Status，远端目录已就绪');
+      }, 700);
+    }
+
+    // 11. 保存存储端配置并渲染到列表
+    function saveStorageEndpoint() {
+      const name = document.getElementById('storageFormName')?.value?.trim() || '坚果云-运维';
+      const url = document.getElementById('storageFormUrl')?.value?.trim() || 'https://dav.jianguoyun.com/dav/';
+      const user = document.getElementById('storageFormUser')?.value?.trim() || 'user@example.com';
+      const dir = document.getElementById('storageFormDir')?.value?.trim() || 'opspub';
+      
+      const newEp = {
+        id: 'ep_' + Date.now(),
+        name: name,
+        url: url,
+        user: user,
+        dir: dir,
+        enabled: storageEndpointEnabled
+      };
+      
+      savedStorageEndpoints.push(newEp);
+      renderStorageEndpointsTable();
+      closeAddStorageForm();
+      showToast(`✅ 存储端「${name}」配置已成功保存！已支持云端与多设备同步`);
+    }
+
+    // 12. 渲染存储端表格
+    function renderStorageEndpointsTable() {
+      const tbody = document.getElementById('backup-storage-tbody');
+      if (!tbody) return;
+      
+      if (savedStorageEndpoints.length === 0) {
+        tbody.innerHTML = `
+          <tr id="backup-storage-empty-row">
+            <td colspan="5" class="py-14 text-center">
+              <div class="flex flex-col items-center justify-center space-y-3">
+                <div class="w-14 h-11 rounded-lg border-2 border-dashed border-slate-700/80 flex items-center justify-center text-slate-600 bg-slate-800/20">
+                  <i data-lucide="inbox" class="w-5 h-5 text-slate-500"></i>
+                </div>
+                <div class="text-xs text-slate-400">还没有存储端，点「新增存储端」配置一个</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = savedStorageEndpoints.map(ep => `
+          <tr class="hover:bg-slate-800/30 transition text-xs border-b border-slate-800/40">
+            <td class="py-3 px-4">
+              <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full ${ep.enabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}"></span>
+                <span class="font-medium text-slate-200">${ep.name}</span>
+                <span class="text-[10px] text-indigo-400 font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">WebDAV</span>
+              </div>
+            </td>
+            <td class="py-3 px-4 text-slate-400 font-mono text-[11px] truncate max-w-xs" title="${ep.url}">
+              ${ep.url}
+            </td>
+            <td class="py-3 px-4 text-slate-300 font-mono text-[11px]">
+              ${ep.user}
+            </td>
+            <td class="py-3 px-4 text-slate-500 font-mono">
+              ••••••••
+            </td>
+            <td class="py-3 px-4 text-right space-x-2">
+              <button type="button" onclick="showToast('正在测试「${ep.name}」连通性...')" class="text-indigo-400 hover:text-indigo-300 text-xs cursor-pointer">测试</button>
+              <button type="button" onclick="deleteStorageEndpoint('${ep.id}')" class="text-rose-400 hover:text-rose-300 text-xs cursor-pointer">删除</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 13. 删除存储端
+    function deleteStorageEndpoint(id) {
+      savedStorageEndpoints = savedStorageEndpoints.filter(e => e.id !== id);
+      renderStorageEndpointsTable();
+      showToast('已移除存储端配置');
+    }
 </script>
 
   <!-- 浮动悬停/点击名称气泡提示 (当侧边栏收缩时展示) -->

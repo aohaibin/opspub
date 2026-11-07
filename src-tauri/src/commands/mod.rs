@@ -1,5 +1,6 @@
 pub mod alerts;
 pub mod audit;
+pub mod backup;
 pub mod batch;
 pub mod config;
 pub mod copilot;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { Empty, Input, Slider, Spin, message } from "antd";
+import { Empty, Input, Select, Spin, message } from "antd";
 import { listen } from "@tauri-apps/api/event";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -36,7 +36,7 @@ import { SshConnectModal } from "@/components/server/SshConnectModal";
 import { TerminalPane } from "@/components/terminal/TerminalPane";
 import { TerminalSnippets } from "@/components/terminal/TerminalSnippets";
 import { TERMINAL_PASTE_EVENT } from "@/lib/terminal-interactions";
-import { getErrorMessage } from "@/lib/api/client";
+import { configApi, getErrorMessage } from "@/lib/api";
 import { serverApi } from "@/lib/api/server";
 import { ServerFormModal } from "@/pages/servers/components/ServerFormModal";
 import {
@@ -46,7 +46,8 @@ import {
 } from "@/lib/api/terminal";
 import { useAppStore } from "@/store/app";
 import { useSshSessionStore } from "@/store/ssh";
-import { useSettingsStore } from "@/store/settings";
+import { SETTINGS_KEYS, useSettingsStore, type TerminalFontSize } from "@/store/settings";
+import { TERMINAL_FONT_SIZE_OPTIONS } from "@/components/terminal/terminal-themes";
 import type {
   Server,
   ServerPayload,
@@ -112,7 +113,8 @@ export default function TerminalPage() {
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("ai");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [fontSize, setFontSize] = useState(13.5);
+  const fontSize = useSettingsStore((state) => state.terminalFontSize);
+  const setTerminalFontSize = useSettingsStore((state) => state.setTerminalFontSize);
   const lineBuffersRef = useRef(new Map<string, string>());
   const setActiveServerId = useAppStore((state) => state.setActiveServerId);
   const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
@@ -606,7 +608,6 @@ export default function TerminalPage() {
                 terminalOutputs={terminalOutputs}
                 sessionMessages={sessionMessages}
                 splitMode={splitMode}
-                fontSize={fontSize}
                 onInput={handleTerminalInput}
                 onOpenTerminal={() => setDropdownOpen(true)}
                 onResize={(sessionId, cols, rows) => {
@@ -631,7 +632,14 @@ export default function TerminalPage() {
               onClose={() => setDrawerOpen(false)}
               onInsertCommand={(value) => insertCommand(value)}
               onRunCommand={(value) => insertCommand(value, true)}
-              onFontSizeChange={setFontSize}
+              onFontSizeChange={(value: TerminalFontSize) => {
+                const previous = useSettingsStore.getState().terminalFontSize;
+                setTerminalFontSize(value);
+                void configApi.set(SETTINGS_KEYS.terminalFontSize, String(value)).catch((error) => {
+                  setTerminalFontSize(previous);
+                  message.error(getErrorMessage(error));
+                });
+              }}
               onOpenSftp={() => navigate("/sftp")}
             />
           )}
@@ -925,7 +933,6 @@ function SessionView({
   terminalOutputs,
   sessionMessages,
   splitMode,
-  fontSize,
   onInput,
   onOpenTerminal,
   onResize,
@@ -936,7 +943,6 @@ function SessionView({
   terminalOutputs: Record<string, string>;
   sessionMessages: Record<string, string>;
   splitMode: SplitMode;
-  fontSize: number;
   onInput: (sessionId: string, data: string) => void;
   onOpenTerminal: () => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
@@ -965,7 +971,6 @@ function SessionView({
             server={server}
             output={terminalOutputs[session.sessionId] ?? ""}
             statusMessage={sessionMessages[session.sessionId] ?? ""}
-            fontSize={fontSize}
             onInput={onInput}
             onResize={onResize}
             onFocus={onFocus}
@@ -1056,7 +1061,7 @@ function TerminalDrawer({
   onClose: () => void;
   onInsertCommand: (command: string) => void;
   onRunCommand: (command: string) => void;
-  onFontSizeChange: (value: number) => void;
+  onFontSizeChange: (value: TerminalFontSize) => void;
   onOpenSftp: () => void;
 }) {
   const terminalTheme = useSettingsStore((state) => state.terminalTheme);
@@ -1145,10 +1150,10 @@ function TerminalDrawer({
             <div><span>字符编码</span><strong>UTF-8</strong></div>
             <div className="ops-terminal-font-setting">
               <span>字号</span>
-              <strong>{fontSize.toFixed(1).replace(/\.0$/, "")}px</strong>
-              <Slider min={12} max={20} step={0.5} value={fontSize} onChange={onFontSizeChange} />
+              <strong>{fontSize}px</strong>
+              <Select className="w-full" value={fontSize} options={TERMINAL_FONT_SIZE_OPTIONS} onChange={(value) => onFontSizeChange(value as TerminalFontSize)} />
             </div>
-            <div><span>颜色方案</span><strong>{terminalTheme === "high-contrast" ? "High Contrast" : "OpsPub Dark"}</strong></div>
+            <div><span>颜色方案</span><strong>{({ "monokai-pro": "Monokai Pro", catppuccin: "Catppuccin", dracula: "Dracula", "matrix-green": "Matrix Green" })[terminalTheme]}</strong></div>
           </div>
         )}
         {tab === "history" && (

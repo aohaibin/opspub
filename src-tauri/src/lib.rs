@@ -140,6 +140,14 @@ pub fn run() {
         })
         // ─── Command 注册 ───────────────────────────
         .invoke_handler(tauri::generate_handler![
+            commands::backup::export_workspace_backup,
+            commands::backup::restore_workspace_backup,
+            commands::backup::list_backup_storage,
+            commands::backup::save_backup_storage,
+            commands::backup::delete_backup_storage,
+            commands::backup::test_backup_storage,
+            commands::backup::push_backup_to_storage,
+            commands::backup::pull_backup_from_storage,
             // 系统模块
             commands::system::greet,
             commands::system::get_system_info,

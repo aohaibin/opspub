@@ -5,34 +5,13 @@ import "@xterm/xterm/css/xterm.css";
 import { useSettingsStore } from "@/store";
 import { TerminalInteractions } from "@/components/terminal/TerminalInteractions";
 import type { Server, TerminalSessionInfo } from "@/types";
-
-const TERMINAL_THEMES = {
-  "opspub-dark": {
-    background: "#020409", foreground: "#d7e3f4", cursor: "#34d399",
-    cursorAccent: "#020409", selectionBackground: "#155e7566", black: "#111827",
-    red: "#fb7185", green: "#34d399", yellow: "#fbbf24", blue: "#60a5fa",
-    magenta: "#c084fc", cyan: "#22d3ee", white: "#e2e8f0", brightBlack: "#64748b",
-    brightRed: "#fda4af", brightGreen: "#6ee7b7", brightYellow: "#fde68a",
-    brightBlue: "#93c5fd", brightMagenta: "#d8b4fe", brightCyan: "#67e8f9",
-    brightWhite: "#f8fafc",
-  },
-  "high-contrast": {
-    background: "#000000", foreground: "#ffffff", cursor: "#ffffff",
-    cursorAccent: "#000000", selectionBackground: "#ffffff66", black: "#000000",
-    red: "#ff5f5f", green: "#00ff66", yellow: "#ffff00", blue: "#5fa8ff",
-    magenta: "#ff66ff", cyan: "#00ffff", white: "#ffffff", brightBlack: "#888888",
-    brightRed: "#ff8888", brightGreen: "#7dff9c", brightYellow: "#ffff88",
-    brightBlue: "#9bc7ff", brightMagenta: "#ff99ff", brightCyan: "#88ffff",
-    brightWhite: "#ffffff",
-  },
-} as const;
+import { TERMINAL_THEMES } from "@/components/terminal/terminal-themes";
 
 interface TerminalPaneProps {
   session: TerminalSessionInfo;
   server: Server;
   output: string;
   statusMessage: string;
-  fontSize: number;
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
   onFocus: (sessionId: string) => void;
@@ -43,12 +22,14 @@ export function TerminalPane({
   server,
   output,
   statusMessage,
-  fontSize,
   onInput,
   onResize,
   onFocus,
 }: TerminalPaneProps) {
   const themeId = useSettingsStore((state) => state.terminalTheme);
+  const fontSize = useSettingsStore((state) => state.terminalFontSize);
+  const lineHeight = useSettingsStore((state) => state.terminalLineHeight);
+  const cursorStyle = useSettingsStore((state) => state.terminalCursorStyle);
   const terminalTheme = TERMINAL_THEMES[themeId];
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -70,11 +51,11 @@ export function TerminalPane({
     const terminal = new Terminal({
       allowProposedApi: false,
       convertEol: false,
-      cursorBlink: true,
-      cursorStyle: "block",
+      cursorBlink: cursorStyle !== "underline",
+      cursorStyle,
       fontFamily: "Cascadia Code, JetBrains Mono, Consolas, monospace",
       fontSize,
-      lineHeight: 1.2,
+      lineHeight,
       scrollback: 8_000,
       theme: terminalTheme,
     });
@@ -127,8 +108,11 @@ export function TerminalPane({
     const terminal = terminalRef.current;
     if (!terminal) return;
     terminal.options.fontSize = fontSize;
+    terminal.options.lineHeight = lineHeight;
+    terminal.options.cursorStyle = cursorStyle;
+    terminal.options.cursorBlink = cursorStyle !== "underline";
     window.requestAnimationFrame(() => fitRef.current?.fit());
-  }, [fontSize]);
+  }, [fontSize, lineHeight, cursorStyle]);
 
   useEffect(() => {
     if (terminalRef.current) terminalRef.current.options.theme = terminalTheme;

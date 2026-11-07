@@ -30,6 +30,7 @@ export { mcpApi } from "./mcp";
 export { sensitiveApi } from "./sensitive";
 export { fileApi } from "./file";
 export { modelServiceApi } from "./model-service";
+export { backupApi } from "./backup";
 export { inspectionApi } from "./inspection";
 export { alertsApi, DEFAULT_ALERT_RULES } from "./alerts";
 export type { AlertEvent, AlertRule, AlertSeverity, AlertMetric, AlertOperator, AlertEventStatus } from "./alerts";

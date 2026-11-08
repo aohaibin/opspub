@@ -1,5 +1,8 @@
 use crate::error::CommandError;
-use crate::models::{McpClientConfig, McpStatus, McpToken, McpTokenCreated, McpTokenInput};
+use crate::models::{
+    McpClientConfig, McpClientState, McpStatus, McpToken, McpTokenCreated, McpTokenInput,
+    McpTokenTest, McpToolDefinition,
+};
 use crate::services::mcp::McpService;
 use crate::state::AppState;
 use tauri::Manager;
@@ -10,8 +13,8 @@ pub fn get_mcp_status(app: tauri::AppHandle) -> Result<McpStatus, CommandError> 
 }
 
 #[tauri::command]
-pub fn test_mcp_connection(app: tauri::AppHandle) -> Result<McpStatus, CommandError> {
-    McpService::test(&app).map_err(Into::into)
+pub async fn test_mcp_connection(app: tauri::AppHandle) -> Result<McpStatus, CommandError> {
+    blocking(move || McpService::test(&app)).await
 }
 
 #[tauri::command]
@@ -41,34 +44,68 @@ pub fn list_mcp_tokens(state: tauri::State<'_, AppState>) -> Result<Vec<McpToken
 }
 
 #[tauri::command]
-pub fn create_mcp_token(
-    state: tauri::State<'_, AppState>,
+pub async fn create_mcp_token(
+    app: tauri::AppHandle,
     input: McpTokenInput,
 ) -> Result<McpTokenCreated, CommandError> {
-    McpService::create_token(&state.db, input).map_err(Into::into)
+    blocking(move || McpService::create_token(&app.state::<AppState>().db, input)).await
 }
 
 #[tauri::command]
-pub fn revoke_mcp_token(state: tauri::State<'_, AppState>, id: i64) -> Result<bool, CommandError> {
-    McpService::revoke_token(&state.db, id).map_err(Into::into)
+pub async fn revoke_mcp_token(app: tauri::AppHandle, id: i64) -> Result<bool, CommandError> {
+    blocking(move || McpService::revoke_token(&app.state::<AppState>().db, id)).await
 }
 
 #[tauri::command]
-pub fn get_mcp_client_config(
-    state: tauri::State<'_, AppState>,
+pub async fn get_mcp_client_config(
     app: tauri::AppHandle,
     token_id: i64,
     client: String,
 ) -> Result<McpClientConfig, CommandError> {
-    McpService::client_config(&state.db, &app, token_id, &client).map_err(Into::into)
+    blocking(move || {
+        McpService::client_config(&app.state::<AppState>().db, &app, token_id, &client)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn inject_mcp_client_config(
-    state: tauri::State<'_, AppState>,
+pub async fn inject_mcp_client_config(
     app: tauri::AppHandle,
     token_id: i64,
     client: String,
 ) -> Result<McpClientConfig, CommandError> {
-    McpService::inject_config(&state.db, &app, token_id, &client).map_err(Into::into)
+    blocking(move || {
+        McpService::inject_config(&app.state::<AppState>().db, &app, token_id, &client)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn list_mcp_clients(app: tauri::AppHandle) -> Result<Vec<McpClientState>, CommandError> {
+    blocking(move || McpService::clients(&app)).await
+}
+
+#[tauri::command]
+pub fn list_mcp_tools() -> Result<Vec<McpToolDefinition>, CommandError> {
+    McpService::tools().map_err(Into::into)
+}
+
+#[tauri::command]
+pub async fn test_mcp_token(
+    app: tauri::AppHandle,
+    token_id: i64,
+) -> Result<McpTokenTest, CommandError> {
+    blocking(move || McpService::test_token(&app, token_id)).await
+}
+
+async fn blocking<T: Send + 'static>(
+    task: impl FnOnce() -> Result<T, crate::error::AppError> + Send + 'static,
+) -> Result<T, CommandError> {
+    tauri::async_runtime::spawn_blocking(task)
+        .await
+        .map_err(|_| CommandError {
+            code: "INTERNAL".into(),
+            message: "MCP 后台任务异常结束，请重试".into(),
+        })?
+        .map_err(Into::into)
 }

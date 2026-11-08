@@ -1,4 +1,5 @@
 export interface McpStatus {
+  protocolVersion: string;
   version: string;
   stdioPath: string;
   httpUrl: string;
@@ -44,4 +45,26 @@ export interface McpClientConfig {
   path: string;
   format: string;
   content: string;
+  backupPath: string | null;
+}
+
+export interface McpClientState {
+  client: string;
+  path: string;
+  state: "unconfigured" | "configured" | "outdated" | "invalid";
+  message: string;
+  tokenId: number | null;
+}
+
+export interface McpToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+export interface McpTokenTest {
+  tools: string[];
+  latencyMs: number;
+  testedAt: string;
+  message: string;
 }

@@ -808,6 +808,7 @@ pub struct AlertRule {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpStatus {
+    pub protocol_version: String,
     pub version: String,
     pub stdio_path: String,
     pub http_url: String,

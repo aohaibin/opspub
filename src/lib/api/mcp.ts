@@ -1,5 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { McpClientConfig, McpStatus, McpToken, McpTokenCreated, McpTokenInput } from "@/types/mcp";
+import type {
+  McpClientConfig,
+  McpClientState,
+  McpStatus,
+  McpToken,
+  McpTokenCreated,
+  McpTokenInput,
+  McpToolDefinition,
+  McpTokenTest,
+} from "@/types/mcp";
 
 export const mcpApi = {
   status: () => invoke<McpStatus>("get_mcp_status"),
@@ -7,8 +16,15 @@ export const mcpApi = {
   startHttp: (port?: number) => invoke<McpStatus>("start_mcp_http", { port }),
   stopHttp: () => invoke<McpStatus>("stop_mcp_http"),
   listTokens: () => invoke<McpToken[]>("list_mcp_tokens"),
-  createToken: (input: McpTokenInput) => invoke<McpTokenCreated>("create_mcp_token", { input }),
+  createToken: (input: McpTokenInput) =>
+    invoke<McpTokenCreated>("create_mcp_token", { input }),
   revokeToken: (id: number) => invoke<boolean>("revoke_mcp_token", { id }),
-  getConfig: (tokenId: number, client: string) => invoke<McpClientConfig>("get_mcp_client_config", { tokenId, client }),
-  injectConfig: (tokenId: number, client: string) => invoke<McpClientConfig>("inject_mcp_client_config", { tokenId, client }),
+  getConfig: (tokenId: number, client: string) =>
+    invoke<McpClientConfig>("get_mcp_client_config", { tokenId, client }),
+  injectConfig: (tokenId: number, client: string) =>
+    invoke<McpClientConfig>("inject_mcp_client_config", { tokenId, client }),
+  clients: () => invoke<McpClientState[]>("list_mcp_clients"),
+  tools: () => invoke<McpToolDefinition[]>("list_mcp_tools"),
+  testToken: (tokenId: number) =>
+    invoke<McpTokenTest>("test_mcp_token", { tokenId }),
 };

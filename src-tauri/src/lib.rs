@@ -19,6 +19,10 @@ pub fn run_mcp_stdio(token: String, port: u16) -> Result<(), String> {
     services::mcp::run_stdio_proxy(&token, port)
 }
 
+pub fn run_mcp_stdio_with_token_id(token_id: i64, port: u16) -> Result<(), String> {
+    services::mcp::run_stdio_with_token_id(token_id, port)
+}
+
 /// 依赖树同时包含 ring 和 aws-lc-rs 时，Rustls 不会自动选择默认 provider。
 /// 在任何数据库、更新器或远程 TLS 连接创建前显式选择 ring，避免运行时 panic。
 fn install_rustls_provider() {
@@ -269,6 +273,9 @@ pub fn run() {
             commands::mcp::revoke_mcp_token,
             commands::mcp::get_mcp_client_config,
             commands::mcp::inject_mcp_client_config,
+            commands::mcp::list_mcp_clients,
+            commands::mcp::list_mcp_tools,
+            commands::mcp::test_mcp_token,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

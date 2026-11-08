@@ -194,7 +194,7 @@ export function SshConnectModal({
             description="留空将尝试使用系统凭据管理器中已保存的凭据；输入新凭据则在验证成功后更新托管凭据。凭据不会写入资产库或审计日志。"
           />
 
-          {server?.auth_type === "key" ? (
+          {server?.auth_type === "agent" ? <Alert type="info" showIcon description="使用系统 ssh-agent 中已加载的密钥。请确保 OpenSSH Authentication Agent 已启动，并已执行 ssh-add。" /> : server?.auth_type === "key" ? (
             <>
               <Form.Item
                 name="privateKeyPath"

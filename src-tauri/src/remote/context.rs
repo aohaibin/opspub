@@ -8,10 +8,15 @@ use std::sync::Arc;
 use crate::remote::failure_tracker::FailureTracker;
 
 #[derive(Clone)]
+pub struct DeviceIdentity(pub String);
+
+#[derive(Clone)]
 pub struct RemoteContext {
     pub app_handle: tauri::AppHandle,
     pub token: Option<String>,
     pub failure_tracker: Arc<FailureTracker>,
+    pub device_channel: bool,
+    pub allowed_origin: Option<String>,
 }
 
 impl RemoteContext {
@@ -20,6 +25,8 @@ impl RemoteContext {
             app_handle,
             token,
             failure_tracker: Arc::new(FailureTracker::default()),
+            device_channel: false,
+            allowed_origin: None,
         }
     }
 }

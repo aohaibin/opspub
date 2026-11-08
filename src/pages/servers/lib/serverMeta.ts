@@ -140,6 +140,7 @@ export const AI_POLICY_ORDER: AIPolicy[] = [
 export const AUTH_TYPE_LABEL: Record<AuthType, string> = {
   password: "密码",
   key: "私钥",
+  agent: "ssh-agent",
 };
 
 export const OS_TYPE_LABEL: Record<OsType, string> = {

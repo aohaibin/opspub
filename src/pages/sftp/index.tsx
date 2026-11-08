@@ -2243,20 +2243,20 @@ export default function SftpPage() {
       />
 
       <ServerFormModal
+        allowRdp={false}
+        existingServers={servers}
         open={createModalOpen}
         server={null}
         onCancel={() => setCreateModalOpen(false)}
         onSubmit={async (payload, credentials) => {
           try {
-            const serverId = await serverApi.add(payload);
+            const serverId = await serverApi.saveForm(null, payload, credentials);
             message.success("服务器创建成功");
             setCreateModalOpen(false);
             await loadServers();
-            if (credentials) {
-              await setSharedCredentials(serverId, credentials);
-            }
-          } catch (e: any) {
-            message.error(e?.message || "创建服务器失败");
+            await setSharedCredentials(serverId, {});
+          } catch (e: unknown) {
+            throw e;
           }
         }}
       />

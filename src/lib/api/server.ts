@@ -7,6 +7,7 @@ import type {
   SshProbeResult,
   ServerPayload,
   SshConfigHost,
+  ServerFormProbeResult,
 } from "@/types";
 import type { SshCredentials } from "@/types";
 
@@ -56,6 +57,7 @@ export const serverApi = {
       serverId,
       password: credentials.password,
       privateKeyPath: credentials.privateKeyPath,
+      privateKeyText: credentials.privateKeyText,
       passphrase: credentials.passphrase,
     }),
 
@@ -65,6 +67,20 @@ export const serverApi = {
 
   /** 添加服务器，返回新记录 id */
   add: (params: ServerPayload) => invoke<number>("add_server", toIpcPayload(params)),
+
+  /** 表单保存与凭据托管在后端完成，测试令牌绑定同一份连接配置。 */
+  saveForm: (id: number | null, payload: ServerPayload, credentials?: SshCredentials) =>
+    invoke<number>("save_server_form", { request: {
+      ...toIpcPayload(payload), id, protocol: payload.protocol ?? "ssh",
+      connectionOptions: payload.connection_options, credentials,
+      verificationToken: payload.verification_token,
+    } }),
+
+  testForm: (id: number | null, payload: ServerPayload, credentials?: SshCredentials, trustedFingerprint?: string) =>
+    invoke<ServerFormProbeResult>("test_server_form", { request: {
+      ...toIpcPayload(payload), id, protocol: payload.protocol ?? "ssh",
+      connectionOptions: payload.connection_options, credentials,
+    }, trustedFingerprint }),
 
   /** 更新服务器 */
   update: (id: number, params: ServerPayload) =>

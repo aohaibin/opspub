@@ -101,6 +101,8 @@ pub fn run() {
 
             // 注册全局状态
             app.manage(AppState::new(db, verifier));
+            app.manage(services::server_import::ServerImportService::default());
+            app.manage(services::server_form::ServerFormService::default());
 
             // 只有系统启动器传入专用参数，且用户启用了启动后最小化时才隐藏主窗口。
             let started_by_autostart = std::env::args().any(|arg| arg == "--opspub-autostart");
@@ -152,6 +154,14 @@ pub fn run() {
             commands::backup::test_backup_storage,
             commands::backup::push_backup_to_storage,
             commands::backup::pull_backup_from_storage,
+            commands::device_channel::list_device_network_interfaces,
+            commands::device_channel::create_phone_pairing_session,
+            commands::device_channel::start_device_channel,
+            commands::device_channel::stop_device_channel,
+            commands::device_channel::get_device_channel_status,
+            commands::device_channel::list_paired_devices,
+            commands::device_channel::revoke_paired_device,
+            commands::device_channel::cancel_phone_pairing_session,
             // 系统模块
             commands::system::greet,
             commands::system::get_system_info,
@@ -178,6 +188,8 @@ pub fn run() {
             commands::skills::delete_user_skill,
             // 服务器模块
             commands::server::list_servers,
+            commands::server_form::save_server_form,
+            commands::server_form::test_server_form,
             commands::server::list_saved_ssh_credentials,
             commands::server::save_ssh_credentials,
             commands::server::delete_ssh_credentials,
@@ -191,6 +203,11 @@ pub fn run() {
             commands::server::test_server_connectivity,
             commands::server::test_server_ssh,
             commands::server::import_ssh_config,
+            commands::server_import::preview_server_import,
+            commands::server_import::commit_server_import,
+            commands::server_import::discard_server_import,
+            commands::server_import::save_server_import_template,
+            commands::server_import::open_server_remote_desktop,
             // 交互式终端模块
             commands::terminal::open_terminal_session,
             commands::terminal::explain_terminal_selection,

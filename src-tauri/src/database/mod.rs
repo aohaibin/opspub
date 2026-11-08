@@ -1,5 +1,8 @@
 mod action_plan;
 mod copilot_policy;
+mod device_channel;
+mod server_import;
+mod server_form;
 mod policy_rules;
 pub mod schema;
 
@@ -27,7 +30,7 @@ const SERVER_COLUMNS: &str =
     "id, alias, hostname, port, username, auth_type, tags, `group`, ai_policy, os_type, \
      favorite, arch, last_used_at, host_key_fingerprint, last_connection_status, \
      last_connection_message, last_connected_at, allow_sudo, use_local_proxy, bastion_id, \
-     ai_username, created_at, updated_at";
+     ai_username, created_at, updated_at, protocol, connection_options";
 
 const DATABASE_CONNECTION_COLUMNS: &str =
     "id, name, server_id, engine, host, port, username, database_name, db_index, \
@@ -68,6 +71,9 @@ fn map_server_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Server> {
         ai_username: row.get(20)?,
         created_at: row.get(21)?,
         updated_at: row.get(22)?,
+        protocol: row.get(23)?,
+        connection_options: serde_json::from_str(&row.get::<_, String>(24)?).map_err(|e|
+            rusqlite::Error::FromSqlConversionFailure(24, rusqlite::types::Type::Text, Box::new(e)))?,
     })
 }
 

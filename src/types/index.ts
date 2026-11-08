@@ -26,6 +26,8 @@ export type {
   SshProbeRequest,
   SshProbeResult,
   ServerPayload,
+  ServerConnectionOptions,
+  ServerFormProbeResult,
   SshConfigHost,
 } from "./server";
 export type {

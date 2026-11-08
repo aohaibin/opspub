@@ -22,6 +22,7 @@ export const useSshSessionStore = create<SshSessionStore>((set, get) => ({
     const hasCredential = Boolean(
       credentials.password?.trim()
       || credentials.privateKeyPath?.trim()
+      || credentials.privateKeyText?.trim()
     );
     if (!hasCredential) {
       // 空值只用于标记后端已通过系统凭据库验证成功，不覆盖凭据库中的秘密。

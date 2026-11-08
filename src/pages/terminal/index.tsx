@@ -308,17 +308,17 @@ export default function TerminalPage() {
     credentials?: SshCredentials,
   ) => {
     try {
-      const serverId = await serverApi.add(payload);
+      const serverId = await serverApi.saveForm(null, payload, credentials);
       message.success("服务器已纳管");
       setCreateServerOpen(false);
 
       const nextServers = await loadServers();
       const savedServer = nextServers.find((server) => server.id === serverId);
-      if (credentials && savedServer) {
-        await setSharedCredentials(savedServer.id, credentials);
+      if (savedServer) {
+        await setSharedCredentials(savedServer.id, {});
       }
     } catch (error) {
-      message.error(getErrorMessage(error));
+      throw error;
     }
   };
 
@@ -669,6 +669,7 @@ export default function TerminalPage() {
       />
 
       <ServerFormModal
+        allowRdp={false}
         open={createServerOpen}
         server={null}
         existingServers={servers}

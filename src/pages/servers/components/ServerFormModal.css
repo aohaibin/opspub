@@ -1,0 +1,126 @@
+.server-form-modal .ant-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.server-form-modal .ant-modal {
+  padding-bottom: 0;
+}
+.server-form-modal .ant-modal-body {
+  scrollbar-gutter: stable;
+}
+.server-form-modal .ant-btn {
+  border-radius: 8px;
+  font-size: 13px;
+}
+.server-form .ant-form-item {
+  margin-bottom: 16px;
+}
+.server-form .ant-form-item-row {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+.server-form .ant-form-item-label {
+  padding-right: 12px;
+}
+.server-form .ant-form-item-label > label {
+  height: 36px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.server-form .ant-form-item-control {
+  min-width: 0;
+}
+.server-form .ant-input,
+.server-form .ant-input-number,
+.server-form .ant-input-affix-wrapper,
+.server-form .ant-select,
+.server-form .ant-segmented,
+.server-form .ant-checkbox-wrapper {
+  font-size: 13px;
+}
+.server-form .ant-input:not(textarea),
+.server-form .ant-input-affix-wrapper,
+.server-form .ant-select,
+.server-form .ant-input-number {
+  min-height: 36px;
+  border-radius: 8px;
+}
+.server-form .ant-input-affix-wrapper .ant-input {
+  min-height: auto;
+}
+.server-form .ant-form-item-extra,
+.server-form-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.65;
+  padding-top: 5px;
+}
+.server-form-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.server-form-label svg {
+  color: var(--text-muted);
+  cursor: help;
+}
+.server-form-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.server-form-pair > .ant-input {
+  flex: 1;
+  min-width: 0;
+}
+.server-form-inline-label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-size: 13px;
+}
+.server-form-pair .server-form-port {
+  flex: 0 0 80px;
+  width: 80px;
+}
+.server-form-pair .server-form-auth {
+  flex: 0 0 132px;
+  width: 132px;
+}
+.server-form-banner {
+  margin-bottom: 16px;
+}
+.server-form-banner .ant-alert-description,
+.server-form-feedback .ant-alert-description {
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.server-form-divider {
+  border-top: 1px solid var(--border);
+  padding: 14px 0 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.server-form-feedback {
+  margin-top: 16px;
+}
+@media (max-width: 560px) {
+  .server-form-modal .ant-modal-body {
+    padding: 16px !important;
+  }
+  .server-form .ant-form-item-row {
+    display: block;
+  }
+  .server-form .ant-form-item-label {
+    text-align: left;
+    padding-bottom: 4px;
+  }
+  .server-form .ant-form-item-label > label {
+    height: auto;
+  }
+  .server-form-pair {
+    flex-wrap: wrap;
+  }
+}

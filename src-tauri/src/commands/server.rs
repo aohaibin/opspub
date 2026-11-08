@@ -25,6 +25,13 @@ pub fn list_saved_ssh_credentials(
     let servers = ServerService::get_all(&state.db).map_err(CommandError::from)?;
     let mut result = Vec::new();
     for server in servers {
+        if server.protocol == "rdp" {
+            continue;
+        }
+        if server.auth_type == "agent" {
+            result.push(server.id);
+            continue;
+        }
         if CredentialService::get(server.id)
             .map_err(CommandError::from)?
             .is_some()
@@ -41,6 +48,7 @@ pub fn save_ssh_credentials(
     server_id: i64,
     password: Option<String>,
     private_key_path: Option<String>,
+    private_key_text: Option<String>,
     passphrase: Option<String>,
 ) -> Result<(), CommandError> {
     CredentialService::save(
@@ -48,6 +56,7 @@ pub fn save_ssh_credentials(
         &StoredSshCredential {
             password,
             private_key_path,
+            private_key_text,
             passphrase,
         },
     )

@@ -1,6 +1,8 @@
 export type SettingsLanguage = "zh-CN" | "en-US";
 
 const en: Record<string, string> = {
+  "配对服务只绑定所选私网网卡，120 秒后自动关闭，绝不监听公网。": "Pairing binds only to the selected private adapter and closes after 120 seconds. It never listens on a public interface.",
+  "让配对过的手机连回这台电脑，进行审批、应急锁定、AI 对话和知识库查询。": "Connect paired phones to this computer for approvals, emergency locking, AI chat, and knowledge search.",
   "设置": "Settings", "系统与 AI 配置中心": "System and AI configuration center",
   "外观与交互": "Appearance & Interaction", "AI 与网络": "AI & Network", "安全": "Security", "数据": "Data & Storage", "关于": "About",
   "系统与 AI 设置": "System & AI Settings", "外观、窗口行为、模型服务与本地安全策略的统一配置面板": "Configure appearance, window behavior, model services, and local security policies.", "本地配置": "Local settings",
@@ -19,7 +21,8 @@ const en: Record<string, string> = {
   "命令黑名单": "Command Blocklist", "危险命令默认拦截，所有命中记录都会进入审计日志。": "Dangerous commands are blocked by default. Matches are recorded in the audit log.", "规则": "Rule", "说明": "Description", "来源": "Source", "删除根目录": "Delete the root directory", "格式化磁盘": "Format a disk", "删除数据库": "Drop a database", "内置": "Built-in",
   "审计保留": "Audit Retention", "定期清理过期审计行，避免长期运行后本地数据库膨胀。": "Periodically remove expired audit records to keep the local database small.", "天": "days", "保存": "Save",
   "备份与还原": "Backup & Restore", "服务器连接、审计日志与本地配置可打包为加密归档。": "Export server connections, audit logs, and local settings as an encrypted archive.", "导出本地加密数据包": "Export encrypted local archive", "从备份文件还原工作区": "Restore workspace from backup",
-  "手机配对": "Mobile Pairing", "配对移动端审批助手，接收高风险操作通知。": "Pair the mobile approval assistant to receive high-risk operation alerts.", "暂无已绑定设备": "No paired devices", "扫描二维码后接收审批通知": "Scan the QR code to receive approval notifications", "刷新配对码": "Refresh pairing code",
+  "手机配对": "Mobile Pairing", "配对手机": "Pair mobile device",
+  "设备通道": "Device Channel",
   "法律声明与隐私保障": "Legal & Privacy", "全量数据优先驻留本地，未经授权不向外部发送敏感信息。": "Data stays local by default. Sensitive information is never sent externally without authorization.", "数据存储": "Data storage", "本地优先": "Local first", "敏感凭据": "Sensitive credentials", "系统托管": "System managed", "遥测": "Telemetry", "默认关闭": "Off by default",
   "作者 & 社区": "Author & Community", "获取项目更新、问题反馈和使用帮助。": "Get project updates, report issues, and find help.", "问题反馈": "Feedback", "版本更新": "Updates", "推荐应用": "Recommended Apps", "与 OpsPub 配合使用的终端、编辑器和安全工具。": "Terminal, editor, and security tools for use with OpsPub.", "终端会话": "Terminal sessions", "配置与脚本": "Configuration & scripts", "凭据托管": "Credential management",
   "AI 助手模型配置": "AI Copilot Model Settings", "配置完成后返回 AI 助手即可直接使用本次选择的模型。": "Return to AI Copilot after setup to use the selected model.", "返回 AI 助手": "Back to AI Copilot", "条配置 · API 密钥由系统凭据管理器托管": "profiles · API keys are stored in the system credential manager", "粘贴导入": "Paste Import", "新增模型服务": "Add Model Service", "正在读取模型服务配置...": "Loading model service settings...", "尚未配置模型服务": "No model services configured", "添加后可在此管理、验证和导出模型配置。": "Add a service to manage, verify, and export its configuration here.", "OpenAI 兼容": "OpenAI-compatible", "密钥已托管": "Key managed", "未配置密钥": "No key configured", "未选择模型": "No model selected", "使用预置端点": "Using preset endpoint", "导出": "Export", "编辑": "Edit", "删除": "Delete",

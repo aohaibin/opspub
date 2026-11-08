@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 /// 当前 Schema 版本
-pub const SCHEMA_VERSION: i32 = 14;
+pub const SCHEMA_VERSION: i32 = 17;
 
 /// 获取数据库版本
 pub fn get_version(conn: &Connection) -> Result<i32, AppError> {
@@ -44,6 +44,9 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
             11 => migrate_v11_to_v12(conn)?,
             12 => migrate_v12_to_v13(conn)?,
             13 => migrate_v13_to_v14(conn)?,
+            14 => migrate_v14_to_v15(conn)?,
+            15 => migrate_v15_to_v16(conn)?,
+            16 => migrate_v16_to_v17(conn)?,
             _ => {
                 return Err(AppError::Custom(format!("未知的数据库版本: {}", version)));
             }
@@ -52,6 +55,16 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
     }
 
     log::info!("数据库迁移完成, 当前版本: {}", version);
+    Ok(())
+}
+
+fn migrate_v16_to_v17(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch("BEGIN; ALTER TABLE servers ADD COLUMN connection_options TEXT NOT NULL DEFAULT '{}'; PRAGMA user_version=17; COMMIT;")?;
+    Ok(())
+}
+
+fn migrate_v15_to_v16(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch("BEGIN; ALTER TABLE servers ADD COLUMN protocol TEXT NOT NULL DEFAULT 'ssh' CHECK (protocol IN ('ssh','rdp')); PRAGMA user_version=16; COMMIT;")?;
     Ok(())
 }
 
@@ -478,6 +491,20 @@ fn migrate_v13_to_v14(conn: &Connection) -> Result<(), AppError> {
     Ok(())
 }
 
+// 设备凭据只保存 SHA-256 摘要，备份和数据库读取都不能还原手机令牌。
+fn migrate_v14_to_v15(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS paired_devices (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            created_at INTEGER NOT NULL,
+            last_seen_at INTEGER
+        );",
+    )?;
+    set_version(conn, 15)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{migrate, SCHEMA_VERSION};
@@ -486,6 +513,8 @@ mod tests {
     #[test]
     fn migration_v14_creates_plan_and_policy_tables() {
         let conn = Connection::open_in_memory().expect("open in-memory database");
+        // v11 数据库已经有 servers 表；后续迁移会为该表添加连接选项。
+        conn.execute_batch("CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT)").expect("v11 server table");
         conn.pragma_update(None, "user_version", 11)
             .expect("set starting schema version");
 

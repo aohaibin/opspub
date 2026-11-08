@@ -13,6 +13,23 @@ pub struct FailureTracker {
     window: Duration,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn expired_failures_do_not_permanently_lock_the_channel() {
+        let tracker = FailureTracker::default();
+        for _ in 0..10 {
+            tracker.record_failure();
+        }
+        assert!(tracker.is_locked());
+        for time in tracker.failures.lock().expect("tracker").iter_mut() {
+            *time = Instant::now() - Duration::from_secs(61);
+        }
+        assert!(!tracker.is_locked());
+    }
+}
+
 impl Default for FailureTracker {
     fn default() -> Self {
         Self {
@@ -43,8 +60,17 @@ impl FailureTracker {
     /// 当前窗口内失败次数是否触达阈值。
     pub fn is_locked(&self) -> bool {
         match self.failures.lock() {
-            Ok(q) => q.len() >= self.threshold,
-            Err(_) => false,
+            Ok(mut q) => {
+                let now = Instant::now();
+                while q
+                    .front()
+                    .is_some_and(|time| now.duration_since(*time) > self.window)
+                {
+                    q.pop_front();
+                }
+                q.len() >= self.threshold
+            }
+            Err(_) => true,
         }
     }
 }

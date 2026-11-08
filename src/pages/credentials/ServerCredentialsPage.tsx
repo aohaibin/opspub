@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/client";
 import { serverApi } from "@/lib/api/server";
+import { serverImportApi } from "@/lib/api/server-import";
 import { SshConnectModal } from "@/components/server/SshConnectModal";
 import { useSshSessionStore } from "@/store/ssh";
 import type { Server as ServerRecord, SshCredentials, SshProbeResult } from "@/types";
@@ -25,6 +26,8 @@ const statusMeta: Record<string, { label: string; color: "success" | "warning" |
 };
 
 function authLabel(server: ServerRecord) {
+  if (server.protocol === "rdp") return "远程桌面（系统登录）";
+  if (server.auth_type === "agent") return "SSH Agent";
   return server.auth_type === "key" ? "SSH 私钥" : "SSH 密码";
 }
 
@@ -163,8 +166,12 @@ export default function ServerCredentialsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {cached ? (
-                          <Tag icon={<CheckCircle2 size={12} />} color="success">已托管到本机会话</Tag>
+                        {server.protocol === "rdp" ? (
+                          <Tag>由系统远程桌面客户端登录</Tag>
+                        ) : server.auth_type === "agent" ? (
+                          <Tag>使用系统 ssh-agent</Tag>
+                        ) : cached ? (
+                          <Tag icon={<CheckCircle2 size={12} />} color="success">已托管到系统凭据管理器</Tag>
                         ) : (
                           <Tag color={meta.color}>{meta.label}</Tag>
                         )}
@@ -172,10 +179,13 @@ export default function ServerCredentialsPage() {
                       <td className="px-4 py-3 text-[11px]" style={{ color: "var(--text-muted)" }}>{server.last_connected_at || "尚未验证"}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
-                          <Button size="small" type={cached ? "default" : "primary"} icon={<Wifi size={13} />} onClick={() => setActiveServer(server)}>
-                            {cached ? "重新验证" : "连接并托管"}
+                          <Button size="small" type={cached ? "default" : "primary"} icon={<Wifi size={13} />} onClick={() => {
+                            if (server.protocol === "rdp") void serverImportApi.openRemoteDesktop(server.id).catch(error => message.error(getErrorMessage(error)));
+                            else setActiveServer(server);
+                          }}>
+                            {server.protocol === "rdp" ? "远程桌面" : server.auth_type === "agent" ? "验证连接" : cached ? "重新验证" : "连接并托管"}
                           </Button>
-                          {cached && (
+                          {cached && server.auth_type !== "agent" && (
                             <Popconfirm title="清除本机会话凭证？" description="清除后下次进入终端或 SFTP 需要重新验证，不会删除服务器配置。" okText="清除" cancelText="取消" onConfirm={() => handleForget(server)}>
                               <Button size="small" danger type="text" icon={<Trash2 size={14} />} aria-label={`清除 ${server.alias} 凭证`} />
                             </Popconfirm>

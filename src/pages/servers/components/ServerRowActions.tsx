@@ -5,6 +5,7 @@ import {
   FolderSync,
   LayoutDashboard,
   Network,
+  Monitor,
   Pencil,
   SquareTerminal,
   Trash2,
@@ -50,12 +51,12 @@ function ActionIconButton({
   );
 }
 
-function ConnectButton({ onClick }: { onClick: () => void }) {
+function ConnectButton({ onClick, rdp = false }: { onClick: () => void; rdp?: boolean }) {
   return (
-    <Tooltip title="立即发起终端连接" placement="top">
+    <Tooltip title={rdp ? "打开系统远程桌面客户端" : "立即发起终端连接"} placement="top">
       <button type="button" onClick={onClick} className="ops-server-connect-button">
-        <SquareTerminal size={14} />
-        <span>连接</span>
+        {rdp ? <Monitor size={14} /> : <SquareTerminal size={14} />}
+        <span>{rdp ? "远程桌面" : "连接"}</span>
       </button>
     </Tooltip>
   );
@@ -67,6 +68,7 @@ interface ServerRowActionsProps {
   onConnect: (server: Server) => void;
   onOpenSftp: (server: Server) => void;
   onOpenWorkbench: (server: Server) => void;
+  onOpenRdp: (server: Server) => void;
   onProbe: (server: Server) => void;
   onOpenTunnel: (server: Server) => void;
   onOpenCredentials: (server: Server) => void;
@@ -81,6 +83,7 @@ export function ServerRowActions({
   onConnect,
   onOpenSftp,
   onOpenWorkbench,
+  onOpenRdp,
   onProbe,
   onOpenTunnel,
   onOpenCredentials,
@@ -89,11 +92,12 @@ export function ServerRowActions({
 }: ServerRowActionsProps) {
   return (
     <div className="flex items-center justify-end flex-nowrap gap-1">
-      <ConnectButton onClick={() => onConnect(server)} />
-      <ActionIconButton title="在 SFTP 中打开" tone="success" onClick={() => onOpenSftp(server)}>
+      <ConnectButton rdp={server.protocol === "rdp"} onClick={() => onConnect(server)} />
+      {server.protocol !== "rdp" && server.connection_options?.rdpEnabled && <ActionIconButton title="远程桌面" tone="info" onClick={() => onOpenRdp(server)}><Monitor size={14} /></ActionIconButton>}
+      <ActionIconButton title="在 SFTP 中打开" disabled={server.protocol === "rdp"} tone="success" onClick={() => onOpenSftp(server)}>
         <FolderSync size={14} />
       </ActionIconButton>
-      <ActionIconButton title="打开工作台" onClick={() => onOpenWorkbench(server)}>
+      <ActionIconButton title="打开工作台" disabled={server.protocol === "rdp"} onClick={() => onOpenWorkbench(server)}>
         <LayoutDashboard size={14} />
       </ActionIconButton>
       <ActionIconButton
@@ -104,7 +108,7 @@ export function ServerRowActions({
       >
         <Wifi size={14} className={probing ? "animate-pulse" : undefined} />
       </ActionIconButton>
-      <ActionIconButton title="隧道" tone="info" onClick={() => onOpenTunnel(server)}>
+      <ActionIconButton title="隧道" disabled={server.protocol === "rdp"} tone="info" onClick={() => onOpenTunnel(server)}>
         <Network size={14} />
       </ActionIconButton>
       <ActionIconButton title="服务凭证" tone="success" onClick={() => onOpenCredentials(server)}>

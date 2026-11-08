@@ -65,6 +65,18 @@ uuid = { version = "1", features = ["serde", "v4"] }
 axum = { version = "0.7", features = ["ws", "multipart"] }
 tower-http = { version = "0.5", features = ["cors"] }
 tokio = { version = "1", features = ["full"] }
+if-addrs = "0.13"
+# 本机服务器清单导入：表格解析、模板生成与 FinalShell 旧版密码格式兼容。
+calamine = "0.38"
+csv = "1"
+rust_xlsxwriter = "0.102"
+base64 = "0.22"
+des = "0.8"
+md-5 = "0.10"
+encoding_rs = "0.8"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 # ─── 编译优化 ─────────────────────────────
 

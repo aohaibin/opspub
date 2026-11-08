@@ -11,6 +11,9 @@ export interface Server {
   group: string;
   ai_policy: string;
   os_type: string;
+  /** 默认 SSH；导入的 RDP 条目只允许打开远程桌面。 */
+  protocol?: "ssh" | "rdp";
+  connection_options?: ServerConnectionOptions;
   /** 是否收藏（左侧「我的收藏」分组） */
   favorite: boolean;
   /** CPU 架构；空串表示尚未探测，不要当成 linux/amd64 展示 */
@@ -59,7 +62,7 @@ export type AIPolicy =
   | 'denied';
 
 /** 认证方式 */
-export type AuthType = 'password' | 'key';
+export type AuthType = 'password' | 'key' | 'agent';
 
 /** 操作系统 */
 export type OsType = 'linux' | 'windows';
@@ -80,6 +83,7 @@ export interface ConnectivityResult {
 export interface SshCredentials {
   password?: string;
   privateKeyPath?: string;
+  privateKeyText?: string;
   passphrase?: string;
 }
 
@@ -119,6 +123,23 @@ export interface ServerPayload {
   use_local_proxy?: boolean;
   bastion_id?: number | null;
   ai_username?: string;
+  protocol?: "ssh" | "rdp";
+  connection_options?: ServerConnectionOptions;
+  verification_token?: string;
+}
+
+export interface ServerConnectionOptions {
+  networkEnv: "auto" | "public" | "lan" | "cross_border";
+  connectionProxy: string;
+  rdpEnabled: boolean;
+  rdpPort: number;
+  rdpDisplayMode: "system" | "fullscreen" | "1920x1080" | "1440x900";
+  rdpAdminSession: boolean;
+}
+
+export interface ServerFormProbeResult {
+  result: SshProbeResult;
+  verificationToken: string | null;
 }
 
 /** 从 ~/.ssh/config 解析出的主机条目（仅用于导入预览） */

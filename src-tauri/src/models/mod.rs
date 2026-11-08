@@ -1,4 +1,7 @@
 use serde::{Deserialize, Serialize};
+pub mod device_channel;
+pub mod server_import;
+pub mod server_form;
 
 /// 应用配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,6 +113,12 @@ pub struct Server {
     pub group: String,
     pub ai_policy: String, // "trusted" / "allowlist" / "approval" / "denied"
     pub os_type: String,   // "linux" / "windows"
+    /// rdp 条目仅供打开系统远程桌面客户端，不能误送 SSH/SFTP。
+    #[serde(default = "default_server_protocol")]
+    pub protocol: String,
+    /// 连接相关的非敏感选项；密码和私钥始终保存在系统凭据管理器。
+    #[serde(default)]
+    pub connection_options: server_form::ServerConnectionOptions,
     /// 是否收藏（左侧分组树「我的收藏」）
     pub favorite: bool,
     /// CPU 架构，空串表示尚未探测（不要当成 linux/amd64 处理）
@@ -134,6 +143,10 @@ pub struct Server {
     pub ai_username: String,
     pub created_at: String,
     pub updated_at: String,
+}
+
+fn default_server_protocol() -> String {
+    "ssh".into()
 }
 
 /// SFTP 操作的短时认证请求。
@@ -508,6 +521,7 @@ pub struct SshProbeRequest {
     pub server_id: i64,
     pub password: Option<String>,
     pub private_key_path: Option<String>,
+    pub private_key_text: Option<String>,
     pub passphrase: Option<String>,
     #[serde(default)]
     pub trust_host_key: bool,
@@ -521,6 +535,7 @@ pub struct SshProbeRequest {
 pub struct StoredSshCredential {
     pub password: Option<String>,
     pub private_key_path: Option<String>,
+    pub private_key_text: Option<String>,
     pub passphrase: Option<String>,
 }
 
@@ -863,4 +878,32 @@ pub struct McpClientConfig {
     pub path: String,
     pub format: String,
     pub content: String,
+    pub backup_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpClientState {
+    pub client: String,
+    pub path: String,
+    pub state: String,
+    pub message: String,
+    pub token_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpToolDefinition {
+    pub name: String,
+    pub description: String,
+    pub input_schema: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpTokenTest {
+    pub tools: Vec<String>,
+    pub latency_ms: u64,
+    pub tested_at: String,
+    pub message: String,
 }

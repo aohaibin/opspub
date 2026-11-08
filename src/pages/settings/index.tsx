@@ -32,6 +32,7 @@ import {
   Network,
   Plus,
   Palette,
+  Radio as RadioIcon,
   Plug,
   RefreshCw,
   Repeat,
@@ -50,6 +51,7 @@ import {
 } from "lucide-react";
 import { backupApi, configApi, getErrorMessage } from "@/lib/api";
 import type { BackupStorageEndpoint, BackupStorageInput } from "@/lib/api/backup";
+import { DeviceChannelSettings, MobilePairingSettings } from "./DeviceSettings";
 import { SETTINGS_KEYS, useSettingsStore, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme } from "@/store/settings";
 import { TERMINAL_CURSOR_OPTIONS, TERMINAL_FONT_SIZE_OPTIONS, TERMINAL_LINE_HEIGHT_OPTIONS, TERMINAL_THEME_OPTIONS } from "@/components/terminal/terminal-themes";
 import { SKINS, useAppStore, type SkinId, type ThemeMode } from "@/store/app";
@@ -72,6 +74,7 @@ type SettingsSection =
   | "audit-retention"
   | "backup"
   | "mobile-pairing"
+  | "device-channel"
   | "legal"
   | "community"
   | "apps";
@@ -111,6 +114,7 @@ const NAV_GROUPS: Array<{ title: string; items: Array<{ id: SettingsSection; lab
     items: [
       { id: "backup", label: "备份与还原", icon: Database },
       { id: "mobile-pairing", label: "手机配对", icon: Smartphone },
+      { id: "device-channel", label: "设备通道", icon: RadioIcon },
     ],
   },
   {
@@ -545,8 +549,12 @@ export default function SettingsPage() {
           <BackupSettings />
         </SettingCard>
 
-        <SettingCard id="mobile-pairing" icon={<Smartphone size={15} />} title="手机配对" desc="配对移动端审批助手，接收高风险操作通知。">
-          <div className="flex items-center gap-4"><div className="flex h-24 w-24 items-center justify-center rounded-xl bg-white text-center font-mono text-[10px] text-slate-900">[ QR CODE ]</div><div><div className="font-semibold text-slate-200">{t("暂无已绑定设备")}</div><p className="mt-1 text-sm text-slate-500">{t("扫描二维码后接收审批通知")}</p><StaticButton className="mt-2">刷新配对码</StaticButton></div></div>
+        <SettingCard id="mobile-pairing" icon={<Smartphone size={15} />} title="手机配对" desc="配对服务只绑定所选私网网卡，120 秒后自动关闭，绝不监听公网。">
+          <MobilePairingSettings />
+        </SettingCard>
+
+        <SettingCard id="device-channel" icon={<RadioIcon size={15} />} title="设备通道" desc="让配对过的手机连回这台电脑，进行审批、应急锁定、AI 对话和知识库查询。">
+          <DeviceChannelSettings />
         </SettingCard>
 
         <SettingCard id="legal" icon={<FileText size={15} />} title="法律声明与隐私保障" desc="全量数据优先驻留本地，未经授权不向外部发送敏感信息。" hideHeader>

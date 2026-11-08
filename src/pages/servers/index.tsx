@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { useNavigate } from "react-router-dom";
 import {
   Button,
+  Dropdown,
   Input,
   Modal,
   Select,
@@ -13,6 +14,10 @@ import {
 } from "antd";
 import {
   FileCode,
+  ChevronDown,
+  FileSpreadsheet,
+  Folder,
+  Upload,
   Loader2,
   Lock,
   Monitor,
@@ -46,7 +51,8 @@ import {
 import { ServerFormModal } from "./components/ServerFormModal";
 import { BatchActionBar } from "./components/BatchActionBar";
 import { WindowsGuideModal } from "./components/WindowsGuideModal";
-import { ImportSSHConfigModal } from "./components/ImportSSHConfigModal";
+import { ImportServersModal } from "./components/ImportServersModal";
+import { serverImportApi, type ServerImportSource } from "@/lib/api/server-import";
 import { AiPolicyBadge } from "./components/AiPolicyBadge";
 import { AiApprovalBypassPopover } from "./components/AiApprovalBypassPopover";
 import { ServerRowActions } from "./components/ServerRowActions";
@@ -114,7 +120,7 @@ export default function ServersPage() {
   const [presetGroup, setPresetGroup] = useState<string | undefined>(undefined);
 
   const [windowsGuideOpen, setWindowsGuideOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
+  const [importSource, setImportSource] = useState<ServerImportSource | null>(null);
   const [sshServer, setSshServer] = useState<Server | null>(null);
   const [sshInitialCredentials, setSshInitialCredentials] = useState<SshCredentials>();
 
@@ -302,27 +308,20 @@ export default function ServersPage() {
 
   const handleSave = async (payload: ServerPayload, credentials?: SshCredentials) => {
     try {
-      let savedServerId: number;
-      if (editingServer) {
-        await serverApi.update(editingServer.id, payload);
-        savedServerId = editingServer.id;
-        message.success("服务器已更新");
-      } else {
-        savedServerId = await serverApi.add(payload);
-        message.success("服务器已纳管");
-      }
+      const savedServerId = await serverApi.saveForm(editingServer?.id ?? null, payload, credentials);
+      message.success(editingServer ? "服务器已更新" : "服务器已纳管");
       setFormOpen(false);
       setEditingServer(null);
       setPresetGroup(undefined);
       const nextServers = await loadServers();
       const savedServer = nextServers.find((item) => item.id === savedServerId);
-      if (credentials && savedServer) {
+      if (savedServer && savedServer.protocol !== "rdp") {
         // 服务器表单已经收集了认证信息，验证后交给系统凭据管理器托管。
         // 终端、SFTP 和工作台后续入口会在 Rust 侧复用它，只有凭证缺失或失效时才要求验证。
-        await setSharedCredentials(savedServer.id, credentials);
+        await setSharedCredentials(savedServer.id, {});
       }
     } catch (e) {
-      message.error(getErrorMessage(e));
+      throw e;
     }
   };
 
@@ -530,7 +529,7 @@ export default function ServersPage() {
     hostname: s.hostname,
     port: s.port,
     username: s.username,
-    auth_type: (s.auth_type === "key" ? "key" : "password") as AuthType,
+    auth_type: (s.auth_type === "agent" ? "agent" : s.auth_type === "key" ? "key" : "password") as AuthType,
     group: newGroup,
     tags: s.tags,
     os_type: (s.os_type === "windows" ? "windows" : "linux") as OsType,
@@ -779,9 +778,13 @@ export default function ServersPage() {
         <ServerRowActions
           server={server}
           probing={probeStates[server.id] === "testing"}
-          onConnect={(item) => goModule("terminal", item)}
+          onConnect={(item) => {
+            if (item.protocol === "rdp") void serverImportApi.openRemoteDesktop(item.id).catch(e => message.error(getErrorMessage(e)));
+            else goModule("terminal", item);
+          }}
           onOpenSftp={(item) => goModule("sftp", item)}
           onOpenWorkbench={(item) => goModule("workbench", item)}
+          onOpenRdp={(item) => void serverImportApi.openRemoteDesktop(item.id).catch(e => message.error(getErrorMessage(e)))}
           onProbe={handleProbe}
           onOpenTunnel={(item) => message.info(`「${item.alias}」的快速操作面板正在建设中`)}
           onOpenCredentials={(item) => goModule("database", item)}
@@ -809,25 +812,27 @@ export default function ServersPage() {
         </div>
 
         <Space className="ops-server-actions" size={8}>
-          {/* 三个按钮与原型头部严格一致。原型头部没有「刷新」——
-              列表在进入页面、增删改、切换分组后都会自动重载，手动刷新属于冗余入口。 */}
+          <Tooltip title="Windows 服务器？点这里获取准备脚本（开通 SSH / 装 Chocolatey）" placement="bottom" styles={{ container: { padding: "10px 12px", borderRadius: 12, fontSize: 12, textAlign: "center", border: "1px solid var(--border)" } }}>
           <Button
-            icon={<Monitor size={14} />}
+            icon={<Monitor size={14} style={{ color: "var(--info)" }} />}
             onClick={() => setWindowsGuideOpen(true)}
             style={{
-              background: "color-mix(in srgb, var(--info) 20%, transparent)",
-              color: "var(--info)",
-              borderColor: "color-mix(in srgb, var(--info) 40%, transparent)",
+              background: "var(--bg-secondary)",
+              color: "var(--text-primary)",
+              borderColor: "var(--border)",
+              borderRadius: 8,
             }}
           >
             Windows 接入
           </Button>
-          <Button
-            icon={<FileCode size={14} />}
-            onClick={() => setImportOpen(true)}
-          >
-            导入 ~/.ssh/config
-          </Button>
+          </Tooltip>
+          <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items: [
+            { key: "ssh_config", icon: <FileCode size={14} style={{ color: "var(--warning)" }} />, label: "~/.ssh/config", onClick: () => setImportSource("ssh_config") },
+            { key: "finalshell", icon: <Folder size={14} style={{ color: "var(--info)" }} />, label: "FinalShell 导出文件夹", onClick: () => setImportSource("finalshell") },
+            { key: "spreadsheet", icon: <FileSpreadsheet size={14} style={{ color: "var(--success)" }} />, label: "Excel / CSV 表格", onClick: () => setImportSource("spreadsheet") },
+          ], style: { padding: 6, borderRadius: 12, border: "1px solid var(--border)", minWidth: 210 } }}>
+            <Button icon={<Upload size={14} />} style={{ borderRadius: 8 }}>导入服务器<ChevronDown size={14} /></Button>
+          </Dropdown>
           <Button
             type="primary"
             icon={<Plus size={14} />}
@@ -837,7 +842,7 @@ export default function ServersPage() {
               setFormOpen(true);
             }}
           >
-            新增服务器
+            纳管服务器
           </Button>
         </Space>
       </div>
@@ -911,7 +916,7 @@ export default function ServersPage() {
               locale={{
                 emptyText:
                   servers.length === 0
-                    ? "还没有纳管任何服务器，点击右上角「新增服务器」开始"
+                    ? "还没有纳管任何服务器，点击右上角「纳管服务器」开始"
                     : (
                       <div className="py-6 space-y-2">
                         <p style={{ color: "var(--text-muted)" }}>
@@ -963,10 +968,10 @@ export default function ServersPage() {
         onCancel={() => setWindowsGuideOpen(false)}
       />
 
-      <ImportSSHConfigModal
-        open={importOpen}
-        existingAliases={servers.map((s) => s.alias)}
-        onCancel={() => setImportOpen(false)}
+      <ImportServersModal
+        source={importSource ?? "ssh_config"}
+        open={importSource !== null}
+        onCancel={() => setImportSource(null)}
         onImported={() => void loadServers()}
       />
 

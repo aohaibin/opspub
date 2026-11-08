@@ -1,107 +1,60 @@
 import { useState } from "react";
 import { Button, Modal, message } from "antd";
-import { Check, Copy, Monitor } from "lucide-react";
+import { Check, Copy, Download, Terminal } from "lucide-react";
+import { save } from "@tauri-apps/plugin-dialog";
+import { fileApi } from "@/lib/api/file";
+import { getErrorMessage } from "@/lib/api/client";
+import sshScript from "../lib/setup-openssh.ps1?raw";
+import chocoScript from "../lib/setup-chocolatey.ps1?raw";
+import { serverSetupStyles } from "./serverSetupStyles";
 
-interface WindowsGuideModalProps {
-  open: boolean;
-  onCancel: () => void;
+interface WindowsGuideModalProps { open: boolean; onCancel: () => void }
+
+function ScriptBlock({ name, script }: { name: string; script: string }) {
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(script); setCopied(true); message.success("脚本已复制"); }
+    catch (e) { message.error("复制失败：" + getErrorMessage(e)); }
+  };
+  const download = async () => {
+    setSaving(true);
+    try {
+      const path = await save({ title: "保存 Windows 准备脚本", defaultPath: name, filters: [{ name: "PowerShell", extensions: ["ps1"] }] });
+      if (!path) return;
+      await fileApi.writeText(path, script); message.success("脚本已保存：" + path);
+    } catch (e) { message.error(getErrorMessage(e)); }
+    finally { setSaving(false); }
+  };
+  return <div className="space-y-3">
+    <div className="overflow-hidden rounded-xl" style={{ border: "1px solid var(--border)", background: "var(--bg-primary)" }}>
+      <div className="flex items-center justify-between px-4 py-2 font-mono text-xs" style={{ borderBottom: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+        <span className="flex items-center gap-2"><Terminal size={14} style={{ color: "var(--info)" }} />{name}</span><span>PowerShell 5.1+</span>
+      </div>
+      <pre className="m-0 max-h-56 overflow-auto p-4 text-xs leading-relaxed custom-scrollbar" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>{script}</pre>
+    </div>
+    <div className="flex gap-3"><Button type="primary" icon={copied ? <Check size={14} /> : <Copy size={14} />} onClick={() => void copy()}>{copied ? "已复制" : "复制脚本"}</Button><Button icon={<Download size={14} />} loading={saving} onClick={() => void download()}>另存为 .ps1</Button></div>
+  </div>;
 }
 
-/** 受控 Windows 侧的一键配置脚本（Windows 自带 OpenSSH Server，无需装第三方 Agent） */
-const POWERSHELL_SCRIPT = `# 1. 安装 Windows 原生 OpenSSH 服务
-Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-
-# 2. 启动服务并配置为开机自启
-Start-Service sshd
-Set-Service -Name sshd -StartupType 'Automatic'
-
-# 3. 配置 Windows 防火墙放行 TCP 22 端口
-New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22`;
-
 export function WindowsGuideModal({ open, onCancel }: WindowsGuideModalProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(POWERSHELL_SCRIPT);
-      setCopied(true);
-      message.success("脚本已复制到剪贴板");
-      // 2 秒后复原按钮文案，给用户一个「确实复制了」的即时反馈
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      message.error(`复制失败，请手动选择文本复制：${String(e)}`);
-    }
-  };
-
-  return (
-    <Modal
-      open={open}
-      onCancel={onCancel}
-      title={
-        <span className="flex items-center gap-2">
-          <Monitor size={16} />
-          Windows 原生免代理接入向导
-        </span>
-      }
-      footer={
-        <Button type="primary" onClick={onCancel}>
-          我知道了
-        </Button>
-      }
-      width={680}
-    >
-      <div className="space-y-3.5 text-xs leading-relaxed">
-        <p style={{ color: "var(--text-secondary)" }}>
-          无需在受控 Windows 上安装任何专有 Agent。只需以管理员权限运行 PowerShell，
-          即可一键启用 Windows 自带的 OpenSSH Server。
-        </p>
-
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              PowerShell 一键配置脚本（复制后直接在管理员终端执行）
-            </span>
-            <Button
-              type="link"
-              size="small"
-              icon={copied ? <Check size={12} /> : <Copy size={12} />}
-              onClick={handleCopy}
-            >
-              {copied ? "已复制" : "复制脚本"}
-            </Button>
-          </div>
-
-          <pre
-            className="p-3 rounded-xl text-[11px] overflow-x-auto"
-            style={{
-              background: "var(--bg-primary)",
-              border: "1px solid var(--border)",
-              color: "var(--success)",
-              fontFamily: "var(--font-mono)",
-              margin: 0,
-            }}
-          >
-            {POWERSHELL_SCRIPT}
-          </pre>
-        </div>
-
-        <div
-          className="p-3 rounded-xl space-y-1 text-[11px]"
-          style={{
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border)",
-            color: "var(--text-secondary)",
-          }}
-        >
-          <p className="font-medium" style={{ color: "var(--text-primary)" }}>
-            验证连接
-          </p>
-          <p>
-            配置完成后回到本页点击「新增服务器」，操作系统选 Windows，
-            填入该机器 IP 与登录账号，先点「连通性测试」确认 TCP 22 端口可达，再保存纳管。
-          </p>
-        </div>
-      </div>
-    </Modal>
-  );
+  return <Modal open={open} onCancel={onCancel} centered destroyOnHidden width={780} styles={serverSetupStyles}
+    title={<span className="flex items-center gap-2 text-sm font-bold"><Terminal size={17} style={{ color: "var(--info)" }} />Windows 服务器接入 · 准备脚本</span>}
+    footer={<Button type="primary" onClick={onCancel}>我知道了</Button>}>
+    <div className="space-y-6" style={{ color: "var(--text-secondary)" }}>
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>① 开通 SSH（必需 — OpsPub 靠 SSH 连接）</h3>
+        <p>OpsPub 通过 SSH 管理服务器。请先在目标 Windows 开通 OpenSSH Server，再配置 OpsPub 连接。</p>
+        <p>在目标机的「管理员 PowerShell」执行下面的脚本，可通过远程桌面或云控制台的「发送命令」进入。脚本可以重复执行。</p>
+        <ScriptBlock name="setup-openssh.ps1" script={sshScript} />
+        <p className="flex items-start gap-2 text-xs" style={{ color: "var(--warning)" }}><span>●</span><span>云服务器还要在「安全组」入方向放行 TCP 22。系统防火墙与云安全组都需要允许连接。</span></p>
+      </section>
+      <section className="space-y-3 border-t pt-5" style={{ borderColor: "var(--border)" }}>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>② 装 Chocolatey（Windows 原生装应用的前提，可选）</h3>
+        <p>需要使用 choco 安装 Windows 应用时，再执行此脚本。安装使用 Chocolatey 官方源，需要目标机可访问公网；Chocolatey 2.x 需要 .NET Framework 4.8。</p>
+        <ScriptBlock name="setup-chocolatey.ps1" script={chocoScript} />
+      </section>
+      <p className="border-t pt-4" style={{ borderColor: "var(--border)" }}>开通后回到服务器页点击「纳管服务器」，选择 Windows，填写主机、端口 22、登录账号与凭据，再测试连接。首次 SSH 连接请核对目标机的主机指纹。</p>
+    </div>
+  </Modal>;
 }

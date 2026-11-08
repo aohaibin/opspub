@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>OpsPub · 手机助手</title>
+  <style>
+    :root{color-scheme:dark;font-family:ui-rounded,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:#0c1017;color:#e2e8f0;font-size:14px}*{box-sizing:border-box}body{margin:0}header{position:sticky;top:0;z-index:2;padding:18px 18px 14px;background:#0f141cf5;border-bottom:1px solid #263044}h1{font-size:19px;margin:0 0 6px}h2{font-size:16px;margin:0 0 14px}p{line-height:1.7}small,.muted{color:#94a3b8;font-size:12px}.status{margin-top:8px;color:#94a3b8;font-size:13px}main{max-width:760px;margin:auto;padding:18px 16px 100px}.card{background:#111722;border:1px solid #263044;border-radius:14px;padding:17px;margin-bottom:14px}button,input,select,textarea{font:inherit;border-radius:9px;border:1px solid #334155;padding:11px 13px;background:#0c1017;color:#e2e8f0}button{cursor:pointer;min-height:42px}button:disabled{opacity:.45;cursor:default}.primary{background:#5b64c2;border-color:#5b64c2;color:#fff}.danger{color:#fca5a5;border-color:#9f343c;background:#571e2933}input,textarea,select{width:100%;margin:6px 0 12px}textarea{resize:vertical;min-height:100px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.row button{flex:0 0 auto}nav{display:flex;gap:5px;margin-top:16px}nav button{flex:1;border:0;padding:9px 3px;font-size:13px;background:transparent;color:#94a3b8}nav button.active{background:#5b64c233;color:#c7d2fe}pre,.content{font-family:inherit;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;margin:8px 0;font-size:14px}pre.command{font-family:ui-monospace,Consolas,monospace;background:#0b1018;padding:12px;border-radius:9px;color:#a5b4fc;max-height:260px;overflow:auto}.tag{display:inline-block;font-size:12px;border-radius:20px;padding:3px 9px;background:#334155;margin-left:6px}.ok{color:#6ee7b7}.error{color:#fca5a5}.chat-user{border-color:#525bb3;background:#222742}.chat-assistant{background:#111722}summary{cursor:pointer;font-weight:500;line-height:1.7}.tool{border-left:2px solid #5b64c2;padding:0 12px;margin-top:12px}#notice{position:fixed;bottom:18px;left:16px;right:16px;max-width:728px;margin:auto;background:#263044;border:1px solid #475569;border-radius:10px;padding:13px;z-index:3;white-space:pre-wrap;line-height:1.5}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #a5b4fc;outline-offset:2px}[hidden]{display:none!important}footer{text-align:center;color:#64748b;font-size:12px;padding:12px}
+  </style>
+</head>
+<body>
+<header><h1>OpsPub <span class="muted">手机助手</span></h1><div class="muted">同一局域网 · 电脑端策略与审计始终生效</div><div id="connection" class="status" role="status">尚未连接</div>
+  <nav id="nav" hidden aria-label="功能导航"><button data-tab="approvals" class="active">操作审批</button><button data-tab="safety">应急开关</button><button data-tab="chat">问 AI</button><button data-tab="knowledge">知识库</button></nav>
+</header>
+<main>
+  <section id="pairing" class="card" hidden><h2>配对这台电脑</h2><p class="muted">配对后可以审批 AI 操作、紧急锁定 AI、发起对话和查询知识库。仅为你信任的电脑确认配对。</p><label for="device-name">手机名称</label><input id="device-name" maxlength="64" placeholder="例如：我的手机" autocomplete="off"><button id="pair" class="primary">确认配对</button><p id="pair-error" class="error" role="alert"></p></section>
+  <section id="unpaired" class="card" hidden><h2>尚未配对</h2><p>请在电脑端「设置 → 手机配对」生成二维码，使用手机相机扫码，然后在此浏览器确认配对。</p></section>
+  <div id="workspace" hidden>
+    <section id="tab-approvals"><div class="row"><h2>操作审批</h2><button id="refresh">刷新</button></div><p class="muted">请核对目标、命令和风险再批准。到期、已处理或被策略阻止的操作不能重复执行。</p><div id="approval-list"></div></section>
+    <section id="tab-safety" hidden><div class="card"><h2>AI 应急开关</h2><p id="lock-state"></p><p class="muted">紧急锁定将禁止新的 AI 服务器操作。已开始执行的远程命令不会被强行中断。重新授权需要在电脑端完成。</p><button id="lock" class="danger">立即锁定 AI 操作</button></div><div class="card"><h2>设备授权</h2><p class="muted">电脑端「手机配对」可以撤销此设备。关闭网页后授权保留；清除此浏览器的授权需要重新扫码。</p><button id="forget">清除此浏览器授权</button></div></section>
+    <section id="tab-chat" hidden><h2>问 AI</h2><div class="card"><label for="server">关联服务器</label><select id="server"><option value="">不指定服务器</option></select><label for="model">模型服务</label><select id="model"><option value="">本地受控助手</option></select><p class="muted">使用电脑端已配置的凭据和模型。查询与变更均经过现有安全策略，需要人工审批的操作请到「操作审批」处理。</p></div><div id="messages"></div><div class="card"><label for="question">你的问题</label><textarea id="question" maxlength="2000" placeholder="例如：查看这台服务器的 Docker 容器状态"></textarea><div class="row"><button id="send" class="primary">发送</button><button id="new-chat">新建对话</button></div><p class="muted">当前上下文保留在此页面，刷新后开始新会话。</p></div></section>
+    <section id="tab-knowledge" hidden><h2>内置运维技能知识库</h2><div class="row"><input id="query" maxlength="100" placeholder="搜索技能、排障步骤或关键词"><button id="search">搜索</button></div><div id="knowledge-list"></div></section>
+  </div>
+  <footer>OpsPub · 私网设备通道</footer>
+</main>
+<div id="notice" role="status" hidden></div>
+<script>
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const tokenKey = 'opspub.device.token.v1';
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  let pairing = fragment.has('session') && fragment.has('secret') ? {sessionId:fragment.get('session'),secret:fragment.get('secret')} : null;
+  // Remove the one-time secret from browser history before any network request.
+  history.replaceState(null, '', location.pathname);
+  let token = '', activeTab = 'approvals', sending = false, historyMessages = [], noticeTimer, refreshing = false;
+  try { token = localStorage.getItem(tokenKey) || ''; } catch (_) {}
+  function text(tag, value, cls) { const el=document.createElement(tag); el.textContent=value; if(cls) el.className=cls; return el; }
+  function notify(message) { $('notice').textContent=message; $('notice').hidden=false; clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>$('notice').hidden=true,6500); }
+  async function api(path, input) {
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), input ? 150000 : 15000);
+    try {
+      const headers = {'Accept':'application/json'};
+      if(token) headers.Authorization='Bearer '+token;
+      if(input) headers['Content-Type']='application/json';
+      const result = await fetch('/v1'+path, {method:input?'POST':'GET',headers,body:input?JSON.stringify(input):undefined,signal:controller.signal,cache:'no-store'});
+      const value = await result.json().catch(()=>({}));
+      if(!result.ok) throw new Error(value.message || (result.status===401?'设备授权无效或已被撤销，请重新扫码配对':result.status===429?'尝试过于频繁，请稍后重试':'请求失败（'+result.status+'）'));
+      return value;
+    } catch(error) { if(error.name==='TypeError') throw new Error('连接不到电脑，请确认同一 Wi-Fi、电脑软件已打开且设备通道已开启。'); if(error.name==='AbortError') throw new Error('请求超时，请在电脑端核实任务状态，避免重复执行。'); throw error; }
+    finally { clearTimeout(timer); }
+  }
+  function showWorkspace() { $('pairing').hidden=true; $('unpaired').hidden=true; $('workspace').hidden=false; $('nav').hidden=false; }
+  function options(id, values, fallback) {
+    const select=$(id), previous=select.value; select.replaceChildren(new Option(fallback,''));
+    for(const item of values) select.add(new Option(item.alias || item.name,String(item.id)));
+    if([...select.options].some(item=>item.value===previous)) select.value=previous;
+  }
+  async function connect(showError=false) {
+    if(!token || pairing) return;
+    try {
+      const data=await api('/bootstrap'); showWorkspace();
+      $('connection').textContent=data.channel.persistent?'已连接 · 设备通道运行中':'已配对 · 请在电脑开启设备通道以保持连接';
+      $('connection').className='status ok';
+      $('lock-state').textContent=data.lock.locked?'AI 操作已锁定':'AI 操作当前已开启';
+      $('lock-state').className=data.lock.locked?'ok':'error';
+      $('lock').disabled=data.lock.locked;
+      options('server',data.servers,'不指定服务器'); options('model',data.models,'本地受控助手');
+      if(activeTab==='approvals') await loadApprovals();
+    } catch(error) { $('connection').textContent=error.message; $('connection').className='status error'; if(showError) notify(error.message); }
+  }
+  async function loadApprovals() {
+    if(refreshing) return; refreshing=true;
+    try {
+      const details=await api('/approvals'); const list=$('approval-list'); list.replaceChildren();
+      const pending=details.filter(item=>item.approval.status==='pending');
+      const recent=details.filter(item=>item.approval.status!=='pending').slice(0,10);
+      if(!details.length) list.append(text('p','暂无审批记录','muted'));
+      for(const item of [...pending,...recent]) {
+        const a=item.approval, card=text('article','','card'), title=text('h2',a.serverAlias);
+        const expired=a.expiresAt*1000<=Date.now();
+        title.append(text('span',a.status==='pending'?(expired?'已过期':'待审批'):a.status,'tag')); card.append(title);
+        if(item.plan) card.append(text('p','风险：'+item.plan.riskLevel,'muted'));
+        card.append(text('pre',a.command,'command'));
+        card.append(text('p','有效期至：'+new Date(a.expiresAt*1000).toLocaleString(),'muted'));
+        if(a.result) card.append(text('div',a.result,'content'));
+        if(a.status==='pending'&&!expired) {
+          const row=text('div','','row');
+          for(const approve of [true,false]) {
+            const button=text('button',approve?'批准执行':'驳回',approve?'primary':'danger');
+            button.addEventListener('click',async()=>{
+              if(!confirm((approve?'确认批准执行？\n请核对目标与命令：\n':'确认驳回？\n')+a.serverAlias+'\n'+a.command)) return;
+              row.querySelectorAll('button').forEach(b=>b.disabled=true);
+              try { await api('/approvals/decide',{id:a.id,approve}); notify('审批已处理'); await loadApprovals(); }
+              catch(error) { notify(error.message); }
+              finally { await connect(); }
+            }); row.append(button);
+          } card.append(row);
+        } list.append(card);
+      }
+    } finally { refreshing=false; }
+  }
+  async function searchKnowledge() {
+    $('search').disabled=true;
+    try {
+      const data=await api('/knowledge?q='+encodeURIComponent($('query').value)); $('knowledge-list').replaceChildren();
+      if(!data.entries.length) $('knowledge-list').append(text('p','未找到相关技能知识','muted'));
+      for(const item of data.entries) { const card=text('details','','card'); card.append(text('summary',item.title),text('pre',item.content,'content')); $('knowledge-list').append(card); }
+    } catch(error) { notify(error.message); }
+    finally { $('search').disabled=false; }
+  }
+  function appendMessage(role,content,result) {
+    const card=text('article','',role==='user'?'card chat-user':'card chat-assistant'); card.append(text('small',role==='user'?'你':'OpsPub AI'),text('div',content,'content'));
+    if(result) {
+      for(const call of result.toolCalls||[]) { const detail=text('details','','tool'); detail.append(text('summary',(call.serverAlias?call.serverAlias+' · ':'')+call.tool+' · '+call.status),text('pre',call.output,'content')); card.append(detail); }
+      for(const warning of result.warnings||[]) card.append(text('p',warning,'muted'));
+    }
+    $('messages').append(card); return card;
+  }
+  $('pair').addEventListener('click',async()=>{
+    if(!pairing) return; const name=$('device-name').value.trim(); if(!name) return notify('请输入手机名称');
+    $('pair').disabled=true; $('pair-error').textContent='';
+    try {
+      const data=await api('/pair',{...pairing,name});
+      localStorage.setItem(tokenKey,data.token); token=data.token; pairing=null;
+      notify('配对成功。请在电脑端开启设备通道，以便持续访问。'); await connect(true);
+    } catch(error) { $('pair-error').textContent=error.message; }
+    finally { $('pair').disabled=false; }
+  });
+  $('nav').addEventListener('click',event=>{
+    const button=event.target.closest('button[data-tab]'); if(!button) return; activeTab=button.dataset.tab;
+    for(const id of ['approvals','safety','chat','knowledge']) $('tab-'+id).hidden=id!==activeTab;
+    $('nav').querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));
+    if(activeTab==='knowledge') void searchKnowledge(); else void connect(true);
+  });
+  $('refresh').addEventListener('click',()=>void connect(true));
+  $('lock').addEventListener('click',async()=>{
+    if(!confirm('确认立即锁定 AI 操作？只能在电脑端重新授权。')) return;
+    $('lock').disabled=true;
+    try { await api('/lock',{}); notify('AI 操作已锁定'); } catch(error) { notify(error.message); }
+    finally { await connect(); }
+  });
+  $('forget').addEventListener('click',()=>{if(confirm('清除此浏览器的设备授权？之后需要重新扫码。')) {localStorage.removeItem(tokenKey);location.reload();}});
+  $('search').addEventListener('click',()=>void searchKnowledge());
+  $('query').addEventListener('keydown',event=>{if(event.key==='Enter') void searchKnowledge();});
+  $('new-chat').addEventListener('click',()=>{if(sending)return;historyMessages=[];$('messages').replaceChildren();notify('已开始新会话');});
+  for(const id of ['server','model']) $(id).addEventListener('change',()=>{
+    historyMessages=[];$('messages').replaceChildren();notify('已切换关联配置，开始新会话');
+  });
+  $('send').addEventListener('click',async()=>{
+    if(sending)return; const question=$('question').value.trim(); if(!question)return;
+    sending=true; $('send').disabled=true; $('send').textContent='处理中…'; $('server').disabled=true; $('model').disabled=true;
+    const serverId=$('server').value, model=$('model').value;
+    const userMessage=appendMessage('user',question); const waiting=appendMessage('assistant','正在调用电脑端助手，请稍候…');
+    try {
+      const result=await api('/chat',{message:question,serverId:serverId?Number(serverId):null,modelProfileId:model||null,history:historyMessages.slice(-20)});
+      waiting.remove(); appendMessage('assistant',result.reply,result); $('question').value='';
+      historyMessages.push({role:'user',content:question},{role:'assistant',content:result.reply});
+    } catch(error) {waiting.remove();userMessage.append(text('p',error.message,'error'));notify(error.message);}
+    finally {sending=false;$('send').disabled=false;$('send').textContent='发送';$('server').disabled=false;$('model').disabled=false;}
+  });
+  if(pairing){$('pairing').hidden=false;$('connection').textContent='请确认配对';}
+  else if(token){void connect(true);}
+  else{$('unpaired').hidden=false;}
+  setInterval(()=>{if(!document.hidden&&token&&!pairing)void connect();},5000);
+</script>
+</body>
+</html>

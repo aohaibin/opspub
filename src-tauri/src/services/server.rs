@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -38,6 +38,9 @@ const AI_POLICIES: [&str; 8] = [
 pub struct ServerService;
 
 impl ServerService {
+    pub(crate) fn parse_import_ssh_config(content: &str) -> Vec<SshConfigHost> {
+        parse_ssh_config(content)
+    }
     /// 获取所有服务器
     pub fn get_all(db: &Database) -> Result<Vec<Server>, AppError> {
         db.get_all_servers()
@@ -69,7 +72,7 @@ impl ServerService {
         }
 
         validate_port(port)?;
-        validate_enum("认证方式", auth_type, &["password", "key"])?;
+        validate_enum("认证方式", auth_type, &["password", "key", "agent"])?;
         validate_enum("操作系统", os_type, &["linux", "windows"])?;
         validate_enum("AI 策略", ai_policy, &AI_POLICIES)?;
 
@@ -118,10 +121,18 @@ impl ServerService {
         }
 
         validate_port(port)?;
-        validate_enum("认证方式", auth_type, &["password", "key"])?;
+        validate_enum("认证方式", auth_type, &["password", "key", "agent"])?;
         validate_enum("操作系统", os_type, &["linux", "windows"])?;
         validate_enum("AI 策略", ai_policy, &AI_POLICIES)?;
 
+        let existing = db
+            .get_server_by_id(id)?
+            .ok_or_else(|| AppError::NotFound("服务器不存在".into()))?;
+        if existing.protocol == "rdp" && (os_type != "windows" || ai_policy != "disabled") {
+            return Err(AppError::InvalidInput(
+                "仅远程桌面条目必须保持 Windows 类型且禁用 AI".into(),
+            ));
+        }
         db.update_server(
             id,
             alias,
@@ -176,6 +187,17 @@ impl ServerService {
             return Err(AppError::InvalidInput("请先选择要调整的服务器".into()));
         }
         validate_enum("AI 策略", ai_policy, &AI_POLICIES)?;
+        if ai_policy != "disabled"
+            && ai_policy != "denied"
+            && db
+                .get_all_servers()?
+                .iter()
+                .any(|s| ids.contains(&s.id) && s.protocol == "rdp")
+        {
+            return Err(AppError::InvalidInput(
+                "所选条目包含仅远程桌面连接，不能开启 AI 权限".into(),
+            ));
+        }
         db.batch_update_policy(ids, ai_policy)
     }
 
@@ -317,6 +339,12 @@ impl ServerService {
             .get_server_by_id(request.server_id)?
             .ok_or_else(|| AppError::NotFound(format!("服务器 {} 不存在", request.server_id)))?;
 
+        if server.protocol == "rdp" {
+            return Err(AppError::InvalidInput(
+                "这是仅远程桌面条目，请从服务器列表打开远程桌面".into(),
+            ));
+        }
+
         // 已保存凭据不会回传 WebView。空字段从系统凭据管理器补齐，允许用户
         // 在首次确认主机指纹时直接复用新增服务器时托管的认证信息。
         if request.password.as_deref().unwrap_or_default().is_empty()
@@ -331,13 +359,10 @@ impl ServerService {
                 if request.password.as_deref().unwrap_or_default().is_empty() {
                     request.password = stored.password;
                 }
-                if request
-                    .private_key_path
-                    .as_deref()
-                    .unwrap_or_default()
-                    .is_empty()
-                {
+                if request.private_key_path.as_deref().unwrap_or_default().is_empty()
+                    && request.private_key_text.as_deref().unwrap_or_default().is_empty() {
                     request.private_key_path = stored.private_key_path;
+                    request.private_key_text = stored.private_key_text;
                 }
                 if request.passphrase.is_none() {
                     request.passphrase = stored.passphrase;
@@ -345,17 +370,20 @@ impl ServerService {
             }
         }
 
-        match probe_ssh(&server, &request) {
+        match probe_ssh(db, &server, &request) {
             Ok(result) => {
                 if result.connected {
-                    CredentialService::save(
-                        server.id,
-                        &StoredSshCredential {
-                            password: request.password.clone(),
-                            private_key_path: request.private_key_path.clone(),
-                            passphrase: request.passphrase.clone(),
-                        },
-                    )?;
+                    if server.auth_type != "agent" {
+                        CredentialService::save(
+                            server.id,
+                            &StoredSshCredential {
+                                password: request.password.clone(),
+                                private_key_path: request.private_key_path.clone(),
+                                private_key_text: request.private_key_text.clone(),
+                                passphrase: request.passphrase.clone(),
+                            },
+                        )?;
+                    }
                     db.record_ssh_result(
                         server.id,
                         "verified",
@@ -384,9 +412,23 @@ impl ServerService {
         db: &Database,
         request: &TerminalOpenRequest,
     ) -> Result<(Server, Session), AppError> {
+        Self::connect_terminal_inner(db, request, &[request.server_id])
+    }
+
+    pub(crate) fn connect_terminal_inner(
+        db: &Database,
+        request: &TerminalOpenRequest,
+        chain: &[i64],
+    ) -> Result<(Server, Session), AppError> {
         let server = db
             .get_server_by_id(request.server_id)?
             .ok_or_else(|| AppError::NotFound(format!("服务器 {} 不存在", request.server_id)))?;
+
+        if server.protocol == "rdp" {
+            return Err(AppError::InvalidInput(
+                "仅远程桌面条目不支持 SSH、SFTP 或命令执行".into(),
+            ));
+        }
 
         if server.host_key_fingerprint.is_empty() {
             return Err(AppError::InvalidInput(
@@ -394,8 +436,7 @@ impl ServerService {
             ));
         }
 
-        let stream = connect_tcp(&server.hostname, server.port)
-            .map_err(|failure| AppError::Custom(failure.message))?;
+        let stream = super::server_transport::connect(db, &server, chain)?;
         stream.set_read_timeout(Some(Duration::from_millis(SSH_TIMEOUT_MS.into())))?;
         stream.set_write_timeout(Some(Duration::from_millis(SSH_TIMEOUT_MS.into())))?;
         // 交互式终端在握手后会切换到 libssh2 非阻塞 API。保留 TCP 的
@@ -436,6 +477,7 @@ impl ServerService {
             server_id: request.server_id,
             password: request.password.clone().or(stored.password),
             private_key_path: request.private_key_path.clone().or(stored.private_key_path),
+            private_key_text: if request.private_key_path.is_some() { None } else { stored.private_key_text },
             passphrase: request.passphrase.clone().or(stored.passphrase),
             trust_host_key: false,
         };
@@ -452,9 +494,9 @@ impl ServerService {
 }
 
 #[derive(Debug)]
-struct SshProbeFailure {
-    status: &'static str,
-    message: String,
+pub(crate) struct SshProbeFailure {
+    pub(crate) status: &'static str,
+    pub(crate) message: String,
 }
 
 impl SshProbeFailure {
@@ -473,7 +515,8 @@ impl SshProbeFailure {
     }
 }
 
-fn probe_ssh(
+pub(crate) fn probe_ssh(
+    db: &Database,
     server: &Server,
     request: &SshProbeRequest,
 ) -> Result<SshProbeResult, SshProbeFailure> {
@@ -483,7 +526,8 @@ fn probe_ssh(
     }
 
     let started = Instant::now();
-    let stream = connect_tcp(&server.hostname, server.port)?;
+    let stream = super::server_transport::connect(db, server, &[server.id])
+        .map_err(|error| SshProbeFailure::failed(error.to_string()))?;
     stream
         .set_read_timeout(Some(Duration::from_millis(SSH_TIMEOUT_MS.into())))
         .map_err(|error| SshProbeFailure::failed(format!("设置 SSH 读取超时失败: {error}")))?;
@@ -559,50 +603,17 @@ fn probe_ssh(
     })
 }
 
-fn connect_tcp(hostname: &str, port: i32) -> Result<TcpStream, SshProbeFailure> {
-    let hostname = hostname.trim();
-    if hostname.is_empty() {
-        return Err(SshProbeFailure::failed("主机地址不能为空"));
-    }
-    if !(1..=65535).contains(&port) {
-        return Err(SshProbeFailure::failed(format!(
-            "端口 {port} 超出有效范围 1-65535"
-        )));
-    }
-
-    let addresses = (hostname, port as u16)
-        .to_socket_addrs()
-        .map_err(|error| SshProbeFailure::failed(format!("域名解析失败: {error}")))?
-        .collect::<Vec<_>>();
-    if addresses.is_empty() {
-        return Err(SshProbeFailure::failed(format!(
-            "主机 {hostname} 未解析出可用地址"
-        )));
-    }
-
-    let timeout = Duration::from_millis(CONNECT_TIMEOUT_MS);
-    let mut last_error = None;
-    for address in addresses {
-        match TcpStream::connect_timeout(&address, timeout) {
-            Ok(stream) => return Ok(stream),
-            Err(error) => last_error = Some(error),
-        }
-    }
-
-    Err(SshProbeFailure::failed(format!(
-        "SSH 端口连接失败: {}",
-        last_error
-            .map(|error| error.to_string())
-            .unwrap_or_else(|| "未知错误".into())
-    )))
-}
-
 fn authenticate(
     session: &Session,
     server: &Server,
     request: &SshProbeRequest,
 ) -> Result<(), SshProbeFailure> {
     match server.auth_type.as_str() {
+        "agent" => {
+            session
+                .userauth_agent(server.username.trim())
+                .map_err(|_| SshProbeFailure::failed("ssh-agent 认证失败，请检查系统代理和已加载私钥"))?;
+        }
         "password" => {
             let password = request
                 .password
@@ -614,39 +625,59 @@ fn authenticate(
                 .map_err(|_| SshProbeFailure::failed("SSH 密码认证失败，请检查账号或密码"))?;
         }
         "key" => {
-            let private_key = request
-                .private_key_path
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .ok_or_else(|| SshProbeFailure::failed("请选择或填写 SSH 私钥路径"))?;
-            let private_key = expand_home_path(private_key);
-            if !private_key.is_file() {
-                return Err(SshProbeFailure::failed(format!(
-                    "私钥文件不存在或不可读取：{}",
-                    private_key.display()
-                )));
-            }
             let passphrase = request
                 .passphrase
                 .as_deref()
                 .filter(|value| !value.is_empty());
-            session
-                .userauth_pubkey_file(server.username.trim(), None, &private_key, passphrase)
-                .map_err(|_| {
-                    SshProbeFailure::failed("SSH 私钥认证失败，请检查私钥、口令或服务端授权")
-                })?;
+            if let Some(private_key_text) = request
+                .private_key_text
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                // Windows 原生 libssh2 只支持文件认证。随机临时文件仅在认证期间存在，
+                // RAII 确保所有错误路径也删除；Unix 使用 tempfile 默认的 0600 权限。
+                let mut temporary_key = tempfile::NamedTempFile::new()
+                    .map_err(|_| SshProbeFailure::failed("无法创建临时私钥文件"))?;
+                // PEM/OpenSSH 解析器需要完整的末行结束符，粘贴时被 trim 的换行在此补齐。
+                writeln!(temporary_key, "{private_key_text}")
+                    .map_err(|_| SshProbeFailure::failed("无法写入临时私钥文件"))?;
+                let auth_result = session.userauth_pubkey_file(
+                    server.username.trim(),
+                    None,
+                    temporary_key.path(),
+                    passphrase,
+                );
+                auth_result
+                    .map_err(|_| SshProbeFailure::failed("SSH 私钥认证失败，请检查私钥、口令或服务端授权"))?;
+            } else {
+                let private_key = request
+                    .private_key_path
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .ok_or_else(|| SshProbeFailure::failed("请选择或填写 SSH 私钥"))?;
+                let private_key = expand_home_path(private_key);
+                if !private_key.is_file() {
+                    return Err(SshProbeFailure::failed(format!(
+                        "SSH 私钥文件不存在或不可读取：{}",
+                        private_key.display()
+                    )));
+                }
+                session
+                    .userauth_pubkey_file(server.username.trim(), None, &private_key, passphrase)
+                    .map_err(|_| SshProbeFailure::failed("SSH 私钥认证失败，请检查私钥、口令或服务端授权"))?;
+            }
         }
         _ => {
             return Err(SshProbeFailure::failed(format!(
                 "不支持的 SSH 认证方式：{}",
                 server.auth_type
-            )))
+            )));
         }
     }
     Ok(())
 }
-
 fn execute_system_summary(session: &Session, os_type: &str) -> Result<String, SshProbeFailure> {
     let command = if os_type == "windows" {
         r#"powershell -NoProfile -NonInteractive -Command "$os=[Environment]::OSVersion.VersionString; $arch=$env:PROCESSOR_ARCHITECTURE; $hostName=$env:COMPUTERNAME; $boot=(Get-CimInstance Win32_OperatingSystem).LastBootUpTime; $up=(Get-Date)-$boot; Write-Output $os; Write-Output $arch; Write-Output $hostName; Write-Output ('Up {0}d {1}h {2}m' -f $up.Days,$up.Hours,$up.Minutes)""#
@@ -770,6 +801,12 @@ fn parse_ssh_config(content: &str) -> Vec<SshConfigHost> {
                 None => (line, ""),
             },
         };
+
+        // Match 之后属于条件段；不执行条件，也不能把其中的值覆盖到上一台主机。
+        if key.eq_ignore_ascii_case("match") {
+            flush(&mut current, &mut result);
+            continue;
+        }
 
         if key.eq_ignore_ascii_case("host") {
             flush(&mut current, &mut result);
@@ -966,5 +1003,14 @@ Host dev-box
         assert_eq!(hosts.len(), 1);
         assert_eq!(hosts[0].port, 22);
         assert_eq!(hosts[0].hostname, "1.2.3.4");
+    }
+
+    #[test]
+    fn parse_ssh_config_does_not_apply_conditional_match_values() {
+        let hosts = parse_ssh_config("Host prod\n HostName 192.0.2.1\n User alice\nMatch exec false\n HostName 192.0.2.99\n User other\nHost dev\n HostName 192.0.2.2\n");
+        assert_eq!(hosts.len(), 2);
+        assert_eq!(hosts[0].hostname, "192.0.2.1");
+        assert_eq!(hosts[0].username, "alice");
+        assert_eq!(hosts[1].hostname, "192.0.2.2");
     }
 }

@@ -8,10 +8,14 @@
 use std::net::SocketAddr;
 use std::sync::Mutex;
 
-use axum::{middleware, routing::get, Router};
+use axum::{
+    extract::DefaultBodyLimit,
+    middleware,
+    routing::{get, post},
+    Router,
+};
 use serde::Serialize;
 use tokio::sync::oneshot;
-use tower_http::cors::{Any, CorsLayer};
 
 use super::auth::require_token;
 use super::config::RemoteConfig;
@@ -32,7 +36,13 @@ impl RemoteHandle {
         if let Some(tx) = self.shutdown_tx.take() {
             let _ = tx.send(());
         }
-        let _ = (&mut self.join_handle).await;
+        // Do not let an outstanding mobile request freeze the desktop's Stop button.
+        if tokio::time::timeout(std::time::Duration::from_secs(2), &mut self.join_handle)
+            .await
+            .is_err()
+        {
+            self.join_handle.abort();
+        }
     }
 }
 
@@ -62,31 +72,57 @@ pub struct RemoteStatus {
 /// 启动 axum 服务器。
 ///
 /// - `app_handle`：用于 handler 访问 AppState（DB / 配置目录 / 事件总线）
-/// - `token`：可选静态 Token；None 时关闭鉴权（仅本地调试）
+/// - `token`：静态网关 Token；未配置时拒绝访问受保护路由。
 pub async fn start(
     config: RemoteConfig,
     app_handle: tauri::AppHandle,
     token: Option<String>,
 ) -> Result<RemoteHandle, String> {
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-
     let ctx = RemoteContext::new(app_handle, token.clone());
+    start_with_context(config, ctx, token).await
+}
 
+pub async fn start_device(
+    config: RemoteConfig,
+    app_handle: tauri::AppHandle,
+) -> Result<RemoteHandle, String> {
+    let mut ctx = RemoteContext::new(app_handle, None);
+    ctx.device_channel = true;
+    ctx.allowed_origin = Some(format!("http://{}:{}", config.host, config.port));
+    start_with_context(config, ctx, None).await
+}
+
+async fn start_with_context(
+    config: RemoteConfig,
+    ctx: RemoteContext,
+    token: Option<String>,
+) -> Result<RemoteHandle, String> {
     // 公开路由（无需 Token）
-    let public = Router::new().route("/ping", get(handlers::ping::ping));
+    let mut public = Router::new().route("/ping", get(handlers::ping::ping));
 
     // 受保护路由 —— 业务 handler 在此追加 .route(...)
-    let protected = Router::new()
-        // .route("/sessions", get(handlers::sessions::list))
-        // .route("/upload", axum::routing::post(handlers::upload::upload))
-        .route_layer(middleware::from_fn_with_state(ctx.clone(), require_token));
+    let mut protected = Router::new().route("/status", get(handlers::status::status));
+    if ctx.device_channel {
+        public = public.route("/pair", post(handlers::companion::pair));
+        protected = protected
+            .route("/bootstrap", get(handlers::companion::bootstrap))
+            .route("/approvals", get(handlers::companion::approvals))
+            .route("/approvals/decide", post(handlers::companion::decide))
+            .route("/lock", post(handlers::companion::lock))
+            .route("/chat", post(handlers::companion::chat))
+            .route("/knowledge", get(handlers::companion::knowledge));
+    }
+    let protected =
+        protected.route_layer(middleware::from_fn_with_state(ctx.clone(), require_token));
 
     let app = Router::new()
         .nest(&config.base_path, public.merge(protected))
-        .layer(cors)
+        .route("/", get(handlers::companion::page))
+        .layer(DefaultBodyLimit::max(64 * 1024))
+        .layer(middleware::from_fn_with_state(
+            ctx.clone(),
+            super::auth::same_origin,
+        ))
         .with_state(ctx);
 
     let addr: SocketAddr = format!("{}:{}", config.host, config.port)

@@ -2536,18 +2536,45 @@
             <p class="text-xs text-slate-400 mt-0.5">所有终端、SFTP、工作台、数据库、批量执行与 AI 工具调用的根源基石</p>
           </div>
           <div class="flex items-center space-x-2">
-            <!-- 按钮 1: Windows 接入向导 -->
-            <button onclick="openWindowsGuideModal()" class="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
-              <i data-lucide="monitor" class="w-3.5 h-3.5 text-blue-400"></i>
-              <span>Windows 接入</span>
-            </button>
-            <!-- 按钮 2: 导入 ~/.ssh/config (弹窗交互) -->
-            <button onclick="openImportSSHConfigModal()" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 text-xs font-medium border border-slate-700 flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
-              <i data-lucide="file-code" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span>导入 ~/.ssh/config</span>
-            </button>
-            <!-- 按钮 3: 新增纳管服务器 (全面表单弹窗) -->
-            <button onclick="openAddServerModal()" class="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium flex items-center space-x-1.5 shadow transition cursor-pointer">
+            <!-- 按钮 1: Windows 接入向导 (带悬浮气泡 Tooltip，严格对齐截图 1) -->
+            <div class="relative group inline-block">
+              <button onclick="openWindowsGuideModal()" class="px-3 py-1.5 rounded-lg bg-[#141a24] hover:bg-[#1c2434] text-slate-200 border border-slate-700/80 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+                <i data-lucide="monitor" class="w-3.5 h-3.5 text-blue-400"></i>
+                <span>Windows 接入</span>
+              </button>
+              <!-- 悬浮 Tooltip (严格对齐截图 1: media_1794062347387_5177df96.jpg) -->
+              <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-40 w-64 p-2.5 bg-[#1e232d] text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700/80 pointer-events-none leading-relaxed text-center">
+                <span>Windows 服务器？点这里获取准备脚本（开通 SSH / 装 Chocolatey）</span>
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#1e232d]"></div>
+              </div>
+            </div>
+
+            <!-- 按钮 2: 导入服务器下拉菜单 (严格对齐截图 2: media_1794062382890_743d7ad5.jpg) -->
+            <div class="relative inline-block" id="importServerDropdownContainer">
+              <button type="button" onclick="toggleImportServerDropdown(event)" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 text-xs font-medium border border-slate-700 flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+                <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>导入服务器</span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+              </button>
+              <!-- 下拉菜单列表 (导入 ~/.ssh/config, FinalShell 导出文件夹, Excel / CSV 表格) -->
+              <div id="importServerDropdownMenu" class="hidden absolute top-full right-0 mt-1.5 w-48 rounded-xl bg-[#0f141c] border border-slate-800 shadow-2xl py-1.5 z-40 text-xs">
+                <button type="button" onclick="selectImportType('ssh_config')" class="w-full text-left px-3.5 py-2 hover:bg-surface-800/80 text-slate-200 flex items-center space-x-2.5 transition cursor-pointer">
+                  <i data-lucide="file-code" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>~/.ssh/config</span>
+                </button>
+                <button type="button" onclick="selectImportType('finalshell')" class="w-full text-left px-3.5 py-2 hover:bg-surface-800/80 text-slate-200 flex items-center space-x-2.5 transition cursor-pointer">
+                  <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-400"></i>
+                  <span>FinalShell 导出文件夹</span>
+                </button>
+                <button type="button" onclick="selectImportType('excel_csv')" class="w-full text-left px-3.5 py-2 hover:bg-surface-800/80 text-slate-200 flex items-center space-x-2.5 transition cursor-pointer">
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Excel / CSV 表格</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 按钮 3: 新增服务器 -->
+            <button onclick="openAddServerModal()" class="px-3.5 py-1.5 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium flex items-center space-x-1.5 shadow transition cursor-pointer">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>新增服务器</span>
             </button>
@@ -11437,6 +11464,10 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
                   <i data-lucide="smartphone" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
                   <span>手机配对</span>
                 </button>
+                <button type="button" onclick="scrollSettingsTo('device-channel')" id="set-subnav-device-channel" class="set-subnav-btn w-full text-left px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-surface-900/60 transition border border-transparent">
+                  <i data-lucide="radio" class="w-3.5 h-3.5 shrink-0 text-slate-400"></i>
+                  <span>设备通道</span>
+                </button>
               </div>
             </div>
 
@@ -12448,30 +12479,66 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
             </div>
           </div>
 
-          <!-- 卡片 14: 手机配对 -->
-          <div id="setting-card-mobile-pairing" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+          <!-- 卡片 14: 配对手机 (严格对齐截图 1) -->
+          <div id="setting-card-mobile-pairing" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3.5 scroll-mt-6">
             <div>
               <div class="font-medium text-sm text-white flex items-center space-x-2">
-                <i data-lucide="smartphone" class="w-4 h-4 text-teal-400"></i>
-                <span>手机配对 (移动端审批助手)</span>
+                <i data-lucide="smartphone" class="w-4 h-4 text-indigo-400"></i>
+                <span>配对手机</span>
               </div>
-              <p class="text-slate-400 text-xs mt-1">使用手机 OpsPub App 扫码配对后，外出离开办公桌时可接收高危运维动作实时推送并单手完成审批放行</p>
+              <p class="text-slate-400 text-xs mt-1">配对服务只会绑定你选的这张私网网卡，120 秒后自动关闭，绝不监听公网。</p>
             </div>
-            <div class="flex items-center space-x-5 pt-1">
-              <div class="w-24 h-24 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0">
-                <div class="w-full h-full border-2 border-slate-900 border-dashed rounded flex flex-col items-center justify-center text-slate-900 font-mono text-[9px] text-center">
-                  <span>[ QR CODE ]</span>
-                  <span class="text-[8px] text-slate-600 mt-1">点此刷新</span>
-                </div>
+
+            <div class="pt-1">
+              <button type="button" onclick="openPairPhoneModal()" class="px-4 py-2 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm active:scale-98">
+                <span>生成配对二维码</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 卡片 15: 设备通道 (严格对齐截图 1 与截图 3) -->
+          <div id="setting-card-device-channel" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3.5 scroll-mt-6">
+            <div>
+              <div class="font-medium text-sm text-white flex items-center space-x-2">
+                <i data-lucide="radio" class="w-4 h-4 text-indigo-400"></i>
+                <span>设备通道</span>
+                <span id="badge-device-channel-status" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700/80">未开启</span>
               </div>
-              <div class="space-y-1.5">
-                <div class="text-slate-200 font-semibold flex items-center space-x-2">
-                  <span>已绑定移动设备 (1 台)</span>
-                  <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">在线</span>
-                </div>
-                <div class="text-slate-400 text-xs font-mono">iPhone 15 Pro Max · iOS 18.2 · 配对时间 2026-09-18</div>
-                <button type="button" onclick="showToast('已向手机端发送测试审批弹窗')" class="px-3 py-1 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs border border-slate-700">发送测试审批通知</button>
+              <p class="text-slate-400 text-xs mt-1">让配对过的手机连回这台电脑 —— 审批 AI 操作、应急开关、问 AI、查知识库都走这条路。</p>
+            </div>
+
+            <!-- 蓝色安全说明条 (严格对齐截图) -->
+            <div class="rounded-xl p-3 bg-blue-500/10 border border-blue-500/25 flex items-center space-x-2.5 text-xs text-blue-200/90">
+              <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0"></i>
+              <span>只在手机与这台电脑连同一个 Wi-Fi 时可用。OpsPub 不内置组网能力，不支持跨网络访问。</span>
+            </div>
+
+            <!-- 网卡选择与开启/关闭按钮行 -->
+            <div class="flex items-center space-x-3 pt-1">
+              <div class="relative min-w-[220px]">
+                <select id="select-device-channel-nic" class="w-full appearance-none px-3 py-2 bg-[#0c1017] border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 pr-8 cursor-pointer font-mono">
+                  <option value="192.168.2.43">WLAN — 192.168.2.43</option>
+                  <option value="10.0.0.12">以太网 — 10.0.0.12</option>
+                  <option value="172.17.0.1">虚拟网卡 — 172.17.0.1</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
               </div>
+
+              <button type="button" onclick="toggleDeviceChannelState()" id="btn-toggle-device-channel" class="px-4 py-2 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium transition cursor-pointer shadow-sm">
+                开启通道
+              </button>
+            </div>
+
+            <!-- 运行中专属展示绿色条 (严格对齐截图 3，默认 hidden，开启后显示) -->
+            <div id="banner-device-channel-running" class="hidden rounded-xl p-3 bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs transition-all">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span class="text-slate-300">在手机的「设备通道」里填这个地址：</span>
+                <span id="text-device-channel-address" class="font-mono text-emerald-400 font-medium px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/30">http://192.168.2.43:59145</span>
+              </div>
+              <button type="button" onclick="copyDeviceChannelAddress()" class="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer" title="复制通道地址">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
             </div>
           </div>
 
@@ -12934,413 +13001,841 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
   <!-- =================================================================================== -->
   <!-- 弹窗 1: 新增纳管服务器节点 (Agentless - 全功能增强版) -->
   <!-- =================================================================================== -->
-  <div id="modalAddServer" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
-    <div class="glass-card bg-surface-900 border border-slate-700 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-      <!-- 头部 -->
-      <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-surface-950/70 shrink-0">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-lg bg-brand-500/20 text-brand-300 flex items-center justify-center">
-            <i data-lucide="server" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-sm text-white">新增服务器</h3>
-            <p id="addServerSubtitle" class="text-[11px] text-slate-400">SSH 连接与 AI 运维策略</p>
-          </div>
+    <!-- =================================================================================== -->
+  <!-- 弹窗 0: 配对手机模态弹窗 (严格对齐截图 2: media_1794061417693_2b4ae719.png) -->
+  <!-- =================================================================================== -->
+  <div id="modalPairPhone" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#0f141c] border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl p-5 space-y-4">
+      <!-- 弹窗顶栏 -->
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div class="font-medium text-sm text-white flex items-center space-x-2">
+          <i data-lucide="smartphone" class="w-4 h-4 text-indigo-400"></i>
+          <span>配对手机</span>
         </div>
-        <button onclick="closeAddServerModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-surface-800 transition">
+        <button type="button" onclick="closePairPhoneModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <!-- 表单主体 -->
-      <div class="p-5 space-y-3.5 text-xs overflow-y-auto custom-scrollbar flex-1">
-        <!-- 目标平台切换 -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-slate-300 font-medium flex items-center space-x-1.5">
-              <i data-lucide="terminal" class="w-3.5 h-3.5 text-brand-400"></i>
-              <span>目标平台</span>
-            </label>
-            <button id="addServerWinGuideBtn" onclick="openWindowsGuideModal()" class="hidden text-[11px] text-blue-400 hover:text-blue-300 flex items-center space-x-1 transition cursor-pointer">
-              <i data-lucide="monitor" class="w-3 h-3"></i>
-              <span>Windows 接入向导</span>
-            </button>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div onclick="switchAddServerPlatform('linux')" id="proto-card-linux" class="p-3 rounded-xl border-2 border-brand-500 bg-brand-500/10 cursor-pointer flex items-center space-x-3 transition shadow-sm">
-              <div class="w-8 h-8 rounded-lg bg-brand-500/25 text-brand-300 flex items-center justify-center shrink-0">
-                <i data-lucide="terminal" class="w-4 h-4"></i>
-              </div>
-              <div>
-                <div class="font-bold text-white text-xs">Linux</div>
-                <div class="text-[10px] text-slate-400">OpenSSH</div>
-              </div>
-            </div>
-            <div onclick="switchAddServerPlatform('windows')" id="proto-card-windows" class="p-3 rounded-xl border border-slate-700 bg-surface-950 hover:border-slate-500 cursor-pointer flex items-center space-x-3 transition">
-              <div class="w-8 h-8 rounded-lg bg-surface-800 text-slate-400 flex items-center justify-center shrink-0">
-                <i data-lucide="monitor" class="w-4 h-4 text-blue-400"></i>
-              </div>
-              <div>
-                <div class="font-bold text-white text-xs">Windows</div>
-                <div class="text-[10px] text-slate-400">OpenSSH for Windows</div>
-              </div>
-            </div>
-          </div>
+      <!-- 弹窗主体内容 (初始视图: 网卡选择，严格对齐截图 2) -->
+      <div id="pairPhoneStepSelect" class="space-y-3.5">
+        <div class="text-xs text-slate-300 leading-relaxed">
+          选择手机要连接的网卡（两台设备必须在同一个局域网里）
         </div>
 
-        <!-- 主机别名与归属分组 -->
-        <div class="grid grid-cols-12 gap-3">
-          <div class="col-span-7">
-            <label class="text-slate-300 block mb-1 font-medium"><span class="text-rose-400">*</span> 主机别名</label>
-            <input id="newHostAlias" type="text" placeholder="如: prod-k8s-master-01" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
-          </div>
-          <div class="col-span-5">
-            <label class="text-slate-300 block mb-1 font-medium">归属分组</label>
-            <input id="newHostGroup" list="groupSuggestions" type="text" placeholder="默认" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            <datalist id="groupSuggestions">
-              <option value="生产集群"></option>
-              <option value="开发测试"></option>
-            </datalist>
-          </div>
+        <!-- 网卡单选列表 (对齐截图 2) -->
+        <div class="space-y-2">
+          <label class="flex items-center justify-between p-3 rounded-xl bg-[#141a24] border border-indigo-500/50 cursor-pointer select-none">
+            <div class="flex items-center space-x-2.5">
+              <input type="radio" name="pairNicRadio" value="192.168.2.43" checked class="w-3.5 h-3.5 text-indigo-500 accent-[#5b64c2] cursor-pointer">
+              <i data-lucide="wifi" class="w-4 h-4 text-indigo-400"></i>
+              <span class="text-xs font-mono text-slate-200">192.168.2.43</span>
+              <span class="text-[11px] text-slate-400">WLAN</span>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] bg-blue-600/30 text-blue-300 border border-blue-500/30 font-medium">最可能</span>
+          </label>
         </div>
 
-        <!-- 连接地址与端口 -->
-        <div class="grid grid-cols-12 gap-3">
-          <div class="col-span-9">
-            <label class="text-slate-300 block mb-1 font-medium"><span class="text-rose-400">*</span> 连接地址</label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">>_</span>
-              <input id="newHostIp" type="text" placeholder="192.168.1.120 或 api.internal" class="w-full bg-surface-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500 transition">
-            </div>
-          </div>
-          <div class="col-span-3">
-            <label class="text-slate-300 block mb-1 font-medium"><span class="text-rose-400">*</span> 端口</label>
-            <input id="newHostPort" type="number" value="22" placeholder="22" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 font-mono text-center focus:outline-none focus:border-brand-500 transition">
-          </div>
+        <!-- 蓝色说明提示框 (对齐截图 2) -->
+        <div class="rounded-xl p-3 bg-blue-500/10 border border-blue-500/25 flex items-start space-x-2.5 text-[11px] text-blue-200/90 leading-relaxed">
+          <i data-lucide="info" class="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5"></i>
+          <span>配对服务只会绑定你选的这张私网网卡，120 秒后自动关闭，绝不监听公网。</span>
         </div>
 
-        <!-- 登录凭据配置卡片 -->
-        <div class="p-3.5 rounded-xl bg-surface-950 border border-slate-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-200 flex items-center space-x-1.5">
-              <i data-lucide="key" class="w-3.5 h-3.5 text-brand-400"></i>
-              <span>登录凭据</span>
-            </span>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-800/40">不写入资产库</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-slate-400 block mb-1"><span class="text-rose-400">*</span> 登录用户名</label>
-              <input id="newHostUser" type="text" value="root" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500 transition">
-            </div>
-            <div>
-              <label class="text-slate-400 block mb-1"><span class="text-rose-400">*</span> 认证方式</label>
-              <select id="newHostAuthType" onchange="handleAuthTypeChange(this.value)" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
-                <option value="password">密码</option>
-                <option value="key">私钥</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="newHostPasswordField">
-            <label id="labelPwdField" class="text-slate-400 block mb-1"><span class="text-rose-400">*</span> SSH 登录密码</label>
-            <div class="relative">
-              <input id="newHostPassword" type="password" placeholder="输入本次连接凭据" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500 transition pr-9">
-              <button type="button" onclick="togglePasswordVisibility('newHostPassword', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer">
-                👁️
-              </button>
-            </div>
-          </div>
-
-          <div id="newHostKeyField" class="hidden space-y-2">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-slate-400 block mb-1"><span class="text-rose-400">*</span> 私钥路径</label>
-                <input id="newHostKeyPath" type="text" placeholder="~/.ssh/id_ed25519" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500 transition">
-              </div>
-              <div>
-                <label class="text-slate-400 block mb-1">私钥口令</label>
-                <input id="newHostKeyPassphrase" type="password" placeholder="未加密私钥可留空" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500 transition">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AI 运维策略卡片 -->
-        <div class="p-3.5 rounded-xl bg-surface-950 border border-slate-800 space-y-3">
-          <div class="flex items-center space-x-1.5 pb-0.5">
-            <i data-lucide="shield" class="w-3.5 h-3.5 text-brand-400"></i>
-            <span class="font-bold text-slate-200">AI 运维策略</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-slate-400 block mb-1 font-medium"><span class="text-rose-400">*</span> 操作策略</label>
-              <select id="newHostAIPolicy" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
-                <option value="trusted" selected>已信任 - AI 命中策略直接执行，仅记录审计日...</option>
-                <option value="strict">需审批 - 高危执行需工程师人工裁决放行</option>
-                <option value="readonly">白名单 - 仅限执行只读探测命令</option>
-                <option value="disabled">已锁定 - 完全禁止 AI 执行任何操作</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-slate-400 block mb-1 font-medium">业务标签</label>
-              <input id="newHostTags" type="text" placeholder="生产环境, K8s, 华东一区" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <!-- AI 专用账号 -->
-            <div>
-              <label class="text-slate-400 block mb-1 font-medium flex items-center justify-between">
-                <span class="flex items-center space-x-1">
-                  <span>AI 专用账号</span>
-                  <span id="tipAiUser" title="留空 = AI 也用主账号；填了保存后会自动远程 useradd -m -s /bin/bash (不会装任何 agent)" class="cursor-help text-slate-400 hover:text-slate-300">🛈</span>
-                </span>
-              </label>
-              <div class="flex items-center space-x-1.5">
-                <input id="newHostAiUser" type="text" placeholder="留空则使用登录用户名" class="flex-1 bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500 transition">
-                <button type="button" onclick="fillDefaultAiUser()" class="px-2.5 py-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 hover:text-white shrink-0 flex items-center space-x-1 transition cursor-pointer">
-                  <span>🪄</span>
-                  <span>默认</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- 跳板机 -->
-            <div>
-              <label class="text-slate-400 block mb-1 font-medium flex items-center space-x-1">
-                <span>跳板机</span>
-                <span title="留空 = 直连。支持多级 (跳板机自己也能有跳板机，最多 5 跳)；配成环会在连接时报错。" class="cursor-help text-slate-400 hover:text-slate-300">🛈</span>
-              </label>
-              <select id="newHostBastion" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
-                <option value="">直连 (不经跳板机)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- 提权与代理开关 -->
-          <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
-            <div class="flex items-center justify-between">
-              <span id="labelSudoField" class="text-slate-300 flex items-center space-x-1">
-                <span>允许 sudo 提权</span>
-                <span title="允许 AI 执行特权命令时使用 sudo 提权" class="cursor-help text-slate-400 hover:text-slate-300">🛈</span>
-              </span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input id="newHostAllowSudo" type="checkbox" class="sr-only peer">
-                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
-              </label>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-slate-300 flex items-center space-x-1">
-                <span>借用本机代理</span>
-                <span title="需先在「设置 › 网络代理」配置本机代理地址才生效" class="cursor-help text-slate-400 hover:text-slate-300">🛈</span>
-              </span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input id="newHostUseLocalProxy" type="checkbox" class="sr-only peer">
-                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- 连通性测试即时反馈条 -->
-        <div id="addServerPingFeedback" class="hidden p-2.5 rounded-xl border border-slate-800 bg-surface-950 flex items-center justify-between text-xs mt-2">
-          <div class="flex items-center space-x-2">
-            <span id="addServerPingDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span id="addServerPingMsg" class="text-slate-300 font-mono">正在发起连接握手探测...</span>
-          </div>
-          <span id="addServerPingLatency" class="font-mono font-bold text-emerald-400">15ms</span>
+        <!-- 底部生成按钮 -->
+        <div class="pt-2">
+          <button type="button" onclick="generatePairQrCode()" class="w-full py-2.5 rounded-xl bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium transition cursor-pointer shadow-sm active:scale-98">
+            生成配对二维码
+          </button>
         </div>
       </div>
 
-      <!-- 底部操作按钮 -->
-      <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-surface-950/80 shrink-0">
-        <button type="button" onclick="testNewServerConnection()" id="btnTestNewServer" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 border border-slate-700 flex items-center space-x-1.5 transition cursor-pointer">
-          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
-          <span>⚡ 测试连接</span>
-        </button>
-        <div class="flex items-center space-x-2">
-          <button type="button" onclick="closeAddServerModal()" class="px-3.5 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 transition cursor-pointer">取消</button>
-          <button type="button" onclick="saveNewServer()" class="px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold flex items-center space-x-1.5 shadow transition cursor-pointer">
-            确定
+      <!-- 弹窗主体内容 (步骤 2: 二维码展示与 120 秒倒计时) -->
+      <div id="pairPhoneStepQr" class="hidden space-y-4 text-center py-2">
+        <div class="text-xs text-slate-300">
+          请使用手机 OpsPub App 扫描此二维码进行安全配对
+        </div>
+
+        <!-- 二维码模拟展示 -->
+        <div class="w-48 h-48 mx-auto bg-white p-2.5 rounded-xl shadow-lg flex flex-col items-center justify-center relative">
+          <div class="w-full h-full border-2 border-slate-900 border-dashed rounded-lg flex flex-col items-center justify-center p-2 text-slate-800">
+            <i data-lucide="qr-code" class="w-16 h-16 text-slate-900 mb-1"></i>
+            <span class="text-[9px] font-mono text-slate-600">opspub://pair?host=192.168.2.43&port=59145</span>
+          </div>
+          <!-- 脉冲安全指示 -->
+          <div class="absolute -bottom-2 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-medium shadow-sm flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+            <span>一次性令牌保护</span>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-400 flex items-center justify-center space-x-1">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>配对窗口剩余有效时间：<span id="pairCountdownText" class="font-mono text-amber-400 font-bold">120</span> 秒</span>
+        </div>
+
+        <div class="flex items-center justify-center space-x-3 pt-2">
+          <button type="button" onclick="mockPairSuccess()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition cursor-pointer">
+            模拟手机已扫码
+          </button>
+          <button type="button" onclick="resetPairPhoneStep()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
+            重新选网卡
           </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- =================================================================================== -->
+  <!-- 新增 / 编辑服务器模态框 (100% 严格对齐截图 2, 3, 4: 告别串行，统一 SSH 与 RDP) -->
+  <!-- =================================================================================== -->
+  <!-- =================================================================================== -->
+  <!-- 新增 / 编辑服务器模态框 (像素级精确对齐，100% 对齐截图规范) -->
+  <!-- =================================================================================== -->
+  <div id="modalAddServer" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <!-- 弹窗主体卡片 (最大宽度 640px) -->
+    <div class="glass-card bg-[#181b22] border border-slate-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-200">
+      
+      <!-- 弹窗头部 -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#14161d]/90 shrink-0">
+        <h3 id="serverModalTitle" class="font-bold text-base text-white tracking-wide">新增服务器</h3>
+        <button type="button" onclick="closeServerModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 隐藏域：记录当前编辑的服务器 ID (新增时为空) -->
+      <input type="hidden" id="serverFormEditId" value="">
+
+      <!-- 表单主体 (垂直滚动区域，左侧 116px 固定，右侧控件统一从 128px 起跑，右边缘完美对齐) -->
+      <div class="px-6 py-5 space-y-4 text-xs overflow-y-auto custom-scrollbar flex-1">
+        
+        <!-- 1. 连接方式切换栏 -->
+        <div class="flex items-center space-x-3">
+          <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+            <span>连接方式</span>
+            <div class="group relative cursor-pointer flex items-center">
+              <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+              <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-56 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                SSH 负责全功能运维纳管；仅远程桌面 (RDP) 仅负责一键唤起 Windows 远程桌面
+              </div>
+            </div>
+            <span>:</span>
+          </div>
+          <!-- 胶囊切换按钮组 (左起跑线与所有输入框完全对齐) -->
+          <div class="inline-flex p-1 rounded-xl bg-[#12141a] border border-slate-800 text-xs">
+            <button type="button" id="tabConnectSSH" onclick="switchServerConnectType('ssh')" class="px-3.5 py-1 rounded-lg font-medium transition cursor-pointer bg-[#252831] text-white shadow-sm">
+              SSH
+            </button>
+            <button type="button" id="tabConnectRDP" onclick="switchServerConnectType('rdp')" class="px-3 py-1 rounded-lg font-medium transition cursor-pointer text-slate-400 hover:text-slate-200">
+              仅远程桌面 (RDP)
+            </button>
+          </div>
+        </div>
+
+        <!-- ========================================================== -->
+        <!-- A. SSH 模式表单区域 (严格对齐截图) -->
+        <!-- ========================================================== -->
+        <div id="serverFormSSH" class="space-y-4">
+          
+          <!-- 别名 -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> 别名:
+            </label>
+            <div class="flex-1 min-w-0">
+              <input type="text" id="sshServerAlias" placeholder="如 prod-web-01（AI 只看得懂这个）" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+            </div>
+          </div>
+
+          <!-- 主机 & 端口 (同一行严格右对齐) -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> 主机:
+            </label>
+            <div class="flex-1 min-w-0 flex items-center space-x-3">
+              <input type="text" id="sshServerHost" placeholder="10.0.1.11 或 example.com" class="flex-1 min-w-0 bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+              <div class="flex items-center space-x-2 shrink-0">
+                <label class="text-slate-300 font-medium whitespace-nowrap select-none"><span class="text-rose-400">*</span> 端口:</label>
+                <input type="number" id="sshServerPort" value="22" placeholder="22" class="w-20 bg-[#12141a] border border-slate-700/80 rounded-lg px-2.5 py-2 text-slate-200 text-xs text-center focus:outline-none focus:border-blue-500 transition">
+              </div>
+            </div>
+          </div>
+
+          <!-- 用户名 & 认证方式 (同一行严格右对齐) -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> 用户名:
+            </label>
+            <div class="flex-1 min-w-0 flex items-center space-x-3">
+              <input type="text" id="sshServerUser" placeholder="root / ubuntu / ai-..." value="root" class="flex-1 min-w-0 bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+              <div class="flex items-center space-x-2 shrink-0">
+                <label class="text-slate-300 font-medium whitespace-nowrap select-none"><span class="text-rose-400">*</span> 认证方式:</label>
+                <div class="relative w-32">
+                  <select id="sshServerAuthType" onchange="handleAuthTypeChange()" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-7 py-2 text-slate-200 text-xs appearance-none cursor-pointer focus:outline-none focus:border-blue-500 transition">
+                    <option value="password">密码</option>
+                    <option value="key_pem">私钥 (PEM)</option>
+                    <option value="key_pass">私钥 + 口令</option>
+                    <option value="ssh_agent">ssh-agent</option>
+                  </select>
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI 专用账号 (附带默认按钮，小字说明严格缩进 128px 对齐) -->
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-3">
+              <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+                <span>AI 专用账号</span>
+                <div class="group relative cursor-pointer flex items-center">
+                  <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                  <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-64 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                    推荐为 AI 配置独立受限账号；留空则直接使用主账号进行 AI 操作
+                  </div>
+                </div>
+                <span>:</span>
+              </div>
+              <div class="flex-1 min-w-0 flex items-center space-x-2">
+                <input type="text" id="sshServerAiUser" placeholder="留空 = AI 也用主账号；填了保存后会自动远程配置" class="flex-1 min-w-0 bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+                <button type="button" onclick="fillDefaultAiUser()" class="px-3.5 py-2 rounded-lg bg-[#252831] hover:bg-[#2d313c] border border-slate-700/80 text-slate-200 hover:text-white text-xs flex items-center space-x-1.5 shrink-0 transition cursor-pointer shadow-sm">
+                  <i data-lucide="wand-2" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>默认</span>
+                </button>
+              </div>
+            </div>
+            <div class="pl-[128px] text-[11px] text-slate-400 leading-normal">
+              人通道（交互终端、调试执行）始终用上面那个主账号，不受此设置影响。
+            </div>
+          </div>
+
+          <!-- 密码输入项 -->
+          <div id="sshPasswordContainer" class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> 密码:
+            </label>
+            <div class="flex-1 min-w-0 relative">
+              <input type="password" id="sshServerPassword" placeholder="服务器登录密码（将加密存储）" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+              <button type="button" onclick="togglePasswordVisibility('sshServerPassword', 'sshPasswordEye')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1 cursor-pointer">
+                <i data-lucide="eye-off" id="sshPasswordEye" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 私钥输入项 (选择私钥时展开) -->
+          <div id="sshKeyContainer" class="hidden space-y-1.5">
+            <div class="flex items-start space-x-3">
+              <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none pt-2">
+                <span class="text-rose-400">*</span> 私钥文本:
+              </label>
+              <div class="flex-1 min-w-0">
+                <textarea id="sshServerPrivateKey" rows="3" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;粘贴 PEM 或 OpenSSH 格式私钥文本" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs font-mono focus:outline-none focus:border-blue-500 transition"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 所在分组 -->
+          <div class="flex items-center space-x-3">
+            <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span>所在分组</span>
+              <div class="group relative cursor-pointer flex items-center">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-56 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                  可选择已有分组或直接输入新分组名称（如 生产/网关）
+                </div>
+              </div>
+              <span>:</span>
+            </div>
+            <div class="flex-1 min-w-0 relative">
+              <input type="text" id="sshServerGroup" list="serverGroupSuggestions" placeholder="选择已有分组或输入新分组名（留空 = 未分组）" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+              <datalist id="serverGroupSuggestions">
+                <option value="生产集群"></option>
+                <option value="开发测试"></option>
+                <option value="海外专区"></option>
+              </datalist>
+            </div>
+          </div>
+
+          <!-- 标签 -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">标签:</label>
+            <div class="flex-1 min-w-0">
+              <input type="text" id="sshServerTags" placeholder="如 electron-mail、自用" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+            </div>
+          </div>
+
+          <!-- AI 操作策略 -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> AI 操作策略:
+            </label>
+            <div class="flex-1 min-w-0 relative">
+              <select id="sshServerAiPolicy" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs appearance-none cursor-pointer focus:outline-none focus:border-blue-500 transition">
+                <option value="disabled">禁用（AI 摸不到）</option>
+                <option value="readonly">只读探测（纯只读命令）</option>
+                <option value="strict">严格审批（每次执行需人工确认）</option>
+                <option value="trusted">完全信任（自动执行安全指令）</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            </div>
+          </div>
+
+          <!-- 允许 sudo -->
+          <div class="flex items-center space-x-3">
+            <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span>允许 sudo</span>
+              <div class="group relative cursor-pointer flex items-center">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-52 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                  允许 AI 使用 sudo 提升权限执行特权运维命令
+                </div>
+              </div>
+              <span>:</span>
+            </div>
+            <div class="flex-1 min-w-0 flex items-center">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="sshServerAllowSudo" class="sr-only peer">
+                <div class="w-9 h-5 bg-[#252831] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 借用本机代理 -->
+          <div class="space-y-1">
+            <div class="flex items-center space-x-3">
+              <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+                <span>借用本机代理</span>
+                <div class="group relative cursor-pointer flex items-center">
+                  <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                  <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-56 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                    通过本地网络代理访问该服务器（适用于出海海外主机）
+                  </div>
+                </div>
+                <span>:</span>
+              </div>
+              <div class="flex-1 min-w-0 flex items-center">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="sshServerUseProxy" class="sr-only peer">
+                  <div class="w-9 h-5 bg-[#252831] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
+            <div class="pl-[128px] text-[11px] text-slate-400 leading-normal">
+              需先在「设置 · 网络代理」配好本机代理地址才生效
+            </div>
+          </div>
+
+          <!-- 网络环境 -->
+          <div class="flex items-center space-x-3">
+            <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span>网络环境</span>
+              <div class="group relative cursor-pointer flex items-center">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-56 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                  指导探测探针的超时和并发策略（默认自动判断）
+                </div>
+              </div>
+              <span>:</span>
+            </div>
+            <div class="flex-1 min-w-0 relative">
+              <select id="sshServerNetworkEnv" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs appearance-none cursor-pointer focus:outline-none focus:border-blue-500 transition">
+                <option value="auto">自动判断</option>
+                <option value="public">公网直连</option>
+                <option value="lan">局域网 / 内网</option>
+                <option value="cross_border">跨国跨境</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            </div>
+          </div>
+
+          <!-- 跳板机 -->
+          <div class="space-y-1">
+            <div class="flex items-center space-x-3">
+              <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+                <span>跳板机</span>
+                <div class="group relative cursor-pointer flex items-center">
+                  <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                  <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-64 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                    通过已纳管的跳板主机建立安全 SSH 隧道访问内网服务器
+                  </div>
+                </div>
+                <span>:</span>
+              </div>
+              <div class="flex-1 min-w-0 relative">
+                <select id="sshServerBastion" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs appearance-none cursor-pointer focus:outline-none focus:border-blue-500 transition">
+                  <option value="">直连（不经跳板机）</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              </div>
+            </div>
+            <div class="pl-[128px] text-[11px] text-slate-400 leading-normal">
+              留空 = 直连。支持多级（跳板机自己也能有跳板机，最多 5 跳）；配成环会在连接时报错。
+            </div>
+          </div>
+
+          <!-- 连接代理 -->
+          <div class="flex items-center space-x-3">
+            <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span>连接代理</span>
+              <div class="group relative cursor-pointer flex items-center">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-52 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                  选择专有 SOCKS5 / HTTP 协议代理隧道
+                </div>
+              </div>
+              <span>:</span>
+            </div>
+            <div class="flex-1 min-w-0 relative">
+              <select id="sshServerConnProxy" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs appearance-none cursor-pointer focus:outline-none focus:border-blue-500 transition">
+                <option value="">直连（不经代理）</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            </div>
+          </div>
+
+          <!-- 远程桌面 (RDP) 开关子项 -->
+          <div class="pt-2 border-t border-slate-800/80">
+            <div class="text-slate-400 text-xs font-medium mb-2">远程桌面 (RDP)</div>
+            <div class="flex items-center space-x-3">
+              <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+                <span>启用远程桌面</span>
+                <div class="group relative cursor-pointer flex items-center">
+                  <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                  <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-52 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                    在服务器列表操作列中提供一键唤起 RDP 远程桌面按钮
+                  </div>
+                </div>
+                <span>:</span>
+              </div>
+              <div class="flex-1 min-w-0 flex items-center">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="sshServerEnableRdp" class="sr-only peer">
+                  <div class="w-9 h-5 bg-[#252831] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ========================================================== -->
+        <!-- B. 仅远程桌面 (RDP) 模式表单区域 (严格对齐截图) -->
+        <!-- ========================================================== -->
+        <div id="serverFormRDP" class="hidden space-y-4">
+          
+          <!-- 蓝色信息提示 Banner -->
+          <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs flex items-start space-x-2.5 leading-relaxed">
+            <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0 mt-0.5"></i>
+            <div>
+              OpsPub 不纳管这台机器，只负责用本机远程桌面打开它并自动填好凭据。需要终端、文件管理或 AI 运维时，先在这台 Windows 上开通 OpenSSH，再把连接方式改成 SSH。
+            </div>
+          </div>
+
+          <!-- 别名 -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> 别名:
+            </label>
+            <div class="flex-1 min-w-0">
+              <input type="text" id="rdpServerAlias" placeholder="如 prod-web-01（AI 只看得懂这个）" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+            </div>
+          </div>
+
+          <!-- 主机 & 远程桌面端口 (同一行严格右对齐) -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> 主机:
+            </label>
+            <div class="flex-1 min-w-0 flex items-center space-x-3">
+              <input type="text" id="rdpServerHost" placeholder="10.0.1.11 或 example.com" class="flex-1 min-w-0 bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+              <div class="flex items-center space-x-2 shrink-0">
+                <label class="text-slate-300 font-medium whitespace-nowrap select-none"><span class="text-rose-400">*</span> 远程桌面端口:</label>
+                <input type="number" id="rdpServerPort" value="3389" placeholder="3389" class="w-20 bg-[#12141a] border border-slate-700/80 rounded-lg px-2.5 py-2 text-slate-200 text-xs text-center focus:outline-none focus:border-blue-500 transition">
+              </div>
+            </div>
+          </div>
+
+          <!-- 用户名 (附带快捷 Administrator 填入) -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span class="text-rose-400">*</span> 用户名:
+            </label>
+            <div class="flex-1 min-w-0 relative">
+              <input type="text" id="rdpServerUser" placeholder="Administrator 或 域名\用户名" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-28 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+              <button type="button" onclick="fillRdpAdminUser()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 hover:text-blue-300 text-xs font-medium cursor-pointer select-none">
+                Administrator
+              </button>
+            </div>
+          </div>
+
+          <!-- 密码 (非必填) -->
+          <div class="space-y-1">
+            <div class="flex items-center space-x-3">
+              <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">密码:</label>
+              <div class="flex-1 min-w-0 relative">
+                <input type="password" id="rdpServerPassword" placeholder="服务器登录密码（将加密存储）" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-9 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+                <button type="button" onclick="togglePasswordVisibility('rdpServerPassword', 'rdpPasswordEye')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1 cursor-pointer">
+                  <i data-lucide="eye-off" id="rdpPasswordEye" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+            <div class="pl-[128px] text-[11px] text-slate-400 leading-normal">
+              可以不填；不填就在远程桌面窗口里手动输入。保存后加密存储。
+            </div>
+          </div>
+
+          <!-- 显示方式 -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">显示方式:</label>
+            <div class="flex-1 min-w-0 relative">
+              <select id="rdpServerDisplayMode" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg pl-3 pr-8 py-2 text-slate-200 text-xs appearance-none cursor-pointer focus:outline-none focus:border-blue-500 transition">
+                <option value="system">跟随系统默认</option>
+                <option value="fullscreen">全屏</option>
+                <option value="1920x1080">1920 x 1080</option>
+                <option value="1440x900">1440 x 900</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            </div>
+          </div>
+
+          <!-- 管理员会话 -->
+          <div class="flex items-center space-x-3">
+            <div class="w-[116px] shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <label class="flex items-center space-x-2 cursor-pointer text-slate-300 hover:text-white select-none">
+                <input type="checkbox" id="rdpServerAdminSession" class="w-4 h-4 rounded bg-[#12141a] border-slate-700 text-blue-600 focus:ring-0">
+                <span class="text-xs">管理员会话</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 所在分组 -->
+          <div class="flex items-center space-x-3">
+            <div class="w-[116px] shrink-0 flex items-center space-x-1 text-slate-300 font-medium whitespace-nowrap select-none">
+              <span>所在分组</span>
+              <div class="group relative cursor-pointer flex items-center">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300"></i>
+                <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-56 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-30 pointer-events-none">
+                  选择已有分组或输入新分组名（留空 = 未分组）
+                </div>
+              </div>
+              <span>:</span>
+            </div>
+            <div class="flex-1 min-w-0 relative">
+              <input type="text" id="rdpServerGroup" list="serverGroupSuggestions" placeholder="选择已有分组或输入新分组名（留空 = 未分组）" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+            </div>
+          </div>
+
+          <!-- 标签 -->
+          <div class="flex items-center space-x-3">
+            <label class="w-[116px] shrink-0 text-slate-300 font-medium whitespace-nowrap select-none">标签:</label>
+            <div class="flex-1 min-w-0">
+              <input type="text" id="rdpServerTags" placeholder="如 electron-mail、自用" class="w-full bg-[#12141a] border border-slate-700/80 rounded-lg px-3 py-2 text-slate-200 placeholder:text-slate-500 text-xs focus:outline-none focus:border-blue-500 transition">
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 弹窗底部操作栏 -->
+      <div class="px-6 py-4 border-t border-slate-800/80 flex items-center justify-end space-x-2.5 bg-[#14161d]/90 shrink-0">
+        <button type="button" onclick="closeServerModal()" class="px-4 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer">
+          取消
+        </button>
+        <button type="button" id="btnServerModalTest" onclick="testServerConnection()" class="px-3.5 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] border border-slate-700/80 text-slate-200 hover:text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer">
+          <i data-lucide="wifi" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span>测试连接</span>
+        </button>
+        <button type="button" id="btnServerModalSave" onclick="saveServerForm()" class="px-5 py-1.5 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium shadow-md shadow-indigo-500/20 transition cursor-pointer">
+          确定
+        </button>
+      </div>
+
     </div>
   </div>
 
-  <!-- =================================================================================== -->
-  <!-- 弹窗 2: 编辑服务器配置 (modalEditServer) -->
-  <!-- =================================================================================== -->
-  <div id="modalEditServer" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
-    <div class="glass-card bg-surface-900 border border-slate-700 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-surface-950/70">
-        <div class="flex items-center space-x-2">
-          <i data-lucide="edit" class="w-4 h-4 text-brand-400"></i>
-          <span class="font-bold text-sm text-white">编辑服务器属性与纳管策略</span>
-        </div>
-        <button onclick="closeEditServerModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-      </div>
-      <div class="p-5 space-y-3.5 text-xs">
-        <input type="hidden" id="editServerId">
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-slate-400 block mb-1">主机别名</label>
-            <input id="editHostAlias" type="text" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-200">
-          </div>
-          <div>
-            <label class="text-slate-400 block mb-1">归属分组</label>
-            <select id="editHostGroup" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200">
-              <option value="prod">生产集群</option>
-              <option value="test">开发测试</option>
-              <option value="all">未分组</option>
-            </select>
-          </div>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div class="col-span-2">
-            <label class="text-slate-400 block mb-1">IP / 域名</label>
-            <input id="editHostIp" type="text" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-200 font-mono">
-          </div>
-          <div>
-            <label class="text-slate-400 block mb-1">端口</label>
-            <input id="editHostPort" type="number" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-200 font-mono">
-          </div>
-        </div>
-        <div>
-          <label class="text-slate-400 block mb-1">业务标签 (英文逗号分隔)</label>
-          <input id="editHostTags" type="text" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-200">
-        </div>
-        <div>
-          <label class="text-slate-400 block mb-1">AI 运维策略档位</label>
-          <select id="editHostAIPolicy" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200">
-            <option value="strict">Strict Approval (需人工审批)</option>
-            <option value="readonly">Read-Only (纯只读探测)</option>
-            <option value="autonomous">Autonomous (完全自主修复)</option>
-            <option value="disabled">Disabled (禁用AI)</option>
-          </select>
-        </div>
-      </div>
-      <div class="p-4 border-t border-slate-800 flex justify-end space-x-2 bg-surface-950/60">
-        <button onclick="closeEditServerModal()" class="px-3 py-1.5 rounded-lg bg-surface-800 text-slate-300 text-xs">取消</button>
-        <button onclick="saveEditServer()" class="px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow">保存更新</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =================================================================================== -->
-  <!-- 弹窗 3: 导入本地 ~/.ssh/config (modalImportSSHConfig) -->
   <!-- =================================================================================== -->
   <div id="modalImportSSHConfig" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
-    <div class="glass-card bg-surface-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-surface-950/70">
+    <div class="glass-card bg-[#1a1d24] border border-slate-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200">
+      <!-- 头部 -->
+      <div class="px-5 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#16181f]/80">
+        <div class="flex items-center space-x-2.5">
+          <i data-lucide="terminal" class="w-4 h-4 text-slate-300"></i>
+          <h3 class="font-bold text-sm text-white tracking-wide">导入 ~/.ssh/config</h3>
+        </div>
+        <button type="button" onclick="closeImportSSHConfigModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/50 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 主体内容 -->
+      <div class="p-5 space-y-4 text-xs leading-relaxed">
+        <!-- 描述文案 (100% 对齐截图 1) -->
+        <p class="text-slate-400 leading-normal">
+          从 ~/.ssh/config 解析出的具体 Host 块（已跳过通配符模板）。导入时不会读取私钥文件内容；所有服务器以“骨架”形式入库（凭据字段留空），AI 权限默认禁用，需逐台编辑补充凭据后使用。首次连接时会带你核对主机指纹，确认后才记录。
+        </p>
+
+        <!-- 默认认证方式 -->
+        <div class="space-y-2 pt-1">
+          <div class="text-slate-400 text-xs font-medium">默认认证方式</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center space-x-2 cursor-pointer text-slate-300 hover:text-white group">
+              <input type="radio" name="sshImportAuthType" value="password" class="w-3.5 h-3.5 text-blue-500 bg-[#12141a] border-slate-700 focus:ring-0 cursor-pointer">
+              <span><span class="text-white group-hover:text-blue-400 transition-colors">密码</span> · 导入后到列表点编辑补充密码</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer text-slate-300 hover:text-white group">
+              <input type="radio" name="sshImportAuthType" value="key_pem" checked class="w-3.5 h-3.5 text-blue-500 bg-[#12141a] border-slate-700 focus:ring-0 cursor-pointer">
+              <span><span class="text-white group-hover:text-blue-400 transition-colors">私钥 (PEM)</span> · 导入后到列表点编辑粘贴私钥文本</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer text-slate-300 hover:text-white group">
+              <input type="radio" name="sshImportAuthType" value="key_passphrase" class="w-3.5 h-3.5 text-blue-500 bg-[#12141a] border-slate-700 focus:ring-0 cursor-pointer">
+              <span><span class="text-white group-hover:text-blue-400 transition-colors">私钥 + 口令</span> · 私钥本身有口令时</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer text-slate-300 hover:text-white group col-span-1 md:col-span-2">
+              <input type="radio" name="sshImportAuthType" value="ssh_agent" class="w-3.5 h-3.5 text-blue-500 bg-[#12141a] border-slate-700 focus:ring-0 cursor-pointer">
+              <span><span class="text-white group-hover:text-blue-400 transition-colors">ssh-agent</span> · 用 OS 的 ssh-agent / OpenSSH Authentication Agent: 先 ssh-add 加载私钥</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 空状态展示 (对齐截图 1 中的居中插图与文案) -->
+        <div id="sshConfigEmptyState" class="py-10 flex flex-col items-center justify-center text-center space-y-3 rounded-xl bg-[#14161d]/50 border border-slate-800/60 my-2">
+          <div class="relative w-16 h-14 flex items-center justify-center">
+            <!-- 托盘/主机插图 -->
+            <div class="w-12 h-10 rounded-lg bg-slate-800/70 border border-slate-700/80 flex items-center justify-center shadow-lg relative">
+              <i data-lucide="monitor" class="w-6 h-6 text-slate-400"></i>
+              <div class="absolute -top-1.5 -right-1.5 w-3 h-3 bg-amber-400/90 rounded-full border border-slate-900 flex items-center justify-center text-[7px] text-slate-950 font-bold">!</div>
+            </div>
+            <div class="absolute -bottom-1 w-14 h-1.5 bg-slate-700/60 rounded-full blur-[1px]"></div>
+          </div>
+          <div class="text-slate-400 text-xs max-w-md">
+            未找到任何具体 Host（文件不存在 或 只含通配符模板）
+          </div>
+          <button type="button" onclick="toggleMockSSHConfigHosts()" class="text-[11px] text-blue-400 hover:text-blue-300 underline pt-1 transition-colors">
+            [演示交互] 模拟切换：解析到 4 台本地 Host
+          </button>
+        </div>
+
+        <!-- 模拟已解析出的 Host 列表 (默认隐藏，点击模拟切换时展示) -->
+        <div id="sshConfigListContainer" class="hidden space-y-2 max-h-56 overflow-y-auto custom-scrollbar p-1">
+          <div class="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 flex items-center justify-between text-xs mb-2">
+            <span class="flex items-center space-x-1.5">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-blue-400"></i>
+              <span>已检测到 4 个具体 Host，勾选后点击右下角导入：</span>
+            </span>
+            <button type="button" onclick="toggleSelectAllSSHConfig()" id="btnToggleAllSsh" class="text-blue-400 hover:text-blue-300 underline text-[11px]">全选</button>
+          </div>
+          <div class="space-y-1.5">
+            <label class="p-2.5 rounded-lg bg-[#14161d] border border-slate-800 hover:border-slate-700 flex items-center justify-between cursor-pointer transition-colors">
+              <div class="flex items-center space-x-3">
+                <input type="checkbox" checked class="ssh-cfg-chk rounded bg-surface-800 border-slate-700 text-blue-500 focus:ring-0" value="aliyun-beijing-gateway" onchange="updateSshImportCount()">
+                <div>
+                  <div class="text-white font-medium text-xs flex items-center space-x-2">
+                    <span>aliyun-beijing-gateway</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-300 border border-blue-500/20">生产</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono">root@121.40.88.12:22 · IdentityFile ~/.ssh/id_rsa</div>
+                </div>
+              </div>
+              <span class="text-slate-400 text-[11px]">骨架入库</span>
+            </label>
+
+            <label class="p-2.5 rounded-lg bg-[#14161d] border border-slate-800 hover:border-slate-700 flex items-center justify-between cursor-pointer transition-colors">
+              <div class="flex items-center space-x-3">
+                <input type="checkbox" checked class="ssh-cfg-chk rounded bg-surface-800 border-slate-700 text-blue-500 focus:ring-0" value="tencent-cvm-hk" onchange="updateSshImportCount()">
+                <div>
+                  <div class="text-white font-medium text-xs flex items-center space-x-2">
+                    <span>tencent-cvm-hk</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">测试</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono">ubuntu@119.29.56.32:22 · IdentityFile ~/.ssh/id_ed25519</div>
+                </div>
+              </div>
+              <span class="text-slate-400 text-[11px]">骨架入库</span>
+            </label>
+
+            <label class="p-2.5 rounded-lg bg-[#14161d] border border-slate-800 hover:border-slate-700 flex items-center justify-between cursor-pointer transition-colors">
+              <div class="flex items-center space-x-3">
+                <input type="checkbox" checked class="ssh-cfg-chk rounded bg-surface-800 border-slate-700 text-blue-500 focus:ring-0" value="aws-tokyo-vpc" onchange="updateSshImportCount()">
+                <div>
+                  <div class="text-white font-medium text-xs flex items-center space-x-2">
+                    <span>aws-tokyo-vpc</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20">海外</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono">ec2-user@18.162.33.9:22 · tokyo-key.pem</div>
+                </div>
+              </div>
+              <span class="text-slate-400 text-[11px]">骨架入库</span>
+            </label>
+
+            <label class="p-2.5 rounded-lg bg-[#14161d] border border-slate-800 hover:border-slate-700 flex items-center justify-between cursor-pointer transition-colors">
+              <div class="flex items-center space-x-3">
+                <input type="checkbox" checked class="ssh-cfg-chk rounded bg-surface-800 border-slate-700 text-blue-500 focus:ring-0" value="bastion-corp-jump" onchange="updateSshImportCount()">
+                <div>
+                  <div class="text-white font-medium text-xs flex items-center space-x-2">
+                    <span>bastion-corp-jump</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-300 border border-rose-500/20">跳板机</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 font-mono">admin@10.0.1.1:2222 · ProxyCommand</div>
+                </div>
+              </div>
+              <span class="text-slate-400 text-[11px]">骨架入库</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部操作栏 (100% 对齐截图 1: 取消 / 批量导入) -->
+      <div class="px-5 py-3.5 border-t border-slate-800/80 flex items-center justify-end space-x-2 bg-[#16181f]/80">
+        <button type="button" onclick="closeImportSSHConfigModal()" class="px-4 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] text-slate-300 hover:text-white text-xs font-medium transition-colors">
+          取消
+        </button>
+        <button type="button" id="btnBatchImportSshConfig" onclick="executeImportSSHConfig()" class="px-4 py-1.5 rounded-lg bg-[#252831] text-slate-500 text-xs font-medium cursor-not-allowed transition-colors" disabled>
+          批量导入
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- =================================================================================== -->
+  <!-- 导入服务器弹窗 2: 从 FinalShell 导入 (严格对齐截图 2: media_1794064902138_e9b07c20.png) -->
+  <!-- =================================================================================== -->
+  <div id="modalImportFinalShell" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#1a1d24] border border-slate-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200">
+      <!-- 头部 -->
+      <div class="px-5 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#16181f]/80">
+        <div class="flex items-center space-x-2.5">
+          <i data-lucide="terminal" class="w-4 h-4 text-slate-300"></i>
+          <h3 class="font-bold text-sm text-white tracking-wide">从 FinalShell 导入</h3>
+        </div>
+        <button type="button" onclick="closeImportFinalShellModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/50 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 主体内容 -->
+      <div class="p-5 space-y-4 text-xs leading-relaxed">
+        <!-- 描述文案 (100% 对齐截图 2) -->
+        <p class="text-slate-400 leading-normal">
+          选择 FinalShell「导出」得到的文件夹，文件夹层级会原样变成 OpsPub 的分组（含子分组）。密码在本机解出后直接加密入库，界面上不显示，也不会交给 AI。导入的服务器 AI 档位默认为「禁用」；远程桌面 (RDP) 连接会导入成「仅远程桌面」条目，在服务器页一键打开。
+        </p>
+
+        <!-- 选择文件夹按钮与路径提示 -->
+        <div class="flex items-center space-x-3 pt-2">
+          <button type="button" onclick="mockSelectFinalShellFolder()" class="px-3.5 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] border border-slate-700/70 text-slate-200 hover:text-white text-xs flex items-center space-x-1.5 transition-colors">
+            <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>选择导出文件夹</span>
+          </button>
+          <span id="finalShellFolderPath" class="text-slate-500 text-xs">还没有选择文件夹</span>
+        </div>
+      </div>
+
+      <!-- 底部操作栏 (100% 对齐截图 2: 导入后的 AI 档位 + 取消 + 导入 0 台) -->
+      <div class="px-5 py-3.5 border-t border-slate-800/80 flex items-center justify-between bg-[#16181f]/80">
+        <!-- 左侧：AI 档位选择 -->
+        <div class="flex items-center space-x-2 text-xs text-slate-400">
+          <span>导入后的 AI 档位</span>
+          <div class="relative">
+            <select id="finalShellAiPolicySelect" class="bg-[#252831] hover:bg-[#2d313c] border border-slate-700/80 text-slate-200 text-xs rounded-lg pl-2.5 pr-6 py-1 appearance-none cursor-pointer focus:outline-none transition-colors">
+              <option value="disabled">● 禁用</option>
+              <option value="readonly">● 只读探测</option>
+              <option value="strict">● 人工审批</option>
+              <option value="trusted">● 信任自主</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          </div>
+          <div class="group relative cursor-pointer flex items-center">
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 transition-colors"></i>
+            <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-20 pointer-events-none">
+              导入后可以在服务器列表中按需开启 AI 权限
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧：按钮组 -->
         <div class="flex items-center space-x-2">
-          <i data-lucide="file-code" class="w-4 h-4 text-amber-400"></i>
-          <div>
-            <h3 class="font-bold text-sm text-white">导入本地 ~/.ssh/config 主机配置</h3>
-            <p class="text-[11px] text-slate-400">自动解析 Host、HostName、User、Port、IdentityFile 与 ProxyJump</p>
-          </div>
+          <button type="button" onclick="closeImportFinalShellModal()" class="px-4 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] text-slate-300 hover:text-white text-xs font-medium transition-colors">
+            取消
+          </button>
+          <button type="button" id="btnFinalShellExecuteImport" onclick="executeImportFinalShell()" class="px-4 py-1.5 rounded-lg bg-[#252831] text-slate-500 text-xs font-medium cursor-not-allowed transition-colors" disabled>
+            导入 0 台
+          </button>
         </div>
-        <button onclick="closeImportSSHConfigModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- =================================================================================== -->
+  <!-- 导入服务器弹窗 3: 从 Excel / CSV 表格导入 (严格对齐截图 3: media_1794064915669_3ef097b6.png) -->
+  <!-- =================================================================================== -->
+  <div id="modalImportExcelCsv" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#1a1d24] border border-slate-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200">
+      <!-- 头部 -->
+      <div class="px-5 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#16181f]/80">
+        <div class="flex items-center space-x-2.5">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 text-slate-300"></i>
+          <h3 class="font-bold text-sm text-white tracking-wide">从 Excel / CSV 表格导入</h3>
+        </div>
+        <button type="button" onclick="closeImportExcelCsvModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/50 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
       </div>
 
-      <div class="p-5 space-y-4 text-xs">
-        <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center justify-between">
-          <span class="flex items-center space-x-2">
-            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
-            <span>已成功解析本地配置：<code>~/.ssh/config</code> (发现 4 个可用条目)</span>
-          </span>
-          <button onclick="toggleSelectAllSSHConfig(true)" class="text-[11px] underline text-emerald-400 hover:text-emerald-300">全选</button>
-        </div>
+      <!-- 主体内容 -->
+      <div class="p-5 space-y-4 text-xs leading-relaxed">
+        <!-- 描述文案 (100% 对齐截图 3) -->
+        <p class="text-slate-400 leading-normal">
+          在 Excel 里整理好服务器清单直接导入（.xlsx，或另存的 CSV 都行）。不确定怎么填就先下载模板：[类型] 列和 [分组] 列有下拉，表头的批注写了每列怎么填。认得的列：别名、主机、端口、用户名、密码、分组（用 / 分级）、标签（用 ; 分隔）、类型，只有主机和用户名必填；表头写中文或英文都可以。密码列可以不填：填了的在本机加密保存，界面上不显示，也不会交给 AI；没填的导入后用「设置凭据」批量补。导入后的 AI 档位在左下角选，默认为「禁用」。
+        </p>
 
-        <!-- 扫描到的主机列表 -->
-        <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-          <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <input type="checkbox" checked class="ssh-import-chk rounded bg-surface-800 border-slate-700" value="aliyun-beijing-gateway">
-              <div>
-                <div class="font-bold text-white flex items-center space-x-2">
-                  <span>aliyun-beijing-gateway</span>
-                  <span class="px-1.5 py-0.2 rounded text-[10px] bg-indigo-500/20 text-indigo-300">华东1 (杭州)</span>
-                </div>
-                <div class="text-[11px] text-slate-400 font-mono">root@121.40.88.12:22 · IdentityFile ~/.ssh/id_rsa</div>
-              </div>
-            </div>
-            <span class="text-emerald-400 font-mono text-[11px]">可免密直连</span>
-          </div>
-
-          <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <input type="checkbox" checked class="ssh-import-chk rounded bg-surface-800 border-slate-700" value="tencent-cvm-hk">
-              <div>
-                <div class="font-bold text-white flex items-center space-x-2">
-                  <span>tencent-cvm-hk</span>
-                  <span class="px-1.5 py-0.2 rounded text-[10px] bg-cyan-500/20 text-cyan-300">中国香港</span>
-                </div>
-                <div class="text-[11px] text-slate-400 font-mono">ubuntu@119.29.56.32:22 · IdentityFile ~/.ssh/id_ed25519</div>
-              </div>
-            </div>
-            <span class="text-emerald-400 font-mono text-[11px]">可免密直连</span>
-          </div>
-
-          <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <input type="checkbox" checked class="ssh-import-chk rounded bg-surface-800 border-slate-700" value="aws-tokyo-vpc">
-              <div>
-                <div class="font-bold text-white flex items-center space-x-2">
-                  <span>aws-tokyo-vpc</span>
-                  <span class="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/20 text-amber-300">日本东京</span>
-                </div>
-                <div class="text-[11px] text-slate-400 font-mono">ec2-user@18.162.33.9:22 · tokyo-key.pem</div>
-              </div>
-            </div>
-            <span class="text-emerald-400 font-mono text-[11px]">可免密直连</span>
-          </div>
-
-          <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <input type="checkbox" checked class="ssh-import-chk rounded bg-surface-800 border-slate-700" value="bastion-corp-jump">
-              <div>
-                <div class="font-bold text-white flex items-center space-x-2">
-                  <span>bastion-corp-jump</span>
-                  <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/20 text-rose-300">内网跳板机</span>
-                </div>
-                <div class="text-[11px] text-slate-400 font-mono">admin@10.0.1.1:2222 · ProxyCommand</div>
-              </div>
-            </div>
-            <span class="text-emerald-400 font-mono text-[11px]">ProxyJump 就绪</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 pt-1">
-          <div>
-            <label class="text-slate-400 block mb-1">导入至目标分组</label>
-            <select id="sshImportTargetGroup" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200">
-              <option value="prod">生产集群</option>
-              <option value="test">开发测试</option>
-              <option value="all">未分组</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-slate-400 block mb-1">默认 AI 执行权限</label>
-            <select id="sshImportDefaultPolicy" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200">
-              <option value="strict">Strict Approval (需人工审批)</option>
-              <option value="readonly">Read-Only (纯只读探测)</option>
-            </select>
-          </div>
+        <!-- 选择表格文件与下载模板操作栏 -->
+        <div class="flex items-center space-x-2.5 pt-2 flex-wrap gap-y-2">
+          <button type="button" onclick="mockSelectExcelFile()" class="px-3.5 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] border border-slate-700/70 text-slate-200 hover:text-white text-xs flex items-center space-x-1.5 transition-colors">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>选择表格文件</span>
+          </button>
+          <button type="button" onclick="downloadExcelTemplate()" class="px-3 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] border border-slate-700/70 text-slate-300 hover:text-white text-xs flex items-center space-x-1.5 transition-colors">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>下载模板</span>
+          </button>
+          <span id="excelFilePath" class="text-slate-500 text-xs ml-1">还没有选择文件</span>
         </div>
       </div>
 
-      <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-surface-950/60">
-        <span class="text-slate-500 text-[11px]">已自动关联本地私钥路径，无需重复输入密码</span>
-        <div class="flex space-x-2">
-          <button onclick="closeImportSSHConfigModal()" class="px-3 py-1.5 rounded-lg bg-surface-800 text-slate-300 text-xs">取消</button>
-          <button onclick="executeImportSSHConfig()" class="px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow">确认一键导入 (4)</button>
+      <!-- 底部操作栏 (100% 对齐截图 3: 导入后的 AI 档位 + 取消 + 导入 0 台) -->
+      <div class="px-5 py-3.5 border-t border-slate-800/80 flex items-center justify-between bg-[#16181f]/80">
+        <!-- 左侧：AI 档位选择 -->
+        <div class="flex items-center space-x-2 text-xs text-slate-400">
+          <span>导入后的 AI 档位</span>
+          <div class="relative">
+            <select id="excelAiPolicySelect" class="bg-[#252831] hover:bg-[#2d313c] border border-slate-700/80 text-slate-200 text-xs rounded-lg pl-2.5 pr-6 py-1 appearance-none cursor-pointer focus:outline-none transition-colors">
+              <option value="disabled">● 禁用</option>
+              <option value="readonly">● 只读探测</option>
+              <option value="strict">● 人工审批</option>
+              <option value="trusted">● 信任自主</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          </div>
+          <div class="group relative cursor-pointer flex items-center">
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 transition-colors"></i>
+            <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded shadow-xl z-20 pointer-events-none">
+              导入后可以在服务器列表中按需开启 AI 权限
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧：按钮组 -->
+        <div class="flex items-center space-x-2">
+          <button type="button" onclick="closeImportExcelCsvModal()" class="px-4 py-1.5 rounded-lg bg-[#252831] hover:bg-[#2d313c] text-slate-300 hover:text-white text-xs font-medium transition-colors">
+            取消
+          </button>
+          <button type="button" id="btnExcelExecuteImport" onclick="executeImportExcelCsv()" class="px-4 py-1.5 rounded-lg bg-[#252831] text-slate-500 text-xs font-medium cursor-not-allowed transition-colors" disabled>
+            导入 0 台
+          </button>
         </div>
       </div>
     </div>
@@ -13762,52 +14257,289 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
   <!-- =================================================================================== -->
   <!-- 弹窗 10: Windows 原生免代理接入方案 (modalWindowsGuide 强化版) -->
   <!-- =================================================================================== -->
+    <!-- =================================================================================== -->
+  <!-- 弹窗: Windows 服务器接入 · 准备脚本 (严格对齐截图 3 与截图 4) -->
+  <!-- =================================================================================== -->
   <div id="modalWindowsGuide" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
-    <div class="glass-card bg-surface-900 border border-blue-500/40 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-      <div class="p-4 bg-blue-500/10 border-b border-blue-500/30 flex items-center justify-between">
+    <div class="glass-card bg-[#0f141c] border border-slate-800 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+      <!-- 头部顶栏 -->
+      <div class="p-4 bg-surface-950/70 border-b border-slate-800 flex items-center justify-between shrink-0">
         <div class="flex items-center space-x-2">
-          <i data-lucide="monitor" class="w-4 h-4 text-blue-400"></i>
-          <span class="font-bold text-sm text-white">Windows 原生免代理接入向导</span>
+          <i data-lucide="terminal" class="w-4 h-4 text-blue-400"></i>
+          <span class="font-bold text-sm text-white">Windows 服务器接入 · 准备脚本</span>
         </div>
-        <button onclick="closeWindowsGuideModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <button onclick="closeWindowsGuideModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
       </div>
-      <div class="p-5 space-y-3.5 text-xs text-slate-200 leading-relaxed max-h-[70vh] overflow-y-auto custom-scrollbar">
-        <p class="text-slate-300">
-          OpsPub AI 无需在受控 Windows 上安装任何专有 Agent。您只需在受控 Windows 上以管理员权限运行 PowerShell 即可一键启用原生 OpenSSH Server：
-        </p>
 
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between text-[11px] text-slate-400">
-            <span>PowerShell 一键配置脚本 (复制直接在管理员终端执行)：</span>
-            <button onclick="copyWindowsScript()" class="text-blue-400 hover:text-blue-300 flex items-center space-x-1 cursor-pointer">
-              <i data-lucide="copy" class="w-3 h-3"></i>
+      <!-- 可滚动的主体内容区 -->
+      <div class="p-6 space-y-6 text-xs text-slate-300 leading-relaxed overflow-y-auto custom-scrollbar flex-1">
+        <!-- 步骤 ①: 开通 SSH (必需) -->
+        <div class="space-y-3">
+          <div class="text-sm font-semibold text-white flex items-center space-x-2">
+            <span>① 开通 SSH（必需 —— OpsPub 靠 SSH 连接）</span>
+          </div>
+          <p class="text-slate-400 text-xs leading-relaxed">
+            OpsPub 只通过 SSH 管理服务器。Windows 默认不带 SSH 服务，必须在目标机上开通 OpenSSH Server，OpsPub 才连得上（OpsPub 自己装不了 —— 要连它就得先有 SSH）。
+          </p>
+          <p class="text-slate-400 text-xs">
+            在目标 Windows 上用「管理员 PowerShell」执行下面的脚本（RDP 进去，或用阿里云等云控制台的「发送命令 / Cloud Assistant」功能，无需登录机器）：
+          </p>
+
+          <!-- 脚本代码框 1 -->
+          <div class="rounded-xl border border-slate-800 bg-[#090d12] overflow-hidden">
+            <div class="px-4 py-2 border-b border-slate-800/80 bg-slate-900/40 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+              <span class="flex items-center space-x-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5 text-blue-400"></i>
+                <span>setup-openssh.ps1</span>
+              </span>
+              <span class="text-slate-500">PowerShell 5.1+</span>
+            </div>
+            <pre id="winScriptSSHContent" class="p-4 text-slate-300 font-mono text-[11.5px] leading-relaxed max-h-56 overflow-y-auto custom-scrollbar selection:bg-blue-600/30">#Requires -Version 5.1
+<#
+  Reeve -- one-time bootstrap: install & start OpenSSH Server on THIS Windows host.
+
+  WHY: Reeve manages servers ONLY over SSH (russh). It cannot install OpenSSH for you,
+  because it needs a working sshd to connect in the first place (chicken-and-egg).
+  So the very first OpenSSH install must be done out-of-band -- by running this script.
+
+  HOW: run it in an ELEVATED PowerShell (Run as Administrator) on the TARGET machine.
+  Best to paste the WHOLE script at once, or save it as a .ps1 and run the file.
+  Safe to re-run (every step is idempotent). All output is ASCII on purpose (PS 5.1 safety).
+
+  After it prints "Done", add this host in Reeve (host + port 22 + username/password),
+  and click "Test Connection".
+#>
+
+function Write-Step($m) { Write-Host "==> $m"     -ForegroundColor Cyan }
+function Write-Ok($m)   { Write-Host "[ OK ] $m"  -ForegroundColor Green }
+function Write-Note($m) { Write-Host "[WARN] $m"  -ForegroundColor Yellow }
+
+# --- 0. must run elevated ---
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "ERROR: run this in an ELEVATED PowerShell (right-click -> Run as Administrator)." -ForegroundColor Red
+    return
+}
+
+# --- 1. install OpenSSH.Server capability (idempotent) ---
+Write-Step "Checking OpenSSH Server capability..."
+try {
+    $cap = Get-WindowsCapability -Online | Where-Object { $_.Name -like 'OpenSSH.Server*' } | Select-Object -First 1
+    if ($null -eq $cap) {
+        Write-Note "OpenSSH.Server capability is not available on this Windows edition."
+        Write-Note "Older Windows (Server 2016 / Win 7/8) need the Win32-OpenSSH MSI:"
+        Write-Note "  https://github.com/PowerShell/Win32-OpenSSH/releases"
+        return
+    }
+    if ($cap.State -ne 'Installed') {
+        Write-Step "Installing OpenSSH Server (may take a minute)..."
+        Add-WindowsCapability -Online -Name $cap.Name | Out-Null
+        Write-Ok "OpenSSH Server installed."
+    } else {
+        Write-Ok "OpenSSH Server already installed."
+    }
+} catch {
+    Write-Host ("ERROR installing OpenSSH Server: " + $_) -ForegroundColor Red
+    return
+}
+
+# --- 2. start sshd + set to Automatic (first start also generates host keys) ---
+Write-Step "Enabling and starting the sshd service..."
+try {
+    Set-Service -Name sshd -StartupType Automatic
+    Start-Service sshd
+    $svc = Get-Service sshd
+    Write-Ok ("sshd startup=Automatic, status=" + $svc.Status)
+} catch {
+    Write-Host ("ERROR starting sshd: " + $_) -ForegroundColor Red
+    return
+}
+
+# --- 3. inbound firewall rule for TCP 22 (idempotent) ---
+Write-Step "Ensuring inbound firewall rule for TCP 22..."
+try {
+    $rule = Get-NetFirewallRule -Name 'sshd' -ErrorAction SilentlyContinue
+    if ($null -eq $rule) {
+        New-NetFirewallRule -Name 'sshd' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 | Out-Null
+        Write-Ok "Firewall rule 'sshd' created (allow inbound TCP 22)."
+    } else {
+        Enable-NetFirewallRule -Name 'sshd' | Out-Null
+        Write-Ok "Firewall rule 'sshd' already present (ensured enabled)."
+    }
+} catch {
+    Write-Note ("Could not set OS firewall rule (not fatal): " + $_)
+}
+
+# --- 4. (OPTIONAL) make PowerShell the default interactive shell over SSH ---
+# NOT required for Reeve: its read-only probes call powershell.exe explicitly, and OS
+# detection works with either cmd or PowerShell. To enable, remove the leading '#' below:
+# New-Item -Path 'HKLM:\SOFTWARE\OpenSSH' -Force | Out-Null; New-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value ((Get-Command powershell.exe).Source) -PropertyType String -Force | Out-Null; Write-Ok "Default SSH shell set to PowerShell."
+
+# --- 5. print host key fingerprints (compare with Reeve's first-connect TOFU prompt) ---
+Write-Step "SSH host key fingerprints (compare these with what Reeve shows on first connect):"
+try {
+    $pubKeys = Get-ChildItem 'C:\ProgramData\ssh\ssh_host_*_key.pub' -ErrorAction SilentlyContinue
+    if ($pubKeys) {
+        foreach ($k in $pubKeys) {
+            $fp = & ssh-keygen -l -E sha256 -f $k.FullName 2>$null
+            if ($fp) { Write-Host ("    " + $fp) }
+        }
+    } else {
+        Write-Note "Host keys not found yet (generated on first sshd start). Re-run to see them."
+    }
+} catch {
+    Write-Note ("Could not read host keys: " + $_)
+}
+
+# --- 6. show reachable IPv4 addresses to use as 'host' in Reeve ---
+Write-Step "This machine's IPv4 addresses (use one of these as 'host' in Reeve):"
+try {
+    $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notlike '169.254.*' -and $_.IPAddress -ne '127.0.0.1' }
+    foreach ($ip in $ips) { Write-Host ("    " + $ip.IPAddress + "  (" + $ip.InterfaceAlias + ")") }
+} catch {
+    Write-Note ("Could not list IP addresses: " + $_)
+}
+
+# --- 7. summary (always reached; steps 5/6 never abort the script) ---
+Write-Host ""
+Write-Ok "Done. This host is ready for Reeve (locally)."
+Write-Host "Cloud VM? Also open inbound TCP 22 in your Security Group (OS firewall != cloud security group)." -ForegroundColor Yellow
+Write-Host "Next steps in Reeve:" -ForegroundColor Gray
+Write-Host "  1) Add a server: host = one of the IPs above (or the public IP), port = 22," -ForegroundColor Gray
+Write-Host "     username = a local Windows account, auth = password (simplest)." -ForegroundColor Gray
+Write-Host "  2) Click 'Test Connection' -> it should detect Windows and show a 'Win' badge." -ForegroundColor Gray
+Write-Host "  3) Note: Reeve currently allows AI READ-ONLY actions on Windows; AI writes are blocked." -ForegroundColor Gray</pre>
+          </div>
+
+          <!-- 警告提示条 (对齐截图 3) -->
+          <div class="flex items-center space-x-2 text-xs text-amber-300/90 pt-0.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+            <span>云服务器还要在「安全组」入方向放行 TCP 22 —— 系统防火墙 ≠ 云安全组，两层都要开，否则外部仍连不上。</span>
+          </div>
+
+          <!-- 按钮组 -->
+          <div class="flex items-center space-x-3 pt-1">
+            <button type="button" onclick="copySSHBootstrapScript()" class="px-3.5 py-1.5 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
               <span>复制脚本</span>
             </button>
+            <button type="button" onclick="downloadWindowsScript('ssh')" class="px-3.5 py-1.5 rounded-lg bg-[#141a23] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>另存为 .ps1</span>
+            </button>
           </div>
-          <pre id="winScriptContent" class="p-3 rounded-xl bg-black border border-slate-800 text-emerald-400 font-mono text-[11px] overflow-x-auto leading-normal"># 1. 安装 Windows 原生 OpenSSH 服务
-Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-
-# 2. 启动服务并配置为开机自启
-Start-Service sshd
-Set-Service -Name sshd -StartupType 'Automatic'
-
-# 3. 配置 Windows 防火墙放行 TCP 22 端口
-New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22</pre>
         </div>
 
-        <div class="p-3 rounded-xl bg-surface-950 border border-slate-800 space-y-1 text-slate-400 text-[11px]">
-          <div class="text-white font-semibold">💡 验证连接：</div>
-          <p>配置完成后，在 OpsPub 点击「新增服务器」，选择 Windows 平台，输入该机器 IP 和当前 Windows 登录凭据（例如 <code>builder@10.0.2.15</code>），点击「连通性测试」即可完成即时纳管！</p>
+        <div class="border-t border-slate-800/70 pt-4"></div>
+
+        <!-- 步骤 ②: 装 Chocolatey (可选) -->
+        <div class="space-y-3">
+          <div class="text-sm font-semibold text-white flex items-center space-x-2">
+            <span>② 装 Chocolatey（Windows 原生装应用的前提，可选）</span>
+          </div>
+          <p class="text-slate-400 text-xs leading-relaxed">
+            OpsPub 在 Windows 上原生装应用（不用 Docker），包管理器用 Chocolatey；winget 仅 Server 2022+/Win11 才有，故 Server 2019 等需先装 choco。在目标机管理员 PowerShell 执行：
+          </p>
+
+          <!-- 脚本代码框 2 -->
+          <div class="rounded-xl border border-slate-800 bg-[#090d12] overflow-hidden">
+            <div class="px-4 py-2 border-b border-slate-800/80 bg-slate-900/40 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+              <span class="flex items-center space-x-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5 text-blue-400"></i>
+                <span>setup-chocolatey.ps1</span>
+              </span>
+              <span class="text-slate-500">PowerShell 5.1+</span>
+            </div>
+            <pre id="winScriptChocoContent" class="p-4 text-slate-300 font-mono text-[11.5px] leading-relaxed max-h-56 overflow-y-auto custom-scrollbar selection:bg-blue-600/30">#Requires -Version 5.1
+<#
+  Reeve -- one-time bootstrap: install Chocolatey (choco) on THIS Windows host.
+
+  WHY: Reeve installs Windows apps NATIVELY (not Docker). The package manager it uses is
+  Chocolatey (choco). winget only ships on Server 2022+ / Win11, so on Server 2019 and
+  older you install choco first. Run this ONCE, then Reeve can `choco install <app>`.
+
+  HOW: run in an ELEVATED PowerShell (Run as Administrator) on the TARGET machine.
+  Idempotent (skips if already installed). ASCII output on purpose (PS 5.1 encoding safety).
+#>
+
+$ErrorActionPreference = 'Stop'
+function Write-Step($m) { Write-Host "==> $m"    -ForegroundColor Cyan }
+function Write-Ok($m)   { Write-Host "[ OK ] $m" -ForegroundColor Green }
+
+# --- 0. must run elevated ---
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "ERROR: run this in an ELEVATED PowerShell (right-click -> Run as Administrator)." -ForegroundColor Red
+    return
+}
+
+# --- 1. already installed? ---
+if (Get-Command choco -ErrorAction SilentlyContinue) {
+    Write-Ok ("Chocolatey already installed: " + (choco --version))
+    return
+}
+
+# --- 2. install Chocolatey (official one-liner) ---
+# Chocolatey 2.x requires .NET Framework 4.8. Server 2016/2019 ship with 4.6/4.7 and installing
+# 4.8 needs a REBOOT (disruptive for a remote host). So if .NET < 4.8, pin choco 1.4.0 (needs only
+# .NET 4.6.1+, installs packages fine, no reboot). On .NET 4.8+ we let it install the latest 2.x.
+$release = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -Name Release -ErrorAction SilentlyContinue).Release
+if (-not $release -or $release -lt 528040) {
+    $env:chocolateyVersion = '1.4.0'
+    Write-Step "Detected .NET < 4.8 -> pinning Chocolatey 1.4.0 (avoids .NET 4.8 + reboot)"
+}
+Write-Step "Installing Chocolatey (downloads from community.chocolatey.org)..."
+try {
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+} catch {
+    Write-Host ("ERROR installing Chocolatey: " + $_) -ForegroundColor Red
+    return
+}
+
+# --- 3. verify ---
+if (Get-Command choco -ErrorAction SilentlyContinue) {
+    Write-Ok ("Chocolatey installed: " + (choco --version))
+    Write-Host "Done. Reeve can now install apps natively on this host (choco install ...)." -ForegroundColor Gray
+    Write-Host "Tip: open a NEW terminal so the updated PATH takes effect." -ForegroundColor Gray
+} else {
+    Write-Host "Chocolatey installed but 'choco' not on PATH yet. Open a NEW elevated PowerShell and run 'choco --version' to confirm." -ForegroundColor Yellow
+}</pre>
+          </div>
+
+          <!-- 按钮组 -->
+          <div class="flex items-center space-x-3 pt-1">
+            <button type="button" onclick="copyChocoBootstrapScript()" class="px-3.5 py-1.5 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>复制脚本</span>
+            </button>
+            <button type="button" onclick="downloadWindowsScript('choco')" class="px-3.5 py-1.5 rounded-lg bg-[#141a23] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>另存为 .ps1</span>
+            </button>
+          </div>
         </div>
+
+        <div class="border-t border-slate-800/70 pt-4"></div>
+
+        <!-- 底部引导说明 (对齐截图 4) -->
+        <p class="text-slate-400 text-xs leading-relaxed">
+          开通后回到本页「新增」服务器（host + 端口 22 + 账号密码），点「测试连接」即可；识别为 Windows 会显示蓝色 Win 标记。
+        </p>
       </div>
-      <div class="p-4 border-t border-slate-800 flex justify-end space-x-2 bg-surface-950/60">
-        <button onclick="closeWindowsGuideModal()" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium">我知道了</button>
+
+      <!-- 底部操作按钮 -->
+      <div class="p-4 border-t border-slate-800 flex justify-end space-x-2 bg-surface-950/70 shrink-0">
+        <button onclick="closeWindowsGuideModal()" class="px-5 py-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer">
+          关闭
+        </button>
       </div>
     </div>
   </div>
 
-
-  
   <!-- =================================================================================== -->
   <!-- 模态框: 新建自定义巡检规则 (modalAddCustomRule) -->
   <!-- =================================================================================== -->
@@ -16481,8 +17213,18 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
   </div>
 <script>
 
+    function safeRenderLucideIcons() {
+      try {
+        if (typeof lucide !== 'undefined' && lucide && typeof lucide.createIcons === 'function') {
+          lucide.createIcons();
+        }
+      } catch (err) {
+        console.warn('lucide.createIcons init warn:', err);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
+      safeRenderLucideIcons();
       switchTab('tab-servers');
       const savedSkin = localStorage.getItem('opspub_skin') || 'obsidian';
       selectThemeSkin(savedSkin, true);
@@ -20555,6 +21297,77 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       document.getElementById('modalWindowsGuide').classList.add('hidden');
     }
 
+    // 复制步骤 ① OpenSSH 准备脚本
+    function copySSHBootstrapScript() {
+      const el = document.getElementById('winScriptSSHContent');
+      if (el) {
+        navigator.clipboard.writeText(el.innerText);
+        showToast('📋 已复制 Windows OpenSSH 准备脚本至剪贴板');
+      }
+    }
+
+    // 复制步骤 ② Chocolatey 准备脚本
+    function copyChocoBootstrapScript() {
+      const el = document.getElementById('winScriptChocoContent');
+      if (el) {
+        navigator.clipboard.writeText(el.innerText);
+        showToast('📋 已复制 Chocolatey 安装准备脚本至剪贴板');
+      }
+    }
+
+    // 下载准备脚本为 .ps1 文件
+    function downloadWindowsScript(type) {
+      let content = '';
+      let filename = '';
+      if (type === 'ssh') {
+        content = document.getElementById('winScriptSSHContent')?.innerText || '';
+        filename = 'setup-openssh.ps1';
+      } else {
+        content = document.getElementById('winScriptChocoContent')?.innerText || '';
+        filename = 'setup-chocolatey.ps1';
+      }
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(`💾 已另存为脚本文件：${filename}`);
+    }
+
+    // 切换服务器导入下拉菜单 (对齐截图 2)
+    function toggleImportServerDropdown(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('importServerDropdownMenu');
+      if (menu) {
+        menu.classList.toggle('hidden');
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    // 响应导入类型选择
+    function selectImportType(type) {
+      const menu = document.getElementById('importServerDropdownMenu');
+      if (menu) menu.classList.add('hidden');
+
+      if (type === 'ssh_config') {
+        openImportSSHConfigModal();
+      } else if (type === 'finalshell') {
+        openImportFinalShellModal();
+      } else if (type === 'excel_csv') {
+        openImportExcelCsvModal();
+      }
+    }
+
+    window.addEventListener('click', (e) => {
+      const container = document.getElementById('importServerDropdownContainer');
+      const menu = document.getElementById('importServerDropdownMenu');
+      if (menu && !menu.classList.contains('hidden') && container && !container.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
 
     // =========================================================================
     // ★ 服务器资产管理核心状态与控制器 (Server Assets State & Controller)
@@ -21606,213 +22419,391 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       lucide.createIcons();
     }
 
-    // 新增服务器弹窗交互 (modalAddServer)
-    function openAddServerModal() {
-      // 动态填充跳板机下拉项与分组建议
-      const bastionSelect = document.getElementById('newHostBastion');
-      if (bastionSelect) {
-        bastionSelect.innerHTML = '<option value="">直连 (不经跳板机)</option>';
+    // =========================================================================
+    // ★ 新增与编辑服务器核心控制器 (100% 严格对齐截图 2, 3, 4: 无串行、无错位)
+    // =========================================================================
+    let currentServerConnectType = 'ssh'; // 'ssh' | 'rdp'
+
+    // 切换连接方式 (SSH ↔ 仅远程桌面 RDP)
+    function switchServerConnectType(type) {
+      currentServerConnectType = type;
+      const tabSSH = document.getElementById('tabConnectSSH');
+      const tabRDP = document.getElementById('tabConnectRDP');
+      const formSSH = document.getElementById('serverFormSSH');
+      const formRDP = document.getElementById('serverFormRDP');
+      const btnTest = document.getElementById('btnServerModalTest');
+
+      if (type === 'ssh') {
+        if (tabSSH) {
+          tabSSH.className = 'px-3.5 py-1 rounded-lg font-medium transition cursor-pointer bg-[#252831] text-white shadow-sm';
+        }
+        if (tabRDP) {
+          tabRDP.className = 'px-3 py-1 rounded-lg font-medium transition cursor-pointer text-slate-400 hover:text-slate-200';
+        }
+        if (formSSH) formSSH.classList.remove('hidden');
+        if (formRDP) formRDP.classList.add('hidden');
+        if (btnTest) btnTest.classList.remove('hidden');
+      } else {
+        if (tabSSH) {
+          tabSSH.className = 'px-3 py-1 rounded-lg font-medium transition cursor-pointer text-slate-400 hover:text-slate-200';
+        }
+        if (tabRDP) {
+          tabRDP.className = 'px-3.5 py-1 rounded-lg font-medium transition cursor-pointer bg-[#252831] text-white shadow-sm';
+        }
+        if (formSSH) formSSH.classList.add('hidden');
+        if (formRDP) formRDP.classList.remove('hidden');
+        if (btnTest) btnTest.classList.add('hidden'); // RDP 模式无测试连接按钮 (严格对齐截图 4)
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 填充跳板机下拉选项
+    function populateBastionOptions(selectedVal) {
+      const bastionSelect = document.getElementById('sshServerBastion');
+      if (!bastionSelect) return;
+      bastionSelect.innerHTML = '<option value="">直连（不经跳板机）</option>';
+      if (Array.isArray(serverList)) {
         serverList.forEach(s => {
           const opt = document.createElement('option');
           opt.value = s.id;
           opt.textContent = `${s.name} (${s.ip}:${s.port || 22})`;
+          if (selectedVal && selectedVal === s.id) opt.selected = true;
           bastionSelect.appendChild(opt);
         });
       }
-
-      const groupDatalist = document.getElementById('groupSuggestions');
-      if (groupDatalist) {
-        const groups = Array.from(new Set(serverList.map(s => s.group).filter(Boolean)));
-        groupDatalist.innerHTML = '';
-        groups.forEach(g => {
-          const opt = document.createElement('option');
-          opt.value = g;
-          groupDatalist.appendChild(opt);
-        });
-      }
-
-      switchAddServerPlatform('linux');
-      document.getElementById('modalAddServer').classList.remove('hidden');
-      lucide.createIcons();
     }
 
-    function closeAddServerModal() {
-      document.getElementById('modalAddServer').classList.add('hidden');
-      const feedback = document.getElementById('addServerPingFeedback');
-      if (feedback) feedback.classList.add('hidden');
+    // 打开新增服务器弹窗 (严格对齐截图 2 与截图 4)
+    function openAddServerModal() {
+      const modal = document.getElementById('modalAddServer');
+      if (!modal) return;
+
+      document.getElementById('serverModalTitle').textContent = '新增服务器';
+      document.getElementById('serverFormEditId').value = '';
+
+      // 重置 SSH 表单项
+      document.getElementById('sshServerAlias').value = '';
+      document.getElementById('sshServerHost').value = '';
+      document.getElementById('sshServerPort').value = '22';
+      document.getElementById('sshServerUser').value = 'root';
+      document.getElementById('sshServerAuthType').value = 'password';
+      document.getElementById('sshServerAiUser').value = '';
+      document.getElementById('sshServerPassword').value = '';
+      if (document.getElementById('sshServerPrivateKey')) document.getElementById('sshServerPrivateKey').value = '';
+      document.getElementById('sshServerGroup').value = '';
+      document.getElementById('sshServerTags').value = '';
+      document.getElementById('sshServerAiPolicy').value = 'disabled';
+      document.getElementById('sshServerAllowSudo').checked = true;
+      document.getElementById('sshServerUseProxy').checked = false;
+      document.getElementById('sshServerNetworkEnv').value = 'auto';
+      document.getElementById('sshServerConnProxy').value = '';
+      document.getElementById('sshServerEnableRdp').checked = false;
+
+      // 重置 RDP 表单项
+      document.getElementById('rdpServerAlias').value = '';
+      document.getElementById('rdpServerHost').value = '';
+      document.getElementById('rdpServerPort').value = '3389';
+      document.getElementById('rdpServerUser').value = 'Administrator';
+      document.getElementById('rdpServerPassword').value = '';
+      document.getElementById('rdpServerDisplayMode').value = 'system';
+      document.getElementById('rdpServerAdminSession').checked = false;
+      document.getElementById('rdpServerGroup').value = '';
+      document.getElementById('rdpServerTags').value = '';
+
+      handleAuthTypeChange();
+      populateBastionOptions();
+      switchServerConnectType('ssh');
+
+      modal.classList.remove('hidden');
+      const scrollBox = modal.querySelector('.overflow-y-auto');
+      if (scrollBox) scrollBox.scrollTop = 0;
+      if (window.lucide) lucide.createIcons();
     }
 
-    function fillDefaultAiUser() {
-      const input = document.getElementById('newHostAiUser');
-      if (input) {
-        const defaultName = currentAddServerPlatform === 'windows' ? 'ai_ops' : 'ai-ops';
-        input.value = defaultName;
-        showToast(`🪄 已填入默认 AI 运维专用账号: ${defaultName}`);
-      }
-    }
-
-    function togglePasswordVisibility(inputId, btn) {
-      const input = document.getElementById(inputId);
-      if (!input) return;
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = '🔒';
-      } else {
-        input.type = 'password';
-        btn.textContent = '👁️';
-      }
-    }
-
-    function handleAuthTypeChange(authType) {
-      const pwdField = document.getElementById('newHostPasswordField');
-      const keyField = document.getElementById('newHostKeyField');
-      if (authType === 'password') {
-        if (pwdField) pwdField.classList.remove('hidden');
-        if (keyField) keyField.classList.add('hidden');
-      } else {
-        if (pwdField) pwdField.classList.add('hidden');
-        if (keyField) keyField.classList.remove('hidden');
-      }
-    }
-
-    function testNewServerConnection() {
-      const ip = document.getElementById('newHostIp').value.trim();
-      const port = document.getElementById('newHostPort').value.trim() || '22';
-      if (!ip) {
-        showToast('⚠️ 请先填写连接地址 (主机)');
-        document.getElementById('newHostIp').focus();
-        return;
-      }
-      const feedback = document.getElementById('addServerPingFeedback');
-      const dot = document.getElementById('addServerPingDot');
-      const msg = document.getElementById('addServerPingMsg');
-      const lat = document.getElementById('addServerPingLatency');
-      feedback.classList.remove('hidden');
-      dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
-      msg.innerText = `正在连接 ${ip}:${port} 进行 TCP 握手探测...`;
-      lat.innerText = '--';
-
-      setTimeout(() => {
-        dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
-        msg.innerText = '🟢 TCP 握手探测成功！(端口响应正常 · 鉴权通道可达)';
-        lat.innerText = '12ms';
-        showToast(`✓ 连通性测试通过！[${currentAddServerPlatform === 'windows' ? 'Windows' : 'Linux'}] 服务器随时可被纳管。`);
-      }, 700);
-    }
-
-    function saveNewServer() {
-      const alias = document.getElementById('newHostAlias').value.trim();
-      const ip = document.getElementById('newHostIp').value.trim();
-      const port = parseInt(document.getElementById('newHostPort').value) || 22;
-      const user = document.getElementById('newHostUser').value.trim() || (currentAddServerPlatform === 'windows' ? 'Administrator' : 'root');
-      const authType = document.getElementById('newHostAuthType').value;
-      const aiUser = (document.getElementById('newHostAiUser')?.value || '').trim();
-      const group = (document.getElementById('newHostGroup')?.value || '').trim() || '默认';
-      const tagsStr = document.getElementById('newHostTags').value.trim();
-      const aiPolicyCode = document.getElementById('newHostAIPolicy').value;
-      const allowSudo = document.getElementById('newHostAllowSudo')?.checked || false;
-      const useLocalProxy = document.getElementById('newHostUseLocalProxy')?.checked || false;
-      const bastionId = document.getElementById('newHostBastion')?.value || null;
-
-      if (!alias) {
-        showToast('⚠️ 请输入主机别名！');
-        document.getElementById('newHostAlias').focus();
-        return;
-      }
-      if (!ip) {
-        showToast('⚠️ 请输入连接地址！');
-        document.getElementById('newHostIp').focus();
-        return;
-      }
-
-      const policyMap = {
-        'strict': 'Strict Approval (需审批)',
-        'readonly': 'Read-Only (纯只读探测)',
-        'trusted': 'Autonomous (完全信任)',
-        'disabled': 'Disabled (已禁用AI)'
-      };
-
-      const defaultTags = currentAddServerPlatform === 'windows' ? ['Windows', '生产环境'] : ['自用'];
-      const tags = tagsStr ? tagsStr.split(/[,，、]/).map(t => t.trim()).filter(Boolean) : defaultTags;
-      const newHost = {
-        id: alias.toLowerCase().replace(/\s+/g, '-'),
-        name: alias,
-        osType: currentAddServerPlatform,
-        osDesc: currentAddServerPlatform === 'windows' ? 'Windows Server 2022 / 11' : 'Ubuntu 22.04 LTS',
-        arch: 'x86_64 · 4 vCPU 8GB',
-        user: user,
-        ip: ip,
-        port: port,
-        authType: authType === 'password' ? '密码认证' : '私钥认证',
-        status: 'online',
-        latency: '12ms',
-        group: group,
-        tags: tags,
-        aiPolicy: policyMap[aiPolicyCode] || 'Autonomous (完全信任)',
-        aiPolicyCode: aiPolicyCode,
-        allowSudo: allowSudo,
-        useLocalProxy: useLocalProxy,
-        bastionId: bastionId,
-        aiUsername: aiUser,
-        isStarred: false,
-        hasDb: false
-      };
-
-      serverList.unshift(newHost);
-      closeAddServerModal();
-      renderServerTable();
-      showToast(`🎉 成功纳管新服务器节点 [${newHost.name}] (${newHost.osType === 'windows' ? 'Windows' : 'Linux'})！`);
-      // 重置输入框
-      document.getElementById('newHostAlias').value = '';
-      document.getElementById('newHostIp').value = '';
-      document.getElementById('newHostAiUser').value = '';
-      document.getElementById('newHostAllowSudo').checked = false;
-      document.getElementById('newHostUseLocalProxy').checked = false;
-    }
-
-    // 编辑服务器弹窗交互 (modalEditServer)
+    // 打开编辑服务器弹窗 (无缝复用全新高保真结构，数据精准回填)
     function openEditServerModal(id) {
       const s = serverList.find(x => x.id === id);
       if (!s) return;
-      document.getElementById('editServerId').value = s.id;
-      document.getElementById('editHostAlias').value = s.name;
-      document.getElementById('editHostGroup').value = s.group;
-      document.getElementById('editHostIp').value = s.ip;
-      document.getElementById('editHostPort').value = s.port;
-      document.getElementById('editHostTags').value = s.tags.join(', ');
-      document.getElementById('editHostAIPolicy').value = s.aiPolicyCode;
-      document.getElementById('modalEditServer').classList.remove('hidden');
-      lucide.createIcons();
+
+      const modal = document.getElementById('modalAddServer');
+      if (!modal) return;
+
+      document.getElementById('serverModalTitle').textContent = '编辑服务器';
+      document.getElementById('serverFormEditId').value = s.id;
+      populateBastionOptions(s.bastionId);
+
+      const isRdp = (s.port === 3389) || (s.tags && s.tags.includes('仅远程桌面'));
+
+      if (isRdp) {
+        switchServerConnectType('rdp');
+        document.getElementById('rdpServerAlias').value = s.name || '';
+        document.getElementById('rdpServerHost').value = s.ip || '';
+        document.getElementById('rdpServerPort').value = s.port || 3389;
+        document.getElementById('rdpServerUser').value = s.user || 'Administrator';
+        document.getElementById('rdpServerPassword').value = s.password || '';
+        document.getElementById('rdpServerDisplayMode').value = s.displayMode || 'system';
+        document.getElementById('rdpServerAdminSession').checked = !!s.adminSession;
+        document.getElementById('rdpServerGroup').value = s.group === 'all' ? '' : (s.group || '');
+        document.getElementById('rdpServerTags').value = (s.tags || []).join(', ');
+      } else {
+        switchServerConnectType('ssh');
+        document.getElementById('sshServerAlias').value = s.name || '';
+        document.getElementById('sshServerHost').value = s.ip || '';
+        document.getElementById('sshServerPort').value = s.port || 22;
+        document.getElementById('sshServerUser').value = s.user || 'root';
+        document.getElementById('sshServerAuthType').value = s.authTypeCode || 'password';
+        document.getElementById('sshServerAiUser').value = s.aiUser || '';
+        document.getElementById('sshServerPassword').value = s.password || '';
+        if (document.getElementById('sshServerPrivateKey')) {
+          document.getElementById('sshServerPrivateKey').value = s.privateKey || '';
+        }
+        document.getElementById('sshServerGroup').value = s.group === 'all' ? '' : (s.group || '');
+        document.getElementById('sshServerTags').value = (s.tags || []).join(', ');
+        document.getElementById('sshServerAiPolicy').value = s.aiPolicyCode || 'disabled';
+        document.getElementById('sshServerAllowSudo').checked = s.allowSudo !== false;
+        document.getElementById('sshServerUseProxy').checked = !!s.useProxy;
+        document.getElementById('sshServerNetworkEnv').value = s.networkEnv || 'auto';
+        document.getElementById('sshServerBastion').value = s.bastionId || '';
+        document.getElementById('sshServerConnProxy').value = s.proxyId || '';
+        document.getElementById('sshServerEnableRdp').checked = !!s.enableRdp;
+        handleAuthTypeChange();
+      }
+
+      const scrollBox = modal.querySelector('.overflow-y-auto');
+      if (scrollBox) scrollBox.scrollTop = 0;
+      modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
     }
 
-    function closeEditServerModal() {
-      document.getElementById('modalEditServer').classList.add('hidden');
+    // 关闭服务器弹窗 (兼顾多处老函数调用)
+    function closeServerModal() {
+      const modal = document.getElementById('modalAddServer');
+      if (modal) modal.classList.add('hidden');
+    }
+    function closeAddServerModal() { closeServerModal(); }
+    function closeEditServerModal() { closeServerModal(); }
+
+    // 认证方式联动切换
+    function handleAuthTypeChange() {
+      const authType = document.getElementById('sshServerAuthType')?.value || 'password';
+      const pwdContainer = document.getElementById('sshPasswordContainer');
+      const keyContainer = document.getElementById('sshKeyContainer');
+      if (authType === 'password') {
+        if (pwdContainer) pwdContainer.classList.remove('hidden');
+        if (keyContainer) keyContainer.classList.add('hidden');
+      } else {
+        if (pwdContainer) pwdContainer.classList.add('hidden');
+        if (keyContainer) keyContainer.classList.remove('hidden');
+      }
     }
 
-    function saveEditServer() {
-      const id = document.getElementById('editServerId').value;
-      const s = serverList.find(x => x.id === id);
-      if (!s) return;
+    // 快捷填入默认 AI 用户名
+    function fillDefaultAiUser() {
+      const input = document.getElementById('sshServerAiUser');
+      if (input) {
+        input.value = 'ai-ops';
+        showToast('已填入默认 AI 专属受限运维账号：ai-ops');
+      }
+    }
 
-      s.name = document.getElementById('editHostAlias').value.trim() || s.name;
-      s.group = document.getElementById('editHostGroup').value;
-      s.ip = document.getElementById('editHostIp').value.trim() || s.ip;
-      s.port = parseInt(document.getElementById('editHostPort').value) || s.port;
-      const tagsStr = document.getElementById('editHostTags').value.trim();
-      s.tags = tagsStr ? tagsStr.split(/[,，]/).map(t => t.trim()).filter(Boolean) : s.tags;
-      s.aiPolicyCode = document.getElementById('editHostAIPolicy').value;
-      const policyMap = {
-        'strict': 'Strict Approval (需审批)',
-        'readonly': 'Read-Only (纯只读探测)',
-        'autonomous': 'Autonomous (自主排障)',
-        'disabled': 'Disabled (已禁用AI)'
-      };
-      s.aiPolicy = policyMap[s.aiPolicyCode];
+    // 快捷填入 RDP 默认管理员用户名
+    function fillRdpAdminUser() {
+      const input = document.getElementById('rdpServerUser');
+      if (input) {
+        input.value = 'Administrator';
+        showToast('已自动填入 Windows 默认管理用户名：Administrator');
+      }
+    }
 
-      closeEditServerModal();
+    // 密码明暗文切换辅助
+    function togglePasswordVisibility(inputId, iconId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(iconId);
+      if (!input || !icon) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye');
+      } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye-off');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 测试服务器连接 (严格对齐截图)
+    function testServerConnection() {
+      const host = document.getElementById('sshServerHost')?.value.trim();
+      const port = document.getElementById('sshServerPort')?.value.trim() || '22';
+      if (!host) {
+        showToast('⚠️ 请先填写主机地址再进行测试');
+        return;
+      }
+      showToast(`⚡ 正在向 ${host}:${port} 发起 SSH 探测与指纹握手...`);
+      setTimeout(() => {
+        showToast(`🟢 连接测试成功！TCP RTT 延迟: 28ms，OpenSSH 8.9p1 正常就绪`);
+      }, 700);
+    }
+
+    // 保存服务器表单数据 (统一处理新增与编辑)
+    function saveServerForm() {
+      const editId = document.getElementById('serverFormEditId').value.trim();
+      const isRdp = (currentServerConnectType === 'rdp');
+
+      if (isRdp) {
+        const alias = document.getElementById('rdpServerAlias').value.trim();
+        const host = document.getElementById('rdpServerHost').value.trim();
+        const port = parseInt(document.getElementById('rdpServerPort').value) || 3389;
+        const user = document.getElementById('rdpServerUser').value.trim() || 'Administrator';
+        const password = document.getElementById('rdpServerPassword').value;
+        const displayMode = document.getElementById('rdpServerDisplayMode').value;
+        const adminSession = document.getElementById('rdpServerAdminSession').checked;
+        const group = document.getElementById('rdpServerGroup').value.trim() || 'all';
+        const tagsRaw = document.getElementById('rdpServerTags').value.trim();
+        let tags = tagsRaw ? tagsRaw.split(/[,，、;]/).map(t => t.trim()).filter(Boolean) : [];
+        if (!tags.includes('仅远程桌面')) tags.unshift('仅远程桌面');
+
+        if (!host) {
+          showToast('⚠️ 请输入主机 IP 或域名');
+          return;
+        }
+
+        if (editId) {
+          const s = serverList.find(x => x.id === editId);
+          if (s) {
+            s.name = alias || host;
+            s.ip = host;
+            s.port = port;
+            s.user = user;
+            s.password = password;
+            s.group = group;
+            s.tags = tags;
+            s.displayMode = displayMode;
+            s.adminSession = adminSession;
+            s.osType = 'windows';
+          }
+          showToast(`✓ 已成功更新服务器「${alias || host}」`);
+        } else {
+          const newId = 'rdp-' + Date.now();
+          serverList.push({
+            id: newId,
+            name: alias || host,
+            osType: 'windows',
+            osDesc: 'Windows Server (RDP)',
+            arch: 'x86_64',
+            user: user,
+            ip: host,
+            port: port,
+            password: password,
+            authType: '远程凭据',
+            status: 'online',
+            latency: '32ms',
+            group: group,
+            tags: tags,
+            aiPolicy: '禁用 (AI 摸不到)',
+            aiPolicyCode: 'disabled',
+            isStarred: false,
+            hasDb: false
+          });
+          showToast(`🎉 已成功添加仅远程桌面服务器「${alias || host}」`);
+        }
+      } else {
+        const alias = document.getElementById('sshServerAlias').value.trim();
+        const host = document.getElementById('sshServerHost').value.trim();
+        const port = parseInt(document.getElementById('sshServerPort').value) || 22;
+        const user = document.getElementById('sshServerUser').value.trim() || 'root';
+        const authType = document.getElementById('sshServerAuthType').value;
+        const aiUser = document.getElementById('sshServerAiUser').value.trim();
+        const password = document.getElementById('sshServerPassword').value;
+        const privateKey = document.getElementById('sshServerPrivateKey')?.value || '';
+        const group = document.getElementById('sshServerGroup').value.trim() || 'all';
+        const tagsRaw = document.getElementById('sshServerTags').value.trim();
+        const tags = tagsRaw ? tagsRaw.split(/[,，、;]/).map(t => t.trim()).filter(Boolean) : ['生产'];
+        const aiPolicyCode = document.getElementById('sshServerAiPolicy').value;
+        const allowSudo = document.getElementById('sshServerAllowSudo').checked;
+        const useProxy = document.getElementById('sshServerUseProxy').checked;
+        const networkEnv = document.getElementById('sshServerNetworkEnv').value;
+        const bastionId = document.getElementById('sshServerBastion').value;
+        const proxyId = document.getElementById('sshServerConnProxy').value;
+        const enableRdp = document.getElementById('sshServerEnableRdp').checked;
+
+        const aiPolicyMap = {
+          'disabled': '禁用 (AI 摸不到)',
+          'readonly': '只读探测 (纯只读命令)',
+          'strict': '严格审批 (每次执行需人工确认)',
+          'trusted': '完全信任 (自动执行安全指令)'
+        };
+        const aiPolicyText = aiPolicyMap[aiPolicyCode] || '禁用 (AI 摸不到)';
+
+        if (!host) {
+          showToast('⚠️ 请输入主机 IP 或域名');
+          return;
+        }
+
+        if (editId) {
+          const s = serverList.find(x => x.id === editId);
+          if (s) {
+            s.name = alias || host;
+            s.ip = host;
+            s.port = port;
+            s.user = user;
+            s.authTypeCode = authType;
+            s.aiUser = aiUser;
+            s.password = password;
+            s.privateKey = privateKey;
+            s.group = group;
+            s.tags = tags;
+            s.aiPolicy = aiPolicyText;
+            s.aiPolicyCode = aiPolicyCode;
+            s.allowSudo = allowSudo;
+            s.useProxy = useProxy;
+            s.networkEnv = networkEnv;
+            s.bastionId = bastionId;
+            s.proxyId = proxyId;
+            s.enableRdp = enableRdp;
+          }
+          showToast(`✓ 已成功更新服务器「${alias || host}」`);
+        } else {
+          const newId = 'srv-' + Date.now();
+          serverList.push({
+            id: newId,
+            name: alias || host,
+            osType: 'linux',
+            osDesc: 'Linux (OpenSSH)',
+            arch: 'x86_64 · 4 vCPU 8GB',
+            user: user,
+            ip: host,
+            port: port,
+            authType: authType === 'password' ? '密码认证' : '私钥认证',
+            authTypeCode: authType,
+            aiUser: aiUser,
+            password: password,
+            privateKey: privateKey,
+            status: 'online',
+            latency: '24ms',
+            group: group,
+            tags: tags,
+            aiPolicy: aiPolicyText,
+            aiPolicyCode: aiPolicyCode,
+            allowSudo: allowSudo,
+            useProxy: useProxy,
+            networkEnv: networkEnv,
+            bastionId: bastionId,
+            proxyId: proxyId,
+            enableRdp: enableRdp,
+            isStarred: false,
+            hasDb: false
+          });
+          showToast(`🎉 已成功纳管服务器「${alias || host}」`);
+        }
+      }
+
+      closeServerModal();
       renderServerTable();
-      showToast(`✓ 已成功更新服务器 [${s.name}] 的配置与策略！`);
     }
+
+    // 兼容历史直接调用函数
+    function saveNewServer() { saveServerForm(); }
+    function saveEditServer() { saveServerForm(); }
 
     // 移除服务器确认弹窗 (modalDeleteConfirm)
     function confirmDeleteServer(id) {
@@ -21851,27 +22842,82 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       showToast('🗑️ 已成功解除目标服务器纳管');
     }
 
-    // 导入 ~/.ssh/config 交互 (modalImportSSHConfig)
+// =========================================================================
+    // ★ 导入服务器 3 大模态框交互逻辑 (对齐截图 1、截图 2、截图 3)
+    // =========================================================================
+
+    // --- 1. 导入 ~/.ssh/config 交互 (modalImportSSHConfig) ---
+    let isSshConfigMockListShown = false;
+
     function openImportSSHConfigModal() {
-      document.getElementById('modalImportSSHConfig').classList.remove('hidden');
-      lucide.createIcons();
+      const modal = document.getElementById('modalImportSSHConfig');
+      if (modal) {
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      }
     }
 
     function closeImportSSHConfigModal() {
-      document.getElementById('modalImportSSHConfig').classList.add('hidden');
+      const modal = document.getElementById('modalImportSSHConfig');
+      if (modal) modal.classList.add('hidden');
     }
 
-    function toggleSelectAllSSHConfig(chk) {
-      document.querySelectorAll('.ssh-import-chk').forEach(c => c.checked = chk);
+    function toggleMockSSHConfigHosts() {
+      isSshConfigMockListShown = !isSshConfigMockListShown;
+      const emptyEl = document.getElementById('sshConfigEmptyState');
+      const listEl = document.getElementById('sshConfigListContainer');
+      const btnBatch = document.getElementById('btnBatchImportSshConfig');
+
+      if (isSshConfigMockListShown) {
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (listEl) listEl.classList.remove('hidden');
+        updateSshImportCount();
+        showToast('🔍 已从系统 ~/.ssh/config 解析出 4 个 Host 块');
+      } else {
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        if (listEl) listEl.classList.add('hidden');
+        if (btnBatch) {
+          btnBatch.disabled = true;
+          btnBatch.textContent = '批量导入';
+          btnBatch.className = 'px-4 py-1.5 rounded-lg bg-[#252831] text-slate-500 text-xs font-medium cursor-not-allowed transition-colors';
+        }
+      }
+      lucide.createIcons();
+    }
+
+    function toggleSelectAllSSHConfig() {
+      const chks = document.querySelectorAll('.ssh-cfg-chk');
+      const allChecked = Array.from(chks).every(c => c.checked);
+      chks.forEach(c => c.checked = !allChecked);
+      const btnToggle = document.getElementById('btnToggleAllSsh');
+      if (btnToggle) btnToggle.textContent = !allChecked ? '取消全选' : '全选';
+      updateSshImportCount();
+    }
+
+    function updateSshImportCount() {
+      const checkedCount = document.querySelectorAll('.ssh-cfg-chk:checked').length;
+      const btnBatch = document.getElementById('btnBatchImportSshConfig');
+      if (!btnBatch) return;
+
+      if (checkedCount > 0) {
+        btnBatch.disabled = false;
+        btnBatch.textContent = `批量导入 (${checkedCount})`;
+        btnBatch.className = 'px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium shadow-md shadow-blue-500/20 transition-colors';
+      } else {
+        btnBatch.disabled = true;
+        btnBatch.textContent = '批量导入';
+        btnBatch.className = 'px-4 py-1.5 rounded-lg bg-[#252831] text-slate-500 text-xs font-medium cursor-not-allowed transition-colors';
+      }
     }
 
     function executeImportSSHConfig() {
-      const chks = document.querySelectorAll('.ssh-import-chk:checked');
+      const chks = document.querySelectorAll('.ssh-cfg-chk:checked');
       if (chks.length === 0) {
-        showToast('⚠️ 请至少勾选一个要导入的 Host');
+        showToast('⚠️ 未选择任何 Host');
         return;
       }
-      const importedHosts = [
+
+      const mockHosts = [
         {
           id: 'aliyun-beijing-gateway',
           name: 'aliyun-beijing-gateway',
@@ -21881,13 +22927,13 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
           user: 'root',
           ip: '121.40.88.12',
           port: 22,
-          authType: '私钥 (id_rsa)',
+          authType: '私钥 (PEM)',
           status: 'online',
           latency: '22ms',
           group: 'prod',
-          tags: ['阿里云', '华东1', '网关'],
-          aiPolicy: 'Strict Approval (需审批)',
-          aiPolicyCode: 'strict',
+          tags: ['阿里云', '网关'],
+          aiPolicy: '禁用',
+          aiPolicyCode: 'disabled',
           isStarred: false,
           hasDb: false
         },
@@ -21900,19 +22946,60 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
           user: 'ubuntu',
           ip: '119.29.56.32',
           port: 22,
-          authType: '私钥 (id_ed25519)',
+          authType: '私钥 (PEM)',
           status: 'online',
           latency: '41ms',
           group: 'test',
-          tags: ['腾讯云', '香港', '测试'],
-          aiPolicy: 'Strict Approval (需审批)',
-          aiPolicyCode: 'strict',
+          tags: ['腾讯云', '香港'],
+          aiPolicy: '禁用',
+          aiPolicyCode: 'disabled',
+          isStarred: false,
+          hasDb: false
+        },
+        {
+          id: 'aws-tokyo-vpc',
+          name: 'aws-tokyo-vpc',
+          osType: 'linux',
+          osDesc: 'Amazon Linux 2023',
+          arch: 'x86_64 · 4 vCPU 8GB',
+          user: 'ec2-user',
+          ip: '18.162.33.9',
+          port: 22,
+          authType: '私钥 (PEM)',
+          status: 'online',
+          latency: '82ms',
+          group: 'test',
+          tags: ['AWS', '东京'],
+          aiPolicy: '禁用',
+          aiPolicyCode: 'disabled',
+          isStarred: false,
+          hasDb: false
+        },
+        {
+          id: 'bastion-corp-jump',
+          name: 'bastion-corp-jump',
+          osType: 'linux',
+          osDesc: 'Debian 12 Bookworm',
+          arch: 'x86_64 · 2 vCPU 4GB',
+          user: 'admin',
+          ip: '10.0.1.1',
+          port: 2222,
+          authType: '私钥 (PEM)',
+          status: 'online',
+          latency: '15ms',
+          group: 'prod',
+          tags: ['内网', '跳板机'],
+          aiPolicy: '禁用',
+          aiPolicyCode: 'disabled',
           isStarred: false,
           hasDb: false
         }
       ];
 
-      importedHosts.forEach(h => {
+      const selectedValues = Array.from(chks).map(c => c.value);
+      const toAdd = mockHosts.filter(h => selectedValues.includes(h.id));
+
+      toAdd.forEach(h => {
         if (!serverList.some(x => x.id === h.id)) {
           serverList.push(h);
         }
@@ -21920,10 +23007,285 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
 
       closeImportSSHConfigModal();
       renderServerTable();
-      showToast(`🎉 成功从 ~/.ssh/config 批量导入 ${importedHosts.length} 台主机！`);
+      showToast(`🎉 成功从 ~/.ssh/config 导入 ${toAdd.length} 台服务器骨架！凭据已置空，AI 权限已默认禁用。`);
     }
 
-    // 新建分组弹窗交互 (modalAddGroup)
+
+    // --- 2. 从 FinalShell 导入交互 (modalImportFinalShell) ---
+    let finalShellPendingCount = 0;
+
+    function openImportFinalShellModal() {
+      const modal = document.getElementById('modalImportFinalShell');
+      if (modal) {
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      }
+    }
+
+    function closeImportFinalShellModal() {
+      const modal = document.getElementById('modalImportFinalShell');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function mockSelectFinalShellFolder() {
+      const folderSpan = document.getElementById('finalShellFolderPath');
+      const btnImport = document.getElementById('btnFinalShellExecuteImport');
+      
+      finalShellPendingCount = 3;
+      if (folderSpan) {
+        folderSpan.textContent = 'D:\FinalShell\backup_2026\conn (已识别 3 台)';
+        folderSpan.className = 'text-blue-400 text-xs font-mono font-medium';
+      }
+      if (btnImport) {
+        btnImport.disabled = false;
+        btnImport.textContent = `导入 ${finalShellPendingCount} 台`;
+        btnImport.className = 'px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium shadow-md shadow-blue-500/20 transition-colors';
+      }
+      showToast('📂 已成功读取 FinalShell 导出目录，发现 3 台主机 (含 1 个 RDP)');
+    }
+
+    function executeImportFinalShell() {
+      if (finalShellPendingCount === 0) return;
+      const policySelect = document.getElementById('finalShellAiPolicySelect');
+      const policyVal = policySelect ? policySelect.value : 'disabled';
+      const policyMap = {
+        'disabled': { text: '禁用', code: 'disabled' },
+        'readonly': { text: '只读', code: 'readonly' },
+        'strict': { text: '需审批', code: 'strict' },
+        'trusted': { text: '信任', code: 'trusted' }
+      };
+      const p = policyMap[policyVal] || policyMap['disabled'];
+
+      const fsServers = [
+        {
+          id: 'fs-prod-web01',
+          name: 'fs-prod-web01',
+          osType: 'linux',
+          osDesc: 'CentOS 7.9 64位',
+          arch: 'x86_64 · 8 vCPU 32GB',
+          user: 'root',
+          ip: '172.16.10.88',
+          port: 22,
+          authType: '密码认证',
+          status: 'online',
+          latency: '18ms',
+          group: 'prod',
+          tags: ['FinalShell', 'Web'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: true
+        },
+        {
+          id: 'fs-db-primary',
+          name: 'fs-db-primary',
+          osType: 'linux',
+          osDesc: 'Rocky Linux 9.2',
+          arch: 'x86_64 · 16 vCPU 64GB',
+          user: 'dba',
+          ip: '172.16.10.99',
+          port: 22,
+          authType: '密码认证',
+          status: 'online',
+          latency: '24ms',
+          group: 'prod',
+          tags: ['FinalShell', 'MySQL'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: true
+        },
+        {
+          id: 'fs-win-rdp-jump',
+          name: 'fs-win-rdp-jump',
+          osType: 'windows',
+          osDesc: 'Windows Server 2022',
+          arch: 'x86_64 · 4 vCPU 16GB',
+          user: 'Administrator',
+          ip: '192.168.1.150',
+          port: 3389,
+          authType: '密码认证',
+          status: 'online',
+          latency: '36ms',
+          group: 'test',
+          tags: ['FinalShell', '仅远程桌面'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: false
+        }
+      ];
+
+      fsServers.forEach(s => {
+        if (!serverList.some(x => x.id === s.id)) {
+          serverList.push(s);
+        }
+      });
+
+      closeImportFinalShellModal();
+      renderServerTable();
+      showToast(`🎉 成功从 FinalShell 导入 ${fsServers.length} 台服务器！密码已安全加密入库。`);
+    }
+
+
+    // --- 3. 从 Excel / CSV 表格导入交互 (modalImportExcelCsv) ---
+    let excelPendingCount = 0;
+
+    function openImportExcelCsvModal() {
+      const modal = document.getElementById('modalImportExcelCsv');
+      if (modal) {
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+      }
+    }
+
+    function closeImportExcelCsvModal() {
+      const modal = document.getElementById('modalImportExcelCsv');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function downloadExcelTemplate() {
+      showToast('📥 正在下载 OpsPub 服务器导入模板 (opspub_server_template.xlsx)...');
+    }
+
+    function mockSelectExcelFile() {
+      const fileSpan = document.getElementById('excelFilePath');
+      const btnImport = document.getElementById('btnExcelExecuteImport');
+      
+      excelPendingCount = 5;
+      if (fileSpan) {
+        fileSpan.textContent = 'servers_inventory_2026.xlsx (已解析 5 条有效记录)';
+        fileSpan.className = 'text-blue-400 text-xs font-mono font-medium';
+      }
+      if (btnImport) {
+        btnImport.disabled = false;
+        btnImport.textContent = `导入 ${excelPendingCount} 台`;
+        btnImport.className = 'px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium shadow-md shadow-blue-500/20 transition-colors';
+      }
+      showToast('📄 已解析 Excel 表格：包含别名、IP、端口、分组与标签字段');
+    }
+
+    function executeImportExcelCsv() {
+      if (excelPendingCount === 0) return;
+      const policySelect = document.getElementById('excelAiPolicySelect');
+      const policyVal = policySelect ? policySelect.value : 'disabled';
+      const policyMap = {
+        'disabled': { text: '禁用', code: 'disabled' },
+        'readonly': { text: '只读', code: 'readonly' },
+        'strict': { text: '需审批', code: 'strict' },
+        'trusted': { text: '信任', code: 'trusted' }
+      };
+      const p = policyMap[policyVal] || policyMap['disabled'];
+
+      const excelServers = [
+        {
+          id: 'excel-k8s-master01',
+          name: 'k8s-master-01',
+          osType: 'linux',
+          osDesc: 'Ubuntu 22.04 LTS',
+          arch: 'x86_64 · 8 vCPU 16GB',
+          user: 'root',
+          ip: '10.200.1.11',
+          port: 22,
+          authType: '密码认证',
+          status: 'online',
+          latency: '12ms',
+          group: 'prod',
+          tags: ['Excel导入', 'K8s集群'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: false
+        },
+        {
+          id: 'excel-k8s-worker01',
+          name: 'k8s-worker-01',
+          osType: 'linux',
+          osDesc: 'Ubuntu 22.04 LTS',
+          arch: 'x86_64 · 16 vCPU 64GB',
+          user: 'root',
+          ip: '10.200.1.21',
+          port: 22,
+          authType: '密码认证',
+          status: 'online',
+          latency: '15ms',
+          group: 'prod',
+          tags: ['Excel导入', 'K8s集群'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: false
+        },
+        {
+          id: 'excel-redis-cluster-01',
+          name: 'redis-cache-node1',
+          osType: 'linux',
+          osDesc: 'Debian 12 Bookworm',
+          arch: 'x86_64 · 4 vCPU 16GB',
+          user: 'redis',
+          ip: '10.200.2.31',
+          port: 22,
+          authType: '密码认证',
+          status: 'online',
+          latency: '11ms',
+          group: 'prod',
+          tags: ['Excel导入', 'Redis缓存'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: true
+        },
+        {
+          id: 'excel-es-data-01',
+          name: 'elasticsearch-data-01',
+          osType: 'linux',
+          osDesc: 'Rocky Linux 9.3',
+          arch: 'x86_64 · 8 vCPU 32GB',
+          user: 'elastic',
+          ip: '10.200.3.51',
+          port: 22,
+          authType: '私钥 (PEM)',
+          status: 'online',
+          latency: '19ms',
+          group: 'test',
+          tags: ['Excel导入', 'ES日志'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: false
+        },
+        {
+          id: 'excel-gitlab-ci-runner',
+          name: 'gitlab-ci-runner-01',
+          osType: 'linux',
+          osDesc: 'CentOS Stream 9',
+          arch: 'x86_64 · 8 vCPU 16GB',
+          user: 'gitlab-runner',
+          ip: '10.200.4.71',
+          port: 22,
+          authType: '密码认证',
+          status: 'online',
+          latency: '26ms',
+          group: 'test',
+          tags: ['Excel导入', 'CI流水线'],
+          aiPolicy: p.text,
+          aiPolicyCode: p.code,
+          isStarred: false,
+          hasDb: false
+        }
+      ];
+
+      excelServers.forEach(s => {
+        if (!serverList.some(x => x.id === s.id)) {
+          serverList.push(s);
+        }
+      });
+
+      closeImportExcelCsvModal();
+      renderServerTable();
+      showToast(`🎉 成功从 Excel 表格导入 ${excelServers.length} 台服务器！AI 档位已设为「${p.text}」。`);
+    }
+
     function openAddGroupModal() {
       document.getElementById('modalAddGroup').classList.remove('hidden');
       lucide.createIcons();
@@ -24891,6 +26253,7 @@ ${resultText}
       'audit-retention',
       'backup',
       'mobile-pairing',
+      'device-channel',
       'license',
       'legal',
       'community',
@@ -25090,6 +26453,7 @@ ${resultText}
         'set-subnav-audit-retention': { zh: '审计保留', en: 'Audit Retention' },
         'set-subnav-backup': { zh: '备份与还原', en: 'Backup & Restore' },
         'set-subnav-mobile-pairing': { zh: '手机配对', en: 'Mobile Pairing' },
+        'set-subnav-device-channel': { zh: '设备通道', en: 'Device Channel' },
         'set-subnav-license': { zh: '授权管理', en: 'License & Editions' },
         'set-subnav-legal': { zh: '法律声明', en: 'Legal Notices' },
         'set-subnav-community': { zh: '作者 & 社区', en: 'Author & Community' },
@@ -25152,8 +26516,12 @@ ${resultText}
           desc: { zh: '把服务器、凭据、知识库、部署、设置等全部数据导出一份加密备份文件，便于迁移到新设备或灾难恢复。', en: 'Export an encrypted backup file containing servers, credentials, knowledge bases, deployments and settings for easy migration or disaster recovery.' }
         },
         'setting-card-mobile-pairing': {
-          title: { zh: '手机应急配对 (移动端)', en: 'Mobile Emergency Pairing (Mobile App)' },
-          desc: { zh: '通过 E2EE 端到端加密二维码与 OpsPub 手机 App 配对；离开电脑时可在手机上远程审批 AI 危险指令与紧急断网。', en: 'Pair with OpsPub Mobile App via end-to-end encrypted QR code for remote emergency approval and kill-switch control.' }
+          title: { zh: '配对手机', en: 'Pair Mobile Phone' },
+          desc: { zh: '配对服务只会绑定你选的这张私网网卡，120 秒后自动关闭，绝不监听公网。', en: 'Pairing service binds strictly to selected private NIC, automatically shuts down after 120s, and never listens to public network.' }
+        },
+        'setting-card-device-channel': {
+          title: { zh: '设备通道', en: 'Device Channel' },
+          desc: { zh: '让配对过的手机连回这台电脑 —— 审批 AI 操作、应急开关、问 AI、查知识库都走这条路。', en: 'Allow paired phone to connect back to this computer for approving AI actions, kill switch, asking AI and querying knowledge.' }
         },
         'setting-card-license': {
           title: { zh: '商业授权与版本管理', en: 'Commercial License & Editions' },
@@ -34578,6 +35946,120 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       renderStorageEndpointsTable();
       showToast('已移除存储端配置');
     }
+
+    // =========================================================================
+    // 手机配对与设备通道 (Mobile Pairing & Device Channel) 核心交互
+    // =========================================================================
+    let deviceChannelRunning = false;
+    let pairCountdownTimer = null;
+    let pairCountdownSec = 120;
+
+    // 打开配对手机弹窗 (对齐截图 2)
+    function openPairPhoneModal() {
+      const modal = document.getElementById('modalPairPhone');
+      if (modal) modal.classList.remove('hidden');
+      resetPairPhoneStep();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 关闭配对手机弹窗
+    function closePairPhoneModal() {
+      const modal = document.getElementById('modalPairPhone');
+      if (modal) modal.classList.add('hidden');
+      if (pairCountdownTimer) {
+        clearInterval(pairCountdownTimer);
+        pairCountdownTimer = null;
+      }
+    }
+
+    // 重置到网卡选择步骤
+    function resetPairPhoneStep() {
+      if (pairCountdownTimer) {
+        clearInterval(pairCountdownTimer);
+        pairCountdownTimer = null;
+      }
+      const s1 = document.getElementById('pairPhoneStepSelect');
+      const s2 = document.getElementById('pairPhoneStepQr');
+      if (s1) s1.classList.remove('hidden');
+      if (s2) s2.classList.add('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 生成配对二维码并在 120 秒倒计时
+    function generatePairQrCode() {
+      const s1 = document.getElementById('pairPhoneStepSelect');
+      const s2 = document.getElementById('pairPhoneStepQr');
+      if (s1) s1.classList.add('hidden');
+      if (s2) s2.classList.remove('hidden');
+
+      pairCountdownSec = 120;
+      const countEl = document.getElementById('pairCountdownText');
+      if (countEl) countEl.innerText = pairCountdownSec;
+
+      if (pairCountdownTimer) clearInterval(pairCountdownTimer);
+      pairCountdownTimer = setInterval(() => {
+        pairCountdownSec--;
+        if (countEl) countEl.innerText = pairCountdownSec;
+        if (pairCountdownSec <= 0) {
+          clearInterval(pairCountdownTimer);
+          pairCountdownTimer = null;
+          showToast('⚠️ 配对二维码已过期失效，请重新生成');
+          resetPairPhoneStep();
+        }
+      }, 1000);
+
+      showToast('已绑定私网网卡 192.168.2.43 并生成安全配对二维码');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 模拟手机已扫码配对
+    function mockPairSuccess() {
+      closePairPhoneModal();
+      showToast('🎉 手机已完成配对！已获安全授权，可使用设备通道协同操作');
+    }
+
+    // 切换设备通道状态 (未开启 ↔ 运行中，对齐截图 1 与截图 3)
+    function toggleDeviceChannelState() {
+      deviceChannelRunning = !deviceChannelRunning;
+      const badge = document.getElementById('badge-device-channel-status');
+      const btn = document.getElementById('btn-toggle-device-channel');
+      const banner = document.getElementById('banner-device-channel-running');
+
+      if (deviceChannelRunning) {
+        if (badge) {
+          badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-pulse';
+          badge.innerText = '运行中';
+        }
+        if (btn) {
+          btn.className = 'px-4 py-2 rounded-lg bg-[#141a23] hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs font-medium transition cursor-pointer';
+          btn.innerText = '关闭通道';
+        }
+        if (banner) banner.classList.remove('hidden');
+        showToast('🟢 设备通道已开启！服务已监听私网端口 59145');
+      } else {
+        if (badge) {
+          badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700/80';
+          badge.innerText = '未开启';
+        }
+        if (btn) {
+          btn.className = 'px-4 py-2 rounded-lg bg-[#5b64c2] hover:bg-[#4f57b0] text-white text-xs font-medium transition cursor-pointer shadow-sm';
+          btn.innerText = '开启通道';
+        }
+        if (banner) banner.classList.add('hidden');
+        showToast('⚪ 设备通道已关闭');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 复制通道地址
+    function copyDeviceChannelAddress() {
+      const addr = document.getElementById('text-device-channel-address')?.innerText || 'http://192.168.2.43:59145';
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(addr);
+      }
+      showToast('已复制设备通道地址：' + addr);
+    }
+
 </script>
 
   <!-- 浮动悬停/点击名称气泡提示 (当侧边栏收缩时展示) -->

@@ -7,13 +7,15 @@ use uuid::Uuid;
 use crate::database::Database;
 use crate::error::AppError;
 use crate::models::{
-    DeployRunRequest, DeployRunResult, DeployTarget, DeployTargetInput, DeploymentHistory,
+    DeployRunRequest, DeployRunResult, DeployTarget, DeployTargetInput, DeploymentGroup,
+    DeploymentGroupInput, DeploymentGroupRunRequest, DeploymentGroupRunResult, DeploymentHistory,
     DeploymentProgress, WorkbenchCommandRequest,
 };
 use crate::services::audit::AuditService;
 use crate::services::workbench::WorkbenchService;
 
 const TARGETS_KEY: &str = "deployment.targets";
+const GROUPS_KEY: &str = "deployment.groups";
 const HISTORY_KEY: &str = "deployment.history";
 const RECIPES: [&str; 7] = [
     "1panel-app",
@@ -78,6 +80,100 @@ impl DeploymentService {
         }
         db.set_config(TARGETS_KEY, &serde_json::to_string(&targets)?)?;
         Ok(true)
+    }
+
+    pub fn list_groups(db: &Database) -> Result<Vec<DeploymentGroup>, AppError> {
+        let raw = db.get_config(GROUPS_KEY)?.unwrap_or_else(|| "[]".into());
+        serde_json::from_str(&raw).map_err(AppError::from)
+    }
+
+    pub fn save_group(
+        db: &Database,
+        input: DeploymentGroupInput,
+    ) -> Result<DeploymentGroup, AppError> {
+        validate_group(&input)?;
+        let targets = Self::list_targets(db)?;
+        let target_ids = input
+            .target_ids
+            .into_iter()
+            .filter(|id| targets.iter().any(|target| target.id == *id))
+            .collect::<Vec<_>>();
+        if target_ids.is_empty() {
+            return Err(AppError::InvalidInput("部署组至少需要一个有效目标".into()));
+        }
+        let mut groups = Self::list_groups(db)?;
+        let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let group = if let Some(id) = input.id.filter(|value| !value.trim().is_empty()) {
+            let existing = groups
+                .iter_mut()
+                .find(|group| group.id == id)
+                .ok_or_else(|| AppError::NotFound("部署组不存在".into()))?;
+            existing.name = input.name.trim().to_string();
+            existing.description = input.description.unwrap_or_default().trim().to_string();
+            existing.stop_on_fail = input.stop_on_fail.unwrap_or(true);
+            existing.target_ids = target_ids;
+            existing.updated_at = now;
+            existing.clone()
+        } else {
+            let group = DeploymentGroup {
+                id: Uuid::new_v4().to_string(),
+                name: input.name.trim().to_string(),
+                description: input.description.unwrap_or_default().trim().to_string(),
+                stop_on_fail: input.stop_on_fail.unwrap_or(true),
+                target_ids,
+                created_at: now.clone(),
+                updated_at: now,
+            };
+            groups.push(group.clone());
+            group
+        };
+        db.set_config(GROUPS_KEY, &serde_json::to_string(&groups)?)?;
+        Ok(group)
+    }
+
+    pub fn delete_group(db: &Database, id: &str) -> Result<bool, AppError> {
+        let mut groups = Self::list_groups(db)?;
+        let before = groups.len();
+        groups.retain(|group| group.id != id);
+        if before == groups.len() {
+            return Ok(false);
+        }
+        db.set_config(GROUPS_KEY, &serde_json::to_string(&groups)?)?;
+        Ok(true)
+    }
+
+    pub fn deploy_group(
+        app: tauri::AppHandle,
+        request: DeploymentGroupRunRequest,
+    ) -> Result<DeploymentGroupRunResult, AppError> {
+        let state = app.state::<crate::state::AppState>();
+        let group = Self::list_groups(&state.db)?
+            .into_iter()
+            .find(|group| group.id == request.group_id)
+            .ok_or_else(|| AppError::NotFound("部署组不存在".into()))?;
+        let mut results = Vec::new();
+        let timeout = request.timeout_secs;
+        for target_id in group.target_ids {
+            let result = Self::deploy(
+                app.clone(),
+                DeployRunRequest {
+                    target_id,
+                    version: None,
+                    timeout_secs: timeout,
+                },
+                "deploy",
+            )?;
+            let success = result.exit_code == 0;
+            results.push(result);
+            if !success && group.stop_on_fail {
+                break;
+            }
+        }
+        Ok(DeploymentGroupRunResult {
+            group_id: group.id,
+            success: results.iter().all(|result| result.exit_code == 0),
+            results,
+        })
     }
 
     pub fn list_history(
@@ -251,6 +347,17 @@ fn validate_target(input: &DeployTargetInput) -> Result<(), AppError> {
     Ok(())
 }
 
+fn validate_group(input: &DeploymentGroupInput) -> Result<(), AppError> {
+    let name = input.name.trim();
+    if name.is_empty() || name.len() > 80 || name.chars().any(char::is_control) {
+        return Err(AppError::InvalidInput("部署组名称不能为空且不能超过 80 个字符".into()));
+    }
+    if input.target_ids.is_empty() {
+        return Err(AppError::InvalidInput("部署组至少需要选择一个部署目标".into()));
+    }
+    Ok(())
+}
+
 fn validate_remote_path(path: &str) -> Result<(), AppError> {
     let path = path.trim();
     if !path.starts_with('/')
@@ -380,3 +487,4 @@ mod tests {
         assert!(normalize_version("../prod").is_err());
     }
 }
+

@@ -1,6 +1,7 @@
 use crate::error::CommandError;
 use crate::models::{
-    DeployRunRequest, DeployRunResult, DeployTarget, DeployTargetInput, DeploymentHistory,
+    DeployRunRequest, DeployRunResult, DeployTarget, DeployTargetInput, DeploymentGroup,
+    DeploymentGroupInput, DeploymentGroupRunRequest, DeploymentGroupRunResult, DeploymentHistory,
 };
 use crate::services::deployment::DeploymentService;
 use crate::state::AppState;
@@ -26,6 +27,29 @@ pub fn delete_deploy_target(
     id: String,
 ) -> Result<bool, CommandError> {
     DeploymentService::delete_target(&state.db, &id).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn list_deployment_groups(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<DeploymentGroup>, CommandError> {
+    DeploymentService::list_groups(&state.db).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn save_deployment_group(
+    state: tauri::State<'_, AppState>,
+    input: DeploymentGroupInput,
+) -> Result<DeploymentGroup, CommandError> {
+    DeploymentService::save_group(&state.db, input).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn delete_deployment_group(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<bool, CommandError> {
+    DeploymentService::delete_group(&state.db, &id).map_err(Into::into)
 }
 
 #[tauri::command]
@@ -63,5 +87,20 @@ pub async fn rollback_deploy_target(
     .map_err(|error| CommandError {
         code: "INTERNAL".into(),
         message: format!("回滚任务异常终止: {error}"),
+    })?
+}
+
+#[tauri::command]
+pub async fn deploy_group(
+    app: tauri::AppHandle,
+    request: DeploymentGroupRunRequest,
+) -> Result<DeploymentGroupRunResult, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        DeploymentService::deploy_group(app, request).map_err(CommandError::from)
+    })
+    .await
+    .map_err(|error| CommandError {
+        code: "INTERNAL".into(),
+        message: format!("部署组任务异常终止: {error}"),
     })?
 }

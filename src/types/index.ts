@@ -40,6 +40,9 @@ export type {
 export type {
   DeployTarget,
   DeployTargetInput,
+  DeploymentGroup,
+  DeploymentGroupInput,
+  DeploymentGroupRunResult,
   DeployRunRequest,
   DeploymentHistory,
   DeployRunResult,

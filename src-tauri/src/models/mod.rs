@@ -457,6 +457,51 @@ pub struct DeployTargetInput {
     pub health_command: Option<String>,
 }
 
+/// 可复用的部署组，目标按 target_ids 顺序执行。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentGroup {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default = "deployment_group_default_stop_on_fail")]
+    pub stop_on_fail: bool,
+    #[serde(default)]
+    pub target_ids: Vec<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+fn deployment_group_default_stop_on_fail() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentGroupInput {
+    pub id: Option<String>,
+    pub name: String,
+    pub description: Option<String>,
+    pub stop_on_fail: Option<bool>,
+    pub target_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentGroupRunRequest {
+    pub group_id: String,
+    pub timeout_secs: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentGroupRunResult {
+    pub group_id: String,
+    pub results: Vec<DeployRunResult>,
+    pub success: bool,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeployRunRequest {
@@ -907,3 +952,4 @@ pub struct McpTokenTest {
     pub tested_at: String,
     pub message: String,
 }
+

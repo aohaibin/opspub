@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Checkbox, Drawer, Empty, Input, InputNumber, Modal, Select, Segmented, Switch, Table, Tag, message } from "antd";
-import { Activity, Bell, BellRing, Check, CheckCircle2, Clock3, ExternalLink, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Siren, Trash2, VolumeX } from "lucide-react";
+import { Activity, Bell, BellRing, Check, CheckCircle2, ExternalLink, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Siren, Trash2, VolumeX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { alertsApi, DEFAULT_ALERT_RULES, type AlertEvent, type AlertMetric, type AlertOperator, type AlertRule, type AlertSeverity } from "@/lib/api/alerts";
+import { alertsApi, DEFAULT_ALERT_CHANNELS, DEFAULT_ALERT_RULES, type AlertChannel, type AlertEvent, type AlertMetric, type AlertOperator, type AlertRule, type AlertSeverity } from "@/lib/api/alerts";
 import { getErrorMessage } from "@/lib/api/client";
 import { inspectionApi } from "@/lib/api/inspection";
 import { serverApi } from "@/lib/api/server";
@@ -74,10 +74,11 @@ export default function AlertsPage() {
   const [draft, setDraft] = useState<RuleDraft>(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [intervalMinutes, setIntervalMinutes] = useState(5);
-  const [webhookConfigured, setWebhookConfigured] = useState(false);
-  const [webhookDrawerOpen, setWebhookDrawerOpen] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState("");
-  const [webhookSaving, setWebhookSaving] = useState(false);
+  const [channels, setChannels] = useState<AlertChannel[]>(DEFAULT_ALERT_CHANNELS);
+  const [channelStatuses, setChannelStatuses] = useState<Record<string, boolean>>({});
+  const [channelDrawerKind, setChannelDrawerKind] = useState<"feishu" | "wecom" | "custom" | null>(null);
+  const [channelUrl, setChannelUrl] = useState("");
+  const [channelSaving, setChannelSaving] = useState(false);
   const checkLock = useRef(false);
 
   const linuxServers = useMemo(() => servers.filter((server) => server.os_type === "linux"), [servers]);
@@ -96,16 +97,19 @@ export default function AlertsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [serverList, savedRules, savedEvents, savedWebhookStatus] = await Promise.all([
+      const remoteKinds = ["feishu", "wecom", "custom"] as const;
+      const [serverList, savedRules, savedEvents, savedChannels, statuses] = await Promise.all([
         serverApi.list(),
         alertsApi.getRules(),
         alertsApi.getEvents(),
-        alertsApi.getWebhookStatus().catch(() => false),
+        alertsApi.getChannels(),
+        Promise.all(remoteKinds.map(async (kind) => [kind, await alertsApi.getChannelStatus(kind).catch(() => false)] as const)),
       ]);
       setServers(serverList);
       setRules(savedRules);
       setEvents(savedEvents);
-      setWebhookConfigured(savedWebhookStatus);
+      setChannels(DEFAULT_ALERT_CHANNELS.map((item) => savedChannels.find((saved) => saved.id === item.id) ?? item));
+      setChannelStatuses(Object.fromEntries(statuses));
     } catch (error) {
       message.error(getErrorMessage(error));
     } finally {
@@ -188,13 +192,16 @@ export default function AlertsPage() {
     }
     const trimmed = next.slice(0, 300);
     await persistEvents(trimmed);
-    if (triggered.length && webhookConfigured) {
+    if (triggered.length) {
       const title = `OpsPub 告警：${triggered.length} 条新事件`;
-      const body = triggered.map((event) => `${event.severity === "critical" ? "严重" : event.severity === "warning" ? "警告" : "提示"}｜${event.serverAlias}｜${event.summary}`).join("\n");
-      try {
-        await alertsApi.sendTestWebhook(title, body);
-      } catch (error) {
-        message.warning(`告警已记录，但 Webhook 发送失败：${getErrorMessage(error)}`);
+      const body = triggered.map((event) => `${event.severity === "critical" ? "严重" : event.severity === "warning" ? "警告" : "提示"} · ${event.serverAlias} · ${event.summary}`).join("\n");
+      if (channels.some((channel) => channel.kind === "local" && channel.enabled)) {
+        message.info(`${title}。请在告警事件中查看详情。`);
+      }
+      const targets = channels.filter((channel) => channel.enabled && channel.kind !== "local" && channelStatuses[channel.kind]);
+      const results = await Promise.allSettled(targets.map((channel) => alertsApi.sendChannel(channel.kind as "feishu" | "wecom" | "custom", title, body)));
+      if (results.some((result) => result.status === "rejected")) {
+        message.warning("告警已记录，但至少一个通知渠道发送失败，请检查渠道配置。");
       }
     }
     setChecking(false);
@@ -205,7 +212,7 @@ export default function AlertsPage() {
     } else if (!quiet) {
       message.success(sampleFailures ? `检查完成，${sampleFailures} 台服务器采集失败，结果请核查` : "检查完成，未发现新告警");
     }
-  }, [events, linuxServers, rules, webhookConfigured]);
+  }, [channels, channelStatuses, events, linuxServers, rules]);
 
   useEffect(() => {
     if (!monitoring) return;
@@ -249,52 +256,85 @@ export default function AlertsPage() {
     message.success(action === "resolve" ? "事件已标记恢复" : "已静音 1 小时");
   };
 
-  const saveWebhook = async () => {
-    if (!webhookUrl.trim()) { message.warning("请输入 Webhook 地址"); return; }
-    setWebhookSaving(true);
+  const saveChannels = async (next: AlertChannel[]) => {
     try {
-      await alertsApi.saveWebhookUrl(webhookUrl.trim());
-      setWebhookConfigured(true);
-      setWebhookUrl("");
-      setWebhookDrawerOpen(false);
-      message.success("Webhook 地址已保存到系统凭据管理器");
+      await alertsApi.saveChannels(next);
+      setChannels(next);
     } catch (error) {
       message.error(getErrorMessage(error));
-    } finally {
-      setWebhookSaving(false);
     }
   };
 
-  const testWebhook = async () => {
-    if (!webhookConfigured) { setWebhookDrawerOpen(true); return; }
-    setWebhookSaving(true);
+  const toggleChannel = (channel: AlertChannel, enabled: boolean) => {
+    void saveChannels(channels.map((item) => item.id === channel.id ? { ...item, enabled } : item));
+  };
+
+  const openChannelDrawer = (kind: "feishu" | "wecom" | "custom") => {
+    setChannelDrawerKind(kind);
+    setChannelUrl("");
+  };
+
+  const saveChannel = async () => {
+    if (!channelDrawerKind || !channelUrl.trim()) {
+      message.warning("请输入通知渠道地址");
+      return;
+    }
+    setChannelSaving(true);
     try {
-      await alertsApi.sendTestWebhook("OpsPub 测试告警", "这是一条来自 OpsPub 告警中心的测试通知。\n如果你能看到它，说明 Webhook 配置已生效。");
+      await alertsApi.saveChannelUrl(channelDrawerKind, channelUrl.trim());
+      setChannelStatuses((current) => ({ ...current, [channelDrawerKind]: true }));
+      await saveChannels(channels.map((item) => item.kind === channelDrawerKind ? { ...item, enabled: true } : item));
+      setChannelDrawerKind(null);
+      setChannelUrl("");
+      message.success("通知渠道已保存");
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    } finally {
+      setChannelSaving(false);
+    }
+  };
+
+  const testChannel = async (kind: "feishu" | "wecom" | "custom") => {
+    if (!channelStatuses[kind]) {
+      openChannelDrawer(kind);
+      return;
+    }
+    setChannelSaving(true);
+    try {
+      await alertsApi.sendChannel(kind, "OpsPub 测试告警", "这是一条来自 OpsPub 告警中心的测试通知。");
       message.success("测试告警已发送");
     } catch (error) {
       message.error(getErrorMessage(error));
     } finally {
-      setWebhookSaving(false);
+      setChannelSaving(false);
     }
   };
 
-  const deleteWebhook = () => {
+  const deleteChannel = (kind: "feishu" | "wecom" | "custom") => {
     Modal.confirm({
-      title: "删除 Webhook 配置？",
-      content: "删除后新告警不会再发送到外部渠道，但历史告警仍会保留。",
+      title: "删除通知渠道配置？",
+      content: "删除后该渠道不会再收到新告警，历史事件仍会保留。",
       okText: "删除",
       cancelText: "取消",
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          await alertsApi.deleteWebhookUrl();
-          setWebhookConfigured(false);
-          message.success("Webhook 配置已删除");
+          await alertsApi.deleteChannelUrl(kind);
+          setChannelStatuses((current) => ({ ...current, [kind]: false }));
+          await saveChannels(channels.map((item) => item.kind === kind ? { ...item, enabled: false } : item));
+          message.success("通知渠道配置已删除");
         } catch (error) {
           message.error(getErrorMessage(error));
         }
       },
     });
+  };
+
+  const channelMeta: Record<AlertChannel["kind"], { title: string; description: string; color: string; icon: React.ReactNode }> = {
+    local: { title: "应用内通知", description: "告警产生时在应用内提示，并写入本机历史。", color: "emerald", icon: <BellRing size={16} /> },
+    feishu: { title: "飞书群机器人", description: "发送交互卡片，适合团队群内接收告警。", color: "blue", icon: <Send size={16} /> },
+    wecom: { title: "企业微信机器人", description: "发送 Markdown 群聊通知，保留严重级别与来源。", color: "emerald", icon: <Bell size={16} /> },
+    custom: { title: "自定义 HTTP Webhook", description: "发送 title、body、source 标准 JSON 到自建接收端。", color: "purple", icon: <Settings2 size={16} /> },
   };
 
   const ruleColumns = [
@@ -330,10 +370,15 @@ export default function AlertsPage() {
 
     {tab === "rules" && <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"><section className="flex shrink-0 flex-wrap items-center justify-between gap-2"><div><strong className="text-sm text-slate-200">本机只读探针规则库</strong><p className="mb-0 mt-1 text-[11px] text-slate-400">规则只评估固定探针采样项；不支持的指标不会伪装成已监控。</p></div><div className="flex flex-wrap gap-2"><Input allowClear size="small" prefix={<Search size={13} />} value={ruleSearch} onChange={(event) => setRuleSearch(event.target.value)} placeholder="搜索告警规则" className="w-56" /><Button size="small" type="primary" icon={<Plus size={14} />} onClick={openAddRule}>添加监控规则</Button></div></section><section className="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-800 bg-[#0f141c]"><Table<AlertRule> size="small" rowKey="id" loading={loading} dataSource={visibleRules} columns={ruleColumns} pagination={{ pageSize: 10, showSizeChanger: false }} locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="没有匹配的规则" /> }} /></section><Alert className="shrink-0" type="warning" showIcon message="删除规则不会删除历史事件。改变规则阈值后，下次采样才会按新阈值评估。" /></div>}
 
-    {tab === "channels" && <div className="min-h-0 flex-1 overflow-auto"><div className="grid grid-cols-1 gap-3 lg:grid-cols-3"><ChannelCard icon={<BellRing size={16} />} title="应用内通知" status="可用" color="emerald" description="巡检页面打开期间，触发新告警时显示应用内提醒；事件同时写入本机历史。" action={<Button size="small" onClick={() => message.success("应用内通知测试成功")}>发送测试通知</Button>} /><ChannelCard icon={<Send size={16} />} title="通用 HTTP Webhook" status={webhookConfigured ? "已配置" : "未配置"} color="blue" description={webhookConfigured ? "地址已安全保存到当前系统凭据管理器。新告警会发送标题、事件摘要和来源信息。" : "适用于接收 title/body/source JSON 的自建 HTTP 接收端；飞书、企业微信和钉钉官方机器人需使用对应协议适配器。地址不会写入普通配置或日志。"} action={<div className="flex flex-wrap gap-2"><Button size="small" type={webhookConfigured ? "default" : "primary"} icon={<Settings2 size={13} />} onClick={() => setWebhookDrawerOpen(true)}>{webhookConfigured ? "更换地址" : "配置地址"}</Button><Button size="small" disabled={!webhookConfigured} loading={webhookSaving} onClick={() => void testWebhook()}>发送测试</Button>{webhookConfigured && <Button size="small" danger type="text" icon={<Trash2 size={13} />} onClick={deleteWebhook} aria-label="删除 Webhook 配置" />}</div>} /><ChannelCard icon={<Clock3 size={16} />} title="邮件通知" status="暂未配置" color="purple" description="邮件需要 SMTP 凭据和发件策略；当前先通过应用内通知与通用 Webhook 覆盖告警发送。" action={<Button size="small" disabled>后续接入</Button>} /></div><Alert className="mt-3" type="info" showIcon message="告警只在检查发现新触发或静音到期后发送一次，避免定时检查重复轰炸通知。" /></div>}
+    {tab === "channels" && <div className="min-h-0 flex-1 overflow-auto"><div className="grid grid-cols-1 gap-3 lg:grid-cols-3">{channels.map((channel) => {
+      const meta = channelMeta[channel.kind];
+      const remote = channel.kind !== "local";
+      const configured = channel.kind === "local" || Boolean(channelStatuses[channel.kind]);
+      return <ChannelCard key={channel.id} icon={meta.icon} title={meta.title} status={configured ? (channel.enabled ? "已启用" : "已暂停") : "未配置"} color={meta.color} description={meta.description} action={<div className="flex flex-wrap items-center justify-between gap-2"><Switch size="small" checked={channel.enabled} disabled={remote && !configured} onChange={(enabled) => toggleChannel(channel, enabled)} /><div className="flex flex-wrap gap-2">{!remote && <Button size="small" onClick={() => message.info("OpsPub 测试通知：告警事件会显示在本机应用内。")}>发送测试</Button>}{remote && <Button size="small" icon={<Settings2 size={13} />} onClick={() => openChannelDrawer(channel.kind as "feishu" | "wecom" | "custom")}>{configured ? "修改配置" : "配置地址"}</Button>}{remote && <Button size="small" disabled={!configured} loading={channelSaving} onClick={() => void testChannel(channel.kind as "feishu" | "wecom" | "custom")}>发送测试</Button>}{remote && configured && <Button size="small" danger type="text" icon={<Trash2 size={13} />} onClick={() => deleteChannel(channel.kind as "feishu" | "wecom" | "custom")} aria-label="删除渠道配置" />}</div></div>} />;
+    })}</div><Alert className="mt-3" type="info" showIcon message="告警只在检查发现新触发或静音到期后发送一次；启用的已配置渠道会同时收到通知。" /></div>}
 
     <Drawer title={editing ? "编辑告警规则" : "新建告警规则"} open={drawerOpen} onClose={() => setDrawerOpen(false)} width={480} maskClosable={false} extra={<Button type="primary" loading={saving} onClick={() => void submitRule()}>保存规则</Button>}><div className="flex flex-col gap-4"><label className="alert-form-field">规则名称<Input value={draft.name} maxLength={80} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} placeholder="例如：生产主机根分区水位" /></label><label className="alert-form-field">监控指标<Select value={draft.metric} onChange={(metric) => setDraft((value) => ({ ...value, metric }))} options={Object.entries(metricLabel).map(([value, label]) => ({ value, label }))} /></label>{draft.metric !== "public-listen" && <div className="grid grid-cols-[120px_1fr] gap-3"><label className="alert-form-field">比较符<Select value={draft.operator} onChange={(operator) => setDraft((value) => ({ ...value, operator }))} options={Object.entries(operatorLabel).map(([value, label]) => ({ value, label }))} /></label><label className="alert-form-field">阈值{draft.metric === "disk" || draft.metric === "memory" ? " (%)" : ""}<InputNumber min={0} max={100} value={draft.threshold} onChange={(threshold) => setDraft((value) => ({ ...value, threshold: threshold ?? 0 }))} className="w-full" /></label></div>}<label className="alert-form-field">告警级别<Select value={draft.severity} onChange={(severity) => setDraft((value) => ({ ...value, severity }))} options={Object.entries(severityLabel).map(([value, label]) => ({ value, label }))} /></label><label className="alert-form-field">生效服务器<Select value={draft.target} onChange={(target) => setDraft((value) => ({ ...value, target }))} options={[{ value: "all", label: "全部 Linux 主机" }, { value: "favorites", label: "收藏的 Linux 主机" }]} /></label><Checkbox checked={draft.enabled} onChange={(event) => setDraft((value) => ({ ...value, enabled: event.target.checked }))}>启用此规则</Checkbox><Alert type="info" showIcon message="告警只提供诊断建议，不会自动执行修复命令。" /></div></Drawer>
-    <Drawer title="配置通用 Webhook" open={webhookDrawerOpen} onClose={() => setWebhookDrawerOpen(false)} width={440} maskClosable={false} extra={<Button type="primary" loading={webhookSaving} onClick={() => void saveWebhook()}>保存配置</Button>}><div className="flex flex-col gap-4"><label className="alert-form-field">Webhook 地址<Input value={webhookUrl} onChange={(event) => setWebhookUrl(event.target.value)} placeholder="https://example.com/hooks/xxx" autoComplete="off" /></label><Alert type="info" showIcon message="接收端需接受 JSON：title、body、source。飞书、企业微信和钉钉官方机器人需要对应协议适配器。保存后地址进入系统凭据管理器，页面只显示配置状态。" /><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-emerald-400" />请求体不会包含服务器密码。</div></div></Drawer>
+    <Drawer title={channelDrawerKind ? `配置${channelMeta[channelDrawerKind].title}` : "配置通知渠道"} open={Boolean(channelDrawerKind)} onClose={() => setChannelDrawerKind(null)} width={440} maskClosable={false} extra={<Button type="primary" loading={channelSaving} onClick={() => void saveChannel()}>保存配置</Button>}><div className="flex flex-col gap-4"><label className="alert-form-field">Webhook 地址<Input value={channelUrl} onChange={(event) => setChannelUrl(event.target.value)} placeholder={channelDrawerKind === "feishu" ? "https://open.feishu.cn/open-apis/bot/v2/hook/..." : channelDrawerKind === "wecom" ? "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." : "https://example.com/hooks/..."} autoComplete="off" /></label><Alert type="info" showIcon message="地址保存在系统凭据管理器。飞书和企业微信会分别发送原生卡片或 Markdown 格式；自定义渠道发送标准 JSON。" /><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-emerald-400" />请求体不会包含服务器密码。</div></div></Drawer>
   </main>;
 }
 

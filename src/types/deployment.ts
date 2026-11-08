@@ -20,6 +20,30 @@ export interface DeployTargetInput {
   healthCommand?: string;
 }
 
+export interface DeploymentGroup {
+  id: string;
+  name: string;
+  description: string;
+  stopOnFail: boolean;
+  targetIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeploymentGroupInput {
+  id?: string;
+  name: string;
+  description?: string;
+  stopOnFail?: boolean;
+  targetIds: string[];
+}
+
+export interface DeploymentGroupRunResult {
+  groupId: string;
+  results: DeployRunResult[];
+  success: boolean;
+}
+
 export interface DeployRunRequest {
   targetId: string;
   version?: string;
@@ -52,3 +76,4 @@ export interface DeploymentProgress {
   message: string;
   completed: boolean;
 }
+

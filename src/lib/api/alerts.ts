@@ -9,7 +9,8 @@ export type AlertSeverity = "critical" | "warning" | "info";
 export type AlertMetric = "disk" | "memory" | "public-listen" | "docker-oom";
 export type AlertOperator = ">" | ">=" | "<" | "<=";
 export type AlertEventStatus = "active" | "silenced" | "resolved";
-export type AlertChannelKind = "local" | "webhook";
+export type AlertChannelKind = "local" | "feishu" | "wecom" | "custom";
+export type RemoteAlertChannelKind = Exclude<AlertChannelKind, "local">;
 
 export interface AlertChannel {
   id: string;
@@ -60,7 +61,9 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
 
 export const DEFAULT_ALERT_CHANNELS: AlertChannel[] = [
   { id: "local", name: "应用内通知", kind: "local", enabled: true },
-  { id: "webhook", name: "通用 HTTP Webhook", kind: "webhook", enabled: false },
+  { id: "feishu", name: "飞书群机器人", kind: "feishu", enabled: true },
+  { id: "wecom", name: "企业微信机器人", kind: "wecom", enabled: true },
+  { id: "custom", name: "自定义 HTTP Webhook", kind: "custom", enabled: false },
 ];
 
 function parseArray<T>(value: string | null, fallback: T[]): T[] {
@@ -74,28 +77,18 @@ function parseArray<T>(value: string | null, fallback: T[]): T[] {
 }
 
 export const alertsApi = {
-  async getRules() {
-    return parseArray(await configApi.get(RULES_KEY).catch(() => null), DEFAULT_ALERT_RULES);
-  },
-  saveRules(rules: AlertRule[]) {
-    return configApi.set(RULES_KEY, JSON.stringify(rules));
-  },
-  async getEvents() {
-    return parseArray<AlertEvent>(await configApi.get(EVENTS_KEY).catch(() => null), []);
-  },
-  saveEvents(events: AlertEvent[]) {
-    return configApi.set(EVENTS_KEY, JSON.stringify(events.slice(0, 300)));
-  },
-  async getChannels() {
-    return parseArray(await configApi.get(CHANNELS_KEY).catch(() => null), DEFAULT_ALERT_CHANNELS);
-  },
-  saveChannels(channels: AlertChannel[]) {
-    return configApi.set(CHANNELS_KEY, JSON.stringify(channels));
-  },
-  sendTestWebhook(title: string, body: string) {
-    return invoke<void>("send_alert_webhook", { title, body });
-  },
+  async getRules() { return parseArray(await configApi.get(RULES_KEY).catch(() => null), DEFAULT_ALERT_RULES); },
+  saveRules(rules: AlertRule[]) { return configApi.set(RULES_KEY, JSON.stringify(rules)); },
+  async getEvents() { return parseArray<AlertEvent>(await configApi.get(EVENTS_KEY).catch(() => null), []); },
+  saveEvents(events: AlertEvent[]) { return configApi.set(EVENTS_KEY, JSON.stringify(events.slice(0, 300))); },
+  async getChannels() { return parseArray(await configApi.get(CHANNELS_KEY).catch(() => null), DEFAULT_ALERT_CHANNELS); },
+  saveChannels(channels: AlertChannel[]) { return configApi.set(CHANNELS_KEY, JSON.stringify(channels)); },
+  sendTestWebhook(title: string, body: string) { return invoke<void>("send_alert_webhook", { title, body }); },
   saveWebhookUrl: (url: string) => invoke<void>("save_alert_webhook_url", { url }),
   getWebhookStatus: () => invoke<boolean>("get_alert_webhook_status"),
   deleteWebhookUrl: () => invoke<void>("delete_alert_webhook_url"),
+  saveChannelUrl: (channel: RemoteAlertChannelKind, url: string) => invoke<void>("save_alert_channel_url", { channel, url }),
+  getChannelStatus: (channel: RemoteAlertChannelKind) => invoke<boolean>("get_alert_channel_status", { channel }),
+  deleteChannelUrl: (channel: RemoteAlertChannelKind) => invoke<void>("delete_alert_channel_url", { channel }),
+  sendChannel: (channel: RemoteAlertChannelKind, title: string, body: string) => invoke<void>("send_alert_channel", { channel, title, body }),
 };

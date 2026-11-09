@@ -101,6 +101,10 @@ function sessionTitle(messages: ChatMessage[]) {
   return title.length > 32 ? `${title.slice(0, 32)}…` : title;
 }
 
+function hasConversationContent(messages: ChatMessage[]) {
+  return messages.some((item) => item.role === "user" && item.content.trim().length > 0);
+}
+
 function newChatSession(messages: ChatMessage[] = [INITIAL_MESSAGE]): ChatSession {
   const now = Date.now();
   return { id: crypto.randomUUID(), title: sessionTitle(messages), createdAt: now, updatedAt: now, messages };
@@ -113,7 +117,7 @@ function loadChatState(): { sessions: ChatSession[]; activeSessionId: string } {
     const stored = localStorage.getItem(CHAT_SESSIONS_KEY);
     const parsed = stored ? JSON.parse(stored) as ChatSession[] : [];
     let sessions = Array.isArray(parsed)
-      ? parsed.filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages))
+      ? parsed.filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages) && hasConversationContent(item.messages))
       : [];
     if (sessions.length > 0) {
       sessions = sessions.map((item) => ({
@@ -126,7 +130,7 @@ function loadChatState(): { sessions: ChatSession[]; activeSessionId: string } {
     } else {
       const legacy = localStorage.getItem(LEGACY_HISTORY_KEY);
       const oldMessages = legacy ? JSON.parse(legacy) as ChatMessage[] : [];
-      if (Array.isArray(oldMessages) && oldMessages.length > 0) {
+      if (Array.isArray(oldMessages) && hasConversationContent(oldMessages)) {
         sessions = [newChatSession(oldMessages)];
       }
     }
@@ -515,7 +519,10 @@ export default function CopilotPage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions));
+      // 只有真正发送过问题的会话才进入历史；新建但未提问的窗口仅保留在当前内存中。
+      const persistedSessions = sessions.filter((session) => hasConversationContent(session.messages));
+      if (persistedSessions.length > 0) localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(persistedSessions));
+      else localStorage.removeItem(CHAT_SESSIONS_KEY);
       localStorage.setItem(ACTIVE_CHAT_SESSION_KEY, activeSessionId);
       localStorage.removeItem(LEGACY_HISTORY_KEY);
       initialChatState = { sessions, activeSessionId };
@@ -760,7 +767,8 @@ export default function CopilotPage() {
     }
   };
 
-  const matchingSessions = sessions
+  const historySessions = sessions.filter((session) => hasConversationContent(session.messages));
+  const matchingSessions = historySessions
     .filter((session) => `${session.title} ${session.messages.map((item) => item.content).join(" ")}`.toLocaleLowerCase().includes(historyQuery.trim().toLocaleLowerCase()))
     .sort((a, b) => b.updatedAt - a.updatedAt);
   const matchingExperiences = experiences.filter((item) => `${item.title} ${item.content}`.toLocaleLowerCase().includes(experienceQuery.trim().toLocaleLowerCase()));
@@ -883,7 +891,7 @@ export default function CopilotPage() {
             </div>
           </div>
         <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
-          <div className="flex min-w-0 items-center gap-2 text-[11px] text-slate-500"><span>技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定</span><span className="shrink-0">{sessions.length} 个会话</span></div>
+          <div className="flex min-w-0 items-center gap-2 text-[11px] text-slate-500"><span>技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定</span><span className="shrink-0">{historySessions.length} 个会话</span></div>
           <div className="flex items-center gap-3 text-slate-400">
             <button type="button" onClick={() => void navigate("/credentials")} className="flex items-center gap-1 transition hover:text-white"><ShieldCheck size={14} />查看凭据状态</button>
             <button type="button" onClick={() => setHistoryOpen(true)} className="flex items-center gap-1 transition hover:text-white"><History size={14} />历史</button>
@@ -897,7 +905,7 @@ export default function CopilotPage() {
 
       {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div key={item.id} className="mb-2 rounded border border-slate-700 px-2 py-2"><div className="flex flex-wrap items-center justify-between gap-2"><span>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</span><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div key={item.id} className="border-b border-slate-800 py-1">#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
 
-      <Modal title={<span className="flex items-center gap-2"><History size={16} />历史对话 <Tag className="m-0">{sessions.length}</Tag></span>} open={historyOpen} onCancel={() => setHistoryOpen(false)} footer={null} width={620} destroyOnClose>
+      <Modal title={<span className="flex items-center gap-2"><History size={16} />历史对话 <Tag className="m-0">{historySessions.length}</Tag></span>} open={historyOpen} onCancel={() => setHistoryOpen(false)} footer={null} width={620} destroyOnClose>
         <div className="mb-3 flex items-center justify-between gap-2"><Input.Search allowClear value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索对话标题或内容" className="max-w-sm" /><Button icon={<Plus size={13} />} onClick={createSession}>新建对话</Button></div>
         <div className="max-h-[55vh] space-y-1 overflow-y-auto pr-1">
           {matchingSessions.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={historyQuery ? "没有匹配的对话" : "暂无历史对话"} /> : matchingSessions.map((session) => (

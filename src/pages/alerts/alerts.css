@@ -1,4 +1,4 @@
-.alerts-page { color: var(--text-primary); }
+.alerts-page { color: var(--text-primary); font-size: 14px; line-height: 1.55; }
 .alert-tab { display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 8px; padding: 7px 11px; color: var(--text-secondary); background: transparent; cursor: pointer; font: inherit; }
 .alert-tab:hover { color: var(--text-primary); background: var(--surface-850); }
 .alert-tab.active { color: #fff; background: var(--accent); box-shadow: var(--shadow-sm); }
@@ -11,3 +11,16 @@
 .alert-channel-card { display: flex; min-height: 180px; flex-direction: column; gap: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--glass-card-bg); padding: 16px; box-shadow: var(--shadow-sm); }.alert-channel-card header { display: flex; align-items: center; gap: 10px; }.alert-channel-card header > div { display: flex; min-width: 0; flex: 1; align-items: center; justify-content: space-between; gap: 8px; }.alert-channel-card header strong { overflow: hidden; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; }.alert-channel-card p { flex: 1; margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.65; }.alert-channel-card footer { display: flex; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 10px; }.channel-icon { display: grid; width: 30px; height: 30px; flex-shrink: 0; place-items: center; border: 1px solid currentColor; border-radius: 8px; }.channel-icon.emerald { color: #34d399; background: rgba(16,185,129,.1); }.channel-icon.blue { color: #60a5fa; background: rgba(59,130,246,.1); }.channel-icon.purple { color: #c084fc; background: rgba(168,85,247,.1); }.channel-status { flex-shrink: 0; font-size: 11px; }.channel-status.emerald { color: #34d399; }.channel-status.blue, .channel-status.purple { color: var(--text-muted); }
 .alerts-page .ant-table-wrapper { min-width: 760px; }.alerts-page .ant-table-cell small { font-size: 10px; }.alerts-page .ant-empty { margin: 0; }
 @media (max-width: 680px) { .alert-tab { padding: 6px 8px; }.alert-event { padding: 12px; }.alert-channel-card { min-height: auto; } }
+
+/* Keep alert content readable at the same scale as the other operational pages. */
+.alerts-page [class~="text-[10px]"] { font-size: 12px !important; line-height: 1.4 !important; }
+.alerts-page [class~="text-[11px]"] { font-size: 13px !important; line-height: 1.45 !important; }
+.alerts-page .text-xs { font-size: 13.5px !important; line-height: 1.5 !important; }
+.alerts-page .text-sm { font-size: 15px !important; line-height: 1.5 !important; }
+.alerts-page button { font-size: 13.5px; }
+.alerts-page .alert-kpi span { font-size: 13px; }
+.alerts-page .alert-form-field { font-size: 13.5px; }
+.alerts-page .alert-channel-card p { font-size: 13.5px; }
+.alerts-page .channel-status { font-size: 12.5px; }
+.alerts-page .ant-table { font-size: 13.5px; }
+.alerts-page .ant-table-cell small { font-size: 12px; }

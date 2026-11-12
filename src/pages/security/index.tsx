@@ -241,6 +241,7 @@ function ApprovalPlanSummary({ detail }: { detail?: AiApprovalDetail }) {
     <span className="truncate" title={plan.commandSha256}>命令哈希：{plan.commandSha256.slice(0, 16)}…</span>
     <span className="truncate" title={plan.ruleVersion}>策略版本：{plan.ruleVersion || "--"}</span>
     <span className="sm:col-span-2">规则命中：{plan.risk.matchedRules.length ? plan.risk.matchedRules.join("、") : "内置静态检查"}</span>
+    {plan.executionSteps.length > 0 && <div className="sm:col-span-2"><div className="mb-1 font-medium text-slate-300">已审批的执行步骤（{plan.executionSteps.length}）</div><ol className="space-y-1">{plan.executionSteps.map((step, index) => <li key={step.id} className="rounded border border-slate-800 bg-black/20 px-2 py-1"><span>{index + 1}. {step.label}</span><code className="mt-1 block break-all whitespace-pre-wrap text-slate-300">{step.command}</code>{step.verificationCommand && <span className="mt-1 block break-all">验证：{step.verificationCommand}</span>}</li>)}</ol></div>}
     <span className="sm:col-span-2">后置验证：{plan.verificationSteps.map((step) => step.label).join("、") || "无"}</span>
   </div>;
 }

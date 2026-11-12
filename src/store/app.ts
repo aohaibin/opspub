@@ -112,6 +112,8 @@ interface AppStore {
    * 告警模块尚未实现，先固定为原型里的 2；等告警规则落地后改为订阅真实数据。
    */
   activeAlertCount: number;
+  /** 同步顶部铃铛显示的未恢复告警数量 */
+  setActiveAlertCount: (count: number) => void;
 }
 
 const TOGGLE_ORDER: ThemeMode[] = ["dark", "light", "system"];
@@ -194,5 +196,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
   commandPaletteOpen: false,
   setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
 
-  activeAlertCount: 2,
+  activeAlertCount: 0,
+  setActiveAlertCount: (count) => set({ activeAlertCount: Math.max(0, Math.floor(count)) }),
 }));

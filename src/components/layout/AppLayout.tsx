@@ -16,6 +16,7 @@ import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
 import { NavRail } from "./NavRail";
 import { WindowControls } from "./WindowControls";
 import { AiLockControl } from "./header/AiLockControl";
+import { McpAiUnlockModal } from "./header/McpAiUnlockModal";
 import { SkinSwitcher } from "./header/SkinSwitcher";
 import { AlertBell } from "./header/AlertBell";
 import { VersionBadge } from "./header/VersionBadge";
@@ -159,6 +160,7 @@ export function AppLayout() {
       </Layout>
 
       <CommandPalette />
+      <McpAiUnlockModal />
     </Layout>
   );
 }

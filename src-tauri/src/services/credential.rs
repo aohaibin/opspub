@@ -41,14 +41,17 @@ impl CredentialService {
         super::credential_payload::write(CREDENTIAL_SERVICE, server_id, &primary_entry, &payload)
             .map_err(keyring_error("保存 SSH 凭据"))?;
         // 立即回读一次，确认 Windows Credential Manager 已经落盘，而不是只写入当前进程缓存。
-        let saved_payload = super::credential_payload::read(CREDENTIAL_SERVICE, server_id, &primary_entry)
-            .map_err(keyring_error("校验 SSH 凭据"))?;
+        let saved_payload =
+            super::credential_payload::read(CREDENTIAL_SERVICE, server_id, &primary_entry)
+                .map_err(keyring_error("校验 SSH 凭据"))?;
         if saved_payload != payload {
             return Err(AppError::Custom("SSH 凭据写入后校验不一致".into()));
         }
         for service in COMPAT_CREDENTIAL_SERVICES {
             if let Ok(entry) = entry_for(service, server_id) {
-                if let Err(error) = super::credential_payload::write(service, server_id, &entry, &payload) {
+                if let Err(error) =
+                    super::credential_payload::write(service, server_id, &entry, &payload)
+                {
                     log::debug!("写入兼容 SSH 凭据服务失败 (service={}): {}", service, error);
                 }
             }
@@ -75,8 +78,13 @@ impl CredentialService {
                         // 旧版本凭据读取成功后立即迁移，后续启动不再依赖旧服务名。
                         if let Err(error) =
                             entry_for(CREDENTIAL_SERVICE, server_id).and_then(|entry| {
-                                super::credential_payload::write(CREDENTIAL_SERVICE, server_id, &entry, &payload)
-                                    .map_err(keyring_error("迁移 SSH 凭据"))
+                                super::credential_payload::write(
+                                    CREDENTIAL_SERVICE,
+                                    server_id,
+                                    &entry,
+                                    &payload,
+                                )
+                                .map_err(keyring_error("迁移 SSH 凭据"))
                             })
                         {
                             log::warn!("迁移 SSH 凭据失败 (service={}): {}", service, error);
@@ -104,7 +112,11 @@ impl CredentialService {
         for service in
             std::iter::once(CREDENTIAL_SERVICE).chain(COMPAT_CREDENTIAL_SERVICES.iter().copied())
         {
-            match super::credential_payload::delete(service, server_id, &entry_for(service, server_id)?) {
+            match super::credential_payload::delete(
+                service,
+                server_id,
+                &entry_for(service, server_id)?,
+            ) {
                 Ok(()) | Err(KeyringError::NoEntry) => {}
                 Err(error) => {
                     return Err(AppError::Custom(format!("删除系统 SSH 凭据失败: {error}")))

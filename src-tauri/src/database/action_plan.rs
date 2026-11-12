@@ -2,7 +2,8 @@ use rusqlite::{params, OptionalExtension};
 
 use crate::error::AppError;
 use crate::models::{
-    ActionPlan, ActionPlanTarget, ActionRiskLevel, ApprovalBatch, RiskAssessment, VerificationStep,
+    ActionPlan, ActionPlanTarget, ActionRiskLevel, ApprovalBatch, PlanExecutionStep,
+    RiskAssessment, VerificationStep,
 };
 
 use super::Database;
@@ -54,6 +55,26 @@ impl Database {
                     sequence_no as i64,
                     target.role,
                     target.status,
+                ],
+            )?;
+        }
+
+        for (sequence_no, step) in plan.execution_steps.iter().enumerate() {
+            tx.execute(
+                "INSERT INTO action_plan_execution_steps
+                 (id, plan_id, sequence_no, label, action, command, command_sha256,
+                  verification_command, verification_sha256)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                params![
+                    step.id,
+                    plan.id,
+                    sequence_no as i64,
+                    step.label,
+                    step.action,
+                    step.command,
+                    step.command_sha256,
+                    step.verification_command,
+                    step.verification_sha256,
                 ],
             )?;
         }
@@ -117,6 +138,7 @@ impl Database {
                             requires_approval: row.get::<_, i32>(12)? != 0,
                         },
                         targets: Vec::new(),
+                        execution_steps: Vec::new(),
                         verification_steps: Vec::new(),
                         status: row.get(13)?,
                         expires_at: row.get(14)?,
@@ -140,6 +162,25 @@ impl Database {
                     server_alias: row.get(1)?,
                     role: row.get(2)?,
                     status: row.get(3)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let mut execution_stmt = conn.prepare(
+            "SELECT id, label, action, command, command_sha256,
+                    verification_command, verification_sha256
+             FROM action_plan_execution_steps WHERE plan_id = ?1 ORDER BY sequence_no",
+        )?;
+        plan.execution_steps = execution_stmt
+            .query_map([id], |row| {
+                Ok(PlanExecutionStep {
+                    id: row.get(0)?,
+                    label: row.get(1)?,
+                    action: row.get(2)?,
+                    command: row.get(3)?,
+                    command_sha256: row.get(4)?,
+                    verification_command: row.get(5)?,
+                    verification_sha256: row.get(6)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -389,6 +430,15 @@ mod tests {
                 role: "canary".into(),
                 status: "pending".into(),
             }],
+            execution_steps: vec![PlanExecutionStep {
+                id: "step-1".into(),
+                label: "restart nginx".into(),
+                action: "restart_nginx".into(),
+                command: "systemctl restart nginx".into(),
+                command_sha256: "command-hash".into(),
+                verification_command: Some("systemctl is-active nginx".into()),
+                verification_sha256: Some("verification-hash".into()),
+            }],
             verification_steps: vec![VerificationStep {
                 id: "health".into(),
                 label: "检查服务状态".into(),
@@ -414,6 +464,12 @@ mod tests {
         assert_eq!(loaded.original_command, plan.original_command);
         assert_eq!(loaded.targets.len(), 1);
         assert_eq!(loaded.verification_steps.len(), 1);
+        assert_eq!(loaded.execution_steps.len(), 1);
+        assert_eq!(loaded.execution_steps[0].command, "systemctl restart nginx");
+        assert_eq!(
+            loaded.execution_steps[0].verification_sha256.as_deref(),
+            Some("verification-hash")
+        );
         assert_eq!(loaded.risk.level, ActionRiskLevel::Medium);
 
         assert_eq!(db.expire_action_plans(1_999).expect("expire plans"), 0);

@@ -6,10 +6,12 @@ import { CLIENTS, stateName } from "@/pages/mcp/shared";
 export function ClientPanel({
   clients,
   onOpen,
+  onInject,
   loading,
 }: {
   clients: McpClientState[];
   onOpen: (client: string) => void;
+  onInject: (client: string) => void;
   loading: boolean;
 }) {
   return (
@@ -53,7 +55,7 @@ export function ClientPanel({
                   <Button
                     className={`mcp-inject tone-${client.tone}`}
                     disabled={loading}
-                    onClick={() => onOpen(client.key)}
+                    onClick={() => onInject(client.key)}
                   >
                     一键注入
                   </Button>

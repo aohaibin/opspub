@@ -5,6 +5,7 @@ export interface DeployTarget {
   recipe: string;
   remotePath: string;
   artifactPath: string;
+  artifactId?: string;
   healthCommand: string;
   createdAt: string;
   updatedAt: string;
@@ -17,7 +18,18 @@ export interface DeployTargetInput {
   recipe: string;
   remotePath: string;
   artifactPath?: string;
+  artifactId?: string;
   healthCommand?: string;
+}
+
+export interface DeploymentArtifact {
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  sha256: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DeploymentGroup {
@@ -42,6 +54,8 @@ export interface DeploymentGroupRunResult {
   groupId: string;
   results: DeployRunResult[];
   success: boolean;
+  canaryTargetId?: string;
+  stoppedAfterCanaryFailure: boolean;
 }
 
 export interface DeployRunRequest {
@@ -57,6 +71,8 @@ export interface DeploymentHistory {
   version: string;
   action: string;
   status: string;
+  verificationStatus: string;
+  rollbackStatus: string;
   output: string;
   error: string;
   createdAt: string;

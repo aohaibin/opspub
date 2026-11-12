@@ -35,7 +35,10 @@ pub async fn explain_terminal_selection(
 ) -> Result<String, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         crate::services::copilot::CopilotService::explain_terminal_selection(
-            &app, &profile_id, server_id, &selection,
+            &app,
+            &profile_id,
+            server_id,
+            &selection,
         )
         .map_err(CommandError::from)
     })

@@ -50,6 +50,14 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface AuditLogPage {
+  records: AuditLog[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
 /** AI 策略档位 (禁用 / 只读 / 审批 / 白名单 / 信任，并兼容历史代号) */
 export type AIPolicy =
   | 'disabled'

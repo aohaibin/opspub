@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   Server,
   AuditLog,
+  AuditLogPage,
   ConnectivityResult,
   SshProbeRequest,
   SshProbeResult,
@@ -133,6 +134,10 @@ export const serverApi = {
 export const auditApi = {
   /** 获取审核日志 */
   getLogs: (limit: number) => invoke<AuditLog[]>("get_audit_logs", { limit }),
+
+  /** 分页获取审核日志 */
+  getLogsPage: (limit: number, offset: number) =>
+    invoke<AuditLogPage>("get_audit_logs_page", { limit, offset }),
 
   /**
    * 添加审核日志

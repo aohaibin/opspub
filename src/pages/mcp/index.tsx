@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Modal } from "antd";
+import { Alert, Button, Modal, message } from "antd";
 import { Activity, Copy, ListChecks, PlugZap } from "lucide-react";
 import { mcpApi } from "@/lib/api/mcp";
 import { serverApi } from "@/lib/api/server";
@@ -134,6 +134,29 @@ export default function McpPage() {
     setConfigClient(null);
     setCreateClient(client);
   };
+  const quickInject = async (client: string) => {
+    const active = tokens.filter(
+      (token) =>
+        token.status === "active" &&
+        (!token.expiresAt || new Date(token.expiresAt.replace(" ", "T")).getTime() > Date.now()) &&
+        (token.client === client || token.client === "custom"),
+    );
+    if (active.length !== 1) {
+      if (active.length === 0) {
+        openCreate(client, client);
+      } else {
+        openConfig(client);
+      }
+      return;
+    }
+    try {
+      await mcpApi.injectConfig(active[0].id, client);
+      message.success(`${client} 配置已备份并注入；请重启客户端后再测试工具调用`);
+      await load(false);
+    } catch (e) {
+      reportError(e);
+    }
+  };
   const onCreated = (value: McpTokenCreated) => {
     setCreateClient(null);
     setCreated(value);
@@ -231,7 +254,13 @@ export default function McpPage() {
         onConfig={() => openConfig("claude")}
         onError={reportError}
       />
-      <ClientPanel clients={clients} loading={loading} onOpen={openConfig} />
+      <Alert
+        showIcon
+        type="info"
+        title="数据边界说明"
+        description="MCP 只把经过权限、策略和脱敏处理的工具结果返回给外部客户端；是否发送给外部模型由对应客户端和模型服务决定。OpsPub 不会把 SSH 密码、私钥或令牌返回给模型。"
+      />
+      <ClientPanel clients={clients} loading={loading} onOpen={openConfig} onInject={(client) => void quickInject(client)} />
       <TokenPanel
         tokens={tokens}
         loading={loading}

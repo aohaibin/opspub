@@ -11,7 +11,7 @@ import type { AuditLog, Server } from "@/types";
 type Verdict = "success" | "pending" | "blocked" | "rejected" | "failed" | "other";
 type AuditSource = "copilot" | "mcp" | "batch" | "terminal" | "system" | "other";
 
-const AUDIT_LIMIT = 10000;
+const DEFAULT_PAGE_SIZE = 50;
 const REDACTION_PATTERNS = [
   /((?:password|passwd|token|secret|api[_-]?key|private[_-]?key)\s*[=:]\s*)([^\s,;]+)/gi,
   /(\b(?:-p|--password)\s+)([^\s]+)/gi,
@@ -88,6 +88,9 @@ export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [total, setTotal] = useState(0);
   const [toolFilter, setToolFilter] = useState<string>();
   const [verdictFilter, setVerdictFilter] = useState<Verdict>();
   const [sourceFilter, setSourceFilter] = useState<AuditSource>();
@@ -97,11 +100,17 @@ export default function AuditPage() {
   const [collapseRepeated, setCollapseRepeated] = useState(false);
   const [viewMode, setViewMode] = useState<"all" | "batch">("all");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (targetPage = 1, targetPageSize = DEFAULT_PAGE_SIZE) => {
     setLoading(true);
     try {
-      const [records, serverList] = await Promise.all([auditApi.getLogs(AUDIT_LIMIT), serverApi.list()]);
-      setLogs(records);
+      const [result, serverList] = await Promise.all([
+        auditApi.getLogsPage(targetPageSize, (targetPage - 1) * targetPageSize),
+        serverApi.list(),
+      ]);
+      setLogs(result.records);
+      setTotal(result.total);
+      setPage(targetPage);
+      setPageSize(result.limit);
       setServers(serverList);
     } catch (error) {
       message.error(getErrorMessage(error));
@@ -145,13 +154,13 @@ export default function AuditPage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const stats = useMemo(() => ({
-    total: logs.length,
+    total,
     today: logs.filter((item) => item.created_at.slice(0, 10) === today).length,
     pending: logs.filter((item) => verdictOf(item.result) === "pending").length,
     rejected: logs.filter((item) => verdictOf(item.result) === "rejected").length,
     blocked: logs.filter((item) => verdictOf(item.result) === "blocked").length,
     redacted: logs.filter((item) => redact(item.command) !== item.command || redact(item.result) !== item.result).length,
-  }), [logs, today]);
+  }), [logs, today, total]);
 
   const copyCommand = async (command: string) => {
     try {
@@ -213,24 +222,24 @@ export default function AuditPage() {
 
   const statItems = [
     { label: "总计", value: stats.total, color: "text-slate-100" },
-    { label: "今日", value: stats.today, color: "text-emerald-400" },
-    { label: "待审批", value: stats.pending, color: "text-amber-400" },
-    { label: "已拒绝", value: stats.rejected, color: "text-rose-400" },
-    { label: "已拦截", value: stats.blocked, color: "text-rose-400" },
-    { label: "命中脱敏", value: stats.redacted, color: "text-cyan-400" },
+    { label: "本页今日", value: stats.today, color: "text-emerald-400" },
+    { label: "本页待审批", value: stats.pending, color: "text-amber-400" },
+    { label: "本页已拒绝", value: stats.rejected, color: "text-rose-400" },
+    { label: "本页已拦截", value: stats.blocked, color: "text-rose-400" },
+    { label: "本页命中脱敏", value: stats.redacted, color: "text-cyan-400" },
   ];
 
   return (
     <div className="ops-page flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4 text-xs sm:p-5">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2"><ScrollText size={17} className="text-cyan-400" /><h1 className="m-0 text-base font-bold text-white">审计日志</h1><Tag color="cyan" className="m-0">{logs.length}{logs.length === AUDIT_LIMIT ? "+" : ""} 条存证</Tag></div>
+          <div className="flex items-center gap-2"><ScrollText size={17} className="text-cyan-400" /><h1 className="m-0 text-base font-bold text-white">审计日志</h1><Tag color="cyan" className="m-0">{total.toLocaleString()} 条存证</Tag></div>
           <p className="mb-0 mt-1 text-[11px] text-slate-400">每次服务器操作（人工命令与 AI/MCP 调用）都会记录；参数已脱敏，不包含凭据。支持展开查看、复制和转为经验。</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-surface-950 p-0.5"><Button size="small" type={viewMode === "all" ? "primary" : "text"} onClick={() => setViewMode("all")}>全部</Button><Button size="small" type={viewMode === "batch" ? "primary" : "text"} onClick={() => setViewMode("batch")}>批次</Button></div>
-          <Button size="small" icon={<Download size={14} />} onClick={() => void exportLogs()} disabled={loading}>导出</Button>
-          <Button size="small" aria-label="刷新审计记录" title="刷新" icon={<RefreshCw size={14} />} loading={loading} onClick={() => void load()} />
+          <Button size="small" title="导出当前页筛选结果" icon={<Download size={14} />} onClick={() => void exportLogs()} disabled={loading}>导出当前页</Button>
+          <Button size="small" aria-label="刷新审计记录" title="刷新" icon={<RefreshCw size={14} />} loading={loading} onClick={() => void load(page, pageSize)} />
         </div>
       </header>
 
@@ -249,7 +258,7 @@ export default function AuditPage() {
       </section>
 
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-800 bg-[#0f141c]">
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-3 py-2 text-[11px] text-slate-400"><span>显示 {filteredLogs.length} 条记录</span><span className="inline-flex items-center gap-1"><ShieldAlert size={12} className="text-amber-400" />审计数据来自本地日志库</span></div>
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-3 py-2 text-[11px] text-slate-400"><span>当前页匹配 {filteredLogs.length} 条 · 共 {total.toLocaleString()} 条，筛选仅作用于当前页</span><span className="inline-flex items-center gap-1"><ShieldAlert size={12} className="text-amber-400" />审计数据来自本地日志库</span></div>
         <div className="custom-scrollbar min-h-0 flex-1 overflow-auto">
           <Table<AuditLog>
             size="small"
@@ -257,7 +266,17 @@ export default function AuditPage() {
             columns={columns}
             dataSource={filteredLogs}
             loading={loading}
-            pagination={{ pageSize: 15, showSizeChanger: true, pageSizeOptions: [15, 30, 50, 100], showTotal: (total) => `共 ${total} 条` }}
+            pagination={{
+              current: page,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              pageSizeOptions: [20, 50, 100],
+              showTotal: (count, range) => `第 ${range[0]}-${range[1]} 条 / 共 ${count} 条`,
+              onChange: (nextPage, nextPageSize) => {
+                void load(nextPage, nextPageSize);
+              },
+            }}
             scroll={{ x: 1120, y: "calc(100vh - 420px)" }}
             locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={loading ? "正在加载审计记录" : "没有匹配的审计记录"} /> }}
             expandable={{

@@ -57,6 +57,16 @@ export interface VerificationStep {
   required: boolean;
 }
 
+export interface PlanExecutionStep {
+  id: string;
+  label: string;
+  action: string;
+  command: string;
+  commandSha256: string;
+  verificationCommand: string | null;
+  verificationSha256: string | null;
+}
+
 export interface ActionPlan {
   id: string;
   conversationId: string | null;
@@ -74,6 +84,7 @@ export interface ActionPlan {
     requiresApproval: boolean;
   };
   targets: ActionPlanTarget[];
+  executionSteps: PlanExecutionStep[];
   verificationSteps: VerificationStep[];
   status: string;
   expiresAt: number;
@@ -83,6 +94,12 @@ export interface ActionPlan {
 export interface AiApprovalDetail {
   approval: AiApproval;
   plan: ActionPlan | null;
+  mcp?: {
+    taskId: string;
+    tokenId: number;
+    sourceClient: string;
+    createdAt: number;
+  } | null;
 }
 
 export interface CopilotResponse {

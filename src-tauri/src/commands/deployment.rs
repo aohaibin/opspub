@@ -1,10 +1,49 @@
 use crate::error::CommandError;
 use crate::models::{
-    DeployRunRequest, DeployRunResult, DeployTarget, DeployTargetInput, DeploymentGroup,
-    DeploymentGroupInput, DeploymentGroupRunRequest, DeploymentGroupRunResult, DeploymentHistory,
+    DeployRunRequest, DeployRunResult, DeployTarget, DeployTargetInput, DeploymentArtifact,
+    DeploymentGroup, DeploymentGroupInput, DeploymentGroupRunRequest, DeploymentGroupRunResult,
+    DeploymentHistory,
 };
 use crate::services::deployment::DeploymentService;
 use crate::state::AppState;
+
+#[tauri::command]
+pub fn authorize_deploy_artifact_root(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<String, CommandError> {
+    DeploymentService::authorize_artifact_root(&state.db, &path).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn list_deploy_artifact_roots(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<String>, CommandError> {
+    DeploymentService::list_artifact_roots(&state.db).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn register_deploy_artifact(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<DeploymentArtifact, CommandError> {
+    DeploymentService::register_artifact(&state.db, &path).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn list_deploy_artifacts(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<DeploymentArtifact>, CommandError> {
+    DeploymentService::list_artifacts(&state.db).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn revoke_deploy_artifact(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<bool, CommandError> {
+    DeploymentService::revoke_artifact(&state.db, &id).map_err(Into::into)
+}
 
 #[tauri::command]
 pub fn list_deploy_targets(

@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 /// 当前 Schema 版本
-pub const SCHEMA_VERSION: i32 = 17;
+pub const SCHEMA_VERSION: i32 = 23;
 
 /// 获取数据库版本
 pub fn get_version(conn: &Connection) -> Result<i32, AppError> {
@@ -47,6 +47,12 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
             14 => migrate_v14_to_v15(conn)?,
             15 => migrate_v15_to_v16(conn)?,
             16 => migrate_v16_to_v17(conn)?,
+            17 => migrate_v17_to_v18(conn)?,
+            18 => migrate_v18_to_v19(conn)?,
+            19 => migrate_v19_to_v20(conn)?,
+            20 => migrate_v20_to_v21(conn)?,
+            21 => migrate_v21_to_v22(conn)?,
+            22 => migrate_v22_to_v23(conn)?,
             _ => {
                 return Err(AppError::Custom(format!("未知的数据库版本: {}", version)));
             }
@@ -55,6 +61,182 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
     }
 
     log::info!("数据库迁移完成, 当前版本: {}", version);
+    Ok(())
+}
+
+/// v17 -> v18：将旧 MCP 通配范围固化为迁移时已有的服务器与只读工具。
+fn migrate_v17_to_v18(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v17 -> v18（固定 MCP Token 授权快照）");
+    conn.execute_batch(
+        "BEGIN;
+        UPDATE mcp_tokens
+        SET server_scope = COALESCE(
+            (SELECT group_concat(alias, ',') FROM servers WHERE protocol != 'rdp'),
+            '__no_servers_at_migration__'
+        )
+        WHERE server_scope = '*';
+        UPDATE mcp_tokens
+        SET tool_scope = 'disk_usage,list_servers,port_check,service_status,system_info,tail_log'
+        WHERE tool_scope IN ('*', 'readonly');
+        PRAGMA user_version=18;
+        COMMIT;",
+    )?;
+    Ok(())
+}
+
+/// v18 -> v19：持久化外部 MCP 操作任务与有序步骤。
+fn migrate_v18_to_v19(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v18 -> v19（MCP 操作任务）");
+    conn.execute_batch(
+        "BEGIN;
+        CREATE TABLE mcp_operation_tasks (
+            id TEXT PRIMARY KEY,
+            token_id INTEGER NOT NULL REFERENCES mcp_tokens(id) ON DELETE RESTRICT,
+            source_client TEXT NOT NULL,
+            idempotency_key TEXT NOT NULL,
+            request_sha256 TEXT NOT NULL,
+            plan_id TEXT REFERENCES action_plans(id) ON DELETE SET NULL,
+            summary TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'draft','pending_approval','queued','executing','verifying','succeeded',
+                'failed','rejected','expired','cancelled','unknown'
+            )),
+            error_code TEXT,
+            result TEXT,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            UNIQUE(token_id, idempotency_key)
+        );
+        CREATE INDEX idx_mcp_operation_tasks_status ON mcp_operation_tasks(status, expires_at);
+        CREATE INDEX idx_mcp_operation_tasks_token ON mcp_operation_tasks(token_id, created_at DESC);
+        CREATE TABLE mcp_operation_task_steps (
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL REFERENCES mcp_operation_tasks(id) ON DELETE CASCADE,
+            sequence INTEGER NOT NULL,
+            kind TEXT NOT NULL,
+            target_server_id INTEGER,
+            status TEXT NOT NULL CHECK (status IN ('pending','running','succeeded','failed','skipped','unknown')),
+            input_sha256 TEXT NOT NULL,
+            result TEXT,
+            exit_code INTEGER,
+            started_at INTEGER,
+            finished_at INTEGER,
+            UNIQUE(task_id, sequence)
+        );
+        CREATE INDEX idx_mcp_operation_task_steps_task ON mcp_operation_task_steps(task_id, sequence);
+        PRAGMA user_version=19;
+        COMMIT;",
+    )?;
+    Ok(())
+}
+
+/// v19 -> v20：支持只生成计划、不执行的 MCP 草稿状态。
+fn migrate_v19_to_v20(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v19 -> v20（MCP 计划草稿）");
+    conn.execute_batch(
+        "PRAGMA foreign_keys=OFF;
+        BEGIN;
+        ALTER TABLE mcp_operation_task_steps RENAME TO mcp_operation_task_steps_v19;
+        ALTER TABLE mcp_operation_tasks RENAME TO mcp_operation_tasks_v19;
+        CREATE TABLE mcp_operation_tasks (
+            id TEXT PRIMARY KEY,
+            token_id INTEGER NOT NULL REFERENCES mcp_tokens(id) ON DELETE RESTRICT,
+            source_client TEXT NOT NULL,
+            idempotency_key TEXT NOT NULL,
+            request_sha256 TEXT NOT NULL,
+            plan_id TEXT REFERENCES action_plans(id) ON DELETE SET NULL,
+            summary TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'draft','pending_approval','queued','executing','verifying','succeeded',
+                'failed','rejected','expired','cancelled','unknown'
+            )),
+            error_code TEXT,
+            result TEXT,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            UNIQUE(token_id, idempotency_key)
+        );
+        INSERT INTO mcp_operation_tasks SELECT * FROM mcp_operation_tasks_v19;
+        CREATE TABLE mcp_operation_task_steps (
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL REFERENCES mcp_operation_tasks(id) ON DELETE CASCADE,
+            sequence INTEGER NOT NULL,
+            kind TEXT NOT NULL,
+            target_server_id INTEGER,
+            status TEXT NOT NULL CHECK (status IN ('pending','running','succeeded','failed','skipped','unknown')),
+            input_sha256 TEXT NOT NULL,
+            result TEXT,
+            exit_code INTEGER,
+            started_at INTEGER,
+            finished_at INTEGER,
+            UNIQUE(task_id, sequence)
+        );
+        INSERT INTO mcp_operation_task_steps SELECT * FROM mcp_operation_task_steps_v19;
+        DROP TABLE mcp_operation_task_steps_v19;
+        DROP TABLE mcp_operation_tasks_v19;
+        CREATE INDEX idx_mcp_operation_tasks_status ON mcp_operation_tasks(status, expires_at);
+        CREATE INDEX idx_mcp_operation_tasks_token ON mcp_operation_tasks(token_id, created_at DESC);
+        CREATE INDEX idx_mcp_operation_task_steps_task ON mcp_operation_task_steps(task_id, sequence);
+        PRAGMA user_version=20;
+        COMMIT;
+        PRAGMA foreign_keys=ON;",
+    )?;
+    Ok(())
+}
+
+/// v20 -> v21：将技能索引快照关联到 MCP 计划草稿。
+fn migrate_v20_to_v21(conn: &Connection) -> Result<(), AppError> {
+    log::info!("数据库迁移 v20 -> v21（MCP 计划技能关联）");
+    conn.execute_batch(
+        "BEGIN;
+        ALTER TABLE mcp_operation_tasks ADD COLUMN skill_ids TEXT NOT NULL DEFAULT '[]';
+        PRAGMA user_version=21;
+        COMMIT;",
+    )?;
+    Ok(())
+}
+
+/// v21 -> v22：将 MCP 来源与 Token 绑定到桌面审批记录。
+fn migrate_v21_to_v22(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch(
+        "BEGIN;
+        CREATE TABLE mcp_approval_bindings (
+            approval_id INTEGER PRIMARY KEY REFERENCES ai_approvals(id) ON DELETE CASCADE,
+            task_id TEXT NOT NULL UNIQUE REFERENCES mcp_operation_tasks(id) ON DELETE RESTRICT,
+            token_id INTEGER NOT NULL REFERENCES mcp_tokens(id) ON DELETE RESTRICT,
+            source_client TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX idx_mcp_approval_bindings_token ON mcp_approval_bindings(token_id);
+        PRAGMA user_version=22;
+        COMMIT;",
+    )?;
+    Ok(())
+}
+
+/// v22 -> v23：持久化审批计划中的有序命令及逐步验证快照。
+fn migrate_v22_to_v23(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch(
+        "BEGIN;
+        CREATE TABLE action_plan_execution_steps (
+            id TEXT PRIMARY KEY,
+            plan_id TEXT NOT NULL REFERENCES action_plans(id) ON DELETE CASCADE,
+            sequence_no INTEGER NOT NULL,
+            label TEXT NOT NULL,
+            action TEXT NOT NULL,
+            command TEXT NOT NULL,
+            command_sha256 TEXT NOT NULL,
+            verification_command TEXT,
+            verification_sha256 TEXT,
+            UNIQUE(plan_id, sequence_no)
+        );
+        CREATE INDEX idx_action_plan_execution_steps_plan
+            ON action_plan_execution_steps(plan_id, sequence_no);
+        PRAGMA user_version=23;
+        COMMIT;",
+    )?;
     Ok(())
 }
 
@@ -507,14 +689,21 @@ fn migrate_v14_to_v15(conn: &Connection) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{migrate, SCHEMA_VERSION};
+    use super::{get_version, migrate, SCHEMA_VERSION};
     use rusqlite::Connection;
 
     #[test]
     fn migration_v14_creates_plan_and_policy_tables() {
         let conn = Connection::open_in_memory().expect("open in-memory database");
         // v11 数据库已经有 servers 表；后续迁移会为该表添加连接选项。
-        conn.execute_batch("CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT)").expect("v11 server table");
+        conn.execute_batch(
+            "CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT);
+             CREATE TABLE mcp_tokens (
+                id INTEGER PRIMARY KEY, server_scope TEXT NOT NULL DEFAULT '*',
+                tool_scope TEXT NOT NULL DEFAULT 'readonly'
+             );",
+        )
+        .expect("v11 server and MCP token tables");
         conn.pragma_update(None, "user_version", 11)
             .expect("set starting schema version");
 
@@ -572,5 +761,153 @@ mod tests {
             )
             .expect("count builtin hard-block rules");
         assert!(builtin_count >= 4, "expected seeded hard-block rules");
+    }
+
+    #[test]
+    fn migration_v17_freezes_legacy_mcp_wildcards() {
+        let conn = Connection::open_in_memory().expect("open in-memory database");
+        conn.execute_batch(
+            "CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT NOT NULL, protocol TEXT NOT NULL);
+             INSERT INTO servers (id, alias, protocol) VALUES
+                (1, 'prod-a', 'ssh'), (2, 'rdp-only', 'rdp'), (3, 'stage-b', 'ssh');
+             CREATE TABLE mcp_tokens (
+                id INTEGER PRIMARY KEY, server_scope TEXT NOT NULL, tool_scope TEXT NOT NULL
+             );
+             INSERT INTO mcp_tokens VALUES (1, '*', 'readonly');
+             INSERT INTO mcp_tokens VALUES (2, '*', '*');
+             INSERT INTO mcp_tokens VALUES (3, 'prod-a', 'system_info');",
+        )
+        .expect("prepare v17 schema");
+        conn.pragma_update(None, "user_version", 17)
+            .expect("set starting schema version");
+
+        migrate(&conn).expect("migrate schema");
+
+        let scopes = conn
+            .prepare("SELECT server_scope, tool_scope FROM mcp_tokens ORDER BY id")
+            .expect("prepare token query")
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .expect("query token scopes")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("collect token scopes");
+        assert_eq!(scopes[0].0, "prod-a,stage-b");
+        assert_eq!(
+            scopes[0].1,
+            "disk_usage,list_servers,port_check,service_status,system_info,tail_log"
+        );
+        assert_eq!(scopes[1], ("prod-a,stage-b".into(), scopes[0].1.clone()));
+        assert_eq!(scopes[2], ("prod-a".into(), "system_info".into()));
+    }
+
+    #[test]
+    fn migration_v17_wildcard_without_servers_fails_closed() {
+        let conn = Connection::open_in_memory().expect("open in-memory database");
+        conn.execute_batch(
+            "CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT NOT NULL, protocol TEXT NOT NULL);
+             CREATE TABLE mcp_tokens (id INTEGER PRIMARY KEY, server_scope TEXT NOT NULL, tool_scope TEXT NOT NULL);
+             INSERT INTO mcp_tokens VALUES (1, '*', 'readonly');",
+        )
+        .expect("prepare empty v17 schema");
+        conn.pragma_update(None, "user_version", 17)
+            .expect("set starting schema version");
+
+        migrate(&conn).expect("migrate schema");
+
+        let scope: String = conn
+            .query_row(
+                "SELECT server_scope FROM mcp_tokens WHERE id=1",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read migrated scope");
+        assert_eq!(scope, "__no_servers_at_migration__");
+    }
+
+    #[test]
+    fn migration_v19_preserves_tasks_and_accepts_plan_drafts() {
+        let conn = Connection::open_in_memory().expect("open database");
+        conn.execute_batch(
+            "CREATE TABLE mcp_tokens (id INTEGER PRIMARY KEY);
+             CREATE TABLE action_plans (id TEXT PRIMARY KEY);
+             CREATE TABLE mcp_operation_tasks (
+                id TEXT PRIMARY KEY, token_id INTEGER NOT NULL, source_client TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL, request_sha256 TEXT NOT NULL, plan_id TEXT,
+                summary TEXT NOT NULL, status TEXT NOT NULL, error_code TEXT, result TEXT,
+                created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER NOT NULL,
+                UNIQUE(token_id, idempotency_key)
+             );
+             CREATE TABLE mcp_operation_task_steps (
+                id TEXT PRIMARY KEY, task_id TEXT NOT NULL, sequence INTEGER NOT NULL,
+                kind TEXT NOT NULL, target_server_id INTEGER, status TEXT NOT NULL,
+                input_sha256 TEXT NOT NULL, result TEXT, exit_code INTEGER,
+                started_at INTEGER, finished_at INTEGER, UNIQUE(task_id, sequence)
+             );
+             INSERT INTO mcp_tokens VALUES (1);
+             INSERT INTO mcp_operation_tasks VALUES
+                ('old-task', 1, 'custom', 'old-request', 'hash', NULL, 'old', 'queued', NULL, NULL, 1, 1, 999);
+             INSERT INTO mcp_operation_task_steps VALUES
+                ('old-step', 'old-task', 0, 'command', 7, 'pending', 'step-hash', NULL, NULL, NULL, NULL);
+             PRAGMA user_version=19;",
+        )
+        .expect("prepare v19 schema");
+
+        migrate(&conn).expect("upgrade to v20");
+        assert_eq!(super::get_version(&conn).expect("version"), SCHEMA_VERSION);
+        let old_status: String = conn
+            .query_row(
+                "SELECT status FROM mcp_operation_tasks WHERE id='old-task'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("preserved task");
+        assert_eq!(old_status, "queued");
+        let old_skill_ids: String = conn
+            .query_row(
+                "SELECT skill_ids FROM mcp_operation_tasks WHERE id='old-task'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("existing task gets empty skill snapshot");
+        assert_eq!(old_skill_ids, "[]");
+        conn.execute(
+            "INSERT INTO mcp_operation_tasks
+             (id, token_id, source_client, idempotency_key, request_sha256, summary, status, created_at, updated_at, expires_at)
+             VALUES ('draft-task', 1, 'custom', 'draft-request', 'draft-hash', 'preview', 'draft', 2, 2, 999)",
+            [],
+        )
+        .expect("draft status is accepted");
+        let step_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM mcp_operation_task_steps WHERE task_id='old-task'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("preserved steps");
+        assert_eq!(step_count, 1);
+    }
+
+    #[test]
+    fn current_schema_contains_mcp_approval_and_execution_step_tables() {
+        let conn = Connection::open_in_memory().expect("open database");
+        migrate(&conn).expect("migrate");
+        let exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='mcp_approval_bindings'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("binding table");
+        assert_eq!(exists, 1);
+        let execution_exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='action_plan_execution_steps'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("execution steps table");
+        assert_eq!(execution_exists, 1);
+        assert_eq!(get_version(&conn).expect("version"), SCHEMA_VERSION);
     }
 }

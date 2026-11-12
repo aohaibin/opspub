@@ -1,4 +1,5 @@
 export interface McpStatus {
+  endpointState: "ready" | "not_started" | "start_failed" | "health_failed";
   protocolVersion: string;
   version: string;
   stdioPath: string;
@@ -64,7 +65,71 @@ export interface McpToolDefinition {
 
 export interface McpTokenTest {
   tools: string[];
+  toolCallVerified: boolean;
+  testedTool: string | null;
   latencyMs: number;
   testedAt: string;
   message: string;
+}
+
+export type McpTaskStatus =
+  | "draft"
+  | "pending_approval"
+  | "queued"
+  | "executing"
+  | "verifying"
+  | "succeeded"
+  | "failed"
+  | "rejected"
+  | "expired"
+  | "cancelled"
+  | "unknown";
+
+export interface McpSkillReference {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  triggers: string[];
+  contentAvailable: boolean;
+  trust: "untrusted_reference_only" | string;
+}
+
+export type McpTaskStepStatus =
+  | "pending"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "skipped"
+  | "unknown";
+
+export interface McpTaskStep {
+  id: string;
+  sequence: number;
+  kind: string;
+  targetServerId: number | null;
+  status: McpTaskStepStatus;
+  inputSha256: string;
+  result: string | null;
+  exitCode: number | null;
+  startedAt: number | null;
+  finishedAt: number | null;
+}
+
+export interface McpOperationTask {
+  id: string;
+  tokenId: number;
+  sourceClient: string;
+  idempotencyKey: string;
+  requestSha256: string;
+  planId: string | null;
+  summary: string;
+  status: McpTaskStatus;
+  errorCode: string | null;
+  result: string | null;
+  createdAt: number;
+  updatedAt: number;
+  expiresAt: number;
+  skillIds: string[];
+  steps: McpTaskStep[];
 }

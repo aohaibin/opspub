@@ -6842,231 +6842,210 @@
       <!-- =================================================================================== -->
       <!-- VIEW 6: ★ 应用部署与发布 (Deployment) - 对应截图 2 media_1789570984114.png -->
       <!-- =================================================================================== -->
-      <div id="tab-deploy" class="tab-content hidden space-y-4">
-        <!-- 顶栏标题 -->
-        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <!-- =================================================================================== -->
+      <!-- VIEW: 部署页面 (100% 严格复刻截图 1: 部署目标卡片 + 部署组空状态 + 7款内置配方) -->
+      <!-- =================================================================================== -->
+      <div id="tab-deploy" class="tab-content hidden space-y-6">
+        
+        <!-- 顶栏 Header (对齐截图 1) -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 shrink-0">
           <div>
             <h1 class="text-base font-bold text-white flex items-center space-x-2">
-              <i data-lucide="rocket" class="w-5 h-5 text-cyan-400"></i>
-              <span>应用部署与发布管理 (Deployment)</span>
+              <i data-lucide="rocket" class="w-5 h-5 text-blue-400"></i>
+              <span>部署</span>
             </h1>
-            <p class="text-xs text-slate-400 mt-0.5">版本追踪 · 原子软链发布 · 失败自动秒级回滚 · 多端编排</p>
+            <p class="text-xs text-slate-400 mt-0.5">配方驱动 · 原子发布 · 失败自动回滚</p>
           </div>
-
-          <div class="flex items-center space-x-2">
-            <button onclick="alert('即将启动部署向导：选择仓库代码/制品包 -> 指定目标机与端口 -> 配置健康探针')" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 text-xs font-medium border border-slate-700 flex items-center space-x-1.5 transition">
-              <i data-lucide="wand-2" class="w-3.5 h-3.5 text-brand-400"></i>
+          <div class="flex items-center space-x-2.5">
+            <button type="button" onclick="refreshDeployPage()" title="刷新部署列表" class="p-2 text-slate-400 hover:text-white bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl transition-colors">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+            <button type="button" onclick="openDeployWizardModal()" class="px-3.5 py-1.5 text-xs font-medium text-slate-200 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 rounded-xl flex items-center space-x-1.5 transition-colors shadow-sm">
+              <i data-lucide="wand-2" class="w-3.5 h-3.5 text-purple-400"></i>
               <span>新建方案 (向导)</span>
             </button>
-            <button onclick="alert('可新增 Docker、Node、Go、Java 或静态站点等部署目标')" class="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow flex items-center space-x-1.5 transition cursor-pointer">
+            <button type="button" onclick="openDeployTargetModal()" class="px-3.5 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center space-x-1.5 transition-colors shadow-sm shadow-blue-500/20">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>+ 新建部署目标</span>
+              <span>新建部署目标</span>
             </button>
           </div>
         </div>
 
-        <!-- 1. 部署目标清单 (截图 2 上部) -->
-        <div class="space-y-2">
-          <div class="flex items-center space-x-1.5 text-xs font-bold text-white">
-            <i data-lucide="target" class="w-4 h-4 text-cyan-400"></i>
-            <span>部署目标</span>
-            <span class="text-slate-500 font-normal">(2 项活跃)</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <!-- 目标卡片 1: remote_relay -->
-            <div class="glass-card p-4 rounded-xl border border-slate-800 hover:border-cyan-500/50 transition space-y-3 group">
-              <div class="flex items-start justify-between">
-                <div class="space-y-1">
-                  <div class="flex items-center space-x-2">
-                    <i data-lucide="box" class="w-4 h-4 text-cyan-400"></i>
-                    <span class="font-bold text-sm text-white group-hover:text-cyan-300 transition">remote_relay</span>
-                    <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400 font-mono">docker compose</span>
-                  </div>
-                  <div class="text-xs text-slate-400 flex items-center space-x-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                    <span>我的腾讯云0209</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-[11px] font-mono text-slate-400 space-y-0.5 bg-surface-950 p-2 rounded border border-slate-800/80">
-                <div class="truncate">路径: /opt/opspub/stacks/remote_relay</div>
-                <div class="text-slate-500">构建: artifact · 软链: symlink 原子发布</div>
-              </div>
-
-              <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                <button onclick="triggerDeployMock('remote_relay')" class="px-3 py-1 rounded-lg bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-white text-xs font-medium flex items-center space-x-1 transition cursor-pointer">
-                  <i data-lucide="play" class="w-3 h-3"></i>
-                  <span>部署</span>
-                </button>
-                <div class="flex items-center space-x-1">
-                  <button onclick="alert('正在对 remote_relay 执行原子软链回滚至上一个成功版本...')" class="p-1.5 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs" title="回滚"><i data-lucide="undo-2" class="w-3.5 h-3.5"></i></button>
-                  <button onclick="alert('查看 remote_relay 历史部署版本清单 (v2.1.0, v2.0.8, v2.0.5)')" class="p-1.5 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs" title="发布历史"><i data-lucide="history" class="w-3.5 h-3.5"></i></button>
-                  <button class="p-1.5 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs" title="编辑目标"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 目标卡片 2: remote_server -->
-            <div class="glass-card p-4 rounded-xl border border-slate-800 hover:border-cyan-500/50 transition space-y-3 group">
-              <div class="flex items-start justify-between">
-                <div class="space-y-1">
-                  <div class="flex items-center space-x-2">
-                    <i data-lucide="box" class="w-4 h-4 text-cyan-400"></i>
-                    <span class="font-bold text-sm text-white group-hover:text-cyan-300 transition">remote_server</span>
-                    <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400 font-mono">docker compose</span>
-                  </div>
-                  <div class="text-xs text-slate-400 flex items-center space-x-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                    <span>我的阿里云 (PG库)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-[11px] font-mono text-slate-400 space-y-0.5 bg-surface-950 p-2 rounded border border-slate-800/80">
-                <div class="truncate">路径: /opt/opspub/stacks/remote_server</div>
-                <div class="text-slate-500">构建: artifact · 软链: symlink 原子发布</div>
-              </div>
-
-              <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                <button onclick="triggerDeployMock('remote_server')" class="px-3 py-1 rounded-lg bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-white text-xs font-medium flex items-center space-x-1 transition cursor-pointer">
-                  <i data-lucide="play" class="w-3 h-3"></i>
-                  <span>部署</span>
-                </button>
-                <div class="flex items-center space-x-1">
-                  <button onclick="alert('执行原子软链回滚')" class="p-1.5 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs" title="回滚"><i data-lucide="undo-2" class="w-3.5 h-3.5"></i></button>
-                  <button class="p-1.5 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs" title="发布历史"><i data-lucide="history" class="w-3.5 h-3.5"></i></button>
-                  <button class="p-1.5 rounded bg-surface-800 hover:bg-slate-700 text-slate-300 text-xs" title="编辑目标"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. 部署组 (编排 · 勾选要发的统一步署) (截图 2 中部) -->
-        <div class="glass-card p-4 rounded-xl border border-slate-800 space-y-3">
+        <!-- 区块 1: 部署目标 (对齐截图 1) -->
+        <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2 text-xs font-bold text-white">
-              <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i>
-              <span>部署组 (编排 · 勾选要发的统一步署)</span>
+            <div class="flex items-center space-x-2">
+              <i data-lucide="rocket" class="w-4 h-4 text-slate-400"></i>
+              <span class="text-sm font-semibold text-slate-200">部署目标</span>
+              <span id="deployTargetCountBadge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-400 border border-slate-700/50">2</span>
             </div>
-            <button onclick="alert('创建新部署组：例如将 [前端静态站 + 后端网关 + 异步任务服务] 组合为【生产全栈发布组】')" class="text-xs text-brand-400 hover:underline">+ 新建部署组</button>
           </div>
-
-          <div class="p-6 rounded-lg bg-surface-950/60 border border-dashed border-slate-800 flex flex-col items-center justify-center text-center space-y-2 text-xs text-slate-400">
-            <div class="w-10 h-10 rounded-xl bg-surface-900 flex items-center justify-center text-slate-500"><i data-lucide="layers-2" class="w-5 h-5"></i></div>
-            <p>还没有部署组，把后端/前端/移动端等目标组合成一组，就能勾选这些组一键部署。</p>
-            <button onclick="alert('创建新部署组向导')" class="px-3 py-1.5 rounded-lg bg-brand-600/30 hover:bg-brand-600 text-brand-300 hover:text-white text-xs font-medium transition cursor-pointer">+ 创建部署组</button>
+          <!-- 部署目标卡片列表容器 -->
+          <div id="deployTargetCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 动态通过 renderDeployPage() 渲染 -->
           </div>
         </div>
 
-        <!-- 3. 部署配方 (部署方式模板) (截图 2 底部 7 大经典预设) -->
-        <div class="space-y-2">
-          <div class="flex items-center space-x-1.5 text-xs font-bold text-white">
-            <i data-lucide="file-code" class="w-4 h-4 text-amber-400"></i>
-            <span>部署配方 (部署方式模板)</span>
-            <span class="text-slate-500 font-normal">(开箱即用)</span>
+        <!-- 区块 2: 部署组 (对齐截图 1) -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="layers" class="w-4 h-4 text-slate-400"></i>
+              <span class="text-sm font-semibold text-slate-200">部署组</span>
+              <span id="deployGroupCountBadge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-400 border border-slate-700/50">0</span>
+              <span class="text-xs text-slate-500 ml-1">把多个目标编成一组，一键发其中几项</span>
+            </div>
+            <button type="button" onclick="openDeployGroupModal()" class="text-xs text-blue-400 hover:text-blue-300 flex items-center space-x-1 transition-colors">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>新建部署组</span>
+            </button>
+          </div>
+          <!-- 部署组内容容器 (无数据时展示空状态，有数据时展示卡片) -->
+          <div id="deployGroupContainer">
+            <!-- 动态渲染 -->
+          </div>
+        </div>
+
+        <!-- 区块 3: 部署配方 (对齐截图 1 底部) -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="book-open" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-sm font-semibold text-slate-200">部署配方</span>
+            <span class="text-[11px] text-slate-500 font-sans ml-1">7 部署配方模板</span>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <!-- 配方 1: 1panel-app -->
-            <div class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-white font-mono">1panel-app</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">内置</span>
+          <!-- 4 列配方卡片网格 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <!-- 配方 1: ipanel-app -->
+            <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between transition-colors group">
+              <div>
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center space-x-2 font-mono text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                    <i data-lucide="package" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>ipanel-app</span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">内置</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-3">1panel 托管应用部署 (按 1panel 目录约定上传产物 + 重启对应 compose/服务)</p>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">1Panel 开源应用包 (按 1panel 目录约定上线服务，更新对应 compose/环境)</p>
-              <div class="flex gap-1 pt-1 font-mono text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">1panel</span>
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">docker</span>
+              <div class="flex items-center space-x-1.5 font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">1panel</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">docker</span>
               </div>
             </div>
 
             <!-- 配方 2: custom-script -->
-            <div class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-white font-mono">custom-script</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">内置</span>
+            <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between transition-colors group">
+              <div>
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center space-x-2 font-mono text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                    <i data-lucide="terminal" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>custom-script</span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">内置</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-3">兜底万能配方 —— 各阶段命令全部自定义 (artifact 模式仍走 releases 软链原子切换)</p>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">兜底万能方案 —— 各阶段完全自定义 (artifact 校验包 releases 软链原子切换)</p>
-              <div class="flex gap-1 pt-1 font-mono text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">custom</span>
+              <div class="flex items-center space-x-1.5 font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">custom</span>
               </div>
             </div>
 
             <!-- 配方 3: docker-compose -->
-            <div class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-white font-mono">docker-compose</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">内置</span>
+            <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between transition-colors group">
+              <div>
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center space-x-2 font-mono text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                    <i data-lucide="box" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>docker-compose</span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">内置</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-3">Docker Compose 部署 (拉镜像 / 重建容器; 后续反代 + HTTPS 由增幅引擎统一接管，配了域名即可自动反代)</p>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">Docker Compose 部署 (拉镜像 / 现场构建，健康检查 + HTTPS 负载均衡平滑接入)</p>
-              <div class="flex gap-1 pt-1 font-mono text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">docker</span>
+              <div class="flex items-center space-x-1.5 font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">docker</span>
               </div>
             </div>
 
             <!-- 配方 4: node-pm2 -->
-            <div class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-white font-mono">node-pm2</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">内置</span>
+            <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between transition-colors group">
+              <div>
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center space-x-2 font-mono text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                    <i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>node-pm2</span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">内置</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-3">Node 后端用 pm2 部署 (releases + 软链原子切换，pm2 reload 平滑重启)</p>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">Node 应用 pm2 管理 (releases + 软链原子切换，pm2 reload 平滑重启)</p>
-              <div class="flex gap-1 pt-1 font-mono text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">node</span>
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">backend</span>
+              <div class="flex items-center space-x-1.5 font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">node</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">backend</span>
               </div>
             </div>
 
             <!-- 配方 5: static-nginx -->
-            <div class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-white font-mono">static-nginx</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">内置</span>
+            <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between transition-colors group">
+              <div>
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center space-x-2 font-mono text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                    <i data-lucide="globe" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>static-nginx</span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">内置</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-3">前端静态站部署到 nginx (releases + 软链原子切换，reload nginx)</p>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">前端静态资源部署到 nginx (releases + current 软链原子切换，nginx reload)</p>
-              <div class="flex gap-1 pt-1 font-mono text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">static</span>
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">frontend</span>
+              <div class="flex items-center space-x-1.5 font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">static</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">frontend</span>
               </div>
             </div>
 
             <!-- 配方 6: static-openresty -->
-            <div class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-white font-mono">static-openresty</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">内置</span>
+            <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between transition-colors group">
+              <div>
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center space-x-2 font-mono text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>static-openresty</span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">内置</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-3">前端静态站增强到 OpenResty (releases + current 软链原子切换; 建站 + HTTPS 由增幅引擎接用「网站」系统统一接管...)</p>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">前端静态资源到 OpenResty 站点，支持原子软链与 Lua 动态灰度路由</p>
-              <div class="flex gap-1 pt-1 font-mono text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">static</span>
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">frontend</span>
+              <div class="flex items-center space-x-1.5 font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">static</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">frontend</span>
               </div>
             </div>
 
             <!-- 配方 7: systemd-binary -->
-            <div class="glass-card p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-white font-mono">systemd-binary</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">内置</span>
+            <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-xl p-3.5 flex flex-col justify-between transition-colors group">
+              <div>
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center space-x-2 font-mono text-xs font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                    <i data-lucide="binary" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>systemd-binary</span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">内置</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-3">Java jar / Go / 二进制用 systemd 部署 (releases + 软链原子切换，systemctl restart)</p>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">Java jar / Go / Rust 二进制使用 systemd 托管 (releases 软链原子切换 + reload)</p>
-              <div class="flex gap-1 pt-1 font-mono text-[10px]">
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">java</span>
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">go</span>
-                <span class="px-1.5 py-0.5 rounded bg-surface-900 text-slate-400">backend</span>
+              <div class="flex items-center space-x-1.5 font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">java</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">go</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">binary</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/40">backend</span>
               </div>
             </div>
           </div>
         </div>
 
       </div>
-
-      <!-- =================================================================================== -->
-      <!-- VIEW 7: 远程终端 (对齐 OpsPub 原型设计，含分屏控制、Tab标签、快速连接卡片与侧边工具栏) -->
-      <!-- =================================================================================== -->
+<!-- =================================================================================== -->
       <div id="tab-terminal" class="tab-content hidden h-full w-full flex flex-col bg-surface-950 rounded-none overflow-hidden border-0 select-none">
         
         <!-- 1. 顶部控制栏 (分屏模式 + 同步输入 + 打开终端下拉) -->
@@ -13091,6 +13070,292 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
   <!-- =================================================================================== -->
   <!-- =================================================================================== -->
   <!-- 新增 / 编辑服务器模态框 (像素级精确对齐，100% 对齐截图规范) -->
+  
+  <!-- =================================================================================== -->
+  <!-- MODAL: 新建部署方案 (向导) (100% 严格复刻截图 3) -->
+  <!-- =================================================================================== -->
+  <div id="modalDeployWizard" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#181b22] border border-slate-700/80 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200">
+      
+      <!-- 头部 -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#14161d]/90 shrink-0">
+        <h3 class="font-bold text-base text-white tracking-wide">新建部署方案 (向导)</h3>
+        <button type="button" onclick="closeDeployWizardModal()" class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800/80">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 内容主体 -->
+      <div class="p-6 space-y-5">
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-slate-300">本机项目目录</label>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="deployWizardPath" placeholder="选择或粘贴项目根目录 (含 pom.xml / 前端子目录)" class="flex-1 bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono">
+            <button type="button" onclick="mockBrowseDeployProject()" class="px-3.5 py-2 text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700/80 rounded-xl flex items-center space-x-1.5 transition-colors shrink-0">
+              <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>浏览</span>
+            </button>
+            <button type="button" onclick="mockDetectDeployProject()" class="px-3.5 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center space-x-1.5 transition-colors shrink-0 shadow-sm shadow-blue-500/20">
+              <i data-lucide="wand-2" class="w-3.5 h-3.5 text-white"></i>
+              <span>探测</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 探测结果容器 (默认提示或探测卡片) -->
+        <div id="deployWizardResult" class="p-4 rounded-xl border border-slate-800 bg-[#12141a] text-xs text-slate-400 space-y-2">
+          <div class="flex items-center space-x-2 text-slate-400">
+            <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0"></i>
+            <span>输入或浏览项目根目录后点击「探测」，自动识别项目技术栈与结构。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部操作栏 -->
+      <div class="px-6 py-3.5 border-t border-slate-800/80 bg-[#14161d]/90 flex items-center justify-end space-x-3 shrink-0">
+        <button type="button" onclick="closeDeployWizardModal()" class="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 rounded-xl transition-colors">取消</button>
+        <button type="button" id="deployWizardSubmitBtn" onclick="saveDeployWizard()" disabled class="px-5 py-2 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700/50 rounded-xl transition-all cursor-not-allowed">创建目标 + 部署组</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =================================================================================== -->
+  <!-- MODAL: 新建部署组 (100% 严格复刻截图 2) -->
+  <!-- =================================================================================== -->
+  <!-- =================================================================================== -->
+  <!-- MODAL: 新建部署组 (100% 严格复刻用户截图 1: 组内端动态联动 + 可选目标圆选) -->
+  <!-- =================================================================================== -->
+  <div id="modalDeployGroup" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#181b22] border border-slate-700/80 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] text-slate-200">
+      
+      <!-- 头部 -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#14161d]/90 shrink-0">
+        <h3 class="font-bold text-base text-white tracking-wide">新建部署组</h3>
+        <button type="button" onclick="closeDeployGroupModal()" class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800/80">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 内容主体 -->
+      <div class="p-6 space-y-4 overflow-y-auto">
+        <!-- 组名 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">
+            <span class="text-rose-400 font-bold mr-1">*</span>组名 (字母数字, _ -)
+          </label>
+          <input type="text" id="deployGroupName" placeholder="如 ruoyi-全栈" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono">
+        </div>
+
+        <!-- 说明 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">说明 (可选)</label>
+          <input type="text" id="deployGroupDesc" placeholder="如 后端+前端+移动端" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors">
+        </div>
+
+        <!-- 失败即停 Toggle 开关 -->
+        <div class="py-1">
+          <label class="block text-xs font-medium text-slate-300 mb-2">失败即停 (任一端失败则跳过后续端)</label>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="deployGroupStopOnFail" checked class="sr-only peer">
+            <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+
+        <!-- 组内端 -->
+        <div class="space-y-2 pt-2 border-t border-slate-800/80">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-medium text-slate-300">组内端 (从上到下 = 部署顺序)</label>
+            <span id="deployGroupOrderBadge" class="text-[11px] text-slate-500 font-mono"></span>
+          </div>
+
+          <!-- 已加入端列表容器 -->
+          <div id="deployGroupSelectedContainer" class="min-h-[32px]">
+            <p id="deployGroupSelectedNote" class="text-xs text-slate-400">还没加入任何端，从下方「可加入的目标」勾选。</p>
+            <div id="deployGroupSelectedList" class="space-y-1.5 mt-1.5"></div>
+          </div>
+
+          <!-- 可加入的目标 -->
+          <div class="pt-3">
+            <div class="text-[11px] font-medium text-slate-400 mb-2">可加入的目标</div>
+            <div id="deployGroupCandidatesList" class="space-y-2">
+              <!-- 动态根据当前 deployTargetList 填充 -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 底部操作栏 -->
+      <div class="px-6 py-3.5 border-t border-slate-800/80 bg-[#14161d]/90 flex items-center justify-end space-x-3 shrink-0">
+        <button type="button" onclick="closeDeployGroupModal()" class="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 rounded-xl transition-colors">取消</button>
+        <button type="button" onclick="saveDeployGroup()" class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors shadow-sm shadow-blue-500/20">保存</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =================================================================================== -->
+  <div id="modalDeployTarget" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
+    <div class="glass-card bg-[#181b22] border border-slate-700/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-200">
+      
+      <!-- 头部 -->
+      <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#14161d]/90 shrink-0">
+        <h3 id="deployTargetModalTitle" class="font-bold text-base text-white tracking-wide">新建部署目标</h3>
+        <button type="button" onclick="closeDeployTargetModal()" class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800/80">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 滚动表单主体 (完整覆盖截图 4 和截图 5 所有字段) -->
+      <div class="p-6 space-y-4 overflow-y-auto">
+        <input type="hidden" id="deployTargetEditId" value="">
+
+        <!-- 目标名 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">
+            <span class="text-rose-400 font-bold mr-1">*</span>目标名 (字母数字, _ -)
+          </label>
+          <input type="text" id="deployTargetName" placeholder="如 prod-web" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors">
+        </div>
+
+        <!-- 部署配方 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">
+            <span class="text-rose-400 font-bold mr-1">*</span>部署配方
+          </label>
+          <select id="deployTargetRecipe" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-colors">
+            <option value="" disabled selected>选一种部署方式</option>
+            <option value="docker-compose">docker-compose (Docker Compose 部署)</option>
+            <option value="static-nginx">static-nginx (前端静态站部署到 nginx)</option>
+            <option value="static-openresty">static-openresty (前端静态站增强到 OpenResty)</option>
+            <option value="node-pm2">node-pm2 (Node 后端用 pm2 部署)</option>
+            <option value="systemd-binary">systemd-binary (Java / Go 二进制用 systemd 部署)</option>
+            <option value="ipanel-app">ipanel-app (1panel 托管应用部署)</option>
+            <option value="custom-script">custom-script (兜底万能配方)</option>
+          </select>
+        </div>
+
+        <!-- 目标服务器 (别名; 可多选) -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">目标服务器 (别名; 可多选)</label>
+          <select id="deployTargetServer" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-colors">
+            <option value="" disabled selected>选择要部署到的服务器</option>
+            <option value="我的腾讯云0209">我的腾讯云0209 (111.231.166.192)</option>
+            <option value="我的阿里云白">我的阿里云白 (106.14.39.78)</option>
+            <option value="我的阿里云3045">我的阿里云3045 (8.145.62.223)</option>
+            <option value="我的香草云">我的香草云 (156.225.177.225:22000)</option>
+          </select>
+        </div>
+
+        <!-- 构建方式 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">构建方式</label>
+          <select id="deployTargetBuildType" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-colors">
+            <option value="recipe-default">(用配方默认)</option>
+            <option value="artifact">本机 artifact 构建</option>
+            <option value="remote-docker">远端镜像构建</option>
+            <option value="none">不构建直接部署</option>
+          </select>
+        </div>
+
+        <!-- 部署根目录 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">
+            <span class="text-rose-400 font-bold mr-1">*</span>部署根目录
+          </label>
+          <input type="text" id="deployTargetDeployDir" placeholder="/opt/reeve/apps/<appId>/... (禁止系统目录如 / /etc /opt)" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono">
+        </div>
+
+        <!-- 本机工作目录 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">本机工作目录 (构建 cwd; artifact 还作为本地产物目录的相对基准)</label>
+          <input type="text" id="deployTargetWorkDir" placeholder="如 C:/code/myapp 或 /home/me/myapp" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono">
+          <p class="text-[11px] text-slate-500">本地产物目录填绝对路径时可留空; 填相对路径时必须</p>
+        </div>
+
+        <!-- 本地构建命令 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">本地构建命令 (每行一条，按序在本机工作目录下执行; 留空 = 不构建)</label>
+          <textarea id="deployTargetBuildCmd" rows="3" placeholder="pnpm install&#10;pnpm build:prod" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono resize-none"></textarea>
+          <p class="text-[11px] text-slate-500">如 pnpm install / pnpm build:prod; 后端 mvn package + docker build，可写 cd 子目录 &amp;&amp; ...，失败即停。</p>
+        </div>
+
+        <!-- 智能跳过构建 Toggle 开关 (截图 4 底部) -->
+        <div class="py-1">
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-slate-300">智能跳过构建 (代码无改动且上次产物还在 -> 复用，不重新构建)</label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="deployTargetSmartSkip" checked class="sr-only peer">
+              <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+          <p class="text-[11px] text-slate-500 leading-relaxed">按 git 提交 + 工作区状态算指纹 (非 git 项目按文件 mtime)，并校验镜像/产物还在; 任何不确定都照常构建，绝不误跳。改了代码会自动重新构建。</p>
+        </div>
+
+        <!-- 本地产物目录 (截图 4 底部 & 截图 5) -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">
+            <span class="text-rose-400 font-bold mr-1">*</span>本地产物目录 (相对上面的工作目录，或绝对路径; 将打包上传)
+          </label>
+          <div class="relative">
+            <input type="text" id="deployTargetDistDir" value="dist" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 pr-9 text-xs text-white outline-none transition-colors font-mono">
+            <button type="button" onclick="document.getElementById('deployTargetDistDir').value=''" class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300 transition-colors">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 保留 release 份数 & 失败自动回滚 (截图 5 并排展示) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 py-1">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-slate-300">保留 release 份数</label>
+            <input type="number" id="deployTargetKeepReleases" value="5" min="1" max="20" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-colors font-mono">
+          </div>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium text-slate-300">失败自动回滚</label>
+            <div class="flex items-center justify-between pt-1">
+              <span class="text-[11px] text-slate-500">回滚到上一个 release 并重启服务</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="deployTargetAutoRollback" checked class="sr-only peer">
+                <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 共享文件 / 目录 -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">共享文件 / 目录 (每行一个，在各 release 间保持持久化)</label>
+          <textarea id="deployTargetSharedPaths" rows="2" placeholder="如 uploads&#10;.env&#10;config.yaml" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono resize-none"></textarea>
+        </div>
+
+        <!-- 关联域名 (可选) -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium text-slate-300">关联域名 (可选)</label>
+          <input type="text" id="deployTargetDomain" placeholder="如 api.example.com" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono">
+          <p class="text-[11px] text-slate-500">自动配置反代与证书 (若服务器支持并配置了网关)</p>
+        </div>
+
+      </div>
+
+      <!-- 底部操作栏 (左侧测试配置，右侧取消/保存) -->
+      <div class="px-6 py-3.5 border-t border-slate-800/80 bg-[#14161d]/90 flex items-center justify-between shrink-0">
+        <div>
+          <button type="button" onclick="testDeployTargetConfig()" class="px-3.5 py-2 text-xs font-medium text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl flex items-center space-x-1.5 transition-colors">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>测试配置</span>
+          </button>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button type="button" onclick="closeDeployTargetModal()" class="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 rounded-xl transition-colors">取消</button>
+          <button type="button" onclick="saveDeployTarget()" class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors shadow-sm shadow-blue-500/20">保存</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- =================================================================================== -->
   <div id="modalAddServer" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans animate-in fade-in duration-150">
     <!-- 弹窗主体卡片 (最大宽度 640px) -->
@@ -17224,6 +17489,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      renderDeployPage();
       safeRenderLucideIcons();
       switchTab('tab-servers');
       const savedSkin = localStorage.getItem('opspub_skin') || 'obsidian';
@@ -17235,6 +17501,665 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (typeof renderModelServicesList === 'function') renderModelServicesList();
       if (typeof renderBlacklistTable === 'function') renderBlacklistTable(1);
     });
+
+    
+    // =========================================================================
+    // 部署系统完整逻辑 (严格对齐截图 1-5 交互 + 增强新增与组联动)
+    // =========================================================================
+
+    // HTML 实体转义辅助函数 (避免 XSS 与未定义异常)
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // 默认部署目标列表 (与截图 1 中 remote_relay 和 remote_server 完全一致)
+    let deployTargetList = [
+      {
+        id: 'tgt-1',
+        name: 'remote_relay',
+        recipe: 'docker-compose',
+        server: '我的腾讯云0209',
+        deployDir: '/opt/reeve/stacks/remote_relay',
+        buildType: 'artifact',
+        strategy: 'symlink',
+        workDir: '',
+        buildCmd: 'pnpm install\npnpm build:prod',
+        smartSkip: true,
+        distDir: 'dist',
+        keepReleases: 5,
+        autoRollback: true,
+        sharedPaths: '',
+        domain: '',
+        status: 'ready',
+        lastDeployTime: '10 天前'
+      },
+      {
+        id: 'tgt-2',
+        name: 'remote_server',
+        recipe: 'docker-compose',
+        server: '我的香草云',
+        deployDir: '/opt/reeve/stacks/remote_server',
+        buildType: 'artifact',
+        strategy: 'symlink',
+        workDir: '',
+        buildCmd: '',
+        smartSkip: true,
+        distDir: 'dist',
+        keepReleases: 5,
+        autoRollback: true,
+        sharedPaths: '',
+        domain: '',
+        status: 'ready',
+        lastDeployTime: '2026-10-03'
+      }
+    ];
+
+    // 部署组列表 (初始为空，与截图 1 对应)
+    let deployGroupList = [];
+
+    // 当前新建部署组弹窗中已选加入的端列表 (按顺序)
+    let currentGroupSelectedTargets = [];
+
+    // 渲染部署主页面
+    function renderDeployPage() {
+      try {
+        // 1. 渲染目标卡片
+        const targetContainer = document.getElementById('deployTargetCardsContainer');
+        const targetCountBadge = document.getElementById('deployTargetCountBadge');
+        if (targetCountBadge) {
+          targetCountBadge.textContent = deployTargetList.length;
+        }
+
+        if (targetContainer) {
+          if (deployTargetList.length === 0) {
+            targetContainer.innerHTML = `
+              <div class="col-span-full py-10 text-center border border-dashed border-slate-800 rounded-2xl bg-[#12141a]/60">
+                <i data-lucide="rocket" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+                <div class="text-xs text-slate-400">暂无部署目标，请点击右上角「新建部署目标」</div>
+              </div>
+            `;
+          } else {
+            targetContainer.innerHTML = deployTargetList.map(tgt => {
+              const isDeploying = tgt.status === 'deploying';
+              return `
+                <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between transition-colors shadow-sm">
+                  <div>
+                    <!-- 顶部标题与配方标签 -->
+                    <div class="flex items-center justify-between mb-2.5">
+                      <div class="flex items-center space-x-2">
+                        <i data-lucide="rocket" class="w-4 h-4 text-blue-400"></i>
+                        <span class="text-sm font-bold text-white font-mono">${escapeHtml(tgt.name)}</span>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800/90 text-slate-300 border border-slate-700/60">${escapeHtml(tgt.recipe)}</span>
+                      </div>
+                    </div>
+
+                    <!-- 主机 -->
+                    <div class="flex items-center space-x-2 text-xs text-blue-400 mb-1.5">
+                      <i data-lucide="server" class="w-3.5 h-3.5"></i>
+                      <span class="hover:underline cursor-pointer font-medium">${escapeHtml(tgt.server || '未配置服务器')}</span>
+                    </div>
+
+                    <!-- 部署目录 -->
+                    <div class="flex items-center space-x-2 text-xs text-slate-400 font-mono mb-2 truncate" title="${escapeHtml(tgt.deployDir)}">
+                      <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400/90 shrink-0"></i>
+                      <span class="truncate">${escapeHtml(tgt.deployDir || '未配置目录')}</span>
+                    </div>
+
+                    <!-- 构建策略信息 -->
+                    <div class="text-[11px] text-slate-500 font-mono">
+                      构建: ${escapeHtml(tgt.buildType || 'artifact')} · 策略: ${escapeHtml(tgt.strategy || 'symlink')}
+                    </div>
+                  </div>
+
+                  <!-- 底部操作区 (截图 1) -->
+                  <div class="flex items-center justify-between pt-4 mt-3 border-t border-slate-800/60">
+                    <button type="button" onclick="triggerTargetDeploy('${tgt.id}')" ${isDeploying ? 'disabled' : ''} class="px-3.5 py-1.5 text-xs font-semibold rounded-xl flex items-center space-x-1.5 transition-colors shadow-sm ${isDeploying ? 'bg-blue-600/50 text-blue-200 cursor-wait' : 'bg-blue-600 hover:bg-blue-500 text-white'}">
+                      <i data-lucide="${isDeploying ? 'loader-2' : 'rocket'}" class="w-3.5 h-3.5 ${isDeploying ? 'animate-spin' : ''}"></i>
+                      <span>${isDeploying ? '部署中...' : '部署'}</span>
+                    </button>
+
+                    <div class="flex items-center space-x-1 text-slate-400">
+                      <button type="button" onclick="viewDeployLogs('${tgt.id}')" title="部署日志/历史" class="p-1.5 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                      </button>
+                      <button type="button" onclick="triggerTargetDeploy('${tgt.id}')" title="重新触发" class="p-1.5 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                      </button>
+                      <button type="button" onclick="openDeployTargetModal('${tgt.id}')" title="编辑部署目标" class="p-1.5 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                      </button>
+                      <button type="button" onclick="deleteDeployTarget('${tgt.id}')" title="删除部署目标" class="p-1.5 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+
+        // 2. 渲染部署组 (空状态或组卡片)
+        const groupContainer = document.getElementById('deployGroupContainer');
+        const groupCountBadge = document.getElementById('deployGroupCountBadge');
+        if (groupCountBadge) {
+          groupCountBadge.textContent = deployGroupList.length;
+        }
+
+        if (groupContainer) {
+          if (deployGroupList.length === 0) {
+            // 空状态 (完全对齐截图 1)
+            groupContainer.innerHTML = `
+              <div class="flex flex-col items-center justify-center py-12 px-4 rounded-2xl border border-dashed border-slate-800/90 bg-[#12141a]/40 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-slate-800/50 flex items-center justify-center text-slate-500 mb-3 border border-slate-700/40">
+                  <i data-lucide="layers" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-xs font-semibold text-slate-300 mb-1">还没有部署组</h4>
+                <p class="text-xs text-slate-500 max-w-sm mb-4">把前端、后端、移动端等部署目标编成一组，之后可以勾选其中几项一键部署。</p>
+                <button type="button" onclick="openDeployGroupModal()" class="px-4 py-1.5 text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700/80 rounded-xl flex items-center space-x-1.5 transition-colors shadow-sm">
+                  <i data-lucide="plus" class="w-3.5 h-3.5 text-blue-400"></i>
+                  <span>新建部署组</span>
+                </button>
+              </div>
+            `;
+          } else {
+            // 有部署组卡片
+            groupContainer.innerHTML = `
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${deployGroupList.map(grp => `
+                  <div class="bg-[#151821] border border-slate-800/90 hover:border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between shadow-sm transition-colors">
+                    <div>
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+                          <span class="text-sm font-bold text-white font-mono">${escapeHtml(grp.name)}</span>
+                        </div>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50">${grp.targets ? grp.targets.length : 0} 个目标</span>
+                      </div>
+                      ${grp.desc ? `<p class="text-xs text-slate-400 mb-3">${escapeHtml(grp.desc)}</p>` : ''}
+                      <div class="flex flex-wrap gap-1.5 mb-2">
+                        ${(grp.targets || []).map(tName => `<span class="px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 text-[11px] font-mono border border-slate-700/40">${escapeHtml(tName)}</span>`).join('')}
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-800/60 mt-2">
+                      <button type="button" onclick="triggerGroupDeploy('${grp.id}')" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 rounded-xl flex items-center space-x-1.5 transition-colors shadow-sm shadow-purple-500/20">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                        <span>一键组部署</span>
+                      </button>
+                      <button type="button" onclick="deleteDeployGroup('${grp.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 transition-colors">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+        }
+      } catch (err) {
+        console.error("renderDeployPage error:", err);
+      }
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    // 刷新部署页面
+    function refreshDeployPage() {
+      renderDeployPage();
+      showToast('部署目标与组状态已刷新', 'info');
+    }
+
+    // 触发单目标部署
+    function triggerTargetDeploy(id) {
+      const tgt = deployTargetList.find(t => t.id === id);
+      if (!tgt) return;
+      tgt.status = 'deploying';
+      renderDeployPage();
+      showToast(`正在部署 [${tgt.name}]...`, 'info');
+
+      setTimeout(() => {
+        tgt.status = 'ready';
+        tgt.lastDeployTime = '刚刚';
+        renderDeployPage();
+        showToast(`[${tgt.name}] 部署成功 (原子软链已切换)`, 'success');
+      }, 1500);
+    }
+
+    // 查看部署历史日志
+    function viewDeployLogs(id) {
+      const tgt = deployTargetList.find(t => t.id === id);
+      if (!tgt) return;
+      showToast(`正在查看 [${tgt.name}] 的部署日志...`, 'info');
+    }
+
+    // 删除部署目标
+    function deleteDeployTarget(id) {
+      const tgt = deployTargetList.find(t => t.id === id);
+      if (!tgt) return;
+      if (confirm(`确定要删除部署目标「${tgt.name}」吗？`)) {
+        deployTargetList = deployTargetList.filter(t => t.id !== id);
+        renderDeployPage();
+        showToast(`已删除部署目标「${tgt.name}」`, 'success');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 弹窗 1: 新建部署方案 (向导) 逻辑
+    // -------------------------------------------------------------------------
+    function openDeployWizardModal() {
+      const modal = document.getElementById('modalDeployWizard');
+      if (!modal) return;
+      document.getElementById('deployWizardPath').value = '';
+      document.getElementById('deployWizardSubmitBtn').disabled = true;
+      document.getElementById('deployWizardSubmitBtn').className = 'px-5 py-2 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700/50 rounded-xl transition-all cursor-not-allowed';
+      document.getElementById('deployWizardResult').innerHTML = `
+        <div class="flex items-center space-x-2 text-slate-400">
+          <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0"></i>
+          <span>输入或浏览项目根目录后点击「探测」，自动识别项目技术栈与结构。</span>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDeployWizardModal() {
+      const modal = document.getElementById('modalDeployWizard');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function mockBrowseDeployProject() {
+      const mockPaths = [
+        'D:/projects/ops-web-app',
+        'C:/workspace/ruoyi-vue-pro',
+        'E:/dev/spring-cloud-k8s'
+      ];
+      const selected = mockPaths[Math.floor(Math.random() * mockPaths.length)];
+      document.getElementById('deployWizardPath').value = selected;
+      mockDetectDeployProject();
+    }
+
+    function mockDetectDeployProject() {
+      const p = document.getElementById('deployWizardPath').value.trim();
+      if (!p) {
+        showToast('请先输入或选择项目目录', 'warning');
+        return;
+      }
+      const resContainer = document.getElementById('deployWizardResult');
+      resContainer.innerHTML = `
+        <div class="flex items-center space-x-2 text-blue-400 py-2">
+          <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+          <span>正在分析 ${escapeHtml(p)} 项目结构...</span>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+
+      setTimeout(() => {
+        resContainer.innerHTML = `
+          <div class="space-y-2">
+            <div class="flex items-center space-x-2 text-emerald-400 font-medium">
+              <i data-lucide="check-circle" class="w-4 h-4"></i>
+              <span>探测成功！识别到 2 个服务模块：</span>
+            </div>
+            <div class="space-y-1.5 pl-6 text-slate-300">
+              <div class="flex items-center space-x-2">
+                <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[11px]">前端</span>
+                <span>ops-web (Vue 3 + Vite, 产物 dist, 推荐配方: static-nginx)</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[11px]">后端</span>
+                <span>ops-api (Java Spring Boot, 产物 target/*.jar, 推荐配方: systemd-binary)</span>
+              </div>
+            </div>
+          </div>
+        `;
+        const submitBtn = document.getElementById('deployWizardSubmitBtn');
+        submitBtn.disabled = false;
+        submitBtn.className = 'px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-all shadow-sm shadow-blue-500/20';
+        if (window.lucide) lucide.createIcons();
+      }, 700);
+    }
+
+    function saveDeployWizard() {
+      const p = document.getElementById('deployWizardPath').value.trim() || 'D:/projects/ops-web-app';
+      const newTgt1 = {
+        id: 'tgt-' + Date.now() + '-1',
+        name: 'ops-web',
+        recipe: 'static-nginx',
+        server: '我的腾讯云0209',
+        deployDir: '/opt/reeve/apps/ops-web',
+        buildType: 'artifact',
+        strategy: 'symlink',
+        workDir: p + '/frontend',
+        buildCmd: 'pnpm install\npnpm build',
+        smartSkip: true,
+        distDir: 'dist',
+        keepReleases: 5,
+        autoRollback: true,
+        sharedPaths: '',
+        domain: 'web.ops.local',
+        status: 'ready',
+        lastDeployTime: '刚刚创建'
+      };
+      const newTgt2 = {
+        id: 'tgt-' + Date.now() + '-2',
+        name: 'ops-api',
+        recipe: 'systemd-binary',
+        server: '我的腾讯云0209',
+        deployDir: '/opt/reeve/apps/ops-api',
+        buildType: 'artifact',
+        strategy: 'symlink',
+        workDir: p + '/backend',
+        buildCmd: 'mvn clean package -DskipTests',
+        smartSkip: true,
+        distDir: 'target',
+        keepReleases: 5,
+        autoRollback: true,
+        sharedPaths: 'config.yml',
+        domain: 'api.ops.local',
+        status: 'ready',
+        lastDeployTime: '刚刚创建'
+      };
+
+      deployTargetList.push(newTgt1, newTgt2);
+      deployGroupList.push({
+        id: 'grp-' + Date.now(),
+        name: 'ops-fullstack',
+        desc: '全栈部署方案 (向导生成)',
+        stopOnFail: true,
+        targets: ['ops-web', 'ops-api']
+      });
+
+      renderDeployPage();
+      closeDeployWizardModal();
+      showToast('方案向导已成功生成部署目标与部署组！', 'success');
+    }
+
+    // -------------------------------------------------------------------------
+    // 弹窗 2: 新建部署组逻辑 (对齐截图 1: 组内端联动 + 候选端选择)
+    // -------------------------------------------------------------------------
+    function openDeployGroupModal() {
+      const modal = document.getElementById('modalDeployGroup');
+      if (!modal) return;
+      document.getElementById('deployGroupName').value = '';
+      document.getElementById('deployGroupDesc').value = '';
+      document.getElementById('deployGroupStopOnFail').checked = true;
+      currentGroupSelectedTargets = [];
+
+      renderGroupModalState();
+
+      modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDeployGroupModal() {
+      const modal = document.getElementById('modalDeployGroup');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // 渲染新建部署组弹窗内部的“组内端”和“可加入的目标”
+    function renderGroupModalState() {
+      const selectedNote = document.getElementById('deployGroupSelectedNote');
+      const selectedList = document.getElementById('deployGroupSelectedList');
+      const candidatesList = document.getElementById('deployGroupCandidatesList');
+      const orderBadge = document.getElementById('deployGroupOrderBadge');
+
+      if (!candidatesList) return;
+
+      // 1. 渲染组内端展示区
+      if (currentGroupSelectedTargets.length === 0) {
+        if (selectedNote) selectedNote.classList.remove('hidden');
+        if (selectedList) selectedList.innerHTML = '';
+        if (orderBadge) orderBadge.textContent = '';
+      } else {
+        if (selectedNote) selectedNote.classList.add('hidden');
+        if (orderBadge) orderBadge.textContent = `${currentGroupSelectedTargets.length} 个端`;
+        if (selectedList) {
+          selectedList.innerHTML = currentGroupSelectedTargets.map((name, idx) => {
+            const tgt = deployTargetList.find(t => t.name === name);
+            return `
+              <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#14161d] border border-blue-500/30 text-xs">
+                <div class="flex items-center space-x-2">
+                  <span class="w-4 h-4 rounded-full bg-blue-600/30 text-blue-400 text-[10px] flex items-center justify-center font-mono font-bold">${idx + 1}</span>
+                  <span class="font-bold text-white font-mono">${escapeHtml(name)}</span>
+                  <span class="text-slate-500">·</span>
+                  <span class="text-slate-400 font-mono text-[11px]">${tgt ? escapeHtml(tgt.recipe) : 'compose'}</span>
+                  <span class="text-slate-500">·</span>
+                  <span class="text-blue-400 text-[11px]">${tgt ? escapeHtml(tgt.server) : ''}</span>
+                </div>
+                <button type="button" onclick="toggleGroupCandidateTarget('${escapeHtml(name)}')" class="text-slate-400 hover:text-rose-400 p-1 transition-colors" title="移出组">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // 2. 渲染候选目标列表 (圆形单选/多选样式，与截图 1 对应)
+      if (deployTargetList.length === 0) {
+        candidatesList.innerHTML = `<div class="text-xs text-slate-500 py-2">暂无可用目标，请先创建部署目标</div>`;
+      } else {
+        candidatesList.innerHTML = deployTargetList.map(t => {
+          const isSelected = currentGroupSelectedTargets.includes(t.name);
+          return `
+            <div onclick="toggleGroupCandidateTarget('${escapeHtml(t.name)}')" class="flex items-center justify-between p-2.5 rounded-xl bg-[#12141a] border ${isSelected ? 'border-blue-500/50 bg-blue-500/5' : 'border-slate-800/80 hover:border-slate-700/80'} cursor-pointer transition-colors group">
+              <div class="flex items-center space-x-3 text-xs">
+                <!-- 圆形 Check 状态圈 (对齐截图 1 🔘 样式) -->
+                <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-600 bg-slate-800/80 group-hover:border-slate-500'}">
+                  ${isSelected ? '<i data-lucide="check" class="w-3 h-3 stroke-[3]"></i>' : ''}
+                </div>
+                <div class="flex items-center space-x-2 font-mono">
+                  <span class="font-bold ${isSelected ? 'text-blue-300' : 'text-white'}">${escapeHtml(t.name)}</span>
+                  <span class="text-slate-500">·</span>
+                  <span class="text-slate-400">${escapeHtml(t.recipe)}</span>
+                  <span class="text-slate-500">·</span>
+                  <span class="text-blue-400">${escapeHtml(t.server || '未配置服务器')}</span>
+                </div>
+              </div>
+              <span class="text-[11px] text-slate-500 font-sans group-hover:text-slate-300 transition-colors">
+                ${isSelected ? '已加入' : '点击加入'}
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 切换候选端加入或移出
+    function toggleGroupCandidateTarget(name) {
+      if (currentGroupSelectedTargets.includes(name)) {
+        currentGroupSelectedTargets = currentGroupSelectedTargets.filter(n => n !== name);
+      } else {
+        currentGroupSelectedTargets.push(name);
+      }
+      renderGroupModalState();
+    }
+
+    // 保存新建部署组
+    function saveDeployGroup() {
+      let name = document.getElementById('deployGroupName').value.trim();
+      const desc = document.getElementById('deployGroupDesc').value.trim();
+      const stopOnFail = document.getElementById('deployGroupStopOnFail').checked;
+
+      // 如果组名为空，自动使用占位符或智能生成
+      if (!name) {
+        if (currentGroupSelectedTargets.length > 0) {
+          name = currentGroupSelectedTargets[0] + '-group';
+        } else {
+          name = 'ruoyi-全栈';
+        }
+      }
+
+      const newGroup = {
+        id: 'grp-' + Date.now(),
+        name,
+        desc: desc || (currentGroupSelectedTargets.length > 0 ? currentGroupSelectedTargets.join(' + ') : '全栈部署组'),
+        stopOnFail,
+        targets: currentGroupSelectedTargets.length > 0 ? [...currentGroupSelectedTargets] : (deployTargetList.length > 0 ? [deployTargetList[0].name] : [])
+      };
+
+      deployGroupList.push(newGroup);
+      renderDeployPage();
+      closeDeployGroupModal();
+      showToast(`部署组「${name}」已创建`, 'success');
+    }
+
+    function triggerGroupDeploy(id) {
+      const grp = deployGroupList.find(g => g.id === id);
+      if (!grp) return;
+      showToast(`正在触发部署组 [${grp.name}] 批量部署...`, 'info');
+      setTimeout(() => {
+        showToast(`部署组 [${grp.name}] 全部 ${grp.targets.length} 个端执行完成！`, 'success');
+      }, 1800);
+    }
+
+    function deleteDeployGroup(id) {
+      const grp = deployGroupList.find(g => g.id === id);
+      if (!grp) return;
+      if (confirm(`确定要删除部署组「${grp.name}」吗？`)) {
+        deployGroupList = deployGroupList.filter(g => g.id !== id);
+        renderDeployPage();
+        showToast(`已删除部署组「${grp.name}」`, 'success');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 弹窗 3: 新建/编辑部署目标逻辑 (对齐截图 4 & 截图 5)
+    // -------------------------------------------------------------------------
+    function openDeployTargetModal(id) {
+      const modal = document.getElementById('modalDeployTarget');
+      if (!modal) return;
+      const titleEl = document.getElementById('deployTargetModalTitle');
+      const editIdEl = document.getElementById('deployTargetEditId');
+
+      if (id) {
+        const tgt = deployTargetList.find(t => t.id === id);
+        if (!tgt) return;
+        titleEl.textContent = '编辑部署目标';
+        editIdEl.value = tgt.id;
+        document.getElementById('deployTargetName').value = tgt.name || '';
+        document.getElementById('deployTargetRecipe').value = tgt.recipe || '';
+        document.getElementById('deployTargetServer').value = tgt.server || '';
+        document.getElementById('deployTargetBuildType').value = tgt.buildType || 'recipe-default';
+        document.getElementById('deployTargetDeployDir').value = tgt.deployDir || '';
+        document.getElementById('deployTargetWorkDir').value = tgt.workDir || '';
+        document.getElementById('deployTargetBuildCmd').value = tgt.buildCmd || '';
+        document.getElementById('deployTargetSmartSkip').checked = tgt.smartSkip !== false;
+        document.getElementById('deployTargetDistDir').value = tgt.distDir || 'dist';
+        document.getElementById('deployTargetKeepReleases').value = tgt.keepReleases || 5;
+        document.getElementById('deployTargetAutoRollback').checked = tgt.autoRollback !== false;
+        document.getElementById('deployTargetSharedPaths').value = tgt.sharedPaths || '';
+        document.getElementById('deployTargetDomain').value = tgt.domain || '';
+      } else {
+        titleEl.textContent = '新建部署目标';
+        editIdEl.value = '';
+        document.getElementById('deployTargetName').value = '';
+        document.getElementById('deployTargetRecipe').value = 'docker-compose';
+        document.getElementById('deployTargetServer').value = '我的腾讯云0209';
+        document.getElementById('deployTargetBuildType').value = 'recipe-default';
+        document.getElementById('deployTargetDeployDir').value = '/opt/reeve/stacks/prod-app';
+        document.getElementById('deployTargetWorkDir').value = '';
+        document.getElementById('deployTargetBuildCmd').value = 'pnpm install\npnpm build:prod';
+        document.getElementById('deployTargetSmartSkip').checked = true;
+        document.getElementById('deployTargetDistDir').value = 'dist';
+        document.getElementById('deployTargetKeepReleases').value = '5';
+        document.getElementById('deployTargetAutoRollback').checked = true;
+        document.getElementById('deployTargetSharedPaths').value = '';
+        document.getElementById('deployTargetDomain').value = '';
+      }
+
+      modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDeployTargetModal() {
+      const modal = document.getElementById('modalDeployTarget');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function testDeployTargetConfig() {
+      showToast('正在探测目标服务器环境与 SSH 连接...', 'info');
+      setTimeout(() => {
+        showToast('测试连接成功！目标服务器环境正常，权限符合部署要求。', 'success');
+      }, 1000);
+    }
+
+    function saveDeployTarget() {
+      const editId = document.getElementById('deployTargetEditId').value;
+      let name = document.getElementById('deployTargetName').value.trim();
+      if (!name) {
+        name = 'prod-web-' + (deployTargetList.length + 1);
+      }
+      const recipe = document.getElementById('deployTargetRecipe').value || 'docker-compose';
+      const server = document.getElementById('deployTargetServer').value || '我的腾讯云0209';
+      const buildType = document.getElementById('deployTargetBuildType').value;
+      const deployDir = document.getElementById('deployTargetDeployDir').value.trim() || `/opt/reeve/stacks/${name}`;
+      const workDir = document.getElementById('deployTargetWorkDir').value.trim();
+      const buildCmd = document.getElementById('deployTargetBuildCmd').value.trim();
+      const smartSkip = document.getElementById('deployTargetSmartSkip').checked;
+      const distDir = document.getElementById('deployTargetDistDir').value.trim() || 'dist';
+      const keepReleases = parseInt(document.getElementById('deployTargetKeepReleases').value) || 5;
+      const autoRollback = document.getElementById('deployTargetAutoRollback').checked;
+      const sharedPaths = document.getElementById('deployTargetSharedPaths').value.trim();
+      const domain = document.getElementById('deployTargetDomain').value.trim();
+
+      if (editId) {
+        const tgt = deployTargetList.find(t => t.id === editId);
+        if (tgt) {
+          tgt.name = name;
+          tgt.recipe = recipe;
+          tgt.server = server;
+          tgt.buildType = buildType === 'recipe-default' ? 'artifact' : buildType;
+          tgt.strategy = 'symlink';
+          tgt.deployDir = deployDir;
+          tgt.workDir = workDir;
+          tgt.buildCmd = buildCmd;
+          tgt.smartSkip = smartSkip;
+          tgt.distDir = distDir;
+          tgt.keepReleases = keepReleases;
+          tgt.autoRollback = autoRollback;
+          tgt.sharedPaths = sharedPaths;
+          tgt.domain = domain;
+          showToast(`部署目标「${name}」已更新`, 'success');
+        }
+      } else {
+        const newTgt = {
+          id: 'tgt-' + Date.now(),
+          name,
+          recipe,
+          server,
+          buildType: buildType === 'recipe-default' ? 'artifact' : buildType,
+          strategy: 'symlink',
+          deployDir: deployDir,
+          workDir,
+          buildCmd,
+          smartSkip,
+          distDir,
+          keepReleases,
+          autoRollback,
+          sharedPaths,
+          domain,
+          status: 'ready',
+          lastDeployTime: '刚刚创建'
+        };
+        deployTargetList.push(newTgt);
+        showToast(`部署目标「${name}」已创建`, 'success');
+      }
+
+      renderDeployPage();
+      closeDeployTargetModal();
+    }
+
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -17302,6 +18227,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       if (tabId === 'tab-alerts' && typeof renderAlertRulesTable === 'function') {
         renderAlertRulesTable();
       }
+      if (tabId === 'tab-deploy' || tabId === 'deploy') renderDeployPage();
       lucide.createIcons();
     }
 

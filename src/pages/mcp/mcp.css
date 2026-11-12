@@ -280,6 +280,11 @@
   gap: 5px;
   overflow-wrap: anywhere;
 }
+.mcp-token-id {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
 .mcp-token-name {
   display: flex;
   align-items: center;

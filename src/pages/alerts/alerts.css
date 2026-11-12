@@ -1,4 +1,5 @@
-.alerts-page { color: var(--text-primary); font-size: 14px; line-height: 1.55; }
+.alerts-page { color: var(--text-primary); font-family: var(--font-rounded-ui); font-size: 14px; line-height: 1.55; }
+.alerts-page button, .alerts-page input, .alerts-page textarea, .alerts-page .ant-select, .alerts-page .ant-table, .alerts-page .ant-empty { font-family: var(--font-rounded-ui); }
 .alert-tab { display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 8px; padding: 7px 11px; color: var(--text-secondary); background: transparent; cursor: pointer; font: inherit; }
 .alert-tab:hover { color: var(--text-primary); background: var(--surface-850); }
 .alert-tab.active { color: #fff; background: var(--accent); box-shadow: var(--shadow-sm); }

@@ -9,8 +9,23 @@ export type AlertSeverity = "critical" | "warning" | "info";
 export type AlertMetric = "disk" | "memory" | "public-listen" | "docker-oom";
 export type AlertOperator = ">" | ">=" | "<" | "<=";
 export type AlertEventStatus = "active" | "silenced" | "resolved";
-export type AlertChannelKind = "local" | "feishu" | "wecom" | "custom";
+export type AlertChannelKind = "local" | "feishu" | "wecom" | "custom" | "email";
 export type RemoteAlertChannelKind = Exclude<AlertChannelKind, "local">;
+
+export type AlertEmailEncryption = "starttls" | "tls" | "none";
+
+export interface AlertEmailConfig {
+  host: string;
+  port: number;
+  encryption: AlertEmailEncryption;
+  username: string;
+  /** 仅用于保存/更新；后端不会返回密码。 */
+  password?: string;
+  from: string;
+  to: string;
+}
+
+export type AlertEmailPublicConfig = Omit<AlertEmailConfig, "password">;
 
 export interface AlertChannel {
   id: string;
@@ -64,6 +79,7 @@ export const DEFAULT_ALERT_CHANNELS: AlertChannel[] = [
   { id: "feishu", name: "飞书群机器人", kind: "feishu", enabled: true },
   { id: "wecom", name: "企业微信机器人", kind: "wecom", enabled: true },
   { id: "custom", name: "自定义 HTTP Webhook", kind: "custom", enabled: false },
+  { id: "email", name: "Email 通知", kind: "email", enabled: false },
 ];
 
 function parseArray<T>(value: string | null, fallback: T[]): T[] {
@@ -88,6 +104,8 @@ export const alertsApi = {
   getWebhookStatus: () => invoke<boolean>("get_alert_webhook_status"),
   deleteWebhookUrl: () => invoke<void>("delete_alert_webhook_url"),
   saveChannelUrl: (channel: RemoteAlertChannelKind, url: string) => invoke<void>("save_alert_channel_url", { channel, url }),
+  saveEmailConfig: (config: AlertEmailConfig) => invoke<void>("save_alert_email_config", { ...config }),
+  getEmailConfig: () => invoke<AlertEmailPublicConfig | null>("get_alert_email_config"),
   getChannelStatus: (channel: RemoteAlertChannelKind) => invoke<boolean>("get_alert_channel_status", { channel }),
   deleteChannelUrl: (channel: RemoteAlertChannelKind) => invoke<void>("delete_alert_channel_url", { channel }),
   sendChannel: (channel: RemoteAlertChannelKind, title: string, body: string) => invoke<void>("send_alert_channel", { channel, title, body }),

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Checkbox, Drawer, Empty, Input, InputNumber, Modal, Select, Segmented, Switch, Table, Tag, message } from "antd";
-import { Activity, Bell, BellRing, Check, CheckCircle2, ExternalLink, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Siren, Trash2, VolumeX } from "lucide-react";
+import { Activity, Bell, BellRing, Check, CheckCircle2, ExternalLink, Mail, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Siren, Trash2, VolumeX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { alertsApi, DEFAULT_ALERT_CHANNELS, DEFAULT_ALERT_RULES, type AlertChannel, type AlertEvent, type AlertMetric, type AlertOperator, type AlertRule, type AlertSeverity } from "@/lib/api/alerts";
+import { alertsApi, DEFAULT_ALERT_CHANNELS, DEFAULT_ALERT_RULES, type AlertChannel, type AlertEmailConfig, type AlertEmailEncryption, type AlertEvent, type AlertMetric, type AlertOperator, type AlertRule, type AlertSeverity, type RemoteAlertChannelKind } from "@/lib/api/alerts";
 import { getErrorMessage } from "@/lib/api/client";
 import { inspectionApi } from "@/lib/api/inspection";
 import { serverApi } from "@/lib/api/server";
+import { useAppStore } from "@/store/app";
 import type { Server } from "@/types";
 import "./alerts.css";
 
@@ -55,6 +56,7 @@ function recommendation(metric: AlertMetric) {
 
 export default function AlertsPage() {
   const navigate = useNavigate();
+  const setActiveAlertCount = useAppStore((state) => state.setActiveAlertCount);
   const [tab, setTab] = useState<Tab>("events");
   const [servers, setServers] = useState<Server[]>([]);
   const [rules, setRules] = useState<AlertRule[]>(DEFAULT_ALERT_RULES);
@@ -76,8 +78,9 @@ export default function AlertsPage() {
   const [intervalMinutes, setIntervalMinutes] = useState(5);
   const [channels, setChannels] = useState<AlertChannel[]>(DEFAULT_ALERT_CHANNELS);
   const [channelStatuses, setChannelStatuses] = useState<Record<string, boolean>>({});
-  const [channelDrawerKind, setChannelDrawerKind] = useState<"feishu" | "wecom" | "custom" | null>(null);
+  const [channelDrawerKind, setChannelDrawerKind] = useState<"feishu" | "wecom" | "custom" | "email" | null>(null);
   const [channelUrl, setChannelUrl] = useState("");
+  const [emailConfig, setEmailConfig] = useState<AlertEmailConfig>({ host: "", port: 587, encryption: "starttls", username: "", password: "", from: "", to: "" });
   const [channelSaving, setChannelSaving] = useState(false);
   const checkLock = useRef(false);
 
@@ -97,7 +100,7 @@ export default function AlertsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const remoteKinds = ["feishu", "wecom", "custom"] as const;
+      const remoteKinds = ["feishu", "wecom", "custom", "email"] as const;
       const [serverList, savedRules, savedEvents, savedChannels, statuses] = await Promise.all([
         serverApi.list(),
         alertsApi.getRules(),
@@ -108,6 +111,7 @@ export default function AlertsPage() {
       setServers(serverList);
       setRules(savedRules);
       setEvents(savedEvents);
+      setActiveAlertCount(savedEvents.filter((event) => event.status !== "resolved").length);
       setChannels(DEFAULT_ALERT_CHANNELS.map((item) => savedChannels.find((saved) => saved.id === item.id) ?? item));
       setChannelStatuses(Object.fromEntries(statuses));
     } catch (error) {
@@ -121,6 +125,7 @@ export default function AlertsPage() {
 
   const persistEvents = async (next: AlertEvent[]) => {
     setEvents(next);
+    setActiveAlertCount(next.filter((event) => event.status !== "resolved").length);
     try { await alertsApi.saveEvents(next); }
     catch (error) { message.error(getErrorMessage(error)); }
   };
@@ -199,7 +204,7 @@ export default function AlertsPage() {
         message.info(`${title}。请在告警事件中查看详情。`);
       }
       const targets = channels.filter((channel) => channel.enabled && channel.kind !== "local" && channelStatuses[channel.kind]);
-      const results = await Promise.allSettled(targets.map((channel) => alertsApi.sendChannel(channel.kind as "feishu" | "wecom" | "custom", title, body)));
+      const results = await Promise.allSettled(targets.map((channel) => alertsApi.sendChannel(channel.kind as RemoteAlertChannelKind, title, body)));
       if (results.some((result) => result.status === "rejected")) {
         message.warning("告警已记录，但至少一个通知渠道发送失败，请检查渠道配置。");
       }
@@ -269,19 +274,34 @@ export default function AlertsPage() {
     void saveChannels(channels.map((item) => item.id === channel.id ? { ...item, enabled } : item));
   };
 
-  const openChannelDrawer = (kind: "feishu" | "wecom" | "custom") => {
+  const openChannelDrawer = async (kind: "feishu" | "wecom" | "custom" | "email") => {
     setChannelDrawerKind(kind);
     setChannelUrl("");
+    setEmailConfig({ host: "", port: 587, encryption: "starttls", username: "", password: "", from: "", to: "" });
+    if (kind === "email") {
+      try {
+        const saved = await alertsApi.getEmailConfig();
+        if (saved) setEmailConfig({ ...saved, password: "" });
+      } catch (error) {
+        message.error(getErrorMessage(error));
+      }
+    }
   };
 
   const saveChannel = async () => {
-    if (!channelDrawerKind || !channelUrl.trim()) {
+    if (!channelDrawerKind) return;
+    if (channelDrawerKind === "email" && (!emailConfig.host.trim() || !emailConfig.username.trim() || !emailConfig.from.trim() || !emailConfig.to.trim())) {
+      message.warning("请完整填写 SMTP 服务器、账号、发件人和收件人");
+      return;
+    }
+    if (channelDrawerKind !== "email" && !channelUrl.trim()) {
       message.warning("请输入通知渠道地址");
       return;
     }
     setChannelSaving(true);
     try {
-      await alertsApi.saveChannelUrl(channelDrawerKind, channelUrl.trim());
+      if (channelDrawerKind === "email") await alertsApi.saveEmailConfig(emailConfig);
+      else await alertsApi.saveChannelUrl(channelDrawerKind, channelUrl.trim());
       setChannelStatuses((current) => ({ ...current, [channelDrawerKind]: true }));
       await saveChannels(channels.map((item) => item.kind === channelDrawerKind ? { ...item, enabled: true } : item));
       setChannelDrawerKind(null);
@@ -294,9 +314,9 @@ export default function AlertsPage() {
     }
   };
 
-  const testChannel = async (kind: "feishu" | "wecom" | "custom") => {
+  const testChannel = async (kind: "feishu" | "wecom" | "custom" | "email") => {
     if (!channelStatuses[kind]) {
-      openChannelDrawer(kind);
+      void openChannelDrawer(kind);
       return;
     }
     setChannelSaving(true);
@@ -310,7 +330,7 @@ export default function AlertsPage() {
     }
   };
 
-  const deleteChannel = (kind: "feishu" | "wecom" | "custom") => {
+  const deleteChannel = (kind: "feishu" | "wecom" | "custom" | "email") => {
     Modal.confirm({
       title: "删除通知渠道配置？",
       content: "删除后该渠道不会再收到新告警，历史事件仍会保留。",
@@ -335,6 +355,7 @@ export default function AlertsPage() {
     feishu: { title: "飞书群机器人", description: "发送交互卡片，适合团队群内接收告警。", color: "blue", icon: <Send size={16} /> },
     wecom: { title: "企业微信机器人", description: "发送 Markdown 群聊通知，保留严重级别与来源。", color: "emerald", icon: <Bell size={16} /> },
     custom: { title: "自定义 HTTP Webhook", description: "发送 title、body、source 标准 JSON 到自建接收端。", color: "purple", icon: <Settings2 size={16} /> },
+    email: { title: "邮箱通知（SMTP）", description: "通过 SMTP 将告警发送到指定邮箱。支持 STARTTLS 与 TLS，SMTP 密码存放在系统凭据管理器。", color: "blue", icon: <Mail size={16} /> },
   };
 
   const ruleColumns = [
@@ -374,11 +395,21 @@ export default function AlertsPage() {
       const meta = channelMeta[channel.kind];
       const remote = channel.kind !== "local";
       const configured = channel.kind === "local" || Boolean(channelStatuses[channel.kind]);
-      return <ChannelCard key={channel.id} icon={meta.icon} title={meta.title} status={configured ? (channel.enabled ? "已启用" : "已暂停") : "未配置"} color={meta.color} description={meta.description} action={<div className="flex flex-wrap items-center justify-between gap-2"><Switch size="small" checked={channel.enabled} disabled={remote && !configured} onChange={(enabled) => toggleChannel(channel, enabled)} /><div className="flex flex-wrap gap-2">{!remote && <Button size="small" onClick={() => message.info("OpsPub 测试通知：告警事件会显示在本机应用内。")}>发送测试</Button>}{remote && <Button size="small" icon={<Settings2 size={13} />} onClick={() => openChannelDrawer(channel.kind as "feishu" | "wecom" | "custom")}>{configured ? "修改配置" : "配置地址"}</Button>}{remote && <Button size="small" disabled={!configured} loading={channelSaving} onClick={() => void testChannel(channel.kind as "feishu" | "wecom" | "custom")}>发送测试</Button>}{remote && configured && <Button size="small" danger type="text" icon={<Trash2 size={13} />} onClick={() => deleteChannel(channel.kind as "feishu" | "wecom" | "custom")} aria-label="删除渠道配置" />}</div></div>} />;
+      return <ChannelCard key={channel.id} icon={meta.icon} title={meta.title} status={configured ? (channel.enabled ? "已启用" : "已暂停") : "未配置"} color={meta.color} description={meta.description} action={<div className="flex flex-wrap items-center justify-between gap-2"><Switch size="small" checked={channel.enabled} disabled={remote && !configured} onChange={(enabled) => toggleChannel(channel, enabled)} /><div className="flex flex-wrap gap-2">{!remote && <Button size="small" onClick={() => message.info("OpsPub 测试通知：告警事件会显示在本机应用内。")}>发送测试</Button>}{remote && <Button size="small" icon={<Settings2 size={13} />} onClick={() => void openChannelDrawer(channel.kind as RemoteAlertChannelKind)}>{configured ? "修改配置" : "配置地址"}</Button>}{remote && <Button size="small" disabled={!configured} loading={channelSaving} onClick={() => void testChannel(channel.kind as RemoteAlertChannelKind)}>发送测试</Button>}{remote && configured && <Button size="small" danger type="text" icon={<Trash2 size={13} />} onClick={() => deleteChannel(channel.kind as RemoteAlertChannelKind)} aria-label="删除渠道配置" />}</div></div>} />;
     })}</div><Alert className="mt-3" type="info" showIcon message="告警只在检查发现新触发或静音到期后发送一次；启用的已配置渠道会同时收到通知。" /></div>}
 
     <Drawer title={editing ? "编辑告警规则" : "新建告警规则"} open={drawerOpen} onClose={() => setDrawerOpen(false)} width={480} maskClosable={false} extra={<Button type="primary" loading={saving} onClick={() => void submitRule()}>保存规则</Button>}><div className="flex flex-col gap-4"><label className="alert-form-field">规则名称<Input value={draft.name} maxLength={80} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} placeholder="例如：生产主机根分区水位" /></label><label className="alert-form-field">监控指标<Select value={draft.metric} onChange={(metric) => setDraft((value) => ({ ...value, metric }))} options={Object.entries(metricLabel).map(([value, label]) => ({ value, label }))} /></label>{draft.metric !== "public-listen" && <div className="grid grid-cols-[120px_1fr] gap-3"><label className="alert-form-field">比较符<Select value={draft.operator} onChange={(operator) => setDraft((value) => ({ ...value, operator }))} options={Object.entries(operatorLabel).map(([value, label]) => ({ value, label }))} /></label><label className="alert-form-field">阈值{draft.metric === "disk" || draft.metric === "memory" ? " (%)" : ""}<InputNumber min={0} max={100} value={draft.threshold} onChange={(threshold) => setDraft((value) => ({ ...value, threshold: threshold ?? 0 }))} className="w-full" /></label></div>}<label className="alert-form-field">告警级别<Select value={draft.severity} onChange={(severity) => setDraft((value) => ({ ...value, severity }))} options={Object.entries(severityLabel).map(([value, label]) => ({ value, label }))} /></label><label className="alert-form-field">生效服务器<Select value={draft.target} onChange={(target) => setDraft((value) => ({ ...value, target }))} options={[{ value: "all", label: "全部 Linux 主机" }, { value: "favorites", label: "收藏的 Linux 主机" }]} /></label><Checkbox checked={draft.enabled} onChange={(event) => setDraft((value) => ({ ...value, enabled: event.target.checked }))}>启用此规则</Checkbox><Alert type="info" showIcon message="告警只提供诊断建议，不会自动执行修复命令。" /></div></Drawer>
-    <Drawer title={channelDrawerKind ? `配置${channelMeta[channelDrawerKind].title}` : "配置通知渠道"} open={Boolean(channelDrawerKind)} onClose={() => setChannelDrawerKind(null)} width={440} maskClosable={false} extra={<Button type="primary" loading={channelSaving} onClick={() => void saveChannel()}>保存配置</Button>}><div className="flex flex-col gap-4"><label className="alert-form-field">Webhook 地址<Input value={channelUrl} onChange={(event) => setChannelUrl(event.target.value)} placeholder={channelDrawerKind === "feishu" ? "https://open.feishu.cn/open-apis/bot/v2/hook/..." : channelDrawerKind === "wecom" ? "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." : "https://example.com/hooks/..."} autoComplete="off" /></label><Alert type="info" showIcon message="地址保存在系统凭据管理器。飞书和企业微信会分别发送原生卡片或 Markdown 格式；自定义渠道发送标准 JSON。" /><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-emerald-400" />请求体不会包含服务器密码。</div></div></Drawer>
+    <Drawer title={channelDrawerKind ? `配置${channelMeta[channelDrawerKind].title}` : "配置通知渠道"} open={Boolean(channelDrawerKind)} onClose={() => setChannelDrawerKind(null)} width={480} maskClosable={false} extra={<Button type="primary" loading={channelSaving} onClick={() => void saveChannel()}>保存配置</Button>}>
+      {channelDrawerKind === "email" ? <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-[1fr_120px] gap-3"><label className="alert-form-field">SMTP 服务器<Input value={emailConfig.host} onChange={(event) => setEmailConfig((current) => ({ ...current, host: event.target.value }))} placeholder="smtp.example.com" autoComplete="off" /></label><label className="alert-form-field">端口<Input type="number" min={1} max={65535} value={emailConfig.port} onChange={(event) => setEmailConfig((current) => ({ ...current, port: Number(event.target.value) || 0 }))} /></label></div>
+        <label className="alert-form-field">加密方式<Select value={emailConfig.encryption} onChange={(value: AlertEmailEncryption) => setEmailConfig((current) => ({ ...current, encryption: value }))} options={[{ label: "STARTTLS（推荐，587）", value: "starttls" }, { label: "TLS（465）", value: "tls" }, { label: "无加密（不推荐）", value: "none" }]} /></label>
+        <label className="alert-form-field">SMTP 用户名<Input value={emailConfig.username} onChange={(event) => setEmailConfig((current) => ({ ...current, username: event.target.value }))} placeholder="通常是完整邮箱地址" autoComplete="username" /></label>
+        <label className="alert-form-field">SMTP 密码<Input.Password value={emailConfig.password} onChange={(event) => setEmailConfig((current) => ({ ...current, password: event.target.value }))} placeholder="编辑已有配置时留空则保留原密码" autoComplete="new-password" /></label>
+        <label className="alert-form-field">发件人地址<Input value={emailConfig.from} onChange={(event) => setEmailConfig((current) => ({ ...current, from: event.target.value }))} placeholder="ops@example.com" autoComplete="email" /></label>
+        <label className="alert-form-field">收件人地址<Input value={emailConfig.to} onChange={(event) => setEmailConfig((current) => ({ ...current, to: event.target.value }))} placeholder="admin@example.com" autoComplete="email" /></label>
+        <Alert type="info" showIcon message="SMTP 密码仅保存到系统凭据管理器，不会写入数据库、告警历史或日志。保存后可点击“发送测试”验证配置。" />
+      </div> : <div className="flex flex-col gap-4"><label className="alert-form-field">Webhook 地址<Input value={channelUrl} onChange={(event) => setChannelUrl(event.target.value)} placeholder={channelDrawerKind === "feishu" ? "https://open.feishu.cn/open-apis/bot/v2/hook/..." : channelDrawerKind === "wecom" ? "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." : "https://example.com/hooks/..."} autoComplete="off" /></label><Alert type="info" showIcon message="地址保存在系统凭据管理器。飞书和企业微信会分别发送原生卡片或 Markdown 格式；自定义渠道发送标准 JSON。" /><div className="flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 size={14} className="text-emerald-400" />请求体不会包含服务器密码。</div></div>}
+    </Drawer>
   </main>;
 }
 

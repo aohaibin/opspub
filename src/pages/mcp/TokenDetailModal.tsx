@@ -127,9 +127,9 @@ export function TokenDetailModal({
             ]}
           />
           <Alert
-            type="info"
+            type={result?.toolCallVerified ? "success" : "info"}
             showIcon
-            title="测试仅检查本机认证、协议握手和工具范围，不执行远程操作。"
+            title={result?.toolCallVerified ? `本地工具调用已验证：${result.testedTool}` : "测试不连接远程服务器。具备本地探针授权时会执行真实 MCP 工具调用。"}
           />
           {!running && (
             <Alert type="warning" showIcon title="请先启动 MCP 端点再测试。" />
@@ -144,7 +144,7 @@ export function TokenDetailModal({
           )}
           {result && (
             <Alert
-              type="success"
+              type={result.toolCallVerified ? "success" : "warning"}
               showIcon
               title={`授权检查通过 · ${result.latencyMs} ms`}
               description={

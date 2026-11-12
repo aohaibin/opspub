@@ -1,5 +1,32 @@
 use crate::error::CommandError;
-use crate::services::alerts::AlertService;
+use crate::services::alerts::{AlertEmailConfig, AlertEmailPublicConfig, AlertService};
+
+#[tauri::command]
+pub fn get_alert_email_config() -> Result<Option<AlertEmailPublicConfig>, CommandError> {
+    AlertService::get_email_config().map_err(CommandError::from)
+}
+
+#[tauri::command]
+pub fn save_alert_email_config(
+    host: String,
+    port: u16,
+    encryption: String,
+    username: String,
+    password: String,
+    from: String,
+    to: String,
+) -> Result<(), CommandError> {
+    AlertService::save_email_config(AlertEmailConfig {
+        host,
+        port,
+        encryption,
+        username,
+        password,
+        from,
+        to,
+    })
+    .map_err(CommandError::from)
+}
 
 #[tauri::command]
 pub fn save_alert_channel_url(channel: String, url: String) -> Result<(), CommandError> {
@@ -22,13 +49,15 @@ pub async fn send_alert_channel(
     title: String,
     body: String,
 ) -> Result<(), CommandError> {
-    tauri::async_runtime::spawn_blocking(move || AlertService::send_channel(&channel, &title, &body))
-        .await
-        .map_err(|error| CommandError {
-            code: "INTERNAL".into(),
-            message: format!("通知任务异常终止: {error}"),
-        })?
-        .map_err(CommandError::from)
+    tauri::async_runtime::spawn_blocking(move || {
+        AlertService::send_channel(&channel, &title, &body)
+    })
+    .await
+    .map_err(|error| CommandError {
+        code: "INTERNAL".into(),
+        message: format!("通知任务异常终止: {error}"),
+    })?
+    .map_err(CommandError::from)
 }
 
 // Compatibility commands used by older frontend bundles.

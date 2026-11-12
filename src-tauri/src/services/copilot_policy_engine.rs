@@ -30,6 +30,10 @@ pub fn assess_shell_command(command: &str) -> RiskAssessment {
         return assessment(RiskLevel::Extreme, "命中不可审批的极高危命令", false);
     }
 
+    if is_controlled_readonly(trimmed) {
+        return assessment(RiskLevel::LowReadOnly, "命中受控只读命令模板", false);
+    }
+
     if contains_any(
         trimmed,
         &[
@@ -67,28 +71,16 @@ pub fn assess_shell_command(command: &str) -> RiskAssessment {
         return assessment(RiskLevel::High, "目标涉及凭据或系统安全配置", true);
     }
 
-    if contains_any(
-        trimmed,
-        &[
-            "sed -i",
-            "rm ",
-            "rmdir ",
-            "chmod ",
-            "chown ",
-            "mv ",
-            "install ",
-            "systemctl restart",
-            "systemctl stop",
-            "systemctl start",
-            "reboot",
-            "shutdown",
-        ],
-    ) {
+    if matches_systemctl_mutation(trimmed)
+        || contains_any(
+            trimmed,
+            &[
+                "sed -i", "rm ", "rmdir ", "chmod ", "chown ", "mv ", "install ", "reboot",
+                "shutdown",
+            ],
+        )
+    {
         return assessment(RiskLevel::Medium, "检测到会改变服务器状态的操作", true);
-    }
-
-    if is_controlled_readonly(trimmed) {
-        return assessment(RiskLevel::LowReadOnly, "命中受控只读命令模板", false);
     }
 
     assessment(
@@ -96,6 +88,13 @@ pub fn assess_shell_command(command: &str) -> RiskAssessment {
         "命令不在受控只读模板中或无法安全解析",
         true,
     )
+}
+
+fn matches_systemctl_mutation(command: &str) -> bool {
+    let tokens = command.split_whitespace().collect::<Vec<_>>();
+    matches!(tokens.as_slice(), ["systemctl", action, service]
+        if matches!(*action, "start" | "stop" | "restart" | "reload")
+            && valid_service_identifier(service))
 }
 
 /// Applies persisted policy rules after the built-in static checks.
@@ -231,6 +230,38 @@ fn is_extreme_risk(command: &str) -> bool {
 }
 
 fn is_controlled_readonly(command: &str) -> bool {
+    let tokens = command.split_whitespace().collect::<Vec<_>>();
+    if let ["docker", "logs", "--tail", lines, "--timestamps", name] = tokens.as_slice() {
+        if (1..=500).contains(&lines.parse::<u32>().unwrap_or_default())
+            && valid_container_identifier(name)
+        {
+            return true;
+        }
+    }
+    if let ["journalctl", "-u", service, "-n", lines, "--no-pager"] = tokens.as_slice() {
+        if (1..=500).contains(&lines.parse::<u32>().unwrap_or_default())
+            && valid_service_identifier(service)
+        {
+            return true;
+        }
+    }
+    if let Some(service) = command.strip_prefix("systemctl is-active ") {
+        if valid_service_identifier(service) {
+            return true;
+        }
+    }
+    if let Some(service) =
+        command.strip_prefix("systemctl show --property=loadstate,canreload --value ")
+    {
+        if valid_service_identifier(service) {
+            return true;
+        }
+    }
+    if let Some(service) = command.strip_prefix("systemctl show --property=activestate --value ") {
+        if valid_service_identifier(service) {
+            return true;
+        }
+    }
     matches!(
         command,
         "df -h"
@@ -238,16 +269,36 @@ fn is_controlled_readonly(command: &str) -> bool {
             | "uptime"
             | "ss -tulpn"
             | "systemctl status nginx"
+            | "systemctl is-active nginx"
+            | "systemctl is-active nginx && systemctl status nginx --no-pager -n 8"
+            | "docker ps -aq | xargs -r docker inspect --format '{{.Name}}\\t{{.HostConfig.Memory}}\\t{{.HostConfig.MemorySwap}}\\t{{.HostConfig.MemoryReservation}}'"
             | "journalctl -n 50 --no-pager"
             | "df -h -x tmpfs -x devtmpfs"
             | "free -h && uptime"
+            | "df -h -x tmpfs -x devtmpfs && free -h && uptime"
             | "docker ps -a --format '{{.id}}\\t{{.names}}\\t{{.image}}\\t{{.status}}\\t{{.ports}}'"
+            | "docker ps -a --format '{{.ID}}\\t{{.Names}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}'"
             | "ps -eo pid,comm,%cpu,%mem --sort=-%cpu"
             | "systemctl list-units --type=service --state=running --no-pager"
             | "lscpu"
             | "uname -a" | "hostname"
     ) || (command.starts_with("cat /var/log/")
         && !contains_any(command, &["..", "~", "* *", "$(", "`", ">", "|", ";"]))
+}
+
+fn valid_service_identifier(value: &str) -> bool {
+    let mut chars = value.chars();
+    value.len() <= 64
+        && chars.next().is_some_and(|ch| ch.is_ascii_alphanumeric())
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | '@' | '-'))
+}
+
+fn valid_container_identifier(value: &str) -> bool {
+    let mut chars = value.chars();
+    !value.is_empty()
+        && value.len() <= 128
+        && chars.next().is_some_and(|ch| ch.is_ascii_alphanumeric())
+        && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | '-'))
 }
 
 fn contains_any(value: &str, needles: &[&str]) -> bool {
@@ -349,11 +400,31 @@ mod tests {
 
     #[test]
     fn ordinary_mutations_require_approval_and_unknown_is_not_auto_allowed() {
-        assert_eq!(
-            assess_shell_command("systemctl restart nginx").level,
-            RiskLevel::Medium
-        );
+        for command in [
+            "systemctl start nginx",
+            "systemctl stop nginx",
+            "systemctl restart nginx",
+            "systemctl reload nginx",
+        ] {
+            let result = assess_shell_command(command);
+            assert_eq!(result.level, RiskLevel::Medium, "{command}");
+            assert!(result.requires_approval, "{command}");
+        }
         assert!(assess_shell_command("some-custom-command --status").requires_approval);
+    }
+
+    #[test]
+    fn systemd_preflight_is_readonly_but_does_not_allow_mutation_syntax() {
+        assert_eq!(
+            assess_shell_command("systemctl show --property=LoadState,CanReload --value nginx")
+                .level,
+            RiskLevel::LowReadOnly
+        );
+        assert_ne!(
+            assess_shell_command("systemctl show --property=LoadState,CanReload --value nginx; id")
+                .level,
+            RiskLevel::LowReadOnly
+        );
     }
 
     #[test]
@@ -368,6 +439,26 @@ mod tests {
             let result = assess_shell_command(command);
             assert_ne!(result.level, RiskLevel::LowReadOnly, "{command}");
             assert!(result.requires_approval, "{command}");
+        }
+    }
+
+    #[test]
+    fn bounded_log_commands_require_fixed_flags_and_safe_identifiers() {
+        for command in [
+            "docker logs --tail 100 --timestamps app-1",
+            "journalctl -u nginx.service -n 50 --no-pager",
+        ] {
+            assert_eq!(assess_shell_command(command).level, RiskLevel::LowReadOnly);
+        }
+        for command in [
+            "docker logs --tail 501 --timestamps app-1",
+            "docker logs --tail 100 --timestamps app;id",
+            "docker logs --tail 100 --timestamps app-1 | sh",
+            "journalctl -u nginx;id -n 50 --no-pager",
+            "journalctl -u nginx -n 999 --no-pager",
+            "journalctl -u nginx -n 50 --no-pager > /tmp/log",
+        ] {
+            assert_ne!(assess_shell_command(command).level, RiskLevel::LowReadOnly);
         }
     }
 

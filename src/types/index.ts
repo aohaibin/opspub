@@ -18,6 +18,7 @@ export type { SystemInfo } from "./system";
 export type {
   Server,
   AuditLog,
+  AuditLogPage,
   AIPolicy,
   AuthType,
   OsType,
@@ -40,6 +41,7 @@ export type {
 export type {
   DeployTarget,
   DeployTargetInput,
+  DeploymentArtifact,
   DeploymentGroup,
   DeploymentGroupInput,
   DeploymentGroupRunResult,
@@ -48,9 +50,20 @@ export type {
   DeployRunResult,
   DeploymentProgress,
 } from "./deployment";
-export type { ActionPlan, ActionPlanTarget, AiApproval, AiApprovalDetail, AiLockState, CopilotRequest, CopilotToolCall, CopilotResponse, CopilotProgress, VerificationStep } from "./copilot";
+export type { ActionPlan, ActionPlanTarget, AiApproval, AiApprovalDetail, AiLockState, CopilotRequest, CopilotToolCall, CopilotResponse, CopilotProgress, PlanExecutionStep, VerificationStep } from "./copilot";
 export type { ActionRiskLevel, PolicyRule, PolicyRuleAction } from "./policy";
-export type { McpStatus, McpToken, McpTokenInput, McpTokenCreated, McpClientConfig } from "./mcp";
+export type {
+  McpStatus,
+  McpToken,
+  McpTokenInput,
+  McpTokenCreated,
+  McpClientConfig,
+  McpTaskStatus,
+  McpSkillReference,
+  McpTaskStepStatus,
+  McpTaskStep,
+  McpOperationTask,
+} from "./mcp";
 export type {
   SensitiveEntry,
   SensitiveListFilter,

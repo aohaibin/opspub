@@ -36,9 +36,16 @@ export function TokenPanel({
   );
   const columns: ColumnsType<McpToken> = [
     {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: 64,
+      render: (id: number) => <code className="mcp-token-id">{id}</code>,
+    },
+    {
       title: "名称 / 授权范围",
       key: "name",
-      width: "34%",
+      width: "31%",
       render: (_, token) => (
         <div className="mcp-token-cell">
           <div className="mcp-token-name">
@@ -67,7 +74,7 @@ export function TokenPanel({
     {
       title: "工具权限",
       key: "tools",
-      width: "21%",
+      width: "20%",
       render: (_, t) => (
         <span className="mcp-break">{toolScopeLabel(t.toolScope)}</span>
       ),
@@ -75,7 +82,7 @@ export function TokenPanel({
     {
       title: "令牌 / 有效期",
       key: "expiry",
-      width: "24%",
+      width: "23%",
       render: (_, t) => (
         <div className="mcp-token-cell">
           <code>{t.tokenHint}</code>
@@ -154,7 +161,7 @@ export function TokenPanel({
         loading={loading}
         pagination={false}
         size="middle"
-        scroll={{ x: 680 }}
+        scroll={{ x: 744 }}
         locale={{
           emptyText: tokens.length
             ? "没有匹配的令牌"

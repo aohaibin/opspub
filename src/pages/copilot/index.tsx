@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Spin, Tag, Tooltip, message } from "antd";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -182,6 +182,7 @@ function toolStatusLabel(status: CopilotToolCall["status"]) {
 
 export default function CopilotPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const aiLocked = useAppStore((state) => state.aiLocked);
   const aiUnlockUntil = useAppStore((state) => state.aiUnlockUntil);
   const aiUnlockDuration = useAppStore((state) => state.aiUnlockDuration);
@@ -242,6 +243,7 @@ export default function CopilotPage() {
   const [pendingRegenerateMessageId, setPendingRegenerateMessageId] = useState<string | null>(null);
   const [sessionReadOnlyMode, setSessionReadOnlyMode] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [highlightedApprovalId, setHighlightedApprovalId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lockWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -344,6 +346,22 @@ export default function CopilotPage() {
     const timer = window.setInterval(() => void refreshApprovals(), 15000);
     return () => window.clearInterval(timer);
   }, []);
+
+  const approvalIdFromQuery = useMemo(() => {
+    const raw = new URLSearchParams(location.search).get("approvalId");
+    if (!raw || !/^[1-9]\d*$/.test(raw)) return null;
+    const value = Number(raw);
+    return Number.isSafeInteger(value) ? value : null;
+  }, [location.search]);
+
+  useEffect(() => {
+    if (approvalIdFromQuery === null) return;
+    setHighlightedApprovalId(approvalIdFromQuery);
+    const timer = window.setTimeout(() => {
+      document.getElementById(`copilot-approval-${approvalIdFromQuery}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [approvalIdFromQuery, approvals, approvalDetails]);
 
   const changeLock = async (duration: "locked" | UnlockDuration) => {
     setLockSaving(true);
@@ -903,7 +921,7 @@ export default function CopilotPage() {
         </div>
       </div>
 
-      {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div key={item.id} className="mb-2 rounded border border-slate-700 px-2 py-2"><div className="flex flex-wrap items-center justify-between gap-2"><span>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</span><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div key={item.id} className="border-b border-slate-800 py-1">#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
+      {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`mb-2 rounded border px-2 py-2 transition ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/15 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]" : "border-slate-700"}`}><div className="flex flex-wrap items-center justify-between gap-2"><span>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</span><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`border-b py-1 ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/10" : "border-slate-800"}`}>#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
 
       <Modal title={<span className="flex items-center gap-2"><History size={16} />历史对话 <Tag className="m-0">{historySessions.length}</Tag></span>} open={historyOpen} onCancel={() => setHistoryOpen(false)} footer={null} width={620} destroyOnClose>
         <div className="mb-3 flex items-center justify-between gap-2"><Input.Search allowClear value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索对话标题或内容" className="max-w-sm" /><Button icon={<Plus size={13} />} onClick={createSession}>新建对话</Button></div>
@@ -1079,10 +1097,15 @@ function CopilotApprovalPlanSummary({ detail }: { detail?: AiApprovalDetail }) {
   if (!plan) return null;
   const risk = plan.risk.level === "high" ? "高危" : plan.risk.level === "medium" ? "中危" : plan.risk.level === "extreme" ? "极高危" : "需复核";
   return <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-[10px] text-slate-500 sm:grid-cols-2">
+    {detail?.mcp && <span className="sm:col-span-2">来源：MCP 客户端 {detail.mcp.sourceClient} · Token #{detail.mcp.tokenId} · 任务 {detail.mcp.taskId}</span>}
+    <span>影响范围：{plan.targets.length} 台 · {plan.targets.map((target) => target.serverAlias).join("、") || "目标缺失"}</span>
     <span>风险：{risk}</span>
+    <span className="sm:col-span-2">风险说明：{plan.risk.reason}</span>
+    {plan.executionSteps.length > 0 && <div className="sm:col-span-2"><div className="mb-1 font-medium text-slate-300">已审批的执行步骤（{plan.executionSteps.length}）</div><ol className="space-y-1">{plan.executionSteps.map((step, index) => <li key={step.id} className="rounded border border-slate-800 bg-black/20 px-2 py-1"><span>{index + 1}. {step.label}</span><code className="mt-1 block break-all whitespace-pre-wrap text-slate-300">{step.command}</code>{step.verificationCommand && <span className="mt-1 block break-all">验证：{step.verificationCommand}</span>}</li>)}</ol></div>}
     <span>计划：{plan.status}</span>
     <span className="truncate" title={plan.commandSha256}>哈希：{plan.commandSha256.slice(0, 16)}…</span>
     <span className="truncate" title={plan.ruleVersion}>策略：{plan.ruleVersion || "--"}</span>
-    <span className="sm:col-span-2">验证：{plan.verificationSteps.map((step) => step.label).join("、") || "无"}</span>
+    <span className="sm:col-span-2">验证：{plan.verificationSteps.map((step) => `${step.label}（${step.command} → ${step.expectedResult}）`).join("；") || "无"}</span>
+    <span className="sm:col-span-2">回滚：当前审批动作未配置自动回滚步骤；若验证失败需人工恢复。</span>
   </div>;
 }

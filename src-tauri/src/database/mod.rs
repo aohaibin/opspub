@@ -1,10 +1,11 @@
 mod action_plan;
 mod copilot_policy;
 mod device_channel;
-mod server_import;
-mod server_form;
+mod mcp_task;
 mod policy_rules;
 pub mod schema;
+mod server_form;
+mod server_import;
 
 use std::{path::PathBuf, sync::Mutex};
 
@@ -72,8 +73,9 @@ fn map_server_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Server> {
         created_at: row.get(21)?,
         updated_at: row.get(22)?,
         protocol: row.get(23)?,
-        connection_options: serde_json::from_str(&row.get::<_, String>(24)?).map_err(|e|
-            rusqlite::Error::FromSqlConversionFailure(24, rusqlite::types::Type::Text, Box::new(e)))?,
+        connection_options: serde_json::from_str(&row.get::<_, String>(24)?).map_err(|e| {
+            rusqlite::Error::FromSqlConversionFailure(24, rusqlite::types::Type::Text, Box::new(e))
+        })?,
     })
 }
 
@@ -814,8 +816,26 @@ impl Database {
         Ok(conn.last_insert_rowid())
     }
 
+    /// 删除超过保留期的审计日志，避免长期运行导致本地数据库无限增长。
+    pub fn purge_audit_logs(&self, keep_days: i64) -> Result<usize, AppError> {
+        if !(1..=3650).contains(&keep_days) {
+            return Err(AppError::InvalidInput(
+                "审计日志保留期必须是 1 到 3650 天".into(),
+            ));
+        }
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        Ok(conn.execute(
+            "DELETE FROM audit_logs WHERE created_at < datetime('now','localtime', ?1)",
+            [format!("-{keep_days} days")],
+        )?)
+    }
+
     /// 获取审核日志（最近 N 条）
     pub fn get_audit_logs(&self, limit: i32) -> Result<Vec<AuditLog>, AppError> {
+        let limit = limit.clamp(1, 500);
         let conn = self
             .conn
             .lock()
@@ -837,6 +857,38 @@ impl Database {
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(logs)
+    }
+
+    /// 获取一页审计日志和当前保留期内的记录总数。
+    pub fn get_audit_logs_page(
+        &self,
+        limit: i32,
+        offset: i32,
+    ) -> Result<(Vec<AuditLog>, i64), AppError> {
+        let limit = limit.clamp(1, 100);
+        let offset = offset.clamp(0, 1_000_000);
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Custom(e.to_string()))?;
+        let total: i64 = conn.query_row("SELECT COUNT(*) FROM audit_logs", [], |row| row.get(0))?;
+        let mut stmt = conn.prepare(
+            "SELECT id, server_alias, command, user, result, created_at
+             FROM audit_logs ORDER BY created_at DESC, id DESC LIMIT ?1 OFFSET ?2",
+        )?;
+        let logs = stmt
+            .query_map(rusqlite::params![limit, offset], |row| {
+                Ok(AuditLog {
+                    id: row.get(0)?,
+                    server_alias: row.get(1)?,
+                    command: row.get(2)?,
+                    user: row.get(3)?,
+                    result: row.get(4)?,
+                    created_at: row.get(5)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok((logs, total))
     }
 
     // ─── 敏感库 DAO ─────────────────────────────────────────────────────────

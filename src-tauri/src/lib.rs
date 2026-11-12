@@ -104,6 +104,12 @@ pub fn run() {
             app.manage(services::server_import::ServerImportService::default());
             app.manage(services::server_form::ServerFormService::default());
 
+            match services::copilot::recover_mcp_tasks_on_startup(app.handle()) {
+                Ok(0) => {}
+                Ok(count) => log::info!("已恢复投递 {} 个排队 MCP 任务", count),
+                Err(error) => log::warn!("MCP 任务启动恢复失败: {}", error),
+            }
+
             // 只有系统启动器传入专用参数，且用户启用了启动后最小化时才隐藏主窗口。
             let started_by_autostart = std::env::args().any(|arg| arg == "--opspub-autostart");
             let start_minimized = app
@@ -250,6 +256,11 @@ pub fn run() {
             commands::copilot::approve_ai_approval,
             // 部署与发布模块
             commands::deployment::list_deploy_targets,
+            commands::deployment::authorize_deploy_artifact_root,
+            commands::deployment::list_deploy_artifact_roots,
+            commands::deployment::register_deploy_artifact,
+            commands::deployment::list_deploy_artifacts,
+            commands::deployment::revoke_deploy_artifact,
             commands::deployment::save_deploy_target,
             commands::deployment::delete_deploy_target,
             commands::deployment::list_deployment_groups,
@@ -279,6 +290,7 @@ pub fn run() {
             commands::database::query_mongo_collection,
             // 审核日志模块
             commands::audit::get_audit_logs,
+            commands::audit::get_audit_logs_page,
             commands::audit::add_audit_log,
             commands::alerts::send_alert_webhook,
             commands::alerts::save_alert_webhook_url,
@@ -288,6 +300,8 @@ pub fn run() {
             commands::alerts::save_alert_channel_url,
             commands::alerts::get_alert_channel_status,
             commands::alerts::delete_alert_channel_url,
+            commands::alerts::save_alert_email_config,
+            commands::alerts::get_alert_email_config,
             // MCP 接入中心
             commands::mcp::get_mcp_status,
             commands::mcp::test_mcp_connection,

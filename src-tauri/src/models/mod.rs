@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 pub mod device_channel;
-pub mod server_import;
 pub mod server_form;
+pub mod server_import;
 
 /// 应用配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -341,6 +341,16 @@ pub struct AiApproval {
 pub struct AiApprovalDetail {
     pub approval: AiApproval,
     pub plan: Option<ActionPlan>,
+    pub mcp: Option<McpApprovalBinding>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpApprovalBinding {
+    pub task_id: String,
+    pub token_id: i64,
+    pub source_client: String,
+    pub created_at: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -383,6 +393,18 @@ pub struct VerificationStep {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PlanExecutionStep {
+    pub id: String,
+    pub label: String,
+    pub action: String,
+    pub command: String,
+    pub command_sha256: String,
+    pub verification_command: Option<String>,
+    pub verification_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActionPlan {
     pub id: String,
     pub conversation_id: Option<String>,
@@ -395,6 +417,8 @@ pub struct ActionPlan {
     pub rule_version: String,
     pub risk: RiskAssessment,
     pub targets: Vec<ActionPlanTarget>,
+    #[serde(default)]
+    pub execution_steps: Vec<PlanExecutionStep>,
     pub verification_steps: Vec<VerificationStep>,
     pub status: String,
     pub expires_at: i64,
@@ -439,6 +463,10 @@ pub struct DeployTarget {
     pub recipe: String,
     pub remote_path: String,
     pub artifact_path: String,
+    /// Optional reference to a locally registered artifact. The path itself is
+    /// never exposed to MCP clients; only this stable reference is used.
+    #[serde(default)]
+    pub artifact_id: Option<String>,
     pub health_command: String,
     pub created_at: String,
     pub updated_at: String,
@@ -454,7 +482,23 @@ pub struct DeployTargetInput {
     pub recipe: String,
     pub remote_path: String,
     pub artifact_path: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
     pub health_command: Option<String>,
+}
+
+/// A local artifact explicitly registered by the user for controlled deployment.
+/// `path` is kept in the local database only and must never be returned by MCP.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentArtifact {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    pub size: u64,
+    pub sha256: String,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 /// 可复用的部署组，目标按 target_ids 顺序执行。
@@ -492,6 +536,8 @@ pub struct DeploymentGroupInput {
 pub struct DeploymentGroupRunRequest {
     pub group_id: String,
     pub timeout_secs: Option<u32>,
+    #[serde(default)]
+    pub canary_first: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -500,6 +546,8 @@ pub struct DeploymentGroupRunResult {
     pub group_id: String,
     pub results: Vec<DeployRunResult>,
     pub success: bool,
+    pub canary_target_id: Option<String>,
+    pub stopped_after_canary_failure: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -519,9 +567,21 @@ pub struct DeploymentHistory {
     pub version: String,
     pub action: String,
     pub status: String,
+    #[serde(default = "deployment_unverified_status")]
+    pub verification_status: String,
+    #[serde(default = "deployment_not_attempted_status")]
+    pub rollback_status: String,
     pub output: String,
     pub error: String,
     pub created_at: String,
+}
+
+fn deployment_unverified_status() -> String {
+    "not_configured".into()
+}
+
+fn deployment_not_attempted_status() -> String {
+    "not_attempted".into()
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -805,6 +865,17 @@ pub struct AuditLog {
     pub created_at: String,
 }
 
+/// 审计日志分页结果
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditLogPage {
+    pub records: Vec<AuditLog>,
+    pub total: i64,
+    pub limit: i32,
+    pub offset: i32,
+    pub has_more: bool,
+}
+
 /// 敏感库条目。只保存脱敏预览、来源和哈希，绝不保存命中的原文。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -868,6 +939,7 @@ pub struct AlertRule {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpStatus {
+    pub endpoint_state: String,
     pub protocol_version: String,
     pub version: String,
     pub stdio_path: String,
@@ -948,8 +1020,155 @@ pub struct McpToolDefinition {
 #[serde(rename_all = "camelCase")]
 pub struct McpTokenTest {
     pub tools: Vec<String>,
+    pub tool_call_verified: bool,
+    pub tested_tool: Option<String>,
     pub latency_ms: u64,
     pub tested_at: String,
     pub message: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum McpTaskStatus {
+    Draft,
+    PendingApproval,
+    Queued,
+    Executing,
+    Verifying,
+    Succeeded,
+    Failed,
+    Rejected,
+    Expired,
+    Cancelled,
+    Unknown,
+}
+
+impl McpTaskStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::PendingApproval => "pending_approval",
+            Self::Queued => "queued",
+            Self::Executing => "executing",
+            Self::Verifying => "verifying",
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::Rejected => "rejected",
+            Self::Expired => "expired",
+            Self::Cancelled => "cancelled",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    pub fn parse(value: &str) -> Self {
+        match value {
+            "draft" => Self::Draft,
+            "pending_approval" => Self::PendingApproval,
+            "queued" => Self::Queued,
+            "executing" => Self::Executing,
+            "verifying" => Self::Verifying,
+            "succeeded" => Self::Succeeded,
+            "failed" => Self::Failed,
+            "rejected" => Self::Rejected,
+            "expired" => Self::Expired,
+            "cancelled" => Self::Cancelled,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum McpTaskStepStatus {
+    Pending,
+    Running,
+    Succeeded,
+    Failed,
+    Skipped,
+    Unknown,
+}
+
+impl McpTaskStepStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::Running => "running",
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::Skipped => "skipped",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    pub fn parse(value: &str) -> Self {
+        match value {
+            "pending" => Self::Pending,
+            "running" => Self::Running,
+            "succeeded" => Self::Succeeded,
+            "failed" => Self::Failed,
+            "skipped" => Self::Skipped,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpTaskStep {
+    pub id: String,
+    pub sequence: i64,
+    pub kind: String,
+    pub target_server_id: Option<i64>,
+    pub status: McpTaskStepStatus,
+    pub input_sha256: String,
+    pub result: Option<String>,
+    pub exit_code: Option<i32>,
+    pub started_at: Option<i64>,
+    pub finished_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpOperationTask {
+    pub id: String,
+    pub token_id: i64,
+    pub source_client: String,
+    pub idempotency_key: String,
+    pub request_sha256: String,
+    pub plan_id: Option<String>,
+    pub summary: String,
+    pub status: McpTaskStatus,
+    pub error_code: Option<String>,
+    pub result: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+    pub expires_at: i64,
+    pub skill_ids: Vec<String>,
+    pub steps: Vec<McpTaskStep>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewMcpTaskStep {
+    pub id: String,
+    pub sequence: i64,
+    pub kind: String,
+    pub target_server_id: Option<i64>,
+    pub input_sha256: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewMcpOperationTask {
+    pub id: String,
+    pub token_id: i64,
+    pub source_client: String,
+    pub idempotency_key: String,
+    pub request_sha256: String,
+    pub plan_id: Option<String>,
+    pub summary: String,
+    pub status: McpTaskStatus,
+    pub created_at: i64,
+    pub expires_at: i64,
+    pub result: Option<String>,
+    pub skill_ids: Vec<String>,
+    pub steps: Vec<NewMcpTaskStep>,
+}

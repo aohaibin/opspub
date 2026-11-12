@@ -359,8 +359,17 @@ impl ServerService {
                 if request.password.as_deref().unwrap_or_default().is_empty() {
                     request.password = stored.password;
                 }
-                if request.private_key_path.as_deref().unwrap_or_default().is_empty()
-                    && request.private_key_text.as_deref().unwrap_or_default().is_empty() {
+                if request
+                    .private_key_path
+                    .as_deref()
+                    .unwrap_or_default()
+                    .is_empty()
+                    && request
+                        .private_key_text
+                        .as_deref()
+                        .unwrap_or_default()
+                        .is_empty()
+                {
                     request.private_key_path = stored.private_key_path;
                     request.private_key_text = stored.private_key_text;
                 }
@@ -477,7 +486,11 @@ impl ServerService {
             server_id: request.server_id,
             password: request.password.clone().or(stored.password),
             private_key_path: request.private_key_path.clone().or(stored.private_key_path),
-            private_key_text: if request.private_key_path.is_some() { None } else { stored.private_key_text },
+            private_key_text: if request.private_key_path.is_some() {
+                None
+            } else {
+                stored.private_key_text
+            },
             passphrase: request.passphrase.clone().or(stored.passphrase),
             trust_host_key: false,
         };
@@ -612,7 +625,9 @@ fn authenticate(
         "agent" => {
             session
                 .userauth_agent(server.username.trim())
-                .map_err(|_| SshProbeFailure::failed("ssh-agent 认证失败，请检查系统代理和已加载私钥"))?;
+                .map_err(|_| {
+                    SshProbeFailure::failed("ssh-agent 认证失败，请检查系统代理和已加载私钥")
+                })?;
         }
         "password" => {
             let password = request
@@ -648,8 +663,9 @@ fn authenticate(
                     temporary_key.path(),
                     passphrase,
                 );
-                auth_result
-                    .map_err(|_| SshProbeFailure::failed("SSH 私钥认证失败，请检查私钥、口令或服务端授权"))?;
+                auth_result.map_err(|_| {
+                    SshProbeFailure::failed("SSH 私钥认证失败，请检查私钥、口令或服务端授权")
+                })?;
             } else {
                 let private_key = request
                     .private_key_path
@@ -666,7 +682,9 @@ fn authenticate(
                 }
                 session
                     .userauth_pubkey_file(server.username.trim(), None, &private_key, passphrase)
-                    .map_err(|_| SshProbeFailure::failed("SSH 私钥认证失败，请检查私钥、口令或服务端授权"))?;
+                    .map_err(|_| {
+                        SshProbeFailure::failed("SSH 私钥认证失败，请检查私钥、口令或服务端授权")
+                    })?;
             }
         }
         _ => {

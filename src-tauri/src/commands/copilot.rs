@@ -1,6 +1,9 @@
 use crate::error::CommandError;
-use crate::models::{AiApproval, AiApprovalDetail, AiLockState, CopilotRequest, CopilotResponse};
+use crate::models::{
+    AiApproval, AiApprovalDetail, AiLockState, CopilotProgress, CopilotRequest, CopilotResponse,
+};
 use crate::services::copilot::CopilotService;
+use tauri::Emitter;
 
 #[tauri::command]
 pub async fn copilot_chat(
@@ -8,7 +11,31 @@ pub async fn copilot_chat(
     request: CopilotRequest,
 ) -> Result<CopilotResponse, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
-        CopilotService::chat(app, request).map_err(CommandError::from)
+        let request_id = request.request_id.clone();
+        let result = CopilotService::chat(app.clone(), request);
+        let (kind, stage, message): (&str, &str, String) = match &result {
+            Ok(_) => ("done", "completed", "本轮处理完成".into()),
+            Err(error) => ("error", "failed", error.to_string()),
+        };
+        let _ = app.emit(
+            "copilot-progress",
+            CopilotProgress {
+                request_id,
+                kind: kind.into(),
+                stage: stage.into(),
+                message,
+                server_alias: None,
+                tool: None,
+                status: None,
+                delta: None,
+                round: None,
+                step: None,
+                tool_call_id: None,
+                duration_ms: None,
+                completed: true,
+            },
+        );
+        result.map_err(CommandError::from)
     })
     .await
     .map_err(|error| CommandError {

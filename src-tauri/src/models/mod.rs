@@ -262,6 +262,9 @@ pub struct WorkbenchCommandResult {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CopilotRequest {
+    /// 前端为每轮聊天生成的唯一标识，用于隔离并行事件流。
+    #[serde(default)]
+    pub request_id: Option<String>,
     pub message: String,
     pub server_id: Option<i64>,
     pub provider: Option<String>,
@@ -306,9 +309,29 @@ pub struct CopilotResponse {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CopilotProgress {
+    #[serde(default)]
+    pub request_id: Option<String>,
+    /// phase/tool/text_delta/done/error。
+    #[serde(default)]
+    pub kind: String,
     pub stage: String,
     pub message: String,
     pub server_alias: Option<String>,
+    #[serde(default)]
+    pub tool: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub delta: Option<String>,
+    /// Agent 工作流结构化元数据；旧事件为空时前端兼容按默认轮次展示。
+    #[serde(default)]
+    pub round: Option<u32>,
+    #[serde(default)]
+    pub step: Option<u32>,
+    #[serde(default)]
+    pub tool_call_id: Option<String>,
+    #[serde(default)]
+    pub duration_ms: Option<u64>,
     pub completed: bool,
 }
 

@@ -1,5 +1,8 @@
 use serde::Serialize;
 
+#[path = "generated_skill_bodies.rs"]
+mod generated_skill_bodies;
+
 const SKILL_INDEX: &str = include_str!("../../../../docs/skills-index-20261006.md");
 pub const SKILL_INDEX_VERSION: &str = "2026-10-06";
 
@@ -11,6 +14,7 @@ pub struct SkillReference {
     pub version: &'static str,
     pub description: String,
     pub triggers: Vec<String>,
+    pub content: String,
     pub content_available: bool,
     pub trust: &'static str,
 }
@@ -112,8 +116,11 @@ fn entries() -> Vec<SkillReference> {
                 version: SKILL_INDEX_VERSION,
                 description,
                 triggers,
-                content_available: false,
-                trust: "untrusted_reference_only",
+                content: generated_skill_bodies::get(name)
+                    .unwrap_or("技能正文不可用")
+                    .to_owned(),
+                content_available: generated_skill_bodies::get(name).is_some(),
+                trust: "bundled_reference_only",
             })
         })
         .collect()
@@ -160,7 +167,7 @@ mod tests {
     use super::{get, search, select_for_plan, SKILL_INDEX_VERSION};
 
     #[test]
-    fn discovers_only_bundled_index_metadata() {
+    fn discovers_bundled_skill_references() {
         assert_eq!(search("", 100).len(), 41);
         let docker = search("当前服务器有哪些 docker 容器", 5);
         assert_eq!(
@@ -169,8 +176,11 @@ mod tests {
         );
         let skill = get("docker-ps").expect("known skill");
         assert_eq!(skill.version, SKILL_INDEX_VERSION);
-        assert!(!skill.content_available);
-        assert_eq!(skill.trust, "untrusted_reference_only");
+        assert!(skill.content_available);
+        assert_eq!(skill.trust, "bundled_reference_only");
+        assert!(skill.content.contains("docker 容器排障速查"));
+        assert!(skill.content.contains("dangerous_commands:"));
+        assert!(skill.content.contains("compose down -v"));
         assert!(get("../../secrets").is_none());
         assert!(search("no-such-skill-xyz", 5).is_empty());
     }

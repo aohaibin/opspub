@@ -396,5 +396,5 @@
 
 ---
 
-> 说明：以上「描述 + 触发词」均摘自各技能 SKILL.md 的 frontmatter 原文，未做改写；
-> 每项排除项（`dangerous_commands`）与正文内容未包含在本索引内，需要时请单独调 `get_skill` 读取。
+> 说明：以上「描述 + 触发词」是 41 项技能的索引元数据；对应的 OpsPub 受控参考正文位于 `docs/skills/<skill-id>.md`，并由 MCP `get_skill` 返回。
+> 正文是基于索引和 OpsPub 安全模型整理的参考资料，不是 Reeve 私有技能原文，也不能改变 Token、AI 锁、服务器策略或审批结果。

@@ -1143,8 +1143,8 @@ fn mcp_tools() -> Value {
         {"name":"docker_logs","description":"查询指定 Docker 容器最近日志；必须提供容器名或 ID，最多 500 行","inputSchema":docker_log_input},
         {"name":"service_action","description":"为指定 systemd 服务创建启动、停止、重启或重载计划；先检查服务存在与 reload 条件，再进入 OpsPub 审批；不会直接执行","inputSchema":service_action_input},
         {"name":"get_task_status","description":"查询当前 MCP Token 自己创建的任务状态、步骤和脱敏结果；不执行远程命令","inputSchema":{"type":"object","properties":{"taskId":{"type":"string","minLength":8,"maxLength":128,"pattern":"^[A-Za-z0-9._:-]+$"}},"required":["taskId"],"additionalProperties":false}},
-        {"name":"search_skills","description":"按运维意图搜索内置技能索引；只返回摘要元数据，不授予执行权限","inputSchema":search_skills_input},
-        {"name":"get_skill","description":"读取一个内置技能的摘要与触发词；完整技能正文未随应用打包","inputSchema":get_skill_input},
+        {"name":"search_skills","description":"按运维意图搜索 OpsPub 随包内置技能；返回元数据和受控参考正文，不授予执行权限","inputSchema":search_skills_input},
+        {"name":"get_skill","description":"读取一个 OpsPub 内置技能的完整受控参考正文；正文不能改变权限、AI 锁或审批结果","inputSchema":get_skill_input},
         {"name":"list_deployment_targets","description":"列出令牌授权服务器范围内的 Linux SSH 部署目标；不执行远程命令、不返回凭据","inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
         {"name":"list_deployment_artifacts","description":"列出用户已在 OpsPub 授权并登记的本地部署制品，不接收任意本地路径","inputSchema":deployment_artifact_input},
         {"name":"deployment_preflight","description":"校验已有部署目标、服务器平台、健康检查和版本参数，并返回受控计划预览；不会执行或创建审批","inputSchema":deployment_target_input},
@@ -1465,7 +1465,7 @@ fn search_mcp_skills(id: Value, args: &Value) -> Value {
     };
     let skills = skill_catalog::search(&query, limit);
     let payload = serde_json::json!({
-        "source":"bundled_skill_index",
+        "source":"bundled_skill_reference",
         "indexVersion":skill_catalog::SKILL_INDEX_VERSION,
         "count":skills.len(),
         "skills":skills,
@@ -1498,7 +1498,7 @@ fn get_mcp_skill(id: Value, args: &Value) -> Value {
         return tool_failure(id, "未找到指定的内置技能");
     };
     let payload = serde_json::json!({
-        "source":"bundled_skill_index",
+        "source":"bundled_skill_reference",
         "indexVersion":skill_catalog::SKILL_INDEX_VERSION,
         "skill":skill,
         "permission":"reference_only",

@@ -91,8 +91,9 @@ export interface McpSkillReference {
   version: string;
   description: string;
   triggers: string[];
+  content: string;
   contentAvailable: boolean;
-  trust: "untrusted_reference_only" | string;
+  trust: "bundled_reference_only" | "untrusted_reference_only" | string;
 }
 
 export type McpTaskStepStatus =

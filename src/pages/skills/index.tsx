@@ -5,6 +5,8 @@ import { getErrorMessage } from "@/lib/api/client";
 import { BookOpen, Code2, Eye, FileCode2, FileText, LockKeyhole, Pencil, Plus, Save, Search, Sparkles, Trash2, Workflow, X } from "lucide-react";
 import skillsIndex from "../../../docs/skills-index-20261006.md?raw";
 
+const BUILTIN_BODIES = import.meta.glob("../../../docs/skills/*.md", { eager: true, query: "?raw", import: "default" }) as Record<string, string>;
+
 type SkillSource = "builtin" | "user";
 type Skill = {
   id: string;
@@ -18,6 +20,16 @@ type Skill = {
 };
 
 type Experience = { id: string; title: string; category: string; summary: string; steps: string[]; date: string };
+
+function parseDangerousCommands(content: string): string[] {
+  const marker = content.indexOf("dangerous_commands:");
+  if (marker < 0) return [];
+  const block = content.slice(marker).split(/\r?\n---\s*\r?\n/, 1)[0];
+  return block
+    .split(/\r?\n/)
+    .map((line) => line.match(/^\s+-\s+(['"])(.*)\1\s*$/)?.[2]?.trim() ?? "")
+    .filter(Boolean);
+}
 
 function parseBuiltinSkills(index: string): Skill[] {
   const headings = [...index.matchAll(/^## (\d+)\. `([^`]+)`[^\r\n]*$/gm)];
@@ -39,14 +51,15 @@ function parseBuiltinSkills(index: string): Skill[] {
 
     if (!description || triggers.length === 0) return [];
     const name = heading[2];
+    const content = BUILTIN_BODIES[`../../../docs/skills/${name}.md`] ?? "";
     return [{
       id: `builtin-${name}`,
       name,
       source: "builtin" as const,
       description,
       triggers,
-      dangerous: [],
-      content: "",
+      dangerous: parseDangerousCommands(content),
+      content,
       hits: 0,
     }];
   });

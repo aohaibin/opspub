@@ -268,6 +268,7 @@ fn is_controlled_readonly(command: &str) -> bool {
             | "free -h"
             | "uptime"
             | "ss -tulpn"
+            | "ip -brief address"
             | "systemctl status nginx"
             | "systemctl is-active nginx"
             | "systemctl is-active nginx && systemctl status nginx --no-pager -n 8"
@@ -470,6 +471,7 @@ mod tests {
             "lscpu",
             "uname -a",
             "hostname",
+            "ip -brief address",
         ] {
             let result = assess_shell_command(command);
             assert_eq!(result.level, RiskLevel::LowReadOnly, "{command}");

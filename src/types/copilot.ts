@@ -1,4 +1,5 @@
 export interface CopilotRequest {
+  requestId?: string;
   message: string;
   serverId?: number | null;
   provider?: string;
@@ -16,7 +17,7 @@ export interface CopilotHistoryMessage {
 export interface CopilotToolCall {
   tool: string;
   serverAlias: string | null;
-  status: "success" | "failed" | "blocked" | "skipped" | "pending";
+  status: "success" | "failed" | "blocked" | "skipped" | "pending" | "running";
   output: string;
   approvalId?: number | null;
 }
@@ -111,8 +112,17 @@ export interface CopilotResponse {
 }
 
 export interface CopilotProgress {
+  requestId?: string | null;
+  kind: "phase" | "tool" | "text_delta" | "done" | "error" | string;
   stage: string;
   message: string;
   serverAlias: string | null;
+  tool?: string | null;
+  status?: string | null;
+  delta?: string | null;
+  round?: number | null;
+  step?: number | null;
+  toolCallId?: string | null;
+  durationMs?: number | null;
   completed: boolean;
 }

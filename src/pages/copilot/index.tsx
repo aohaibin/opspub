@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { listen } from "@tauri-apps/api/event";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Spin, Tag, Tooltip, message } from "antd";
@@ -52,6 +53,8 @@ interface ChatMessage {
   manualSkillNames?: string[];
   historyCount?: number;
   historyTrimmed?: number;
+  streaming?: boolean;
+  progressEvents?: CopilotProgress[];
 }
 
 interface ChatSession {
@@ -177,7 +180,7 @@ function isMutatingTool(tool: string) {
 }
 
 function toolStatusLabel(status: CopilotToolCall["status"]) {
-  return status === "success" ? "已完成" : status === "failed" ? "失败" : status === "blocked" ? "已拦截" : status === "pending" ? "待审批" : "已跳过";
+  return status === "success" ? "已完成" : status === "failed" ? "失败" : status === "blocked" ? "已拦截" : status === "pending" ? "待审批" : status === "running" ? "执行中" : "已跳过";
 }
 
 export default function CopilotPage() {
@@ -199,7 +202,8 @@ export default function CopilotPage() {
   const [input, setInput] = useState("");
   const [chatState] = useState(loadChatState);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [showPolicyNotice, setShowPolicyNotice] = useState(() => sessionStorage.getItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY) !== "true");
+  // 安全提示的关闭选择跨软件重启保留；未关闭时每次进入 AI 助手都显示。
+  const [showPolicyNotice, setShowPolicyNotice] = useState(() => localStorage.getItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY) !== "true");
   const [historyQuery, setHistoryQuery] = useState("");
   const [experienceSaveOpen, setExperienceSaveOpen] = useState(false);
   const [experienceLibraryOpen, setExperienceLibraryOpen] = useState(false);
@@ -235,6 +239,8 @@ export default function CopilotPage() {
   const [progress, setProgress] = useState<CopilotProgress | null>(null);
   const [approvals, setApprovals] = useState<AiApproval[]>([]);
   const [approvalDetails, setApprovalDetails] = useState<AiApprovalDetail[]>([]);
+  const [approvalPreview, setApprovalPreview] = useState<AiApprovalDetail | null>(null);
+  const [approvalProgress, setApprovalProgress] = useState<CopilotProgress[]>([]);
   const [approvalBusy, setApprovalBusy] = useState<number | null>(null);
   const [lockSaving, setLockSaving] = useState(false);
   const [lockPopoverOpen, setLockPopoverOpen] = useState(false);
@@ -246,6 +252,8 @@ export default function CopilotPage() {
   const [highlightedApprovalId, setHighlightedApprovalId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lockWrapperRef = useRef<HTMLDivElement>(null);
+  // Tauri listen() 是异步注册；发送请求前必须等待它完成，避免首轮过程事件丢失。
+  const progressListenerReadyRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -308,11 +316,51 @@ export default function CopilotPage() {
   useEffect(() => {
     let disposed = false;
     let stop: (() => void) | undefined;
-    void listen<CopilotProgress>("copilot-progress", (event) => {
-      if (!disposed) setProgress(event.payload);
+    const listenerReady = listen<CopilotProgress>("copilot-progress", (event) => {
+      if (disposed) return;
+      const update = event.payload;
+      if (!update.requestId) {
+        if (update.stage.startsWith("plan_step")) {
+          setApprovalProgress((current) => [...current, update].slice(-20));
+        }
+        setProgress(update);
+        return;
+      }
+      // Tauri 事件属于 React 外部事件源；逐条 flush，避免同一批事件被自动批处理到任务结束才一次渲染。
+      flushSync(() => {
+        setSessions((currentSessions) => currentSessions.map((session) => ({
+          ...session,
+          messages: session.messages.map((item) => {
+            if (item.id !== update.requestId) return item;
+            const progressEvents = update.kind === "text_delta"
+              ? item.progressEvents
+            // 20 轮 Agent 可能产生较多工具事件，保留完整可核验轨迹，避免前几轮被截掉。
+            : [...(item.progressEvents ?? []), update].slice(-500);
+            const content = update.kind === "text_delta" ? `${item.content}${update.delta ?? ""}` : item.content;
+            let toolCalls = item.toolCalls ?? [];
+            if (update.kind === "tool" && update.tool) {
+              const existing = update.status === "running"
+                ? -1
+                : toolCalls.map((call) => call.tool === update.tool && call.serverAlias === update.serverAlias && call.status === "running").lastIndexOf(true);
+              const nextCall: CopilotToolCall = {
+                tool: update.tool,
+                serverAlias: update.serverAlias ?? null,
+                status: (update.status ?? "pending") as CopilotToolCall["status"],
+                output: update.delta ?? "",
+              };
+              toolCalls = existing >= 0
+                ? toolCalls.map((call, index) => index === existing ? { ...call, ...nextCall } : call)
+                : [...toolCalls, nextCall];
+            }
+            return { ...item, content, toolCalls, progressEvents, streaming: update.kind === "done" || update.kind === "error" ? false : true };
+          }),
+        })));
+        setProgress(update);
+      });
     }).then((unlisten) => {
       if (disposed) unlisten(); else stop = unlisten;
     }).catch(() => undefined);
+    progressListenerReadyRef.current = listenerReady.then(() => undefined);
     return () => { disposed = true; stop?.(); };
   }, []);
 
@@ -505,29 +553,36 @@ export default function CopilotPage() {
     finally { setApprovalBusy(null); }
   };
 
-  const approveApproval = (item: AiApproval) => {
-    Modal.confirm({
-      title: "批准并执行远程操作？",
-      content: `${item.serverAlias}：${item.command}。放行后会立即执行，不能撤销。`,
-      okText: "批准并执行",
-      okButtonProps: { danger: true },
-      cancelText: "取消",
-      async onOk() {
-        setApprovalBusy(item.id);
-        try {
-          const result = await copilotApi.approveApproval(item.id);
-          updateApprovalToolCall(
-            item.id,
-            result.status === "completed" ? "success" : "failed",
-            result.result || (result.status === "completed" ? "操作执行并验证完成" : "操作执行失败"),
-          );
-          await refreshApprovals();
-          if (result.status === "completed") message.success("操作执行成功");
-          else message.error(result.result || "操作执行失败");
-        } catch (error) { message.error(getErrorMessage(error)); }
-        finally { setApprovalBusy(null); }
-      },
-    });
+  const approveApproval = async (item: AiApproval) => {
+    if (approvalPreview?.approval.id !== item.id) {
+      openApprovalPreview(item.id);
+      return;
+    }
+    setApprovalBusy(item.id);
+    setApprovalProgress([]);
+    setApprovalDetails((current) => current.map((detail) => detail.approval.id === item.id
+      ? { ...detail, approval: { ...detail.approval, status: "executing" } }
+      : detail));
+    try {
+      const result = await copilotApi.approveApproval(item.id);
+      updateApprovalToolCall(
+        item.id,
+        result.status === "completed" ? "success" : "failed",
+        result.result || (result.status === "completed" ? "操作执行并验证完成" : "操作执行失败"),
+      );
+      await refreshApprovals();
+      if (result.status === "completed") message.success("操作执行成功");
+      else message.error(result.result || "操作执行失败");
+    } catch (error) { message.error(getErrorMessage(error)); }
+    finally { setApprovalBusy(null); }
+  };
+
+  const openApprovalPreview = (id: number) => {
+    const detail = approvalDetailById.get(id);
+    if (detail) {
+      setApprovalProgress([]);
+      setApprovalPreview(detail);
+    }
   };
 
   useEffect(() => {
@@ -648,16 +703,58 @@ export default function CopilotPage() {
       ? current.slice(0, regenerateIndex)
       : [...current, { id: crypto.randomUUID(), role: "user", content: text }]);
     setLoading(true);
-    setProgress({ stage: "queued", message: "正在分析问题并选择受控工具", serverAlias: null, completed: false });
+    setProgress({ kind: "phase", stage: "queued", message: "正在分析问题并选择受控工具", serverAlias: null, completed: false });
     try {
       const history = historyMessages.filter((item) => item.id !== "welcome").slice(-12).map((item) => ({ role: item.role, content: item.content }));
       const skillContext = chatSkillContext(activeSkills);
-      const result = await copilotApi.chat({ message: text, serverId: serverId ?? null, provider: modelProfileId ? "model" : "local-safe-tools", modelProfileId, history, skillIds: activeSkills.map((skill) => skill.id), skillContext });
-      updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.reply, modelName: result.modelName, toolCalls: result.toolCalls, warnings: result.warnings, skillNames: activeSkills.map((skill) => skill.name), triggeredSkillNames, manualSkillNames, historyCount: history.length, historyTrimmed: result.historyTrimmed }]);
-      if (result.toolCalls.some((tool) => tool.approvalId)) await refreshApprovals();
+      const requestId = crypto.randomUUID();
+      updateSessionMessages(requestSessionId, (current) => [...current, {
+        id: requestId,
+        role: "assistant",
+        content: "",
+        streaming: true,
+        progressEvents: [{
+          kind: "phase",
+          stage: "skill_match",
+          message: activeSkills.length > 0
+            ? `已匹配 ${activeSkills.length} 个技能，正在探测可用工具`
+            : "正在探测可用受控工具",
+          serverAlias: null,
+          completed: false,
+        }],
+        skillNames: activeSkills.map((skill) => skill.name),
+        triggeredSkillNames,
+        manualSkillNames,
+        historyCount: history.length,
+      }]);
+      // 保证后端发出的 analyzing/skill_match/planning 事件从第一帧开始可见。
+      await progressListenerReadyRef.current;
+      // 让包含空 assistant 气泡的这一帧先提交，再启动后台 Command，避免首个事件先到而没有可更新的消息节点。
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const result = await copilotApi.chat({ requestId, message: text, serverId: serverId ?? null, provider: modelProfileId ? "model" : "local-safe-tools", modelProfileId, history, skillIds: activeSkills.map((skill) => skill.id), skillContext });
+      updateSessionMessages(requestSessionId, (current) => current.map((item) => item.id === requestId
+        ? { ...item, content: result.reply, modelName: result.modelName, toolCalls: result.toolCalls, warnings: result.warnings, historyTrimmed: result.historyTrimmed, streaming: false }
+        : item));
+      if (result.toolCalls.some((tool) => tool.approvalId)) {
+        const details = await copilotApi.listApprovalDetails();
+        setApprovalDetails(details);
+        setApprovals(details.map((item) => item.approval));
+        const approvalId = result.toolCalls.find((tool) => typeof tool.approvalId === "number")?.approvalId;
+        if (typeof approvalId === "number") {
+          const detail = details.find((item) => item.approval.id === approvalId);
+          if (detail) {
+            setApprovalProgress([]);
+            setApprovalPreview(detail);
+          }
+        }
+      }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
-      updateSessionMessages(requestSessionId, (current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: `请求失败：${errorMessage}` }]);
+      updateSessionMessages(requestSessionId, (current) => {
+        const pending = [...current].reverse().find((item) => item.role === "assistant" && item.streaming);
+        if (!pending) return [...current, { id: crypto.randomUUID(), role: "assistant", content: `请求失败：${errorMessage}` }];
+        return current.map((item) => item.id === pending.id ? { ...item, content: item.content || `请求失败：${errorMessage}`, streaming: false, warnings: [...(item.warnings ?? []), errorMessage] } : item);
+      });
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -815,6 +912,34 @@ export default function CopilotPage() {
   return (
     <div className="ops-page ops-copilot-page flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0d14] p-0 font-sans" style={{ color: "var(--text-secondary)" }}>
       <Modal
+        open={approvalPreview !== null}
+        centered
+        width={760}
+        onCancel={() => setApprovalPreview(null)}
+        footer={null}
+        maskClosable={false}
+        title={<span className="flex items-center gap-2"><ShieldAlert size={17} className="text-amber-500" />变更计划审批</span>}
+      >
+        {approvalPreview && (() => {
+          const detail = approvalDetailById.get(approvalPreview.approval.id) ?? approvalPreview;
+          const approval = detail.approval;
+          const pending = approval.status === "pending";
+          return <div className="space-y-4 text-sm">
+            <Alert type="warning" showIcon message="批准后将按顺序执行计划，并在每一步后运行只读验证；任一步失败都会停止后续步骤。" />
+            <div className="grid gap-2 rounded-lg border border-slate-700 bg-surface-950 p-3 sm:grid-cols-2">
+              <span>目标服务器：<strong>{approval.serverAlias}</strong></span>
+              <span>审批状态：<Tag color={pending || approval.status === "executing" ? "processing" : approval.status === "completed" ? "success" : "error"}>{approval.status}</Tag></span>
+              <span className="sm:col-span-2">原始请求：{detail.plan?.originalRequest ?? approval.command}</span>
+              <span className="sm:col-span-2">失效时间：{new Date(approval.expiresAt * 1000).toLocaleString()}</span>
+            </div>
+            <CopilotApprovalPlanSummary detail={detail} />
+            {approvalProgress.length > 0 && <section className="rounded-lg border border-slate-700 bg-surface-950 p-3"><h3 className="mb-2 mt-0 text-sm font-semibold">实时执行过程</h3><ol className="m-0 space-y-2">{approvalProgress.map((entry, index) => <li key={`${entry.stage}-${index}`} className="flex items-start gap-2"><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${entry.status === "success" ? "bg-emerald-500" : entry.status === "failed" ? "bg-rose-500" : "animate-pulse bg-cyan-400"}`} /><span>{entry.message}{entry.delta ? <code className="ml-2 text-xs text-slate-400">{entry.delta}</code> : null}</span></li>)}</ol></section>}
+            {approval.result && !pending && <Alert type={approval.status === "completed" ? "success" : "error"} showIcon message={approval.status === "completed" ? "执行与验证已完成" : "计划执行未完成"} description={approval.result} />}
+            <div className="flex justify-end gap-2"><Button onClick={() => setApprovalPreview(null)}>关闭</Button>{pending && <><Button disabled={approvalBusy !== null} onClick={() => void rejectApproval(approval.id)}>拒绝</Button><Button danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => approveApproval(approval)}>批准并执行</Button></>}</div>
+          </div>;
+        })()}
+      </Modal>
+      <Modal
         open={lockedPromptOpen}
         centered
         width={520}
@@ -921,7 +1046,7 @@ export default function CopilotPage() {
         </div>
       </div>
 
-      {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`mb-2 rounded border px-2 py-2 transition ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/15 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]" : "border-slate-700"}`}><div className="flex flex-wrap items-center justify-between gap-2"><span>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</span><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`border-b py-1 ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/10" : "border-slate-800"}`}>#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
+      {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending").length}</div>{approvals.filter((item) => item.status === "pending").map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`mb-2 rounded border px-2 py-2 transition ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/15 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]" : "border-slate-700"}`}><div className="flex flex-wrap items-center justify-between gap-2"><button type="button" className="text-left underline decoration-amber-500/40 underline-offset-2" onClick={() => openApprovalPreview(item.id)}>#{item.id} · {item.serverAlias} · {item.command} · {new Date(item.expiresAt * 1000).toLocaleTimeString()} 过期</button><span className="flex gap-1"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span></div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /></div>)}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`border-b py-1 ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/10" : "border-slate-800"}`}>#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
 
       <Modal title={<span className="flex items-center gap-2"><History size={16} />历史对话 <Tag className="m-0">{historySessions.length}</Tag></span>} open={historyOpen} onCancel={() => setHistoryOpen(false)} footer={null} width={620} destroyOnClose>
         <div className="mb-3 flex items-center justify-between gap-2"><Input.Search allowClear value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索对话标题或内容" className="max-w-sm" /><Button icon={<Plus size={13} />} onClick={createSession}>新建对话</Button></div>
@@ -1002,6 +1127,9 @@ export default function CopilotPage() {
               const triggeredSkillNames = item.triggeredSkillNames ?? [];
               const manualSkillNames = item.manualSkillNames ?? [];
               const usedSkillCount = item.skillNames?.length ?? 0;
+              const progressRounds = (item.progressEvents ?? []).map((entry) => entry.round ?? 0).filter((round) => round > 0);
+              const agentRoundCount = progressRounds.length > 0 ? Math.max(...progressRounds) : item.progressEvents?.length ? 1 : 0;
+              const latestProgress = [...(item.progressEvents ?? [])].reverse().find((entry) => entry.message.trim() && entry.kind !== "text_delta");
               const targetAliases = Array.from(new Set(item.toolCalls?.map((tool) => tool.serverAlias).filter((alias): alias is string => Boolean(alias)) ?? []));
               const contextCount = item.historyCount ?? 0;
               const hasPendingApproval = item.toolCalls?.some((tool) => tool.status === "pending") ?? false;
@@ -1013,16 +1141,17 @@ export default function CopilotPage() {
               return (
             <article key={item.id} className="w-full space-y-3.5 rounded-2xl border border-slate-800/90 bg-[#0f141c] p-5 text-xs shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
-                <div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-1.5 font-bold text-white"><Bot size={15} className="text-indigo-400" />OpsPub AI 助手</span><Tag bordered={false} color={item.content.startsWith("请求失败：") ? "error" : "success"} className="m-0">{item.content.startsWith("请求失败：") ? "未完成" : "已完成"}</Tag>{triggeredSkillNames.length > 0 && <Tag bordered={false} color="gold" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />关键词触发：{triggeredSkillNames.join("、")}</span></Tag>}{manualSkillNames.length > 0 && <Tag bordered={false} color="blue" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />手动补充：{manualSkillNames.join("、")}</span></Tag>}</div>
-                <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400"><span>本轮 1 轮</span><span className="text-slate-700">·</span><span>{completedToolCount}/{toolCount} 次工具完成</span><span className="text-slate-700">·</span><span>{usedSkillCount} 个技能</span><span className="text-slate-700">·</span><span>上下文 {contextCount} 条{item.historyTrimmed ? `（裁剪 ${item.historyTrimmed}）` : ""}</span><span className="text-slate-600">·</span><span>{item.modelName ? `模型 · ${item.modelName}` : "本地受控模式"}</span></div>
+                <div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-1.5 font-bold text-white"><Bot size={15} className="text-indigo-400" />OpsPub AI 助手</span><Tag bordered={false} color={item.streaming ? "processing" : item.content.startsWith("请求失败：") ? "error" : "success"} className="m-0">{item.streaming ? "正在生成" : item.content.startsWith("请求失败：") ? "未完成" : "已完成"}</Tag>{triggeredSkillNames.length > 0 && <Tag bordered={false} color="gold" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />关键词触发：{triggeredSkillNames.join("、")}</span></Tag>}{manualSkillNames.length > 0 && <Tag bordered={false} color="blue" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />手动补充：{manualSkillNames.join("、")}</span></Tag>}</div>
+                <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400"><span>本轮 {agentRoundCount} 轮</span><span className="text-slate-700">·</span><span>{completedToolCount}/{toolCount} 次工具完成</span><span className="text-slate-700">·</span><span>{usedSkillCount} 个技能</span><span className="text-slate-700">·</span><span>上下文 {contextCount} 条{item.historyTrimmed ? `（裁剪 ${item.historyTrimmed}）` : ""}</span><span className="text-slate-600">·</span><span>{item.modelName ? `模型 · ${item.modelName}` : "本地受控模式"}</span></div>
               </div>
-              <CopilotMarkdown content={item.content} />
-              <details open={Boolean(item.toolCalls?.length)} className="overflow-hidden rounded-xl border border-slate-800/80 bg-[#0b0f16]">
+              {agentRoundCount > 1 && <div className="text-[11px] text-cyan-300">已完成 {agentRoundCount} 轮受控工具规划</div>}
+              <details open className="overflow-hidden rounded-xl border border-slate-800/80 bg-[#0b0f16]">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-surface-900/60 px-3.5 py-2.5 text-xs transition hover:bg-surface-850/80">
                   <span className="flex min-w-0 items-center gap-2 font-semibold text-slate-200"><FileText size={14} className="shrink-0 text-cyan-400" />分析与执行过程 <span className="truncate font-normal text-slate-400">{item.toolCalls?.length ? `${item.toolCalls.length} 条工具记录` : "请求与策略摘要"}</span></span>
                   <span className="shrink-0 text-[11px] text-slate-500">查看过程摘要</span>
                 </summary>
                 <div className="space-y-3 border-t border-slate-800/80 bg-[#090c12] p-3.5">
+                  {item.streaming && latestProgress && <div role="status" className="flex items-center gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/[0.06] px-3 py-2 text-[11px] text-cyan-200"><span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-cyan-400" />{latestProgress.round ? `第 ${latestProgress.round} 轮 · ` : "处理中 · "}{latestProgress.message}</div>}
                   <div><div className="mb-1 text-[11px] font-semibold text-slate-300">本轮问题</div><p className="m-0 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-400">{sourceRequest || "未找到关联问题"}</p></div>
                   <div className="grid grid-cols-1 gap-2 text-[11px] text-slate-400 sm:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><span className="block text-slate-500">意图识别</span><strong className="mt-1 block break-words font-medium text-slate-200">{intentSummary}</strong></div>
@@ -1031,11 +1160,13 @@ export default function CopilotPage() {
                     <div className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><span className="block text-slate-500">会话上下文</span><strong className="mt-1 block font-medium text-slate-200">最近 {contextCount} 条消息</strong><span className="mt-1 block text-slate-500">不包含跨会话语义记忆检索</span></div>
                   </div>
                   {item.skillNames?.length ? <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400"><Puzzle size={13} /><span>参考技能</span>{item.skillNames.map((name) => <Tag key={name} className="m-0">{name}</Tag>)}</div> : null}
-                  {item.toolCalls?.length ? <div className="space-y-2">{item.toolCalls.map((tool, index) => <div key={`${tool.tool}-${tool.serverAlias}-${index}`} className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-cyan-300"><TerminalSquare size={13} />{tool.tool}{tool.serverAlias ? <span className="font-sans font-normal text-slate-500">@{tool.serverAlias}</span> : null}</span><Tag color={tool.status === "success" ? "success" : tool.status === "blocked" ? "warning" : tool.status === "skipped" ? "default" : tool.status === "pending" ? "processing" : "error"}>{toolStatusLabel(tool.status)}</Tag></div><pre className="m-0 mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-slate-400">{tool.output || "无输出"}</pre></div>)}</div> : <p className="m-0 text-[11px] text-slate-500">没有调用服务器工具；以上内容由模型根据对话上下文生成。</p>}
+                  {item.progressEvents?.length ? <CopilotExecutionTimeline events={item.progressEvents} streaming={item.streaming} /> : null}
+                  {item.toolCalls?.length ? <div className="space-y-2">{item.toolCalls.map((tool, index) => <div key={`${tool.tool}-${tool.serverAlias}-${index}`} className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-cyan-300"><TerminalSquare size={13} />{tool.tool}{tool.serverAlias ? <span className="font-sans font-normal text-slate-500">@{tool.serverAlias}</span> : null}</span><Tag color={tool.status === "success" ? "success" : tool.status === "blocked" ? "warning" : tool.status === "skipped" ? "default" : tool.status === "pending" || tool.status === "running" ? "processing" : "error"}>{toolStatusLabel(tool.status)}</Tag></div><pre className="m-0 mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-slate-400">{tool.output || "无输出"}</pre></div>)}</div> : !item.progressEvents?.length ? <p className="m-0 text-[11px] text-slate-500">没有调用服务器工具；以上内容由模型根据对话上下文生成。</p> : null}
                   {item.warnings?.length ? <div className="space-y-1">{item.warnings.map((warning) => <p key={warning} className="m-0 text-[11px] text-amber-300">策略提示：{warning}</p>)}</div> : null}
                   <p className="m-0 border-t border-slate-800 pt-2 text-[10px] text-slate-600">此处展示可核验的策略状态和工具记录，不包含模型隐藏思维链。</p>
                 </div>
               </details>
+              {item.content ? <CopilotMarkdown content={item.content} /> : item.streaming ? <div className="flex items-center gap-2 py-1 text-xs text-slate-400"><Spin size="small" />正在连接处理过程…</div> : null}
               {item.toolCalls?.map((tool) => {
                 if (typeof tool.approvalId !== "number") return null;
                 const detail = approvalDetailById.get(tool.approvalId);
@@ -1076,7 +1207,7 @@ export default function CopilotPage() {
         </div>
       </main>
 
-      {showPolicyNotice && <div className="mx-5 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs text-amber-300"><div className="flex min-w-0 items-center gap-2"><ShieldAlert size={15} className="shrink-0 text-amber-400" /><span className="leading-relaxed">改动型操作受 AI 总开关、服务器策略和人工审批共同约束；模型服务仅接收当前对话及脱敏结果，不会收到 SSH 凭据。</span></div><div className="flex shrink-0 items-center gap-3"><button type="button" onClick={() => void navigate("/settings")} className="font-medium underline decoration-amber-500/50 underline-offset-2 hover:text-white">查看策略</button><button type="button" aria-label="关闭安全提示" title="关闭提示" onClick={() => { sessionStorage.setItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY, "true"); setShowPolicyNotice(false); }} className="rounded p-1 text-amber-300/70 transition hover:bg-amber-500/15 hover:text-white"><X size={15} /></button></div></div>}
+      {showPolicyNotice && <div className="mx-5 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs text-amber-300"><div className="flex min-w-0 items-center gap-2"><ShieldAlert size={15} className="shrink-0 text-amber-400" /><span className="leading-relaxed">改动型操作受 AI 总开关、服务器策略和人工审批共同约束；模型服务仅接收当前对话及脱敏结果，不会收到 SSH 凭据。</span></div><div className="flex shrink-0 items-center gap-3"><button type="button" onClick={() => void navigate("/settings")} className="font-medium underline decoration-amber-500/50 underline-offset-2 hover:text-white">查看策略</button><button type="button" aria-label="关闭安全提示" title="关闭提示" onClick={() => { localStorage.setItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY, "true"); setShowPolicyNotice(false); }} className="rounded p-1 text-amber-300/70 transition hover:bg-amber-500/15 hover:text-white"><X size={15} /></button></div></div>}
 
       <footer className="shrink-0 bg-surface-900 px-5 pb-4 pt-1"><div className="w-full space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500"><div className="flex items-center gap-2"><span className="text-slate-400">{serverId === null ? `可见 ${servers.length} 台` : "已选定服务器"}</span><span>·</span><span className="text-slate-400">{modelProfiles.find((profile) => profile.id === modelProfileId)?.model ?? (modelProfileId ? "已配置模型" : "本地受控工具")}</span></div><div className="flex flex-wrap items-center gap-1.5">{["继续", "建议", "验证", "重试", "说明", "总结"].map((chip) => <button key={chip} type="button" disabled={loading} onClick={() => setInput((current) => current ? `${current} ${chip}` : chip)} className="rounded border border-slate-800 bg-[#131924] px-2 py-0.5 text-[11px] text-slate-400 transition hover:bg-[#1a2332] hover:text-slate-200 disabled:opacity-50">{chip}</button>)}</div></div>
@@ -1084,6 +1215,111 @@ export default function CopilotPage() {
       </div></footer>
     </div>
   );
+}
+
+interface ExecutionTimelineTool {
+  key: string;
+  tool: string;
+  serverAlias: string | null;
+  status: string;
+  command: string;
+  output: string;
+  durationMs: number | null;
+}
+
+interface ExecutionTimelineRound {
+  number: number;
+  notes: string[];
+  tools: ExecutionTimelineTool[];
+}
+
+function CopilotExecutionTimeline({ events, streaming }: { events: CopilotProgress[]; streaming?: boolean }) {
+  const rounds: ExecutionTimelineRound[] = [{ number: 1, notes: [], tools: [] }];
+  let fallbackRound = 1;
+  let eventSequence = 0;
+
+  for (const event of events) {
+    if (event.stage === "agent_reasoning" && event.round == null) {
+      fallbackRound = rounds.length + 1;
+    }
+    const roundNumber = event.round ?? fallbackRound;
+    let currentRound = rounds.find((round) => round.number === roundNumber);
+    if (!currentRound) {
+      currentRound = { number: roundNumber, notes: [], tools: [] };
+      rounds.push(currentRound);
+      rounds.sort((a, b) => a.number - b.number);
+    }
+    if (event.kind === "tool" || (event.stage === "plan_step_ready" && event.tool)) {
+      const tool = event.tool ?? "受控工具";
+      const existing = [...currentRound.tools].reverse().find((item) =>
+        event.toolCallId
+          ? item.key === event.toolCallId
+          : item.tool === tool
+            && item.serverAlias === (event.serverAlias ?? null)
+            && (item.status === "pending" || item.status === "running"),
+      );
+      const isResult = event.stage === "tool_result" || event.status === "success" || event.status === "failed";
+      const nextStatus = event.status ?? (event.stage === "plan_step_ready" ? "pending" : "running");
+      if (existing) {
+        existing.status = nextStatus;
+        if (!isResult && event.delta) existing.command = event.delta;
+        if (isResult && event.delta) existing.output = event.delta;
+        if (event.durationMs != null) existing.durationMs = event.durationMs;
+      } else {
+        currentRound.tools.push({
+          key: event.toolCallId ?? `${event.stage}-${eventSequence++}`,
+          tool,
+          serverAlias: event.serverAlias ?? null,
+          status: nextStatus,
+          command: isResult ? "" : event.delta ?? "",
+          output: isResult ? event.delta ?? "" : "",
+          durationMs: event.durationMs ?? null,
+        });
+      }
+      continue;
+    }
+    if (event.message) currentRound.notes.push(event.message);
+  }
+
+  const visibleRounds = rounds.filter((round) => round.notes.length > 0 || round.tools.length > 0);
+  const toolCount = visibleRounds.reduce((count, round) => count + round.tools.length, 0);
+  const completedCount = visibleRounds.reduce((count, round) => count + round.tools.filter((tool) => tool.status === "success").length, 0);
+  const runningCount = visibleRounds.reduce((count, round) => count + round.tools.filter((tool) => tool.status === "running").length, 0);
+  const failedCount = visibleRounds.reduce((count, round) => count + round.tools.filter((tool) => tool.status === "failed" || tool.status === "blocked").length, 0);
+  return <div className="space-y-3">
+    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+      <span>{visibleRounds.length} 轮</span><span>·</span><span>{toolCount} 个工具调用</span>
+      {toolCount > 0 && <><span>·</span><span>{completedCount} 项完成</span>{runningCount > 0 && <><span>·</span><span className="text-cyan-300">{runningCount} 项执行中</span></>}{failedCount > 0 && <><span>·</span><span className="text-rose-300">{failedCount} 项异常</span></>}</>}
+    </div>
+    {visibleRounds.map((round) => <section key={round.number} className="relative border-l border-slate-800 pl-4">
+    <span className="absolute -left-[5px] top-1 h-2 w-2 rounded-full bg-indigo-400" />
+    <h4 className="m-0 mb-2 text-[11px] font-semibold text-slate-300">第 {round.number} 轮</h4>
+    {round.notes.map((note, index) => <p key={`${round.number}-note-${index}`} className="mb-2 mt-0 text-[11px] leading-relaxed text-slate-400">{note}</p>)}
+    {round.tools.length > 0 && <div className="space-y-1.5">
+      <div className="flex items-center gap-2 text-[10px] text-slate-500"><span className="h-px flex-1 bg-slate-800" /><span className="shrink-0">本轮工具 {round.tools.length} 个 · 依次执行</span><span className="h-px flex-1 bg-slate-800" /></div>
+      {round.tools.map((tool) => {
+      const running = tool.status === "running";
+      const failed = tool.status === "failed" || tool.status === "blocked";
+      const done = tool.status === "success";
+      const skipped = tool.status === "skipped";
+      return <details key={tool.key} open={running} className="overflow-hidden rounded border border-slate-800 bg-[#0d121a]">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[11px] hover:bg-white/[0.03]">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${running ? "animate-pulse bg-cyan-400" : done ? "bg-emerald-400" : failed ? "bg-rose-400" : skipped ? "bg-slate-600" : "bg-slate-500"}`} />
+          <span className="font-mono font-medium text-cyan-300">{tool.tool}</span>
+          {tool.serverAlias && <span className="text-slate-500">@{tool.serverAlias}</span>}
+          <span className="min-w-0 flex-1 truncate font-mono text-slate-400">{tool.command || tool.output || "等待工具执行"}</span>
+          {tool.durationMs != null && <span className="shrink-0 text-slate-500">{tool.durationMs} ms</span>}
+          <span className={failed ? "text-rose-300" : done ? "text-emerald-300" : running ? "text-cyan-300" : "text-slate-400"}>{running ? "执行中" : done ? "成功" : failed ? (tool.status === "blocked" ? "已拦截" : "失败") : skipped ? "已跳过" : "待执行"}</span>
+        </summary>
+        <div className="space-y-2 border-t border-slate-800 px-3 py-2.5 text-[10px]">
+          {tool.command && <div><div className="mb-1 text-slate-500">执行命令</div><pre className="m-0 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded bg-black/25 p-2 font-mono leading-relaxed text-slate-300">{tool.command}</pre></div>}
+          {tool.output && <div><div className="mb-1 text-slate-500">执行结果</div><pre className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-black/25 p-2 font-mono leading-relaxed text-slate-400">{tool.output}</pre></div>}
+          {!tool.command && !tool.output && <span className="text-slate-500">等待工具返回详细信息</span>}
+        </div>
+      </details>;
+      })}
+    </div>}
+    </section>)}{streaming && <div className="flex items-center gap-2 pl-4 text-[11px] text-slate-500"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />正在继续分析和执行下一步</div>}</div>;
 }
 
 function CopilotMarkdown({ content }: { content: string }) {

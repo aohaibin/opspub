@@ -1,4 +1,4 @@
-# Reeve 内置技能索引（41 项）
+# OpsPub 内置技能索引（41 项）
 
 > 导出时间：2026-10-06
 > 范围：内置技能 41 项（不含用户自建技能 `testOne`）
@@ -53,7 +53,7 @@
 
 ## 6. `db-tools`
 
-**描述**：Reeve 数据库直连工具 db_query / db_execute —— 通过已登记的 DB 凭据（mysql_conn / postgres_conn / sqlite_conn / mssql_conn）跑 SQL，避免 ssh_exec + mysql/psql CLI 的密码暴露 + 输出解析坑。
+**描述**：OpsPub 数据库直连工具 db_query / db_execute —— 通过已登记的 DB 凭据（mysql_conn / postgres_conn / sqlite_conn / mssql_conn）跑 SQL，避免 ssh_exec + mysql/psql CLI 的密码暴露 + 输出解析坑。
 
 **触发词**：
 `数据库`, `查 db`, `查表`, `查记录`, `查询数据`, `mysql 查询`, `postgres 查询`, `sqlite 查询`, `SQL 查询`, `数据库连接`, `db_query`, `db_execute`, `数据条数`, `select 数据`, `insert 数据`, `update 数据`, `看表`, `看库`, `表结构`, `desc 表`, `show tables`, `show databases`, `跑 sql`, `执行 sql`, `count 行`, `多少条数据`, `表里有多少`, `查一下`, `数据库直连`, `不用 ssh 查库`, `给我看`, `表数据`, `explain`, `explain analyze`, `查询计划`, `sql server 查询`, `sqlserver 查询`, `mssql 查询`
@@ -70,7 +70,7 @@
 
 ## 8. `disk-provisioning`
 
-**描述**：数据盘分区 / 格式化 / 挂载 / 扩容 —— AI 先用只读命令摸清盘的现状并出方案，分区写操作走危险审批，mkfs 等「极高危」步骤由 AI 发起审批、用户在 Reeve 桌面端手敲设备路径并验证身份后才执行，最后 AI 负责挂载与验证。
+**描述**：数据盘分区 / 格式化 / 挂载 / 扩容 —— AI 先用只读命令摸清盘的现状并出方案，分区写操作走危险审批，mkfs 等「极高危」步骤由 AI 发起审批、用户在 OpsPub 桌面端手敲设备路径并验证身份后才执行，最后 AI 负责挂载与验证。
 
 **触发词**：
 `分区`, `磁盘分区`, `硬盘分区`, `新盘`, `新硬盘`, `数据盘`, `挂载磁盘`, `挂载数据盘`, `挂载硬盘`, `格式化`, `格式化磁盘`, `格式化数据盘`, `mkfs`, `fdisk`, `parted`, `gdisk`, `sgdisk`, `sfdisk`, `lsblk`, `blkid`, `fstab`, `开机自动挂载`, `磁盘扩容`, `扩容磁盘`, `云盘扩容`, `扩展分区`, `growpart`, `resize2fs`, `xfs_growfs`, `lvextend`, `lvm`, `逻辑卷`, `pvcreate`, `vgcreate`, `lvcreate`, `mkswap`, `交换分区`, `raid`, `mdadm`, `磁盘加密`, `luks`, `cryptsetup`, `wipefs`
@@ -185,7 +185,7 @@
 
 ## 21. `mssql-ops`
 
-**描述**：SQL Server 运维速查（Linux / Docker 版）—— 装机、连不上 / 起不来、备份还原、版本与许可，含 Reeve 的 db_* 工具对 SQL Server 的边界。
+**描述**：SQL Server 运维速查（Linux / Docker 版）—— 装机、连不上 / 起不来、备份还原、版本与许可，含 OpsPub 的 db_* 工具对 SQL Server 的边界。
 
 **触发词**：
 `sql server`, `sqlserver`, `mssql`, `sqlcmd`, `微软数据库`, `装 sql server`, `部署 sql server`, `安装 sqlserver`, `sa 密码`, `MSSQL_SA_PASSWORD`, `sqlserver 连不上`, `sqlserver 起不来`, `sqlserver 内存`, `mssql 容器`, `1433`, `bak 备份`, `sqlserver 备份`, `sqlserver 还原`, `express 版`, `developer 版`, `mssql_conn`
@@ -308,25 +308,25 @@
 
 ## 35. `redis-tools`
 
-**描述**：Reeve Redis 直连工具 redis_get / redis_set / redis_del / redis_scan / redis_exec —— 通过已登记的 redis_conn 凭据安全操作 Redis，密码加密 + 危险命令拦截（清库类进极高危审批，改配置 / 逃逸类永久拦）。
+**描述**：OpsPub Redis 直连工具 redis_get / redis_set / redis_del / redis_scan / redis_exec —— 通过已登记的 redis_conn 凭据安全操作 Redis，密码加密 + 危险命令拦截（清库类进极高危审批，改配置 / 逃逸类永久拦）。
 
 **触发词**：
 `redis`, `缓存`, `redis 查询`, `redis 写入`, `redis 删除`, `KEYS`, `SCAN`, `GET`, `SET`, `HGETALL`, `LRANGE`, `ZRANGE`, `INFO`, `慢日志`, `slowlog`, `redis 密码`, `redis 连接`, `redis_get`, `redis_set`, `redis_del`, `redis_scan`, `redis_exec`, `看 redis`, `查 redis`, `取 key`, `写 key`, `删 key`, `扫 key`, `看 key`, `redis 直连`, `不用 ssh 跑 redis`, `redis ttl`, `expire`, `hash 字段`, `list 元素`, `zset 排名`
 
 ---
 
-## 36. `reeve-app-deploy`
+## 36. `opspub-app-deploy`
 
-**描述**：通用「用 Reeve 部署任意应用」配方（框架无关）—— 共享中间件 install_app + 部署目标 deploy_upsert_target(compose 托管)，产物全进工作台台账、可一键重部署/回滚。任何项目部署没有专属框架技能时的默认剧本。
+**描述**：通用「用 OpsPub 部署任意应用」配方（框架无关）—— 共享中间件 install_app + 部署目标 deploy_upsert_target(compose 托管)，产物全进工作台台账、可一键重部署/回滚。任何项目部署没有专属框架技能时的默认剧本。
 
 **触发词**：
-`部署`, `上线`, `发布`, `deploy`, `部署到`, `部署项目`, `部署应用`, `部署后端`, `部署前端`, `docker部署`, `docker 部署`, `容器部署`, `上服务器`, `发布到服务器`, `部署到服务器`, `生产部署`, `上生产`, `全栈部署`, `反向代理部署`, `用reeve部署`, `reeve部署`
+`部署`, `上线`, `发布`, `deploy`, `部署到`, `部署项目`, `部署应用`, `部署后端`, `部署前端`, `docker部署`, `docker 部署`, `容器部署`, `上服务器`, `发布到服务器`, `部署到服务器`, `生产部署`, `上生产`, `全栈部署`, `反向代理部署`, `用opspub部署`, `opspub部署`
 
 ---
 
 ## 37. `ruoyi-plus-uniapp-deploy`
 
-**描述**：RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 —— 走 Reeve 部署目标(Target)：共享 MySQL/Redis + deploy_upsert_target，产物进工作台、可一键重部署/回滚。
+**描述**：RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 —— 走 OpsPub 部署目标(Target)：共享 MySQL/Redis + deploy_upsert_target，产物进工作台、可一键重部署/回滚。
 
 **触发词**：
 `ruoyi`, `ruoyi-plus`, `ruoyi-plus-uniapp`, `ruoyi-vue-plus`, `ruoyivue`, `ryplus`, `ryplus_uni`, `ryplus-uni`, `若依`, `若依plus`, `若依部署`, `plus-ui`, `plus-uniapp`, `plus-app`, `ruoyi 部署`, `ruoyi上线`, `部署若依`, `springboot+vue 部署`, `后台管理系统部署`, `后台管理部署`
@@ -382,7 +382,7 @@
 
 | 分类 | 技能 |
 |---|---|
-| 面板 / 容器编排 | `docker-ps` `1panel-ops` `portainer-ops` `reeve-app-deploy` |
+| 面板 / 容器编排 | `docker-ps` `1panel-ops` `portainer-ops` `opspub-app-deploy` |
 | Web / 反代 / 证书 | `nginx-status` `openresty-lua` `caddy-traefik` `certbot-acme` |
 | 数据库 | `mysql-ops` `postgresql-ops` `mongodb-ops` `mssql-ops` `clickhouse-ops` `db-tools` |
 | 缓存 / 消息队列 | `redis-ops` `redis-tools` `kafka-ops` `rabbitmq-ops` |
@@ -392,9 +392,9 @@
 | 系统 / 内核 / 安全 | `linux-fundamentals` `systemd-service` `disk-provisioning` `iptables-firewalld` `selinux-apparmor` `ssh-hardening` |
 | CI/CD / 代码托管 | `jenkins-runner` `git-server` |
 | 编排 / 网络 | `kubernetes-basics` `wireguard-vpn` `nfs-smb-share` |
-| 项目部署配方 | `reeve-app-deploy` `ruoyi-plus-uniapp-deploy` `deepseek-harness-deploy` |
+| 项目部署配方 | `opspub-app-deploy` `ruoyi-plus-uniapp-deploy` `deepseek-harness-deploy` |
 
 ---
 
 > 说明：以上「描述 + 触发词」是 41 项技能的索引元数据；对应的 OpsPub 受控参考正文位于 `docs/skills/<skill-id>.md`，并由 MCP `get_skill` 返回。
-> 正文是基于索引和 OpsPub 安全模型整理的参考资料，不是 Reeve 私有技能原文，也不能改变 Token、AI 锁、服务器策略或审批结果。
+> 正文是项目基于索引和 OpsPub 安全模型整理的受控参考资料，不能改变 Token、AI 锁、服务器策略或审批结果。

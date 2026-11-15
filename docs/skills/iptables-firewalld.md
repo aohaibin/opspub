@@ -26,7 +26,7 @@ dangerous_commands:
 - 增删规则、`-F`/`reset`/改默认策略这类**改动型**走 `ssh_exec`，必过策略档位 + 审批。
 
 🔴 **防火墙是最容易"把自己锁在外面"的领域**。规则会经 `ssh_exec` 触发**用户审批**——执行前必须告诉用户"这步改防火墙、有断 SSH 风险、需要你在 OpsPub 批准"，**被拒后绝不原样重试**。
-**铁律：远程改防火墙前永远先布保险绳**——把回滚命令落到 `~/.reeve/scripts/`（OpsPub 统一工作区），用 `at` 定时自动执行（见末尾「教训」）；改完测通了再 `atrm` 取消。
+**铁律：远程改防火墙前永远先布保险绳**——把回滚命令落到 `~/.opspub/scripts/`（OpsPub 统一工作区），用 `at` 定时自动执行（见末尾「教训」）；改完测通了再 `atrm` 取消。
 
 ## 一、工具关系图
 
@@ -278,7 +278,7 @@ sudo iptables -A DOCKER-USER -j DROP
 
 ## 教训
 
-- **远程改防火墙永远先布保险绳**：把当前规则备份到 `~/.reeve/backups/`（`iptables-save > ~/.reeve/backups/rules-$(date +%s).v4`），回滚脚本写 `~/.reeve/scripts/fw-rollback.sh`，再 `echo "bash ~/.reeve/scripts/fw-rollback.sh" | at now + 5 minutes`。改完测通了 → `atrm` 取消；改坏了 5 分钟后自动回滚。**别把脚本散落 /tmp**，用 OpsPub 统一工作区便于复盘。
+- **远程改防火墙永远先布保险绳**：把当前规则备份到 `~/.opspub/backups/`（`iptables-save > ~/.opspub/backups/rules-$(date +%s).v4`），回滚脚本写 `~/.opspub/scripts/fw-rollback.sh`，再 `echo "bash ~/.opspub/scripts/fw-rollback.sh" | at now + 5 minutes`。改完测通了 → `atrm` 取消；改坏了 5 分钟后自动回滚。**别把脚本散落 /tmp**，用 OpsPub 统一工作区便于复盘。
 - firewalld 的 `--permanent` 和 runtime 是**两套**；改完一定要 `--reload`，否则下次重启没了；或同时改两份 `firewall-cmd --runtime-to-permanent`。
 - Docker 与防火墙的"双轨"是经典坑：`ufw allow` 看似没开但容器**仍然能被公网访问**（因为 docker 走 DOCKER-USER 链先）。
 - nftables 的 `inet` 表同时管 IPv4 + IPv6，**不要忘加 v6 也禁掉**（一些场景 v6 默认开放比 v4 还危险）。

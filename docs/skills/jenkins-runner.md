@@ -76,8 +76,8 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ### 备份
 
 ```bash
-# 简单：tar 整个 volume（落 OpsPub 统一工作区 ~/.reeve/backups，别散落随机目录）
-docker run --rm -v jenkins_home:/src -v ~/.reeve/backups:/dst alpine \
+# 简单：tar 整个 volume（落 OpsPub 统一工作区 ~/.opspub/backups，别散落随机目录）
+docker run --rm -v jenkins_home:/src -v ~/.opspub/backups:/dst alpine \
     tar czf /dst/jenkins-$(date +%F).tgz -C /src .
 
 # 推荐：装 ThinBackup / Configuration as Code (JCasC) 插件，定期跑 + 走 git

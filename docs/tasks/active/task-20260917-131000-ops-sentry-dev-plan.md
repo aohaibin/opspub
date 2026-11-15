@@ -9,7 +9,7 @@
 
 ## 📋 需求描述
 
-基于 `docs/remote-ops-ai-prototype.html` 原型设计，在 template-tauri 框架上开发一个**受控远程运维与智能环境诊断平台**（代号 OpsSentry / Reeve）。
+基于 `docs/remote-ops-ai-prototype.html` 原型设计，在 template-tauri 框架上开发一个**受控远程运维与智能环境诊断平台**（代号 OpsSentry / OpsPub）。
 
 ---
 

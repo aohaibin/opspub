@@ -41,7 +41,7 @@ dangerous_commands:
 1. MCP `list_installed_services` 查现有 `postgres_conn`——已装就复用（共享设施）。
 2. 端口 5432 是否占用（`port_check`）。
 
-🔴 **装 PostgreSQL 一律用 `install_app`**——postgres 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `reeve-postgres`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/postgres`、**自动登记 `postgres_conn` 凭据带 SSH 隧道**（「数据库」页即装即连）。
+🔴 **装 PostgreSQL 一律用 `install_app`**——postgres 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `opspub-postgres`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/postgres`、**自动登记 `postgres_conn` 凭据带 SSH 隧道**（「数据库」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "postgres" } }
@@ -181,16 +181,16 @@ WHERE datname = 'mydb' AND pid <> pg_backend_pid();
 
 ### 逻辑备份（pg_dump）
 
-> 💾 **备份产物统一落 `~/.reeve/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.reeve/backups`；文件名带日期避免覆盖旧备份。
+> 💾 **备份产物统一落 `~/.opspub/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.opspub/backups`；文件名带日期避免覆盖旧备份。
 
 ```bash
 # 单库
-pg_dump -h host -U postgres -F c -f ~/.reeve/backups/mydb-$(date +%F).dump mydb    # custom format（推荐）
-pg_dump -h host -U postgres -F p -f ~/.reeve/backups/mydb-$(date +%F).sql mydb     # plain SQL
+pg_dump -h host -U postgres -F c -f ~/.opspub/backups/mydb-$(date +%F).dump mydb    # custom format（推荐）
+pg_dump -h host -U postgres -F p -f ~/.opspub/backups/mydb-$(date +%F).sql mydb     # plain SQL
 
 # 全库（集群级，含角色）
-pg_dumpall -h host -U postgres > ~/.reeve/backups/all-$(date +%F).sql
-pg_dumpall -h host -U postgres -g > ~/.reeve/backups/globals.sql       # 只角色 + tablespace
+pg_dumpall -h host -U postgres > ~/.opspub/backups/all-$(date +%F).sql
+pg_dumpall -h host -U postgres -g > ~/.opspub/backups/globals.sql       # 只角色 + tablespace
 
 # 参数
 -F c     # custom（推荐，可并行恢复）
@@ -218,7 +218,7 @@ psql -h host -U postgres -d mydb < mydb.sql
 
 ```bash
 # 全量基础备份（搭配 WAL 归档做 PITR）—— 落 OpsPub 工作区
-pg_basebackup -h primary -U replicator -D ~/.reeve/backups/base -Ft -z -P -X stream
+pg_basebackup -h primary -U replicator -D ~/.opspub/backups/base -Ft -z -P -X stream
 ```
 
 ## 第六步：流复制（主从）

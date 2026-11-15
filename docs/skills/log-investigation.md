@@ -25,7 +25,7 @@ dangerous_commands:
 
 这些只读工具**任何策略档位都放行**（含 readonly 档），不会被拒——**先用 `tail_log` 看尾部，别上来就 `ssh_exec tail -f`**（流式跟随用工具更稳）。`journalctl`/`grep`/`awk` 这类要管道/过滤的，工具不够用时才走 `ssh_exec`。
 
-⚠️ 本技能里的清理/切割操作（`journalctl --vacuum-*` / `truncate` / `logrotate -f`）含 `sudo` 或是写/删操作 → 会触发**用户审批**。执行前先告诉用户"这步会删历史日志、需要你在 OpsPub 批准"，**被拒后不要原样重试**，改成只读排查或问用户。清理前先把要删的日志备份到 `~/.reeve/backups/`（OpsPub 统一工作区）。
+⚠️ 本技能里的清理/切割操作（`journalctl --vacuum-*` / `truncate` / `logrotate -f`）含 `sudo` 或是写/删操作 → 会触发**用户审批**。执行前先告诉用户"这步会删历史日志、需要你在 OpsPub 批准"，**被拒后不要原样重试**，改成只读排查或问用户。清理前先把要删的日志备份到 `~/.opspub/backups/`（OpsPub 统一工作区）。
 
 ## 第一步：日志路径速查表
 
@@ -223,7 +223,7 @@ sudo journalctl --vacuum-size=500M               # 留 500M
 sudo journalctl --vacuum-time=7d                  # 留 7 天
 ```
 
-> 清理前若需留证（排障/合规），先用 `sftp_read` 取关键日志或 `cp /var/log/xxx ~/.reeve/backups/`（OpsPub 统一工作区）再 vacuum。`--vacuum-time=0` / `--vacuum-size=0`（全删）会触发**危险审批**，需用户弹窗放行。
+> 清理前若需留证（排障/合规），先用 `sftp_read` 取关键日志或 `cp /var/log/xxx ~/.opspub/backups/`（OpsPub 统一工作区）再 vacuum。`--vacuum-time=0` / `--vacuum-size=0`（全删）会触发**危险审批**，需用户弹窗放行。
 
 ## 路径速查表（重要！）
 

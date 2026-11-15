@@ -9,7 +9,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 适用：用户说「用 OpsPub 部署 ruoyi-plus-uniapp / 若依-plus / ryplus 到某服务器」「上线后台管理系统」。
 本配方 = **Spring Boot 3 + JDK21 后端 + plus-ui(PC) 静态前端 + MySQL8 + Redis7**，默认 Docker。
 
-> 📎 **本技能 = 通用 `reeve-app-deploy` 配方的 ruoyi 特化**：通用骨架（探环境→install_app 共享库→deploy_upsert_target compose 托管两条凭据→stacks 目录→static-openresty 前端同域反代→验收）见 `reeve-app-deploy`（`get_skill("reeve-app-deploy")`），那里有完整步骤 + 每条铁律的原因。**本技能只补 ruoyi 的专属值**，对照着用。
+> 📎 **本技能 = 通用 `opspub-app-deploy` 配方的 ruoyi 特化**：通用骨架（探环境→install_app 共享库→deploy_upsert_target compose 托管两条凭据→stacks 目录→static-openresty 前端同域反代→验收）见 `opspub-app-deploy`（`get_skill("opspub-app-deploy")`），那里有完整步骤 + 每条铁律的原因。**本技能只补 ruoyi 的专属值**，对照着用。
 >
 > 🔴 **核心纪律（同通用）：走「部署目标(Target)」，绝不 `ssh_exec` 手写 docker-compose / openssl 生成 .env；建库账号默认也交给引擎（引擎不支持的库类型除外，见通用配方第 3 步「引擎不支持时的出口」）**——手写产物不进台账、不可一键重部署。
 
@@ -18,7 +18,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 |----|----|
 | `<应用标识>`（容器名/库名/库账号/栈目录/target 前缀） | **`ryplus_uni`**（来源：`ruoyi-admin/.../application.yml` 的 `app.id`；redisson keyPrefix/clientName/库名 DB_NAME 都=`${app.id}`） |
 | 后端镜像 | `bellsoft/liberica-openjdk-rocky:21` 挂载 jar 跑；本机 `mvn clean package -DskipTests` 出 jar |
-| 后端 deployRoot | `/opt/reeve/stacks/ryplus_uni`；容器名 `ryplus_uni`；监听 `127.0.0.1:5500` |
+| 后端 deployRoot | `/opt/opspub/stacks/ryplus_uni`；容器名 `ryplus_uni`；监听 `127.0.0.1:5500` |
 | compose.db | `{ vaultId:<共享 MySQL root>, mode:"create", dbName:"ryplus_uni", dbUser:"ryplus_uni" }` |
 | initSqls | `["<本机>/script/sql/ry_plus_sys.sql", "<本机>/script/sql/ry_plus_app.sql"]`（先 sys 后 app） |
 | 低内存 JVM | `-Xms256m -Xmx640m -XX:+UseG1GC`（<2G 必加 swap） |
@@ -31,7 +31,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 
 ## 🤖 第零步：优先用 OpsPub 专用工具
 - **探环境**（只读，任何档位放行）：`system_info` / `disk_usage`（看**内存+swap**、磁盘）、`port_check`（80/443/3306/6379/5500 是否占用）、`service_status`、`ssh_exec`(只读) 查 Docker/解析。
-- **装共享库**：`install_app(server, "mysql")` / `install_app(server, "redis")`（**应用商店同款**：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `reeve-mysql`/`reeve-redis`、绑 127.0.0.1、自动登记 _conn 带隧道）。🔴 **别用 `install_with_secret` 手写脚本装 DB**（手写易致存的密码≠容器密码、工作台连不上）。
+- **装共享库**：`install_app(server, "mysql")` / `install_app(server, "redis")`（**应用商店同款**：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `opspub-mysql`/`opspub-redis`、绑 127.0.0.1、自动登记 _conn 带隧道）。🔴 **别用 `install_with_secret` 手写脚本装 DB**（手写易致存的密码≠容器密码、工作台连不上）。
 - **建/触发部署**：`deploy_upsert_target`（产出部署目标，只写不执行）→ `deploy_dry_run`（预览）→ `deploy_run`（执行，进部署历史、可回滚）。
 - **传产物**：`sftp_upload`（jar / dist 大文件）；`sftp_read`/`sftp_write`（小文件/改配置）。
 - 改动型操作（装库/部署/sudo）会按服务器档位走**审批**——提前告知用户、被拒别原样重试。
@@ -42,7 +42,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 探完把现状 + 默认 Docker 方案讲给用户，**拿到明确「确认/继续」才动手**。重点报：内存+swap（ruoyi 全栈吃内存，<2G 必须加 swap）、Docker 装没装、域名解析、80/443 安全组、本地构建链（JDK21/Maven/Node/pnpm）。
 
 ### 2. 共享 MySQL/Redis 一次装好（通用设施，整机一套）
-- 🔴 用 **`install_app(server, "mysql")`** + **`install_app(server, "redis")`**（应用商店同款模板）——容器 `reeve-mysql`/`reeve-redis`、绑 `127.0.0.1`、密码两边一致**必连得上**、label 通用名（**不带项目**）、自动登记 `mysql_conn`/`redis_conn` 带 `__tunnel_server_id`。**别用 `install_with_secret` 手写**（连不上的根因）。
+- 🔴 用 **`install_app(server, "mysql")`** + **`install_app(server, "redis")`**（应用商店同款模板）——容器 `opspub-mysql`/`opspub-redis`、绑 `127.0.0.1`、密码两边一致**必连得上**、label 通用名（**不带项目**）、自动登记 `mysql_conn`/`redis_conn` 带 `__tunnel_server_id`。**别用 `install_with_secret` 手写**（连不上的根因）。
 - 🔴 **已装就复用**（`list_installed_services` 查），别按项目重复装、别套 `ryplus-` 前缀——它们是共享的，第二个 app 也用这套。
 - 记下返回的两个 `vault_id`，下一步引用。
 
@@ -52,13 +52,13 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 > - **应用自身的东西**（app 容器名、数据库名、为本 app 建的库账号）才用 `app.id`：本项目 `ruoyi-admin/.../application.yml` `app.id: ryplus_uni`（库名 DB_NAME、redisson keyPrefix/clientName 都=`${app.id}`）→ 容器名/库名/库账号用 `ryplus_uni`。
 > - 🔴 **别自造**"ryplus_uni 应用库账号 (MySQL)""Redis 7 (共享)"这类描述。引擎为本 app 建的库账号凭据会**自动用库名 `ryplus_uni` 作 label**（与共享 `MySQL` 凭据是两条，别混）。
 - `name`: 部署目标名 `ryplus_uni-backend`（target 名可带端后缀，不影响凭据名）；`servers`: `["<别名>"]`。
-- 🔴 **`release.deployRoot` 必须 = `/opt/reeve/stacks/ryplus_uni`**（= `/opt/reeve/stacks/<app.id>`）——compose 落这里、compose project=`ryplus_uni`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/ryplus` 这类 stacks 外的目录：会被扫成「外部栈」只读、且 project 名取目录名不唯一（之前的坑）。
+- 🔴 **`release.deployRoot` 必须 = `/opt/opspub/stacks/ryplus_uni`**（= `/opt/opspub/stacks/<app.id>`）——compose 落这里、compose project=`ryplus_uni`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/ryplus` 这类 stacks 外的目录：会被扫成「外部栈」只读、且 project 名取目录名不唯一（之前的坑）。
 - **`compose.template`：只含 app 一个服务**——🔴 **不要**在里面再起 mysql/redis（用第 2 步的共享库）。**容器名 = 应用 app.id 本身 `ryplus_uni`（🔴 不加 `-app` 等后缀）**；用 `bellsoft/liberica-openjdk-rocky:21` 挂载 jar 跑；密钥写哨兵 `__DB_PASSWORD__`/`__REDIS_PASSWORD__`/`__JWT_SECRET_KEY__`（**禁明文**）。
 - 🔴 **app↔共享库接线（最易错）**：共享库绑宿主 `127.0.0.1`、**不在** app 的 compose 网络里——`DB_HOST=mysql` 那套桥接网 DNS **连不到**。正解：app 走 **host 网络**（`network_mode: host`），env `DB_HOST=127.0.0.1`、`REDIS_HOST=127.0.0.1`（不是服务名）、`DB_NAME=ryplus_uni`、`DB_USERNAME=ryplus_uni`；或加 `extra_hosts: ["host.docker.internal:host-gateway"]` 且 `DB_HOST=host.docker.internal`。
 - 🔴 **库+账号默认靠 `compose.db` 让引擎建**（默认 MySQL 版；引擎也支持 PostgreSQL，见下）：`compose.db`: `{ vaultId:<共享 MySQL 的 mysql_conn(root)>, mode:"create", dbName:"ryplus_uni", dbUser:"ryplus_uni" }` → 引擎自动「建库+建独立账号+**登记成第二条独立 mysql_conn(label=ryplus_uni)**」。
   - ⚠️ **别图省事**用 `ssh_exec` / `db_execute` 跑 `CREATE DATABASE` / `CREATE USER` / `GRANT` 自己建账号——那样账号建了但**不会登记成 OpsPub 凭据**（服务凭据页只剩共享 root 一条，缺 app 专属那条，最小权限连接也没法在数据库页用）。这是已知翻车点。
   - ✅ **正确终态 = 两条 mysql_conn**：① 共享 `MySQL`(root，第 2 步 install_app 给) ② app 专属 `ryplus_uni`(本步 compose.db 自动给)。app 用 ② 连库（最小权限），① 仅供 OpsPub 管理/建库。
-  - 🔴 **PostgreSQL 版**：引擎也支持。`compose.db` 的 `vaultId` 选共享 PG 的 `postgres_conn` 管理员凭据（如 postgres），其余同上（`mode:"create"`、`dbName`/`dbUser`=`ryplus_uni`）：引擎建库 + 账号（库属主与 public schema 属主都归应用账号）、登记成第二条 `postgres_conn`，并**以应用账号**导入 `initSqls`（换成 PG 版脚本）。`DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD` 哨兵照常填充；应用侧的 PG 驱动 / JDBC URL 配置不归引擎管，要在 compose 环境变量里按 PG 配。用户明确要求手工建库时的出口，见通用配方 `get_skill("reeve-app-deploy")` 第 3 步「引擎不支持时的出口」。
+  - 🔴 **PostgreSQL 版**：引擎也支持。`compose.db` 的 `vaultId` 选共享 PG 的 `postgres_conn` 管理员凭据（如 postgres），其余同上（`mode:"create"`、`dbName`/`dbUser`=`ryplus_uni`）：引擎建库 + 账号（库属主与 public schema 属主都归应用账号）、登记成第二条 `postgres_conn`，并**以应用账号**导入 `initSqls`（换成 PG 版脚本）。`DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD` 哨兵照常填充；应用侧的 PG 驱动 / JDBC URL 配置不归引擎管，要在 compose 环境变量里按 PG 配。用户明确要求手工建库时的出口，见通用配方 `get_skill("opspub-app-deploy")` 第 3 步「引擎不支持时的出口」。
 - `compose.redis`: `{ vaultId:<redis_conn> }`；`secrets`: `["JWT_SECRET_KEY"]`。
 - `initSqls`: 按序 `["<本机>/script/sql/ry_plus_sys.sql", "<本机>/script/sql/ry_plus_app.sql"]`（系统表 + 业务表）。
 - **低内存 JVM**：`-Xms256m -Xmx640m -XX:+UseG1GC`；env 关 `MONITOR_ENABLED`/`SNAIL_JOB_ENABLED`/`ROCKETMQ_ENABLED`/`MQTT_ENABLED`/`LANGCHAIN4J_ENABLED`/`OPEN_API_ENABLED`（<2G 扛不住，要哪个再单开）。

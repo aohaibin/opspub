@@ -1,7 +1,7 @@
 ---
-name: reeve-app-deploy
+name: opspub-app-deploy
 description: 通用「用 OpsPub 部署任意应用」配方（框架无关）—— 共享中间件 install_app + 部署目标 deploy_upsert_target(compose 托管)，产物全进工作台台账、可一键重部署/回滚。任何项目部署没有专属框架技能时的默认剧本。
-触发词: 部署, 上线, 发布, deploy, 部署到, 部署项目, 部署应用, 部署后端, 部署前端, docker部署, docker 部署, 容器部署, 上服务器, 发布到服务器, 部署到服务器, 生产部署, 上生产, 全栈部署, 反向代理部署, 用reeve部署, reeve部署
+触发词: 部署, 上线, 发布, deploy, 部署到, 部署项目, 部署应用, 部署后端, 部署前端, docker部署, docker 部署, 容器部署, 上服务器, 发布到服务器, 部署到服务器, 生产部署, 上生产, 全栈部署, 反向代理部署, 用opspub部署, opspub部署
 ---
 
 # 用 OpsPub 部署任意应用（通用配方 · 框架无关）
@@ -20,7 +20,7 @@ description: 通用「用 OpsPub 部署任意应用」配方（框架无关）�
 
 ## 🤖 第零步：优先用 OpsPub 专用工具（别裸 SSH 即兴）
 - **探环境**（只读；approval 档服务器上每条操作含只读都要审批）：`system_info` / `disk_usage`（内存+swap、磁盘）、`system_listen_ports`（查端口冲突）、`service_status`、`docker_list_containers`、`ssh_exec`(只读) 查域名解析。
-- **装共享中间件**：`install_app(server, "mysql"|"redis"|"postgres"|"mongodb")`（应用商店同款：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `reeve-<app>`、绑 127.0.0.1、自动登记 `_conn` 带 SSH 隧道）。🔴 **别用 `install_with_secret` 手写脚本装这些库**（手写易致"存的密码≠容器密码"、工作台连不上）。
+- **装共享中间件**：`install_app(server, "mysql"|"redis"|"postgres"|"mongodb")`（应用商店同款：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `opspub-<app>`、绑 127.0.0.1、自动登记 `_conn` 带 SSH 隧道）。🔴 **别用 `install_with_secret` 手写脚本装这些库**（手写易致"存的密码≠容器密码"、工作台连不上）。
 - **建/触发部署**：`deploy_upsert_target`（产出部署目标，只写不执行）→ `deploy_dry_run`（预览）→ `deploy_run`（执行，进部署历史、可回滚）。
 - **传产物**：`sftp_upload`（jar / dist 等大文件）；`sftp_read`/`sftp_write`（小文件 / 改配置）。
 - 改动型（装库 / 部署 / sudo）按服务器档位走**审批**——提前告知用户、被拒别原样重试。
@@ -30,12 +30,12 @@ description: 通用「用 OpsPub 部署任意应用」配方（框架无关）�
 
 ## 2. 共享中间件一次装好（通用设施，整机一套）
 - 需要 MySQL/Redis/PostgreSQL 等 → 用 **`install_app`** 装（见第零步）。
-- 🔴 **通用设施，不带项目名**：凭据 label = 应用商店规范名 `MySQL` / `Redis`（user=root / db=0），容器 `reeve-mysql`/`reeve-redis`。**已装就复用**（`list_installed_services` 查），第二个项目共用同一套、**别重复装、别套项目前缀**。
+- 🔴 **通用设施，不带项目名**：凭据 label = 应用商店规范名 `MySQL` / `Redis`（user=root / db=0），容器 `opspub-mysql`/`opspub-redis`。**已装就复用**（`list_installed_services` 查），第二个项目共用同一套、**别重复装、别套项目前缀**。
 - 记下返回的 `vault_id`，下一步引用。
 
 ## 3. 建后端部署目标 `deploy_upsert_target`（recipe=`docker-compose`，开 `compose` 托管）
 - `name`: `<应用标识>-backend`（target 名可带端后缀，不影响凭据 / 栈名）；`servers`: `["<别名>"]`。
-- 🔴 **`release.deployRoot` 必须 = `/opt/reeve/stacks/<应用标识>`**：compose 落这里、compose project = `<应用标识>`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/<app>` 等 stacks 外目录（会被扫成「外部栈」只读、project 名取目录名易撞）。
+- 🔴 **`release.deployRoot` 必须 = `/opt/opspub/stacks/<应用标识>`**：compose 落这里、compose project = `<应用标识>`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/<app>` 等 stacks 外目录（会被扫成「外部栈」只读、project 名取目录名易撞）。
 - **`compose.template`：只含 app 一个服务**——🔴 不在里面再起 mysql/redis（用第 2 步的共享库）。**容器名 = `<应用标识>` 本身**（🔴 不加 `-app` 等后缀）；密钥写哨兵 `__DB_PASSWORD__` / `__REDIS_PASSWORD__` / `__JWT_SECRET_KEY__`（**禁明文**）。
 - 🔴 **app↔共享库接线（最易错）**：共享库绑宿主 `127.0.0.1`、**不在** app 的 compose 网络里——`DB_HOST=mysql` 那套桥接网 DNS **连不到**。正解：app 走 **host 网络**（`network_mode: host`）、env `DB_HOST=127.0.0.1`/`REDIS_HOST=127.0.0.1`（不是服务名）；或 `extra_hosts: ["host.docker.internal:host-gateway"]` + `DB_HOST=host.docker.internal`。
 - 🔴 **per-app 库+账号默认靠 `compose.db` 让引擎建**（目前支持 **MySQL / PostgreSQL**，按所选凭据类型分流）：`compose.db`: `{ vaultId:<共享库的管理员凭据：MySQL 的 mysql_conn(root) / PostgreSQL 的 postgres_conn(postgres)>, mode:"create", dbName:"<应用标识>", dbUser:"<应用标识>" }` → 引擎自动「建库+建独立账号+**登记成第二条独立凭据（mysql_conn / postgres_conn，label=<应用标识>）**」。
@@ -77,10 +77,10 @@ description: 通用「用 OpsPub 部署任意应用」配方（框架无关）�
 ## 收尾自检（缺啥补啥，确保工作台可见可管）
 - 打开 OpsPub 工作台，**数据库 / 服务凭据 / 网站 / 证书 / 容器(编排) / 部署历史** 里都能看到这次部署吗？**用户现在能点开刚装的东西吗？** 不能则补登记 / 补隧道（第 5b 步）。
 - 装出来的常驻服务（1Panel / Portainer / 自建后台等）→ `save_credential` 登记一条（带 access_url / host / 端口），否则「服务凭据」页是空的。需要密码的这类服务用 `install_with_secret` 装，长安装（1Panel / Jenkins / Portainer 等 5~15 分钟级）显式传 `timeoutSecs: 1800`；`list_installed_services` 查、`delete_installed_service` 删。
-- 脚本 / 备份 / 上传产物放远程 `~/.reeve`（OpsPub 远程工作区），别臆造 `/data/...`、`/opt/backup` 这类不存在的路径。
+- 脚本 / 备份 / 上传产物放远程 `~/.opspub`（OpsPub 远程工作区），别臆造 `/data/...`、`/opt/backup` 这类不存在的路径。
 - 🔴 **用了 MySQL / PostgreSQL → 服务凭据应有两条同类型凭据（mysql_conn / postgres_conn）**：共享 `MySQL`(root) + app 专属 `<应用标识>`。只有一条 = 没走 `compose.db`（漏登记）→ 用 `save_credential` 补（host/port/user/database=`<应用标识>`，密码从 app 容器 `printenv DB_PASSWORD` 经脱敏 vaultRef 传 `fieldsFromVault`）。
 - 🔴 **走了手工出口的库（MongoDB 等）→ 同样要有 app 专属那条凭据**（kind 按该库类型，label=`<应用标识>`），没有就按上一条 `save_credential` 补。PostgreSQL 与 MySQL 一样由 `compose.db` 自动登记 `postgres_conn`。
-- 🔴 **后端容器在「编排」页是「自己的栈」而非「外部」** → 若显示「外部」=deployRoot 没落在 `/opt/reeve/stacks/`，下次部署改对。
+- 🔴 **后端容器在「编排」页是「自己的栈」而非「外部」** → 若显示「外部」=deployRoot 没落在 `/opt/opspub/stacks/`，下次部署改对。
 
 ## 铁律
 - 默认 Docker；内存紧张 = swap + `mem_limit` + 限堆 / 调 DB 缓冲，**仍 Docker**，不擅自切原生（除非用户明确要）。

@@ -35,7 +35,7 @@ clickhouse-client -h host -u default --password 'xxx' --database mydb
 clickhouse-client -h host -q "SHOW DATABASES"
 clickhouse-client --multiquery < script.sql
 clickhouse-client --format Pretty -q "..."
-clickhouse-client --format CSVWithNames -q "SELECT ..." > ~/.reeve/backups/export-$(date +%F).csv   # 导出落 OpsPub 工作区
+clickhouse-client --format CSVWithNames -q "SELECT ..." > ~/.opspub/backups/export-$(date +%F).csv   # 导出落 OpsPub 工作区
 
 # HTTP 接口
 curl 'http://host:8123/?query=SHOW%20DATABASES' -u 'default:xxx'

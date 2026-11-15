@@ -126,12 +126,12 @@ Stack 操作：
 
 UI 「Settings → General → Backup」直接下载 tar.gz（含数据库 + 加密的所有节点凭据）。
 
-CLI（容器跑）—— 备份产物统一落 OpsPub 工作区 `~/.reeve/backups`（别散落当前目录/`/tmp`）：
+CLI（容器跑）—— 备份产物统一落 OpsPub 工作区 `~/.opspub/backups`（别散落当前目录/`/tmp`）：
 
 ```bash
-mkdir -p ~/.reeve/backups
+mkdir -p ~/.opspub/backups
 docker run --rm -v portainer_data:/data alpine \
-    tar czf - -C /data . > ~/.reeve/backups/portainer-backup-$(date +%F).tgz
+    tar czf - -C /data . > ~/.opspub/backups/portainer-backup-$(date +%F).tgz
 ```
 
 ### 恢复

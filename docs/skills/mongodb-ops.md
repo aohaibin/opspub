@@ -32,7 +32,7 @@ dangerous_commands:
 1. MCP `list_installed_services` 查现有 `mongodb_conn`——已装就复用（共享设施）。
 2. 端口 27017 是否占用（`port_check`）。
 
-🔴 **装 MongoDB 一律用 `install_app`**——mongodb 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `reeve-mongodb`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/mongodb`、**自动登记 `mongodb_conn` 凭据带 SSH 隧道**（「数据库→MongoDB」页即装即连）。
+🔴 **装 MongoDB 一律用 `install_app`**——mongodb 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `opspub-mongodb`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/mongodb`、**自动登记 `mongodb_conn` 凭据带 SSH 隧道**（「数据库→MongoDB」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "mongodb" } }
@@ -185,19 +185,19 @@ db.dropUser("appuser")
 
 ### mongodump（逻辑备份）
 
-> 💾 **备份产物统一落 `~/.reeve/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.reeve/backups`。
+> 💾 **备份产物统一落 `~/.opspub/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.opspub/backups`。
 
 ```bash
 # 单库
-mongodump --uri="mongodb://user:pass@host/mydb?authSource=admin" -o ~/.reeve/backups/mongo-$(date +%F)
+mongodump --uri="mongodb://user:pass@host/mydb?authSource=admin" -o ~/.opspub/backups/mongo-$(date +%F)
 
 # 全库
-mongodump --uri="mongodb://user:pass@host/?authSource=admin" -o ~/.reeve/backups/mongo-$(date +%F)
-mongodump -h host -u admin -p --authenticationDatabase admin -o ~/.reeve/backups/mongo-$(date +%F)
+mongodump --uri="mongodb://user:pass@host/?authSource=admin" -o ~/.opspub/backups/mongo-$(date +%F)
+mongodump -h host -u admin -p --authenticationDatabase admin -o ~/.opspub/backups/mongo-$(date +%F)
 
 # 副本集（推荐从 secondary 备份，减小 primary 压力）
 mongodump --uri="mongodb://user:pass@sec1,sec2/mydb?readPreference=secondary&authSource=admin" \
-    --oplog --gzip --archive=~/.reeve/backups/dump-$(date +%F).gz
+    --oplog --gzip --archive=~/.opspub/backups/dump-$(date +%F).gz
 
 # 参数
 --oplog              # 一致性快照（仅副本集）

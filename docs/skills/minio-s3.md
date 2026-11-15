@@ -31,7 +31,7 @@ dangerous_commands:
 这些只读工具**任何策略档位都放行**；改 `docker-compose.yml` / env 走 `sftp_read`+`sftp_write`（无 shell 转义坑），写完 `ssh_exec docker compose up -d`。后文 `mc` 命令仅在工具不够用时走 `ssh_exec`。
 
 ⚠️ 含 `sudo` / `mc rb` / `mc rm --recursive` 等写操作会触发**用户审批**——执行前先告诉用户"这步需要你在 OpsPub 批准"，被拒后不要原样重试。
-> 本地导出/备份对象（`mc cp` 拉到本机临时盘、`mc mirror` 落地、restic/borg 还原产物）统一落 **`~/.reeve/backups`** 或 **`~/.reeve/tmp`**（OpsPub 远程统一工作区），**不要臆造 `/data/backup`、`/mnt/backup` 等可能不存在的路径**。
+> 本地导出/备份对象（`mc cp` 拉到本机临时盘、`mc mirror` 落地、restic/borg 还原产物）统一落 **`~/.opspub/backups`** 或 **`~/.opspub/tmp`**（OpsPub 远程统一工作区），**不要臆造 `/data/backup`、`/mnt/backup` 等可能不存在的路径**。
 
 ## 第一步：部署形态
 

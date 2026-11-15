@@ -67,7 +67,7 @@ export function parseBuiltinSkills(index: string): ChatSkill[] {
     const triggerSection = triggerStart >= 0 ? section.slice(triggerStart).split(/\r?\n\s*\r?\n/, 1)[0] : "";
     const triggers = [...triggerSection.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim()).filter(Boolean);
     if (!description || !triggers.length) return [];
-    // 正文来自项目随包的受控参考资料，不代表 Reeve 私有原文或执行授权。
+    // 正文来自项目随包的受控参考资料，不代表 OpsPub 私有原文或执行授权。
     const toolHints = skillToolHints(heading[2], triggers);
     const body = BUILTIN_BODIES[`../../docs/skills/${heading[2]}.md`];
     const content = body ?? builtinSkillGuide(heading[2], description, toolHints);

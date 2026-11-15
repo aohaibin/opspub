@@ -13264,7 +13264,7 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
           <label class="block text-xs font-medium text-slate-300">
             <span class="text-rose-400 font-bold mr-1">*</span>部署根目录
           </label>
-          <input type="text" id="deployTargetDeployDir" placeholder="/opt/reeve/apps/<appId>/... (禁止系统目录如 / /etc /opt)" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono">
+          <input type="text" id="deployTargetDeployDir" placeholder="/opt/opspub/apps/<appId>/... (禁止系统目录如 / /etc /opt)" class="w-full bg-[#101216] border border-slate-700/80 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono">
         </div>
 
         <!-- 本机工作目录 -->
@@ -14563,9 +14563,9 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
             </div>
             <pre id="winScriptSSHContent" class="p-4 text-slate-300 font-mono text-[11.5px] leading-relaxed max-h-56 overflow-y-auto custom-scrollbar selection:bg-blue-600/30">#Requires -Version 5.1
 <#
-  Reeve -- one-time bootstrap: install & start OpenSSH Server on THIS Windows host.
+  OpsPub -- one-time bootstrap: install & start OpenSSH Server on THIS Windows host.
 
-  WHY: Reeve manages servers ONLY over SSH (russh). It cannot install OpenSSH for you,
+  WHY: OpsPub manages servers ONLY over SSH (russh). It cannot install OpenSSH for you,
   because it needs a working sshd to connect in the first place (chicken-and-egg).
   So the very first OpenSSH install must be done out-of-band -- by running this script.
 
@@ -14573,7 +14573,7 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
   Best to paste the WHOLE script at once, or save it as a .ps1 and run the file.
   Safe to re-run (every step is idempotent). All output is ASCII on purpose (PS 5.1 safety).
 
-  After it prints "Done", add this host in Reeve (host + port 22 + username/password),
+  After it prints "Done", add this host in OpsPub (host + port 22 + username/password),
   and click "Test Connection".
 #>
 
@@ -14638,12 +14638,12 @@ try {
 }
 
 # --- 4. (OPTIONAL) make PowerShell the default interactive shell over SSH ---
-# NOT required for Reeve: its read-only probes call powershell.exe explicitly, and OS
+# NOT required for OpsPub: its read-only probes call powershell.exe explicitly, and OS
 # detection works with either cmd or PowerShell. To enable, remove the leading '#' below:
 # New-Item -Path 'HKLM:\SOFTWARE\OpenSSH' -Force | Out-Null; New-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value ((Get-Command powershell.exe).Source) -PropertyType String -Force | Out-Null; Write-Ok "Default SSH shell set to PowerShell."
 
-# --- 5. print host key fingerprints (compare with Reeve's first-connect TOFU prompt) ---
-Write-Step "SSH host key fingerprints (compare these with what Reeve shows on first connect):"
+# --- 5. print host key fingerprints (compare with OpsPub's first-connect TOFU prompt) ---
+Write-Step "SSH host key fingerprints (compare these with what OpsPub shows on first connect):"
 try {
     $pubKeys = Get-ChildItem 'C:\ProgramData\ssh\ssh_host_*_key.pub' -ErrorAction SilentlyContinue
     if ($pubKeys) {
@@ -14658,8 +14658,8 @@ try {
     Write-Note ("Could not read host keys: " + $_)
 }
 
-# --- 6. show reachable IPv4 addresses to use as 'host' in Reeve ---
-Write-Step "This machine's IPv4 addresses (use one of these as 'host' in Reeve):"
+# --- 6. show reachable IPv4 addresses to use as 'host' in OpsPub ---
+Write-Step "This machine's IPv4 addresses (use one of these as 'host' in OpsPub):"
 try {
     $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notlike '169.254.*' -and $_.IPAddress -ne '127.0.0.1' }
     foreach ($ip in $ips) { Write-Host ("    " + $ip.IPAddress + "  (" + $ip.InterfaceAlias + ")") }
@@ -14669,13 +14669,13 @@ try {
 
 # --- 7. summary (always reached; steps 5/6 never abort the script) ---
 Write-Host ""
-Write-Ok "Done. This host is ready for Reeve (locally)."
+Write-Ok "Done. This host is ready for OpsPub (locally)."
 Write-Host "Cloud VM? Also open inbound TCP 22 in your Security Group (OS firewall != cloud security group)." -ForegroundColor Yellow
-Write-Host "Next steps in Reeve:" -ForegroundColor Gray
+Write-Host "Next steps in OpsPub:" -ForegroundColor Gray
 Write-Host "  1) Add a server: host = one of the IPs above (or the public IP), port = 22," -ForegroundColor Gray
 Write-Host "     username = a local Windows account, auth = password (simplest)." -ForegroundColor Gray
 Write-Host "  2) Click 'Test Connection' -> it should detect Windows and show a 'Win' badge." -ForegroundColor Gray
-Write-Host "  3) Note: Reeve currently allows AI READ-ONLY actions on Windows; AI writes are blocked." -ForegroundColor Gray</pre>
+Write-Host "  3) Note: OpsPub currently allows AI READ-ONLY actions on Windows; AI writes are blocked." -ForegroundColor Gray</pre>
           </div>
 
           <!-- 警告提示条 (对齐截图 3) -->
@@ -14719,11 +14719,11 @@ Write-Host "  3) Note: Reeve currently allows AI READ-ONLY actions on Windows; A
             </div>
             <pre id="winScriptChocoContent" class="p-4 text-slate-300 font-mono text-[11.5px] leading-relaxed max-h-56 overflow-y-auto custom-scrollbar selection:bg-blue-600/30">#Requires -Version 5.1
 <#
-  Reeve -- one-time bootstrap: install Chocolatey (choco) on THIS Windows host.
+  OpsPub -- one-time bootstrap: install Chocolatey (choco) on THIS Windows host.
 
-  WHY: Reeve installs Windows apps NATIVELY (not Docker). The package manager it uses is
+  WHY: OpsPub installs Windows apps NATIVELY (not Docker). The package manager it uses is
   Chocolatey (choco). winget only ships on Server 2022+ / Win11, so on Server 2019 and
-  older you install choco first. Run this ONCE, then Reeve can `choco install <app>`.
+  older you install choco first. Run this ONCE, then OpsPub can `choco install <app>`.
 
   HOW: run in an ELEVATED PowerShell (Run as Administrator) on the TARGET machine.
   Idempotent (skips if already installed). ASCII output on purpose (PS 5.1 encoding safety).
@@ -14768,7 +14768,7 @@ try {
 # --- 3. verify ---
 if (Get-Command choco -ErrorAction SilentlyContinue) {
     Write-Ok ("Chocolatey installed: " + (choco --version))
-    Write-Host "Done. Reeve can now install apps natively on this host (choco install ...)." -ForegroundColor Gray
+    Write-Host "Done. OpsPub can now install apps natively on this host (choco install ...)." -ForegroundColor Gray
     Write-Host "Tip: open a NEW terminal so the updated PATH takes effect." -ForegroundColor Gray
 } else {
     Write-Host "Chocolatey installed but 'choco' not on PATH yet. Open a NEW elevated PowerShell and run 'choco --version' to confirm." -ForegroundColor Yellow
@@ -17525,7 +17525,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         name: 'remote_relay',
         recipe: 'docker-compose',
         server: '我的腾讯云0209',
-        deployDir: '/opt/reeve/stacks/remote_relay',
+        deployDir: '/opt/opspub/stacks/remote_relay',
         buildType: 'artifact',
         strategy: 'symlink',
         workDir: '',
@@ -17544,7 +17544,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         name: 'remote_server',
         recipe: 'docker-compose',
         server: '我的香草云',
-        deployDir: '/opt/reeve/stacks/remote_server',
+        deployDir: '/opt/opspub/stacks/remote_server',
         buildType: 'artifact',
         strategy: 'symlink',
         workDir: '',
@@ -17834,7 +17834,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         name: 'ops-web',
         recipe: 'static-nginx',
         server: '我的腾讯云0209',
-        deployDir: '/opt/reeve/apps/ops-web',
+        deployDir: '/opt/opspub/apps/ops-web',
         buildType: 'artifact',
         strategy: 'symlink',
         workDir: p + '/frontend',
@@ -17853,7 +17853,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         name: 'ops-api',
         recipe: 'systemd-binary',
         server: '我的腾讯云0209',
-        deployDir: '/opt/reeve/apps/ops-api',
+        deployDir: '/opt/opspub/apps/ops-api',
         buildType: 'artifact',
         strategy: 'symlink',
         workDir: p + '/backend',
@@ -18067,7 +18067,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
         document.getElementById('deployTargetRecipe').value = 'docker-compose';
         document.getElementById('deployTargetServer').value = '我的腾讯云0209';
         document.getElementById('deployTargetBuildType').value = 'recipe-default';
-        document.getElementById('deployTargetDeployDir').value = '/opt/reeve/stacks/prod-app';
+        document.getElementById('deployTargetDeployDir').value = '/opt/opspub/stacks/prod-app';
         document.getElementById('deployTargetWorkDir').value = '';
         document.getElementById('deployTargetBuildCmd').value = 'pnpm install\npnpm build:prod';
         document.getElementById('deployTargetSmartSkip').checked = true;
@@ -18103,7 +18103,7 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       const recipe = document.getElementById('deployTargetRecipe').value || 'docker-compose';
       const server = document.getElementById('deployTargetServer').value || '我的腾讯云0209';
       const buildType = document.getElementById('deployTargetBuildType').value;
-      const deployDir = document.getElementById('deployTargetDeployDir').value.trim() || `/opt/reeve/stacks/${name}`;
+      const deployDir = document.getElementById('deployTargetDeployDir').value.trim() || `/opt/opspub/stacks/${name}`;
       const workDir = document.getElementById('deployTargetWorkDir').value.trim();
       const buildCmd = document.getElementById('deployTargetBuildCmd').value.trim();
       const smartSkip = document.getElementById('deployTargetSmartSkip').checked;

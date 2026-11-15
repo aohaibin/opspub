@@ -3,12 +3,12 @@ name: redis-tools
 description: OpsPub Redis 直连工具 redis_get / redis_set / redis_del / redis_scan / redis_exec —— 通过已登记的 redis_conn 凭据安全操作 Redis，密码加密 + 危险命令拦截（清库类进极高危审批，改配置 / 逃逸类永久拦）。
 触发词: redis, 缓存, redis 查询, redis 写入, redis 删除, KEYS, SCAN, GET, SET, HGETALL, LRANGE, ZRANGE, INFO, 慢日志, slowlog, redis 密码, redis 连接, redis_get, redis_set, redis_del, redis_scan, redis_exec, 看 redis, 查 redis, 取 key, 写 key, 删 key, 扫 key, 看 key, redis 直连, 不用 ssh 跑 redis, redis ttl, expire, hash 字段, list 元素, zset 排名
 dangerous_commands:
-  # AI 经 redis_exec 跑的 pseudo command 形如 "[reeve-internal] redis_exec <args...>"。这里加一些
+  # AI 经 redis_exec 跑的 pseudo command 形如 "[opspub-internal] redis_exec <args...>"。这里加一些
   # 跟主防线（redis_exec.rs::check_dangerous_redis）独立的补充模式，trusted 档也挡住。
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHALL\b'
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHDB\b'
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bSHUTDOWN\b'
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bCONFIG\s+(?:SET|RESETSTAT)\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHALL\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHDB\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bSHUTDOWN\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bCONFIG\s+(?:SET|RESETSTAT)\b'
 ---
 
 # redis-tools —— Redis 直连工具

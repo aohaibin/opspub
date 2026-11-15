@@ -141,9 +141,9 @@ pub fn get(name: &str) -> Option<&'static str> {
             env!("CARGO_MANIFEST_DIR"),
             "/../docs/skills/redis-tools.md"
         ))),
-        "reeve-app-deploy" => Some(include_str!(concat!(
+        "opspub-app-deploy" => Some(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../docs/skills/reeve-app-deploy.md"
+            "/../docs/skills/opspub-app-deploy.md"
         ))),
         "ruoyi-plus-uniapp-deploy" => Some(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),

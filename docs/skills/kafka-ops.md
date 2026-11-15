@@ -174,7 +174,7 @@ kafka-reassign-partitions.sh $BOOTSTRAP --verify --reassignment-json-file reassi
 
 > ⚠️ reassignment 会**复制大量数据**到新 broker，会饱和网络与磁盘 —— 用 `--throttle 50000000`（B/s）限速。
 >
-> 临时 plan 文件（`topics.json` / `reassign.json`）建议落 OpsPub 统一工作区 `~/.reeve/tmp/`，别散落在当前目录或 `/tmp`；执行用的脚本放 `~/.reeve/scripts/`，便于审计回溯。
+> 临时 plan 文件（`topics.json` / `reassign.json`）建议落 OpsPub 统一工作区 `~/.opspub/tmp/`，别散落在当前目录或 `/tmp`；执行用的脚本放 `~/.opspub/scripts/`，便于审计回溯。
 
 ## 第七步：KRaft 模式（去 ZooKeeper）
 

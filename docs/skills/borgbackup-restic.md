@@ -8,7 +8,7 @@ dangerous_commands:
   - '(?i)\brestic\s+prune\b'
   # borg delete（删 repo/archive）/ break-lock（写入中强解锁=元数据损坏）/ prune（按策略删 archive）
   - '(?i)\bborg\s+(?:delete|break-lock|prune)\b'
-  # 删本地备份仓库目录（含 ~/.reeve/backups 与各类 repo 路径），命中即审批
+  # 删本地备份仓库目录（含 ~/.opspub/backups 与各类 repo 路径），命中即审批
   - '(?:^|[\s;&|])rm\s+-[a-zA-Z]*r?[a-zA-Z]*f?[a-zA-Z]*\s+[~/\w.-]*(?:backup|repo|restic|borg)[~/\w.-]*/?(?:\s|/|$)'
 ---
 
@@ -20,23 +20,23 @@ dangerous_commands:
 
 - **看磁盘/仓库占地** → `disk_usage(server, "<repo 路径>")`（任何档位放行）——备份吃磁盘，动手前先看还有多少空间。
 - **看备份服务/定时器状态** → `service_status(server, "borg-backup.timer")` / `service_status(server, "restic-backup.timer")`。
-- **看备份运行日志** → `tail_log(server, "~/.reeve/logs/<job>.log")`，或 `ssh_exec journalctl -u borg-backup`。
+- **看备份运行日志** → `tail_log(server, "~/.opspub/logs/<job>.log")`，或 `ssh_exec journalctl -u borg-backup`。
 - **改备份脚本 / systemd unit / restic env** → 先 `sftp_read` 看现状，再 `sftp_write` 整文件写（密码占位用 `EnvironmentFile`，别把 passphrase 明文塞进命令）。
 - ⚠️ `borg create` / `restic backup` / `prune` / 恢复 等写操作会触发**用户审批**——提前告知用户，被拒后不要原样重试。
 
-### 🔴 本地仓库 / 还原产物 / 备份脚本统一落 `~/.reeve`（铁律）
+### 🔴 本地仓库 / 还原产物 / 备份脚本统一落 `~/.opspub`（铁律）
 
-OpsPub 远程服务器有一个统一工作区 `~/.reeve`。**本地（非远程 repo 服务器）的备份相关产物一律落这里**，**严禁臆造 `/mnt/backup`、`/data/backup`、`/srv/backup`、`/backup` 等可能不存在的路径**：
+OpsPub 远程服务器有一个统一工作区 `~/.opspub`。**本地（非远程 repo 服务器）的备份相关产物一律落这里**，**严禁臆造 `/mnt/backup`、`/data/backup`、`/srv/backup`、`/backup` 等可能不存在的路径**：
 
 | 用途 | 落地路径 |
 |------|---------|
-| 本地 borg/restic 仓库 | `~/.reeve/backups/<repo 名>` |
-| 还原产物（restore --target / borg extract 输出） | `~/.reeve/backups/restore-<时间戳>/` |
-| borg mount / restic mount 临时挂载点 | `~/.reeve/tmp/borg-mount` |
-| 备份/恢复脚本 | `~/.reeve/scripts/` |
-| 运行日志 | `~/.reeve/logs/` |
+| 本地 borg/restic 仓库 | `~/.opspub/backups/<repo 名>` |
+| 还原产物（restore --target / borg extract 输出） | `~/.opspub/backups/restore-<时间戳>/` |
+| borg mount / restic mount 临时挂载点 | `~/.opspub/tmp/borg-mount` |
+| 备份/恢复脚本 | `~/.opspub/scripts/` |
+| 运行日志 | `~/.opspub/logs/` |
 
-> 下文示例为了通用性写了 `/mnt/backup/myrepo` 等占位路径——**实际给用户跑时，本地仓库一律换成 `~/.reeve/backups/...`**。远程 repo 地址（`user@host:/path` / `s3:...` / `sftp:...`）用**用户提供的真实地址**，不要臆造。
+> 下文示例为了通用性写了 `/mnt/backup/myrepo` 等占位路径——**实际给用户跑时，本地仓库一律换成 `~/.opspub/backups/...`**。远程 repo 地址（`user@host:/path` / `s3:...` / `sftp:...`）用**用户提供的真实地址**，不要臆造。
 
 ## 选型对照
 
@@ -73,7 +73,7 @@ sudo dnf install -y borgbackup
 
 ```bash
 # 本地（OpsPub 统一工作区，别用 /mnt/backup 等可能不存在的路径）
-borg init --encryption=repokey-blake2 ~/.reeve/backups/myrepo
+borg init --encryption=repokey-blake2 ~/.opspub/backups/myrepo
 
 # 远程（SSH，远端要装 borg；地址用用户提供的真实地址）
 borg init --encryption=repokey-blake2 user@backup.example.com:/srv/backup/myrepo
@@ -92,7 +92,7 @@ borg init --encryption=repokey-blake2 user@backup.example.com:/srv/backup/myrepo
 export BORG_PASSPHRASE='xxx'                    # 或 BORG_PASSCOMMAND='pass show borg/myrepo'
 
 borg create --stats --progress \
-    ~/.reeve/backups/myrepo::'{hostname}-{now:%Y-%m-%d-%H%M%S}' \
+    ~/.opspub/backups/myrepo::'{hostname}-{now:%Y-%m-%d-%H%M%S}' \
     /etc /home /var/www \
     --exclude '*.tmp' \
     --exclude '/var/cache' \
@@ -122,15 +122,15 @@ borg extract /mnt/backup/myrepo::myarchive
 # 仅恢复部分（按 path）
 borg extract /mnt/backup/myrepo::myarchive etc/nginx
 
-# Mount 成 fuse 文件系统直接 cp（挂载点落 ~/.reeve/tmp）
-mkdir -p ~/.reeve/tmp/borg
-borg mount ~/.reeve/backups/myrepo::myarchive ~/.reeve/tmp/borg
-ls ~/.reeve/tmp/borg
-cp ~/.reeve/tmp/borg/etc/nginx/nginx.conf ~/.reeve/backups/
-borg umount ~/.reeve/tmp/borg
+# Mount 成 fuse 文件系统直接 cp（挂载点落 ~/.opspub/tmp）
+mkdir -p ~/.opspub/tmp/borg
+borg mount ~/.opspub/backups/myrepo::myarchive ~/.opspub/tmp/borg
+ls ~/.opspub/tmp/borg
+cp ~/.opspub/tmp/borg/etc/nginx/nginx.conf ~/.opspub/backups/
+borg umount ~/.opspub/tmp/borg
 
 # Mount 整个 repo（每个 archive 一个子目录）
-borg mount ~/.reeve/backups/myrepo ~/.reeve/tmp/borg
+borg mount ~/.opspub/backups/myrepo ~/.opspub/tmp/borg
 ```
 
 ### Prune（保留策略）
@@ -191,7 +191,7 @@ sudo apt install -y restic
 
 ```bash
 # 本地（OpsPub 统一工作区）
-restic init --repo ~/.reeve/backups/restic
+restic init --repo ~/.opspub/backups/restic
 
 # SFTP（地址用用户提供的真实地址）
 restic init --repo sftp:user@backup.example.com:/srv/backup
@@ -243,19 +243,19 @@ restic stats --mode raw-data
 ### 恢复
 
 ```bash
-# 整 snapshot（还原产物落 ~/.reeve/backups，别用 /tmp 或臆造路径）
-restic restore <snapshot-id> --target ~/.reeve/backups/restore-$(date +%Y%m%d-%H%M%S)
+# 整 snapshot（还原产物落 ~/.opspub/backups，别用 /tmp 或臆造路径）
+restic restore <snapshot-id> --target ~/.opspub/backups/restore-$(date +%Y%m%d-%H%M%S)
 
 # 子路径
-restic restore <snapshot-id> --target ~/.reeve/backups/restore-nginx --include /etc/nginx
+restic restore <snapshot-id> --target ~/.opspub/backups/restore-nginx --include /etc/nginx
 
 # 最新
-restic restore latest --target ~/.reeve/backups/restore-latest --host myhost
+restic restore latest --target ~/.opspub/backups/restore-latest --host myhost
 
-# Mount（FUSE，挂载点落 ~/.reeve/tmp）
-mkdir -p ~/.reeve/tmp/restic
-restic mount ~/.reeve/tmp/restic
-ls ~/.reeve/tmp/restic/snapshots/               # 按 host / tag 子目录
+# Mount（FUSE，挂载点落 ~/.opspub/tmp）
+mkdir -p ~/.opspub/tmp/restic
+restic mount ~/.opspub/tmp/restic
+ls ~/.opspub/tmp/restic/snapshots/               # 按 host / tag 子目录
 ```
 
 ### Forget + Prune
@@ -303,7 +303,7 @@ sudo apt install -y rsnapshot
 
 # /etc/rsnapshot.conf（**注意：tab 分隔，不能空格**）
 config_version    1.2
-snapshot_root    ~/.reeve/backups/rsnapshot/
+snapshot_root    ~/.opspub/backups/rsnapshot/
 retain    daily    7
 retain    weekly    4
 retain    monthly    12
@@ -328,7 +328,7 @@ sudo rsnapshot monthly
 rsnapshot 把每个快照存为目录（hardlink 去重未变文件），可以**直接 cd / cp 出来**，恢复极简单：
 
 ```bash
-ls ~/.reeve/backups/rsnapshot/daily.0/myhost/etc/nginx/
+ls ~/.opspub/backups/rsnapshot/daily.0/myhost/etc/nginx/
 ```
 
 ## 四、对比备份特定数据

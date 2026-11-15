@@ -31,8 +31,8 @@ dangerous_commands:
 
 ```bash
 # 在改 sshd_config / 防火墙前，先布保险绳
-cp /etc/ssh/sshd_config ~/.reeve/backups/sshd_config.$(date +%s).bak   # 备份落 OpsPub 工作区
-echo "cp ~/.reeve/backups/sshd_config.<ts>.bak /etc/ssh/sshd_config && systemctl reload sshd && iptables -F" | at now + 5 minutes
+cp /etc/ssh/sshd_config ~/.opspub/backups/sshd_config.$(date +%s).bak   # 备份落 OpsPub 工作区
+echo "cp ~/.opspub/backups/sshd_config.<ts>.bak /etc/ssh/sshd_config && systemctl reload sshd && iptables -F" | at now + 5 minutes
 atq                                          # 看看保险绳排队了
 # 改完测通了 → atrm <job-id>
 ```

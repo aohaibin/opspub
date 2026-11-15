@@ -21,7 +21,7 @@ dangerous_commands:
 - **写/改 wg 配置** → 先 `sftp_read(server, "/etc/wireguard/wg0.conf")` 看现状，再 `sftp_write` 整文件写入——但 **`.conf`/含 privatekey 的文件属 SFTP 敏感路径，`sftp_write` 会被拦**（`*.key`/`.pem`/含密钥行）；改密钥相关内容时改用 `ssh_exec`（过审批），且**私钥永不进对话**（OpsPub 敏感库会自动捕获）。
 - `wg-quick up/down`、`wg set`、改 `ip_forward`、装 wg 这类**改动型**走 `ssh_exec`，过策略档位 + 审批。
 
-🔴 **VPN 改动极易"断自己"**：若你**正通过这条 VPN 连进来**，`wg-quick down` 就是断自己。`wg-quick down` / 停 wg-quick 服务 / `ip_forward=0` 会触发**用户审批**——执行前告诉用户风险，**被拒后不要原样重试**。改服务端配置前先把现配置备份到 `~/.reeve/backups/`，回滚脚本放 `~/.reeve/scripts/`。
+🔴 **VPN 改动极易"断自己"**：若你**正通过这条 VPN 连进来**，`wg-quick down` 就是断自己。`wg-quick down` / 停 wg-quick 服务 / `ip_forward=0` 会触发**用户审批**——执行前告诉用户风险，**被拒后不要原样重试**。改服务端配置前先把现配置备份到 `~/.opspub/backups/`，回滚脚本放 `~/.opspub/scripts/`。
 
 ## 第一步：安装
 
@@ -272,7 +272,7 @@ PersistentKeepalive = 25
 
 ## 教训
 
-- 服务端**远程**配 wg 时**永远先用 ssh 连进来**（不走 VPN），改完测通了再切。否则 `wg-quick down wg0` 是经典自杀。改 `wg0.conf` 前先 `cp /etc/wireguard/wg0.conf ~/.reeve/backups/`（OpsPub 统一工作区），改坏了好回滚。
+- 服务端**远程**配 wg 时**永远先用 ssh 连进来**（不走 VPN），改完测通了再切。否则 `wg-quick down wg0` 是经典自杀。改 `wg0.conf` 前先 `cp /etc/wireguard/wg0.conf ~/.opspub/backups/`（OpsPub 统一工作区），改坏了好回滚。
 - `PersistentKeepalive` 在 NAT 后的客户端**必加**（25 秒经验值），否则 NAT 表项过期 = 反向数据回不来。
 - 客户端 `AllowedIPs = 0.0.0.0/0`（全流量）要确认服务端有 NAT（MASQUERADE）+ ip_forward。
 - MTU 问题是"通但慢/掉包"的头号原因；优先试 `mtu 1280`。

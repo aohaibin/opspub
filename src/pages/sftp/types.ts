@@ -81,7 +81,7 @@ export const DEFAULT_ROOT_FILES: RemoteFileItem[] = [
     owner: "uid:0 (root)",
   },
   {
-    name: ".reeve",
+    name: ".opspub",
     isDir: true,
     size: 0,
     sizeFormatted: "—",

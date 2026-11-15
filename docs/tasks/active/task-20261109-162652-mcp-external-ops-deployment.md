@@ -377,7 +377,7 @@
 
 - 按用户要求继续任务 20。只读复核仍只有既有查询令牌（单服务器范围、20 个查询/状态工具），未发现已轮换的写权限令牌；本轮未读取或使用已在对话暴露的令牌秘密。
 - 运行 `cargo test --lib services::mcp::tests`：27 passed；运行 `cargo test --lib mcp`：54 passed、0 failed，覆盖 MCP 协议、授权范围、风险门禁、审批快照、任务幂等/取消/重启恢复、部署健康验证失败记录、客户端配置等自动化路径。
-- HTTP 健康端点仍为 ready。当前调用环境没有可用的 Reeve MCP 工具；依据远程操作规则，未通过 OpsPub 直连真实服务器，未执行服务器查询、计划审批或部署。
+- HTTP 健康端点仍为 ready。当前调用环境没有可用的 OpsPub MCP 工具；依据远程操作规则，未通过 OpsPub 直连真实服务器，未执行服务器查询、计划审批或部署。
 - 任务 20 未完成项仍为：新安全令牌与审批/部署工具范围、真实服务器查询、桌面审批与拒绝/过期、批准后部署和后置验证、真实客户端外部读取任务结果，以及其他客户端实际兼容记录。自动化测试通过不替代以上真实联调。
 
 ### 2026-11-11 15:15
@@ -625,21 +625,21 @@
 
 ### 2026-11-12 10:05
 
-- 按更新后的远程运维规则，本轮先检查当前会话工具集；没有挂载 Reeve MCP，因此没有通过 OpsPub MCP 新发起任何远端服务器操作。
+- 按更新后的远程运维规则，本轮先检查当前会话工具集；没有挂载 OpsPub MCP，因此没有通过 OpsPub MCP 新发起任何远端服务器操作。
 - 仅验证本机 stdio 协议：`initialize` 返回协议版本 `2025-03-26`、服务端 OpsPub MCP 0.1.0；`ping` 成功；`tools/list` 返回 20 个工具。
 - 错误响应符合预期：未知 JSON-RPC 方法返回 `-32601`；未知工具参数、缺失必填参数分别返回 `-32602`；没有创建计划、审批或任务。
-- 下一步需在挂载 Reeve MCP 的会话中按 Reeve `list_servers` 取得实时别名，并通过 Reeve 完成后续远端只读核验；部署审批链路还需另行具备相应 OpsPub Token 权限、已配置部署目标/制品及桌面人工审批。任务 20 仍为 19 / 20。
+- 下一步需在挂载 OpsPub MCP 的会话中按 OpsPub `list_servers` 取得实时别名，并通过 OpsPub 完成后续远端只读核验；部署审批链路还需另行具备相应 OpsPub Token 权限、已配置部署目标/制品及桌面人工审批。任务 20 仍为 19 / 20。
 
 ### 2026-11-12 10:20
 
-- 更正联调对象：本轮目标为 OpsPub 自身 MCP，不使用 Reeve MCP。通过本机安装版 `OpsPub AI\\tauri.exe --mcp-stdio --token-id 2 --port 18180` 直接验证，未读取或输出 Token 明文。
+- 更正联调对象：本轮目标为 OpsPub 自身 MCP，不使用 OpsPub MCP。通过本机安装版 `OpsPub AI\\tauri.exe --mcp-stdio --token-id 2 --port 18180` 直接验证，未读取或输出 Token 明文。
 - `initialize` 成功，服务端为 `OpsPub MCP 0.1.0`，协议版本 `2025-03-26`；`tools/list` 返回 20 个工具。
 - OpsPub 真实只读调用通过：`list_servers`、`docker_list(serverId=1)`、`disk_usage(serverId=1)`；返回 `isError=false`、退出码 0、`source=remote-readonly-probe`、`truncated=false` 等结构化字段。没有执行任何远端写操作。
 - 本轮仅确认 OpsPub 外部 stdio → MCP HTTP → OpsPub 远端只读探针链路正常；计划/审批/部署闭环仍需具备写权限范围的联调 Token、部署目标/制品和人工审批，任务 20 保持 19 / 20。
 
 ### 2026-11-12 10:35
 
-- 按用户要求直接通过当前设备已配置的 OpsPub MCP 进行完整只读联调，使用安装版 `OpsPub AI\\tauri.exe --mcp-stdio --token-id 2 --port 18180`；未切换到 Reeve，未读取或输出 Token 明文。
+- 按用户要求直接通过当前设备已配置的 OpsPub MCP 进行完整只读联调，使用安装版 `OpsPub AI\\tauri.exe --mcp-stdio --token-id 2 --port 18180`；未切换到 OpsPub，未读取或输出 Token 明文。
 - 协议结果：`initialize`、`ping` 成功；`tools/list` 发现 20 个工具；`list_servers` 成功识别授权服务器 ID 1。
 - 远程只读工具全部通过（退出码 0，来源 `remote-readonly-probe`）：`system_info`、`docker_list`、`disk_usage`、`memory_usage`、`process_list`、`service_status(nginx)`、`service_logs(nginx)`、`service_list`、`port_check`、`tail_log`、`cpu_info`、`docker_logs(mysql-container)`。返回内容均有长度限制/脱敏和结构化状态字段。
 - 本地能力工具通过：`search_skills`、`get_skill` 返回内置索引结果；`get_task_status` 对不存在任务返回受控 `OPERATION_FAILED`；`list_deployment_targets`、`list_deployment_artifacts`、`deployment_history` 正常返回空数据，说明接口可用但当前未配置部署数据；不存在部署目标的 `deployment_preflight` 返回受控业务错误。

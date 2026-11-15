@@ -31,7 +31,7 @@ dangerous_commands:
 1. MCP `list_installed_services` 查现有 `redis_conn`——🔴 **Redis 是全机共享设施，已装就复用、别重复装**。
 2. 端口 6379 是否占用（`port_check`）。
 
-🔴 **装 Redis 一律用 `install_app`**——Redis 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `reeve-redis`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/redis`、**自动登记 `redis_conn` 凭据带 SSH 隧道**（「数据库→Redis」页即装即连）。
+🔴 **装 Redis 一律用 `install_app`**——Redis 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `opspub-redis`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/redis`、**自动登记 `redis_conn` 凭据带 SSH 隧道**（「数据库→Redis」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "redis" } }

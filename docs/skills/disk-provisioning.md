@@ -83,7 +83,7 @@ mkfs.ext4 -L data /dev/sdb1      # 或：mkfs.xfs -L data /dev/sdb1
 ```bash
 mkdir -p /data
 blkid -s UUID -o value /dev/sdb1                     # 读出 UUID
-cp /etc/fstab ~/.reeve/backups/fstab.bak             # 先备份：fstab 写错会导致开机失败
+cp /etc/fstab ~/.opspub/backups/fstab.bak             # 先备份：fstab 写错会导致开机失败
 mount /dev/sdb1 /data
 echo 'UUID=<上一步读到的值> /data ext4 defaults,nofail 0 2' | tee -a /etc/fstab
 mount -a && findmnt --verify                         # 验证 fstab 无误

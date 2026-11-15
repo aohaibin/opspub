@@ -122,7 +122,7 @@ Sigil 只是"凭据注入器"。没有它时，每一步都有等价的本地命
 
 cup_watch 首发在这上面烧了约 10 轮反复误判。**事实固定如下，直接照用**：
 
-- 真实**桶名 = `downloads`**（一个桶，全项目共用）；`reeve` / `cupwatch` / `sigil` 等是**桶内前缀**，不是独立桶。
+- 真实**桶名 = `downloads`**（一个桶，全项目共用）；`opspub` / `cupwatch` / `sigil` 等是**桶内前缀**，不是独立桶。
 - 公开域名（形如 `https://pub-xxxxx.r2.dev`）是 **`downloads` 桶**的共享域名，**所有项目共用、不用改**；对象 URL = `<publicUrl>/<prefix>/...`。
 - 这把 R2 access key 是 **scoped key**：**不能 ListBuckets、不能建桶**（`rclone lsd r2:` 报 403 / `mkdir` 静默失败）。所以**别用 rclone 去"自省桶结构"或"建桶"**——会把你带进沟里。
 - **首选**：用 Sigil `r2_object_upload(bucket=downloads, key=<prefix>/...)` 一传即通（它知道 default_bucket）。
@@ -133,7 +133,7 @@ cup_watch 首发在这上面烧了约 10 轮反复误判。**事实固定如下�
 
 | 坑（现象） | 真因 | 正解 |
 |-----------|------|------|
-| R2 反复 `NoSuchBucket` / `403` / 误判"reeve 是桶" | scoped key 不能列/建桶；桶名其实是 `downloads`、项目是前缀 | 见上「R2 桶真相」：用 Sigil 传，或 rclone 写 `r2:downloads/<prefix>/` |
+| R2 反复 `NoSuchBucket` / `403` / 误判"opspub 是桶" | scoped key 不能列/建桶；桶名其实是 `downloads`、项目是前缀 | 见上「R2 桶真相」：用 Sigil 传，或 rclone 写 `r2:downloads/<prefix>/` |
 | 卡在"要把 release 仓改公开"，Sigil 拒绝 | 老架构靠公开仓 raw；撞"仓库必须私有"红线 | 走路线 A：**R2-only + 全私有**，根本不需要改公开 |
 | 签名 Secret 配置 | 私钥不能进对话（红线），又不想手动导金库 | **首选** `github_repo_secret_set(value_from_file=src-tauri/keys/tauri-updater.key)`：Sigil 自读私钥注入、免导金库、弹一次确认；无 Sigil 时用 `gh secret set < keyfile` |
 | tag 推了但 **0 个 workflow run** | 新建私有仓 **Actions 默认禁用** | 推 tag **前**先 `github_actions_enable`（或 `gh api … permissions -F enabled=true`） |

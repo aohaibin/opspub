@@ -21,7 +21,7 @@ dangerous_commands:
 - **看日志** → `tail_log(server, "/var/log/samba/log.smbd")`；NFS 走 `service_status` 自带的 systemctl 尾部，或 `ssh_exec journalctl -u nfs-server`。
 - **改配置** → 先 `sftp_read` 看 `/etc/exports` / `/etc/samba/smb.conf` 现状，再 `sftp_write` 整文件写（无 shell heredoc 转义坑），写完 `ssh_exec sudo exportfs -ra` / `ssh_exec sudo systemctl reload smbd`。
 - ⚠️ `sudo mount` / `exportfs -ra` / `systemctl restart` 等写操作会触发**用户审批**——提前告知用户，被拒后不要原样重试。
-> 临时挂载点（SSHFS / 验证用的 `mount` 目标）建议落 **`~/.reeve/tmp`**（OpsPub 远程统一工作区），别散落 `/mnt/xxx` 等可能不存在的目录。
+> 临时挂载点（SSHFS / 验证用的 `mount` 目标）建议落 **`~/.opspub/tmp`**（OpsPub 远程统一工作区），别散落 `/mnt/xxx` 等可能不存在的目录。
 
 ## 对照
 

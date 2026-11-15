@@ -520,7 +520,7 @@
   min-height: 0;
 }
 
-/* 终端工作区：无外层包裹、直贴顶部与左侧，对应原型 Reeve 全屏工作区 */
+/* 终端工作区：无外层包裹、直贴顶部与左侧，对应原型 OpsPub 全屏工作区 */
 .ops-terminal-page {
   display: flex;
   flex-direction: column;

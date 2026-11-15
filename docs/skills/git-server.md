@@ -186,7 +186,7 @@ sudo gitlab-ctl tail puma               # 应用层
 sudo gitlab-backup create
 
 # 配置文件不在备份里 —— **必须单独备份**（落 OpsPub 统一工作区，别散落 /backup 等臆造路径）
-sudo tar czf ~/.reeve/backups/gitlab-config-$(date +%F).tar.gz /etc/gitlab
+sudo tar czf ~/.opspub/backups/gitlab-config-$(date +%F).tar.gz /etc/gitlab
 
 # 恢复（⚠️ 走审批）
 # 1) 停 service

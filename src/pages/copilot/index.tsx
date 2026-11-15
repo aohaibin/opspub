@@ -1089,22 +1089,41 @@ export default function CopilotPage() {
 
       {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending" && approvalSecondsRemaining(item.expiresAt, now) > 0).length}</div>{approvals.filter((item) => item.status === "pending").map((item) => { const expired = approvalSecondsRemaining(item.expiresAt, now) === 0; return <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`mb-2 rounded border px-2 py-2 transition ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/15 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]" : "border-slate-700"}`}><div className="flex flex-wrap items-center justify-between gap-2"><button type="button" className="text-left underline decoration-amber-500/40 underline-offset-2" onClick={() => openApprovalPreview(item.id)}>#{item.id} · {item.serverAlias} · {item.command}</button>{expired ? <span className="text-xs font-semibold text-rose-300">审批已超时 · 后续步骤已暂停</span> : <span className="flex items-center gap-2"><span className="text-xs tabular-nums text-amber-200">剩余 {formatApprovalCountdown(item.expiresAt, now)}</span><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span>}</div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /><p className="mb-0 mt-1 text-[11px] text-slate-400">当前命令尚未执行，审批通过前所有后续步骤保持暂停。</p></div>; })}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`border-b py-1 ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/10" : "border-slate-800"}`}>#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
 
-      <Modal title={<span className="flex items-center gap-2"><History size={16} />历史对话 <Tag className="m-0">{historySessions.length}</Tag></span>} open={historyOpen} onCancel={() => setHistoryOpen(false)} footer={null} width={620} destroyOnClose>
-        <div className="mb-3 flex items-center justify-between gap-2"><Input.Search allowClear value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索对话标题或内容" className="max-w-sm" /><Button icon={<Plus size={13} />} onClick={createSession}>新建对话</Button></div>
-        <div className="max-h-[55vh] space-y-1 overflow-y-auto pr-1">
-          {matchingSessions.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={historyQuery ? "没有匹配的对话" : "暂无历史对话"} /> : matchingSessions.map((session) => (
-            <div key={session.id} className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 ${session.id === activeSessionId ? "border-indigo-500/60 bg-indigo-950/30" : "border-slate-800 bg-surface-950"}`}>
-              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => switchSession(session.id)}>
-                <div className="flex items-center gap-2"><span className="truncate text-xs font-semibold text-slate-200">{session.title}</span>{session.id === activeSessionId && <Tag color="blue" className="m-0">当前</Tag>}</div>
-                <div className="mt-1 truncate text-[11px] text-slate-500">{session.messages.find((item) => item.role === "user")?.content ?? "暂无提问"}</div>
-                <div className="mt-1 text-[10px] text-slate-500">{session.messages.filter((item) => item.role === "user").length} 条提问 · {new Date(session.updatedAt).toLocaleString()}</div>
+      <Modal
+        rootClassName="copilot-history-modal"
+        title={<div className="copilot-history-title"><span className="copilot-history-title-icon"><History size={16} /></span><span><strong>历史对话</strong><small>继续处理之前的运维问题</small></span><Tag className="copilot-history-count">{historySessions.length}</Tag></div>}
+        open={historyOpen}
+        onCancel={() => setHistoryOpen(false)}
+        footer={null}
+        width={700}
+        destroyOnClose
+      >
+        <div className="copilot-history-toolbar">
+          <Input.Search allowClear value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索标题或消息内容" />
+          <Button type="primary" icon={<Plus size={14} />} onClick={createSession}>新建对话</Button>
+        </div>
+        <div className="copilot-history-list custom-scrollbar">
+          {matchingSessions.length === 0 ? <div className="copilot-history-empty"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={historyQuery ? "没有匹配的对话" : "暂无历史对话"} /></div> : matchingSessions.map((session) => {
+            const questionCount = session.messages.filter((item) => item.role === "user").length;
+            const firstQuestion = session.messages.find((item) => item.role === "user")?.content ?? "暂无提问";
+            const active = session.id === activeSessionId;
+            return <article key={session.id} className={`copilot-history-item ${active ? "is-active" : ""}`}>
+              <button type="button" className="copilot-history-main" onClick={() => switchSession(session.id)}>
+                <span className="copilot-history-item-icon"><History size={15} /></span>
+                <span className="copilot-history-item-copy">
+                  <span className="copilot-history-item-heading"><strong>{session.title}</strong>{active && <Tag color="blue">当前会话</Tag>}</span>
+                  <span className="copilot-history-item-preview">{firstQuestion}</span>
+                  <span className="copilot-history-item-meta">{questionCount} 条提问 <i /> {new Date(session.updatedAt).toLocaleString()}</span>
+                </span>
               </button>
-              <Button size="small" type={session.id === activeSessionId ? "default" : "primary"} ghost={session.id !== activeSessionId} onClick={() => switchSession(session.id)}>{session.id === activeSessionId ? "已打开" : "继续"}</Button>
-              <Popconfirm title="删除这段历史对话？" okText="删除" cancelText="取消" onConfirm={() => deleteSession(session.id)}>
-                <Button type="text" danger size="small">删除</Button>
-              </Popconfirm>
-            </div>
-          ))}
+              <span className="copilot-history-actions">
+                <Button size="small" type={active ? "default" : "primary"} ghost={!active} onClick={() => switchSession(session.id)}>{active ? "已打开" : "继续"}</Button>
+                <Popconfirm title="删除这段历史对话？" okText="删除" cancelText="取消" onConfirm={() => deleteSession(session.id)}>
+                  <Button type="text" danger size="small" icon={<X size={14} />} aria-label="删除历史对话" title="删除历史对话" />
+                </Popconfirm>
+              </span>
+            </article>;
+          })}
         </div>
       </Modal>
 

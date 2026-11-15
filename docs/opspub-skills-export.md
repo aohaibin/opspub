@@ -47,7 +47,7 @@
 | 34 | rabbitmq-ops | RabbitMQ 运维（queue / vhost / 集群 / quorum queue） |
 | 35 | redis-ops | Redis 服务端运维（内存/持久化/主从/哨兵/Cluster） |
 | 36 | redis-tools | OpsPub Redis 直连工具 redis_get/set/del/scan/exec |
-| 37 | reeve-app-deploy | 通用「用 OpsPub 部署任意应用」配方（框架无关） |
+| 37 | opspub-app-deploy | 通用「用 OpsPub 部署任意应用」配方（框架无关） |
 | 38 | ruoyi-plus-uniapp-deploy | RuoYi-Plus + uniapp 全栈部署配方 |
 | 39 | selinux-apparmor | SELinux / AppArmor 强制访问控制排障 |
 | 40 | ssh-hardening | SSH 加固（sshd_config / 密钥 / fail2ban / 2FA） |
@@ -511,7 +511,7 @@ dangerous_commands:
   - '(?i)\brestic\s+prune\b'
   # borg delete（删 repo/archive）/ break-lock（写入中强解锁=元数据损坏）/ prune（按策略删 archive）
   - '(?i)\bborg\s+(?:delete|break-lock|prune)\b'
-  # 删本地备份仓库目录（含 ~/.reeve/backups 与各类 repo 路径），命中即审批
+  # 删本地备份仓库目录（含 ~/.opspub/backups 与各类 repo 路径），命中即审批
   - '(?:^|[\s;&|])rm\s+-[a-zA-Z]*r?[a-zA-Z]*f?[a-zA-Z]*\s+[~/\w.-]*(?:backup|repo|restic|borg)[~/\w.-]*/?(?:\s|/|$)'
 ---
 ```
@@ -524,23 +524,23 @@ dangerous_commands:
 
 - **看磁盘/仓库占地** → `disk_usage(server, "<repo 路径>")`（任何档位放行）——备份吃磁盘，动手前先看还有多少空间。
 - **看备份服务/定时器状态** → `service_status(server, "borg-backup.timer")` / `service_status(server, "restic-backup.timer")`。
-- **看备份运行日志** → `tail_log(server, "~/.reeve/logs/<job>.log")`，或 `ssh_exec journalctl -u borg-backup`。
+- **看备份运行日志** → `tail_log(server, "~/.opspub/logs/<job>.log")`，或 `ssh_exec journalctl -u borg-backup`。
 - **改备份脚本 / systemd unit / restic env** → 先 `sftp_read` 看现状，再 `sftp_write` 整文件写（密码占位用 `EnvironmentFile`，别把 passphrase 明文塞进命令）。
 - ⚠️ `borg create` / `restic backup` / `prune` / 恢复 等写操作会触发**用户审批**——提前告知用户，被拒后不要原样重试。
 
-### 🔴 本地仓库 / 还原产物 / 备份脚本统一落 `~/.reeve`（铁律）
+### 🔴 本地仓库 / 还原产物 / 备份脚本统一落 `~/.opspub`（铁律）
 
-OpsPub 远程服务器有一个统一工作区 `~/.reeve`。**本地（非远程 repo 服务器）的备份相关产物一律落这里**，**严禁臆造 `/mnt/backup`、`/data/backup`、`/srv/backup`、`/backup` 等可能不存在的路径**：
+OpsPub 远程服务器有一个统一工作区 `~/.opspub`。**本地（非远程 repo 服务器）的备份相关产物一律落这里**，**严禁臆造 `/mnt/backup`、`/data/backup`、`/srv/backup`、`/backup` 等可能不存在的路径**：
 
 | 用途 | 落地路径 |
 |------|---------|
-| 本地 borg/restic 仓库 | `~/.reeve/backups/<repo 名>` |
-| 还原产物（restore --target / borg extract 输出） | `~/.reeve/backups/restore-<时间戳>/` |
-| borg mount / restic mount 临时挂载点 | `~/.reeve/tmp/borg-mount` |
-| 备份/恢复脚本 | `~/.reeve/scripts/` |
-| 运行日志 | `~/.reeve/logs/` |
+| 本地 borg/restic 仓库 | `~/.opspub/backups/<repo 名>` |
+| 还原产物（restore --target / borg extract 输出） | `~/.opspub/backups/restore-<时间戳>/` |
+| borg mount / restic mount 临时挂载点 | `~/.opspub/tmp/borg-mount` |
+| 备份/恢复脚本 | `~/.opspub/scripts/` |
+| 运行日志 | `~/.opspub/logs/` |
 
-> 下文示例为了通用性写了 `/mnt/backup/myrepo` 等占位路径——**实际给用户跑时，本地仓库一律换成 `~/.reeve/backups/...`**。远程 repo 地址（`user@host:/path` / `s3:...` / `sftp:...`）用**用户提供的真实地址**，不要臆造。
+> 下文示例为了通用性写了 `/mnt/backup/myrepo` 等占位路径——**实际给用户跑时，本地仓库一律换成 `~/.opspub/backups/...`**。远程 repo 地址（`user@host:/path` / `s3:...` / `sftp:...`）用**用户提供的真实地址**，不要臆造。
 
 ## 选型对照
 
@@ -577,7 +577,7 @@ sudo dnf install -y borgbackup
 
 ```bash
 # 本地（OpsPub 统一工作区，别用 /mnt/backup 等可能不存在的路径）
-borg init --encryption=repokey-blake2 ~/.reeve/backups/myrepo
+borg init --encryption=repokey-blake2 ~/.opspub/backups/myrepo
 
 # 远程（SSH，远端要装 borg；地址用用户提供的真实地址）
 borg init --encryption=repokey-blake2 user@backup.example.com:/srv/backup/myrepo
@@ -596,7 +596,7 @@ borg init --encryption=repokey-blake2 user@backup.example.com:/srv/backup/myrepo
 export BORG_PASSPHRASE='xxx'                    # 或 BORG_PASSCOMMAND='pass show borg/myrepo'
 
 borg create --stats --progress \
-    ~/.reeve/backups/myrepo::'{hostname}-{now:%Y-%m-%d-%H%M%S}' \
+    ~/.opspub/backups/myrepo::'{hostname}-{now:%Y-%m-%d-%H%M%S}' \
     /etc /home /var/www \
     --exclude '*.tmp' \
     --exclude '/var/cache' \
@@ -626,15 +626,15 @@ borg extract /mnt/backup/myrepo::myarchive
 # 仅恢复部分（按 path）
 borg extract /mnt/backup/myrepo::myarchive etc/nginx
 
-# Mount 成 fuse 文件系统直接 cp（挂载点落 ~/.reeve/tmp）
-mkdir -p ~/.reeve/tmp/borg
-borg mount ~/.reeve/backups/myrepo::myarchive ~/.reeve/tmp/borg
-ls ~/.reeve/tmp/borg
-cp ~/.reeve/tmp/borg/etc/nginx/nginx.conf ~/.reeve/backups/
-borg umount ~/.reeve/tmp/borg
+# Mount 成 fuse 文件系统直接 cp（挂载点落 ~/.opspub/tmp）
+mkdir -p ~/.opspub/tmp/borg
+borg mount ~/.opspub/backups/myrepo::myarchive ~/.opspub/tmp/borg
+ls ~/.opspub/tmp/borg
+cp ~/.opspub/tmp/borg/etc/nginx/nginx.conf ~/.opspub/backups/
+borg umount ~/.opspub/tmp/borg
 
 # Mount 整个 repo（每个 archive 一个子目录）
-borg mount ~/.reeve/backups/myrepo ~/.reeve/tmp/borg
+borg mount ~/.opspub/backups/myrepo ~/.opspub/tmp/borg
 ```
 
 ### Prune（保留策略）
@@ -695,7 +695,7 @@ sudo apt install -y restic
 
 ```bash
 # 本地（OpsPub 统一工作区）
-restic init --repo ~/.reeve/backups/restic
+restic init --repo ~/.opspub/backups/restic
 
 # SFTP（地址用用户提供的真实地址）
 restic init --repo sftp:user@backup.example.com:/srv/backup
@@ -747,19 +747,19 @@ restic stats --mode raw-data
 ### 恢复
 
 ```bash
-# 整 snapshot（还原产物落 ~/.reeve/backups，别用 /tmp 或臆造路径）
-restic restore <snapshot-id> --target ~/.reeve/backups/restore-$(date +%Y%m%d-%H%M%S)
+# 整 snapshot（还原产物落 ~/.opspub/backups，别用 /tmp 或臆造路径）
+restic restore <snapshot-id> --target ~/.opspub/backups/restore-$(date +%Y%m%d-%H%M%S)
 
 # 子路径
-restic restore <snapshot-id> --target ~/.reeve/backups/restore-nginx --include /etc/nginx
+restic restore <snapshot-id> --target ~/.opspub/backups/restore-nginx --include /etc/nginx
 
 # 最新
-restic restore latest --target ~/.reeve/backups/restore-latest --host myhost
+restic restore latest --target ~/.opspub/backups/restore-latest --host myhost
 
-# Mount（FUSE，挂载点落 ~/.reeve/tmp）
-mkdir -p ~/.reeve/tmp/restic
-restic mount ~/.reeve/tmp/restic
-ls ~/.reeve/tmp/restic/snapshots/               # 按 host / tag 子目录
+# Mount（FUSE，挂载点落 ~/.opspub/tmp）
+mkdir -p ~/.opspub/tmp/restic
+restic mount ~/.opspub/tmp/restic
+ls ~/.opspub/tmp/restic/snapshots/               # 按 host / tag 子目录
 ```
 
 ### Forget + Prune
@@ -807,7 +807,7 @@ sudo apt install -y rsnapshot
 
 # /etc/rsnapshot.conf（**注意：tab 分隔，不能空格**）
 config_version    1.2
-snapshot_root    ~/.reeve/backups/rsnapshot/
+snapshot_root    ~/.opspub/backups/rsnapshot/
 retain    daily    7
 retain    weekly    4
 retain    monthly    12
@@ -832,7 +832,7 @@ sudo rsnapshot monthly
 rsnapshot 把每个快照存为目录（hardlink 去重未变文件），可以**直接 cd / cp 出来**，恢复极简单：
 
 ```bash
-ls ~/.reeve/backups/rsnapshot/daily.0/myhost/etc/nginx/
+ls ~/.opspub/backups/rsnapshot/daily.0/myhost/etc/nginx/
 ```
 
 ## 四、对比备份特定数据
@@ -936,7 +936,7 @@ dangerous_commands:
 
 ⚠️ **改完先校验再 reload**：Caddy 用 `ssh_exec caddy validate --config /etc/caddy/Caddyfile`，过了再 `systemctl reload caddy`；Traefik 动态配置（dynamic/*.yml）`watch:true` 会**自动 reload**（无需重启），但静态配置（traefik.yml）改完需 `systemctl restart traefik`。含 sudo 的 reload/restart 会触发**用户审批**——提前告知用户，被拒后不要原样重试。
 
-> `acme.json` / Caddy 证书目录里的私钥文件 OpsPub 禁止 AI 写（SFTP 写黑名单）——涉及私钥操作交用户处理；改配置前把现配置 `sftp_read` 出来留底（或落 `~/.reeve/backups`）便于回滚。
+> `acme.json` / Caddy 证书目录里的私钥文件 OpsPub 禁止 AI 写（SFTP 写黑名单）——涉及私钥操作交用户处理；改配置前把现配置 `sftp_read` 出来留底（或落 `~/.opspub/backups`）便于回滚。
 
 ## 一、Caddy
 
@@ -1462,7 +1462,7 @@ clickhouse-client -h host -u default --password 'xxx' --database mydb
 clickhouse-client -h host -q "SHOW DATABASES"
 clickhouse-client --multiquery < script.sql
 clickhouse-client --format Pretty -q "..."
-clickhouse-client --format CSVWithNames -q "SELECT ..." > ~/.reeve/backups/export-$(date +%F).csv   # 导出落 OpsPub 工作区
+clickhouse-client --format CSVWithNames -q "SELECT ..." > ~/.opspub/backups/export-$(date +%F).csv   # 导出落 OpsPub 工作区
 
 # HTTP 接口
 curl 'http://host:8123/?query=SHOW%20DATABASES' -u 'default:xxx'
@@ -1696,13 +1696,13 @@ name: db-tools
 description: OpsPub 数据库直连工具 db_query / db_execute —— 通过已登记的 DB 凭据（mysql_conn / postgres_conn / sqlite_conn / mssql_conn）跑 SQL，避免 ssh_exec + mysql/psql CLI 的密码暴露 + 输出解析坑。
 触发词: 数据库, 查 db, 查表, 查记录, 查询数据, mysql 查询, postgres 查询, sqlite 查询, SQL 查询, 数据库连接, db_query, db_execute, 数据条数, select 数据, insert 数据, update 数据, 看表, 看库, 表结构, desc 表, show tables, show databases, 跑 sql, 执行 sql, count 行, 多少条数据, 表里有多少, 查一下, 数据库直连, 不用 ssh 查库, 给我看, 表数据, explain, explain analyze, 查询计划, sql server 查询, sqlserver 查询, mssql 查询
 dangerous_commands:
-  # 这些匹配 pseudo command "[reeve-internal] db_<op> <sql 首 80 字>"。SQL 文本前 80 字内匹配即拦。
+  # 这些匹配 pseudo command "[opspub-internal] db_<op> <sql 首 80 字>"。SQL 文本前 80 字内匹配即拦。
   # 主防线在 services/db_exec/safe_sql.rs（任何档都拦库级 D-R-O-P / TRUNCATE / 无 WHERE 全表删改）；
   # 这里加一些 SQL 特有的高风险补充，让 trusted 档也能挡住。
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bDROP\s+USER\b'
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bALTER\s+USER\s+[^\n]*\bIDENTIFIED\s+BY\b'
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bFLUSH\s+PRIVILEGES\b'
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bSHUTDOWN\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bDROP\s+USER\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bALTER\s+USER\s+[^\n]*\bIDENTIFIED\s+BY\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bFLUSH\s+PRIVILEGES\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bSHUTDOWN\b'
 ---
 ```
 
@@ -2233,7 +2233,7 @@ mkfs.ext4 -L data /dev/sdb1      # 或：mkfs.xfs -L data /dev/sdb1
 ```bash
 mkdir -p /data
 blkid -s UUID -o value /dev/sdb1                     # 读出 UUID
-cp /etc/fstab ~/.reeve/backups/fstab.bak             # 先备份：fstab 写错会导致开机失败
+cp /etc/fstab ~/.opspub/backups/fstab.bak             # 先备份：fstab 写错会导致开机失败
 mount /dev/sdb1 /data
 echo 'UUID=<上一步读到的值> /data ext4 defaults,nofail 0 2' | tee -a /etc/fstab
 mount -a && findmnt --verify                         # 验证 fstab 无误
@@ -2644,7 +2644,7 @@ sudo gitlab-ctl tail puma               # 应用层
 sudo gitlab-backup create
 
 # 配置文件不在备份里 —— **必须单独备份**（落 OpsPub 统一工作区，别散落 /backup 等臆造路径）
-sudo tar czf ~/.reeve/backups/gitlab-config-$(date +%F).tar.gz /etc/gitlab
+sudo tar czf ~/.opspub/backups/gitlab-config-$(date +%F).tar.gz /etc/gitlab
 
 # 恢复（⚠️ 走审批）
 # 1) 停 service
@@ -2805,7 +2805,7 @@ dangerous_commands:
 - 增删规则、`-F`/`reset`/改默认策略这类**改动型**走 `ssh_exec`，必过策略档位 + 审批。
 
 🔴 **防火墙是最容易"把自己锁在外面"的领域**。规则会经 `ssh_exec` 触发**用户审批**——执行前必须告诉用户"这步改防火墙、有断 SSH 风险、需要你在 OpsPub 批准"，**被拒后绝不原样重试**。
-**铁律：远程改防火墙前永远先布保险绳**——把回滚命令落到 `~/.reeve/scripts/`（OpsPub 统一工作区），用 `at` 定时自动执行（见末尾「教训」）；改完测通了再 `atrm` 取消。
+**铁律：远程改防火墙前永远先布保险绳**——把回滚命令落到 `~/.opspub/scripts/`（OpsPub 统一工作区），用 `at` 定时自动执行（见末尾「教训」）；改完测通了再 `atrm` 取消。
 
 ## 一、工具关系图
 
@@ -3057,7 +3057,7 @@ sudo iptables -A DOCKER-USER -j DROP
 
 ## 教训
 
-- **远程改防火墙永远先布保险绳**：把当前规则备份到 `~/.reeve/backups/`（`iptables-save > ~/.reeve/backups/rules-$(date +%s).v4`），回滚脚本写 `~/.reeve/scripts/fw-rollback.sh`，再 `echo "bash ~/.reeve/scripts/fw-rollback.sh" | at now + 5 minutes`。改完测通了 → `atrm` 取消；改坏了 5 分钟后自动回滚。**别把脚本散落 /tmp**，用 OpsPub 统一工作区便于复盘。
+- **远程改防火墙永远先布保险绳**：把当前规则备份到 `~/.opspub/backups/`（`iptables-save > ~/.opspub/backups/rules-$(date +%s).v4`），回滚脚本写 `~/.opspub/scripts/fw-rollback.sh`，再 `echo "bash ~/.opspub/scripts/fw-rollback.sh" | at now + 5 minutes`。改完测通了 → `atrm` 取消；改坏了 5 分钟后自动回滚。**别把脚本散落 /tmp**，用 OpsPub 统一工作区便于复盘。
 - firewalld 的 `--permanent` 和 runtime 是**两套**；改完一定要 `--reload`，否则下次重启没了；或同时改两份 `firewall-cmd --runtime-to-permanent`。
 - Docker 与防火墙的"双轨"是经典坑：`ufw allow` 看似没开但容器**仍然能被公网访问**（因为 docker 走 DOCKER-USER 链先）。
 - nftables 的 `inet` 表同时管 IPv4 + IPv6，**不要忘加 v6 也禁掉**（一些场景 v6 默认开放比 v4 还危险）。
@@ -3411,8 +3411,8 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ### 备份
 
 ```bash
-# 简单：tar 整个 volume（落 OpsPub 统一工作区 ~/.reeve/backups，别散落随机目录）
-docker run --rm -v jenkins_home:/src -v ~/.reeve/backups:/dst alpine \
+# 简单：tar 整个 volume（落 OpsPub 统一工作区 ~/.opspub/backups，别散落随机目录）
+docker run --rm -v jenkins_home:/src -v ~/.opspub/backups:/dst alpine \
     tar czf /dst/jenkins-$(date +%F).tgz -C /src .
 
 # 推荐：装 ThinBackup / Configuration as Code (JCasC) 插件，定期跑 + 走 git
@@ -3866,7 +3866,7 @@ kafka-reassign-partitions.sh $BOOTSTRAP --verify --reassignment-json-file reassi
 
 > ⚠️ reassignment 会**复制大量数据**到新 broker，会饱和网络与磁盘 —— 用 `--throttle 50000000`（B/s）限速。
 >
-> 临时 plan 文件（`topics.json` / `reassign.json`）建议落 OpsPub 统一工作区 `~/.reeve/tmp/`，别散落在当前目录或 `/tmp`；执行用的脚本放 `~/.reeve/scripts/`，便于审计回溯。
+> 临时 plan 文件（`topics.json` / `reassign.json`）建议落 OpsPub 统一工作区 `~/.opspub/tmp/`，别散落在当前目录或 `/tmp`；执行用的脚本放 `~/.opspub/scripts/`，便于审计回溯。
 
 ## 第七步：KRaft 模式（去 ZooKeeper）
 
@@ -4489,7 +4489,7 @@ command -v <cmd>                     # POSIX 标准
 
 ## 教训
 
-- **远程改防火墙 / 改 SSH 配置前永远先准备保险绳** —— `at now + 5 minutes` 跑一条恢复命令；改完测通了再 `atrm` 取消。复杂恢复脚本放 `~/.reeve/scripts/`（OpsPub 统一工作区，别散落 /tmp）。
+- **远程改防火墙 / 改 SSH 配置前永远先准备保险绳** —— `at now + 5 minutes` 跑一条恢复命令；改完测通了再 `atrm` 取消。复杂恢复脚本放 `~/.opspub/scripts/`（OpsPub 统一工作区，别散落 /tmp）。
 - `df` 显示满了但 `du` 加起来不到一半 = 多半是**被删但未关闭的文件占用**：`lsof | grep deleted` 找出来 → 重启对应进程或 truncate。
 - `free` 列很小**不代表内存不够** —— Linux 把空闲内存用作 page cache，看 `available` 列才是真实可用。
 - 时区不一致是日志关联失败的常见原因；服务器尽量统一 `UTC` 或公司标准时区，应用日志加时区标识。
@@ -4528,7 +4528,7 @@ dangerous_commands:
 
 这些只读工具**任何策略档位都放行**（含 readonly 档），不会被拒——**先用 `tail_log` 看尾部，别上来就 `ssh_exec tail -f`**（流式跟随用工具更稳）。`journalctl`/`grep`/`awk` 这类要管道/过滤的，工具不够用时才走 `ssh_exec`。
 
-⚠️ 本技能里的清理/切割操作（`journalctl --vacuum-*` / `truncate` / `logrotate -f`）含 `sudo` 或是写/删操作 → 会触发**用户审批**。执行前先告诉用户"这步会删历史日志、需要你在 OpsPub 批准"，**被拒后不要原样重试**，改成只读排查或问用户。清理前先把要删的日志备份到 `~/.reeve/backups/`（OpsPub 统一工作区）。
+⚠️ 本技能里的清理/切割操作（`journalctl --vacuum-*` / `truncate` / `logrotate -f`）含 `sudo` 或是写/删操作 → 会触发**用户审批**。执行前先告诉用户"这步会删历史日志、需要你在 OpsPub 批准"，**被拒后不要原样重试**，改成只读排查或问用户。清理前先把要删的日志备份到 `~/.opspub/backups/`（OpsPub 统一工作区）。
 
 ## 第一步：日志路径速查表
 
@@ -4726,7 +4726,7 @@ sudo journalctl --vacuum-size=500M               # 留 500M
 sudo journalctl --vacuum-time=7d                  # 留 7 天
 ```
 
-> 清理前若需留证（排障/合规），先用 `sftp_read` 取关键日志或 `cp /var/log/xxx ~/.reeve/backups/`（OpsPub 统一工作区）再 vacuum。`--vacuum-time=0` / `--vacuum-size=0`（全删）会触发**危险审批**，需用户弹窗放行。
+> 清理前若需留证（排障/合规），先用 `sftp_read` 取关键日志或 `cp /var/log/xxx ~/.opspub/backups/`（OpsPub 统一工作区）再 vacuum。`--vacuum-time=0` / `--vacuum-size=0`（全删）会触发**危险审批**，需用户弹窗放行。
 
 ## 路径速查表（重要！）
 
@@ -5152,7 +5152,7 @@ dangerous_commands:
 这些只读工具**任何策略档位都放行**；改 `docker-compose.yml` / env 走 `sftp_read`+`sftp_write`（无 shell 转义坑），写完 `ssh_exec docker compose up -d`。后文 `mc` 命令仅在工具不够用时走 `ssh_exec`。
 
 ⚠️ 含 `sudo` / `mc rb` / `mc rm --recursive` 等写操作会触发**用户审批**——执行前先告诉用户"这步需要你在 OpsPub 批准"，被拒后不要原样重试。
-> 本地导出/备份对象（`mc cp` 拉到本机临时盘、`mc mirror` 落地、restic/borg 还原产物）统一落 **`~/.reeve/backups`** 或 **`~/.reeve/tmp`**（OpsPub 远程统一工作区），**不要臆造 `/data/backup`、`/mnt/backup` 等可能不存在的路径**。
+> 本地导出/备份对象（`mc cp` 拉到本机临时盘、`mc mirror` 落地、restic/borg 还原产物）统一落 **`~/.opspub/backups`** 或 **`~/.opspub/tmp`**（OpsPub 远程统一工作区），**不要臆造 `/data/backup`、`/mnt/backup` 等可能不存在的路径**。
 
 ## 第一步：部署形态
 
@@ -5452,7 +5452,7 @@ dangerous_commands:
 1. MCP `list_installed_services` 查现有 `mongodb_conn`——已装就复用（共享设施）。
 2. 端口 27017 是否占用（`port_check`）。
 
-🔴 **装 MongoDB 一律用 `install_app`**——mongodb 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `reeve-mongodb`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/mongodb`、**自动登记 `mongodb_conn` 凭据带 SSH 隧道**（「数据库→MongoDB」页即装即连）。
+🔴 **装 MongoDB 一律用 `install_app`**——mongodb 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `opspub-mongodb`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/mongodb`、**自动登记 `mongodb_conn` 凭据带 SSH 隧道**（「数据库→MongoDB」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "mongodb" } }
@@ -5605,19 +5605,19 @@ db.dropUser("appuser")
 
 ### mongodump（逻辑备份）
 
-> 💾 **备份产物统一落 `~/.reeve/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.reeve/backups`。
+> 💾 **备份产物统一落 `~/.opspub/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.opspub/backups`。
 
 ```bash
 # 单库
-mongodump --uri="mongodb://user:pass@host/mydb?authSource=admin" -o ~/.reeve/backups/mongo-$(date +%F)
+mongodump --uri="mongodb://user:pass@host/mydb?authSource=admin" -o ~/.opspub/backups/mongo-$(date +%F)
 
 # 全库
-mongodump --uri="mongodb://user:pass@host/?authSource=admin" -o ~/.reeve/backups/mongo-$(date +%F)
-mongodump -h host -u admin -p --authenticationDatabase admin -o ~/.reeve/backups/mongo-$(date +%F)
+mongodump --uri="mongodb://user:pass@host/?authSource=admin" -o ~/.opspub/backups/mongo-$(date +%F)
+mongodump -h host -u admin -p --authenticationDatabase admin -o ~/.opspub/backups/mongo-$(date +%F)
 
 # 副本集（推荐从 secondary 备份，减小 primary 压力）
 mongodump --uri="mongodb://user:pass@sec1,sec2/mydb?readPreference=secondary&authSource=admin" \
-    --oplog --gzip --archive=~/.reeve/backups/dump-$(date +%F).gz
+    --oplog --gzip --archive=~/.opspub/backups/dump-$(date +%F).gz
 
 # 参数
 --oplog              # 一致性快照（仅副本集）
@@ -5806,7 +5806,7 @@ Windows 原生 SQL Server 走微软官方安装器，**不在 OpsPub 应用商�
   - 🔴 **不支持 `params` 占位参数**（传了会被明确拒绝）：值内联进 SQL，自己转义单引号；**中文字符串用 `N'…'`**，否则乱码。
   - **永久拦截**：`xp_cmdshell` / `sp_OA*` / `sp_configure` / `xp_reg*`（它们能让 SQL 执行系统命令、绕过 OpsPub 的命令审批——要跑系统命令请用 `ssh_exec`）。库级 DROP / TRUNCATE / 无 WHERE 全表删改则属「极高危」：进审批队列，须用户在 OpsPub 桌面端手敲库名 / 表名并验证身份才会执行，不是永久拦截。
   - **别用 `ssh_exec sqlcmd` 读写数据**：密码会进命令行 / 环境，还绕开了上面的拦截与出口脱敏。
-- **看容器** → `docker_list_containers`；**看日志** → `ssh_exec docker logs --tail 100 reeve-sqlserver`（只读放行）；**查端口** → `port_check(server, 1433)`。
+- **看容器** → `docker_list_containers`；**看日志** → `ssh_exec docker logs --tail 100 opspub-sqlserver`（只读放行）；**查端口** → `port_check(server, 1433)`。
 
 ⚠️ 写操作、`sudo` 会触发**用户审批**——提前告知用户，被拒后不要原样重试。
 
@@ -5817,7 +5817,7 @@ Windows 原生 SQL Server 走微软官方安装器，**不在 OpsPub 应用商�
 2. **可用内存 ≥ 2GB**（`system_info`）：低于此值 sqlservr 进程启动即退出，表现为"装完容器 exited、连不上"。
 3. 端口 1433 是否占用（`system_listen_ports`）。
 
-`install_app` 做的事（应用商店 UI 同款）：镜像 `mcr.microsoft.com/mssql/server:<版本>`（可选 `2022-latest`（默认）/ `2019-latest` / `2025-latest`）、容器 `reeve-sqlserver`、绑 `127.0.0.1:1433`、数据卷 `reeve-sqlserver-data:/var/opt/mssql`；`sa` 密码由 OpsPub 生成并同步进容器与凭据库；自动登记 `mssql_conn`（user=`sa`、database=`master`，带 SSH 隧道，「数据库」页即装即连）。
+`install_app` 做的事（应用商店 UI 同款）：镜像 `mcr.microsoft.com/mssql/server:<版本>`（可选 `2022-latest`（默认）/ `2019-latest` / `2025-latest`）、容器 `opspub-sqlserver`、绑 `127.0.0.1:1433`、数据卷 `opspub-sqlserver-data:/var/opt/mssql`；`sa` 密码由 OpsPub 生成并同步进容器与凭据库；自动登记 `mssql_conn`（user=`sa`、database=`master`，带 SSH 隧道，「数据库」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "sqlserver" } }
@@ -5834,19 +5834,19 @@ Windows 原生 SQL Server 走微软官方安装器，**不在 OpsPub 应用商�
 
 | 现象 | 常见原因 | 处理 |
 |------|---------|------|
-| 容器 exited / 反复重启 | 可用内存不足 2GB；或 sa 密码不满足策略（≥8 位，大写 / 小写 / 数字 / 符号至少三类） | `docker logs --tail 50 reeve-sqlserver` 看原因；先确认 `free -h` |
+| 容器 exited / 反复重启 | 可用内存不足 2GB；或 sa 密码不满足策略（≥8 位，大写 / 小写 / 数字 / 符号至少三类） | `docker logs --tail 50 opspub-sqlserver` 看原因；先确认 `free -h` |
 | `Login failed for user 'sa'` | `MSSQL_SA_PASSWORD` **只在首次初始化数据卷时生效**，之后改 env 不会改密码；凭据库里的才是真值 | 别重新生成密码"试试"；真忘了要重置 sa，交给用户在终端做 |
 | 客户端报证书不受信任 | 容器用自签证书 | 客户端勾选"信任服务器证书"（sqlcmd `-C`、JDBC `trustServerCertificate=true`）；OpsPub「数据库」页已处理 |
 | 中文乱码 | 列用了 VARCHAR / 字面量没加 `N` | 用 NVARCHAR + `N'…'`；要中文排序规则须在**首次启动**前设 `MSSQL_COLLATION` |
 
 ## 备份还原（手工；OpsPub 备份页暂不支持 SQL Server）
 
-- **备份**：经 `db_execute` 跑 `BACKUP DATABASE [库名] TO DISK = N'/var/opt/mssql/data/库名.bak' WITH INIT, COMPRESSION`（`/var/opt/mssql/data` 是默认备份目录），再 `ssh_exec docker cp reeve-sqlserver:/var/opt/mssql/data/库名.bak ~/.reeve/backups/mssql/`。被策略拦就把命令交给用户在「数据库」页 / 终端执行。
+- **备份**：经 `db_execute` 跑 `BACKUP DATABASE [库名] TO DISK = N'/var/opt/mssql/data/库名.bak' WITH INIT, COMPRESSION`（`/var/opt/mssql/data` 是默认备份目录），再 `ssh_exec docker cp opspub-sqlserver:/var/opt/mssql/data/库名.bak ~/.opspub/backups/mssql/`。被策略拦就把命令交给用户在「数据库」页 / 终端执行。
 - **还原**（`RESTORE DATABASE … WITH REPLACE`）是破坏性操作：先告知用户影响范围并**等明确确认**，不要在 AI 侧直接做。
 
 ## 部署应用时用 SQL Server（compose.db 暂不支持）
 
-`compose.db` 目前只支持 MySQL / PostgreSQL。应用用 SQL Server 时走 `reeve-app-deploy` 技能第 3 步的「引擎不支持时的出口」：先告知用户 → 在 `ssh_exec_script` 里于**容器内**用 sqlcmd 建库 / LOGIN / USER，sa 密码取容器自带环境变量（`-P "$MSSQL_SA_PASSWORD"`，密码不出现在命令里），应用账号密码在服务器端生成、不进 stdout → 建完用 `save_credential`（kind=`mssql_conn`）补登记。sqlcmd 的位置随镜像而异（常见 `/opt/mssql-tools18/bin/sqlcmd`，2019 镜像在 `/opt/mssql-tools/bin/`，**以实际镜像为准**，先 `ls /opt` 确认）。
+`compose.db` 目前只支持 MySQL / PostgreSQL。应用用 SQL Server 时走 `opspub-app-deploy` 技能第 3 步的「引擎不支持时的出口」：先告知用户 → 在 `ssh_exec_script` 里于**容器内**用 sqlcmd 建库 / LOGIN / USER，sa 密码取容器自带环境变量（`-P "$MSSQL_SA_PASSWORD"`，密码不出现在命令里），应用账号密码在服务器端生成、不进 stdout → 建完用 `save_credential`（kind=`mssql_conn`）补登记。sqlcmd 的位置随镜像而异（常见 `/opt/mssql-tools18/bin/sqlcmd`，2019 镜像在 `/opt/mssql-tools/bin/`，**以实际镜像为准**，先 `ls /opt` 确认）。
 
 ## 铁律
 
@@ -6041,12 +6041,12 @@ skip-name-resolve
 
 ### ⭐ 推荐：用 `install_app(server, "mysql")` 一把过（应用商店同款，进台账）
 
-🔴 **装 MySQL 一律用 `install_app`**——MySQL 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器规范命名 `reeve-mysql`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/mysql`、**自动登记 `mysql_conn` 凭据并带 SSH 隧道**（「数据库」页即装即连）。
+🔴 **装 MySQL 一律用 `install_app`**——MySQL 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器规范命名 `opspub-mysql`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/mysql`、**自动登记 `mysql_conn` 凭据并带 SSH 隧道**（「数据库」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "mysql" } }
 ```
-可选 `version`（如 `"8.4"`）/ `port`（默认 3306，绑 127.0.0.1）。MySQL 是**全机共享设施**：一台机装一套、label 通用名 `MySQL`、第二个项目复用同一套（在它上面建独立库账号，见 reeve-app-deploy 的 `compose.db`）。
+可选 `version`（如 `"8.4"`）/ `port`（默认 3306，绑 127.0.0.1）。MySQL 是**全机共享设施**：一台机装一套、label 通用名 `MySQL`、第二个项目复用同一套（在它上面建独立库账号，见 opspub-app-deploy 的 `compose.db`）。
 
 > ⛔ **别再用 `install_with_secret` 手写 docker-compose 装 MySQL**——手写脚本极易出"存进凭据库的密码 ≠ 容器实际密码"（工作台连不上，本项目踩过的坑），且容器命名 / 路径不规范。`install_with_secret` 只留给**应用商店目录里没有的自定义服务**。
 
@@ -6178,23 +6178,23 @@ KILL <thread_id>;            -- 从 processlist / trx 表拿 id
 
 ### 逻辑备份（mysqldump）
 
-> 💾 **备份产物统一落 `~/.reeve/backups/`**（OpsPub 远程工作区，便于统一管理 + 后续 SFTP 取回），别散落 `/tmp` 或臆造 `/data/backup`。先 `ssh_exec mkdir -p ~/.reeve/backups`。
+> 💾 **备份产物统一落 `~/.opspub/backups/`**（OpsPub 远程工作区，便于统一管理 + 后续 SFTP 取回），别散落 `/tmp` 或臆造 `/data/backup`。先 `ssh_exec mkdir -p ~/.opspub/backups`。
 
 ```bash
 # 单库
-mysqldump -u root -p --single-transaction --routines --triggers --events <db> > ~/.reeve/backups/<db>-$(date +%F).sql
+mysqldump -u root -p --single-transaction --routines --triggers --events <db> > ~/.opspub/backups/<db>-$(date +%F).sql
 
 # 多库
-mysqldump -u root -p --single-transaction --databases db1 db2 > ~/.reeve/backups/multi-$(date +%F).sql
+mysqldump -u root -p --single-transaction --databases db1 db2 > ~/.opspub/backups/multi-$(date +%F).sql
 
 # 全库（含 mysql 系统库）
-mysqldump -u root -p --all-databases --single-transaction --master-data=2 > ~/.reeve/backups/all-$(date +%F).sql
+mysqldump -u root -p --all-databases --single-transaction --master-data=2 > ~/.opspub/backups/all-$(date +%F).sql
 
 # 只导结构
-mysqldump -u root -p --no-data <db> > ~/.reeve/backups/<db>-schema.sql
+mysqldump -u root -p --no-data <db> > ~/.opspub/backups/<db>-schema.sql
 
 # 只导数据
-mysqldump -u root -p --no-create-info <db> > ~/.reeve/backups/<db>-data.sql
+mysqldump -u root -p --no-create-info <db> > ~/.opspub/backups/<db>-data.sql
 ```
 
 > ⚠️ `mysqldump ... > file.sql` 的 `>` 会**覆盖**同名文件——给文件名带日期（`$(date +%F)`）避免误覆盖昨天的备份。
@@ -6379,7 +6379,7 @@ dangerous_commands:
 - **看日志** → `tail_log(server, "/var/log/samba/log.smbd")`；NFS 走 `service_status` 自带的 systemctl 尾部，或 `ssh_exec journalctl -u nfs-server`。
 - **改配置** → 先 `sftp_read` 看 `/etc/exports` / `/etc/samba/smb.conf` 现状，再 `sftp_write` 整文件写（无 shell heredoc 转义坑），写完 `ssh_exec sudo exportfs -ra` / `ssh_exec sudo systemctl reload smbd`。
 - ⚠️ `sudo mount` / `exportfs -ra` / `systemctl restart` 等写操作会触发**用户审批**——提前告知用户，被拒后不要原样重试。
-> 临时挂载点（SSHFS / 验证用的 `mount` 目标）建议落 **`~/.reeve/tmp`**（OpsPub 远程统一工作区），别散落 `/mnt/xxx` 等可能不存在的目录。
+> 临时挂载点（SSHFS / 验证用的 `mount` 目标）建议落 **`~/.opspub/tmp`**（OpsPub 远程统一工作区），别散落 `/mnt/xxx` 等可能不存在的目录。
 
 ## 对照
 
@@ -7462,7 +7462,7 @@ dangerous_commands:
 - ⚠️ **铁律：`sftp_write` 改完，先 `ssh_exec sudo nginx -t` 校验通过，再 reload**。OpenResty 的坑更深——`nginx -t` 过了 reload 仍可能因 **Lua 运行时错**让新 worker 全退（命中坏 worker 报 502），所以 reload 后必须 `tail_log` error.log 确认 worker 起来了。
 - ⚠️ `sudo nginx -t` / `sudo nginx -s reload` / `sudo systemctl reload` 含 sudo 会触发**用户审批**——提前告知用户，被拒后不要原样重试。
 
-> 改配置前先把现配置 `sftp_read` 出来留底（或落 `~/.reeve/backups`），reload 翻车能整文件 `sftp_write` 回滚。
+> 改配置前先把现配置 `sftp_read` 出来留底（或落 `~/.opspub/backups`），reload 翻车能整文件 `sftp_write` 回滚。
 
 ## 第一步：服务和配置语法
 
@@ -8087,12 +8087,12 @@ Stack 操作：
 
 UI 「Settings → General → Backup」直接下载 tar.gz（含数据库 + 加密的所有节点凭据）。
 
-CLI（容器跑）—— 备份产物统一落 OpsPub 工作区 `~/.reeve/backups`（别散落当前目录/`/tmp`）：
+CLI（容器跑）—— 备份产物统一落 OpsPub 工作区 `~/.opspub/backups`（别散落当前目录/`/tmp`）：
 
 ```bash
-mkdir -p ~/.reeve/backups
+mkdir -p ~/.opspub/backups
 docker run --rm -v portainer_data:/data alpine \
-    tar czf - -C /data . > ~/.reeve/backups/portainer-backup-$(date +%F).tgz
+    tar czf - -C /data . > ~/.opspub/backups/portainer-backup-$(date +%F).tgz
 ```
 
 ### 恢复
@@ -8248,7 +8248,7 @@ dangerous_commands:
 1. MCP `list_installed_services` 查现有 `postgres_conn`——已装就复用（共享设施）。
 2. 端口 5432 是否占用（`port_check`）。
 
-🔴 **装 PostgreSQL 一律用 `install_app`**——postgres 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `reeve-postgres`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/postgres`、**自动登记 `postgres_conn` 凭据带 SSH 隧道**（「数据库」页即装即连）。
+🔴 **装 PostgreSQL 一律用 `install_app`**——postgres 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `opspub-postgres`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/postgres`、**自动登记 `postgres_conn` 凭据带 SSH 隧道**（「数据库」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "postgres" } }
@@ -8388,16 +8388,16 @@ WHERE datname = 'mydb' AND pid <> pg_backend_pid();
 
 ### 逻辑备份（pg_dump）
 
-> 💾 **备份产物统一落 `~/.reeve/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.reeve/backups`；文件名带日期避免覆盖旧备份。
+> 💾 **备份产物统一落 `~/.opspub/backups/`**（OpsPub 远程工作区），别臆造 `/backup`、`/data/backup`。先 `ssh_exec mkdir -p ~/.opspub/backups`；文件名带日期避免覆盖旧备份。
 
 ```bash
 # 单库
-pg_dump -h host -U postgres -F c -f ~/.reeve/backups/mydb-$(date +%F).dump mydb    # custom format（推荐）
-pg_dump -h host -U postgres -F p -f ~/.reeve/backups/mydb-$(date +%F).sql mydb     # plain SQL
+pg_dump -h host -U postgres -F c -f ~/.opspub/backups/mydb-$(date +%F).dump mydb    # custom format（推荐）
+pg_dump -h host -U postgres -F p -f ~/.opspub/backups/mydb-$(date +%F).sql mydb     # plain SQL
 
 # 全库（集群级，含角色）
-pg_dumpall -h host -U postgres > ~/.reeve/backups/all-$(date +%F).sql
-pg_dumpall -h host -U postgres -g > ~/.reeve/backups/globals.sql       # 只角色 + tablespace
+pg_dumpall -h host -U postgres > ~/.opspub/backups/all-$(date +%F).sql
+pg_dumpall -h host -U postgres -g > ~/.opspub/backups/globals.sql       # 只角色 + tablespace
 
 # 参数
 -F c     # custom（推荐，可并行恢复）
@@ -8425,7 +8425,7 @@ psql -h host -U postgres -d mydb < mydb.sql
 
 ```bash
 # 全量基础备份（搭配 WAL 归档做 PITR）—— 落 OpsPub 工作区
-pg_basebackup -h primary -U replicator -D ~/.reeve/backups/base -Ft -z -P -X stream
+pg_basebackup -h primary -U replicator -D ~/.opspub/backups/base -Ft -z -P -X stream
 ```
 
 ## 第六步：流复制（主从）
@@ -9613,7 +9613,7 @@ dangerous_commands:
 1. MCP `list_installed_services` 查现有 `redis_conn`——🔴 **Redis 是全机共享设施，已装就复用、别重复装**。
 2. 端口 6379 是否占用（`port_check`）。
 
-🔴 **装 Redis 一律用 `install_app`**——Redis 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `reeve-redis`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/redis`、**自动登记 `redis_conn` 凭据带 SSH 隧道**（「数据库→Redis」页即装即连）。
+🔴 **装 Redis 一律用 `install_app`**——Redis 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器 `opspub-redis`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/redis`、**自动登记 `redis_conn` 凭据带 SSH 隧道**（「数据库→Redis」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "redis" } }
@@ -9797,12 +9797,12 @@ name: redis-tools
 description: OpsPub Redis 直连工具 redis_get / redis_set / redis_del / redis_scan / redis_exec —— 通过已登记的 redis_conn 凭据安全操作 Redis，密码加密 + 危险命令拦截（清库类进极高危审批，改配置 / 逃逸类永久拦）。
 触发词: redis, 缓存, redis 查询, redis 写入, redis 删除, KEYS, SCAN, GET, SET, HGETALL, LRANGE, ZRANGE, INFO, 慢日志, slowlog, redis 密码, redis 连接, redis_get, redis_set, redis_del, redis_scan, redis_exec, 看 redis, 查 redis, 取 key, 写 key, 删 key, 扫 key, 看 key, redis 直连, 不用 ssh 跑 redis, redis ttl, expire, hash 字段, list 元素, zset 排名
 dangerous_commands:
-  # AI 经 redis_exec 跑的 pseudo command 形如 "[reeve-internal] redis_exec <args...>"。这里加一些
+  # AI 经 redis_exec 跑的 pseudo command 形如 "[opspub-internal] redis_exec <args...>"。这里加一些
   # 跟主防线（redis_exec.rs::check_dangerous_redis）独立的补充模式，trusted 档也挡住。
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHALL\b'
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHDB\b'
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bSHUTDOWN\b'
-  - '(?i)\[reeve-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bCONFIG\s+(?:SET|RESETSTAT)\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHALL\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bFLUSHDB\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bSHUTDOWN\b'
+  - '(?i)\[opspub-internal\]\s+redis_(?:exec|set|del)\s+[^\n]*\bCONFIG\s+(?:SET|RESETSTAT)\b'
 ---
 ```
 
@@ -9928,13 +9928,13 @@ list_installed_services() → 筛 kind="redis_conn"
 
 ---
 
-## 37. reeve-app-deploy
+## 37. opspub-app-deploy
 
 ```yaml
 ---
-name: reeve-app-deploy
+name: opspub-app-deploy
 description: 通用「用 OpsPub 部署任意应用」配方（框架无关）—— 共享中间件 install_app + 部署目标 deploy_upsert_target(compose 托管)，产物全进工作台台账、可一键重部署/回滚。任何项目部署没有专属框架技能时的默认剧本。
-触发词: 部署, 上线, 发布, deploy, 部署到, 部署项目, 部署应用, 部署后端, 部署前端, docker部署, docker 部署, 容器部署, 上服务器, 发布到服务器, 部署到服务器, 生产部署, 上生产, 全栈部署, 反向代理部署, 用reeve部署, reeve部署
+触发词: 部署, 上线, 发布, deploy, 部署到, 部署项目, 部署应用, 部署后端, 部署前端, docker部署, docker 部署, 容器部署, 上服务器, 发布到服务器, 部署到服务器, 生产部署, 上生产, 全栈部署, 反向代理部署, 用opspub部署, opspub部署
 ---
 ```
 
@@ -9954,7 +9954,7 @@ description: 通用「用 OpsPub 部署任意应用」配方（框架无关）�
 
 ## 🤖 第零步：优先用 OpsPub 专用工具（别裸 SSH 即兴）
 - **探环境**（只读；approval 档服务器上每条操作含只读都要审批）：`system_info` / `disk_usage`（内存+swap、磁盘）、`system_listen_ports`（查端口冲突）、`service_status`、`docker_list_containers`、`ssh_exec`(只读) 查域名解析。
-- **装共享中间件**：`install_app(server, "mysql"|"redis"|"postgres"|"mongodb")`（应用商店同款：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `reeve-<app>`、绑 127.0.0.1、自动登记 `_conn` 带 SSH 隧道）。🔴 **别用 `install_with_secret` 手写脚本装这些库**（手写易致"存的密码≠容器密码"、工作台连不上）。
+- **装共享中间件**：`install_app(server, "mysql"|"redis"|"postgres"|"mongodb")`（应用商店同款：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `opspub-<app>`、绑 127.0.0.1、自动登记 `_conn` 带 SSH 隧道）。🔴 **别用 `install_with_secret` 手写脚本装这些库**（手写易致"存的密码≠容器密码"、工作台连不上）。
 - **建/触发部署**：`deploy_upsert_target`（产出部署目标，只写不执行）→ `deploy_dry_run`（预览）→ `deploy_run`（执行，进部署历史、可回滚）。
 - **传产物**：`sftp_upload`（jar / dist 等大文件）；`sftp_read`/`sftp_write`（小文件 / 改配置）。
 - 改动型（装库 / 部署 / sudo）按服务器档位走**审批**——提前告知用户、被拒别原样重试。
@@ -9964,12 +9964,12 @@ description: 通用「用 OpsPub 部署任意应用」配方（框架无关）�
 
 ## 2. 共享中间件一次装好（通用设施，整机一套）
 - 需要 MySQL/Redis/PostgreSQL 等 → 用 **`install_app`** 装（见第零步）。
-- 🔴 **通用设施，不带项目名**：凭据 label = 应用商店规范名 `MySQL` / `Redis`（user=root / db=0），容器 `reeve-mysql`/`reeve-redis`。**已装就复用**（`list_installed_services` 查），第二个项目共用同一套、**别重复装、别套项目前缀**。
+- 🔴 **通用设施，不带项目名**：凭据 label = 应用商店规范名 `MySQL` / `Redis`（user=root / db=0），容器 `opspub-mysql`/`opspub-redis`。**已装就复用**（`list_installed_services` 查），第二个项目共用同一套、**别重复装、别套项目前缀**。
 - 记下返回的 `vault_id`，下一步引用。
 
 ## 3. 建后端部署目标 `deploy_upsert_target`（recipe=`docker-compose`，开 `compose` 托管）
 - `name`: `<应用标识>-backend`（target 名可带端后缀，不影响凭据 / 栈名）；`servers`: `["<别名>"]`。
-- 🔴 **`release.deployRoot` 必须 = `/opt/reeve/stacks/<应用标识>`**：compose 落这里、compose project = `<应用标识>`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/<app>` 等 stacks 外目录（会被扫成「外部栈」只读、project 名取目录名易撞）。
+- 🔴 **`release.deployRoot` 必须 = `/opt/opspub/stacks/<应用标识>`**：compose 落这里、compose project = `<应用标识>`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/<app>` 等 stacks 外目录（会被扫成「外部栈」只读、project 名取目录名易撞）。
 - **`compose.template`：只含 app 一个服务**——🔴 不在里面再起 mysql/redis（用第 2 步的共享库）。**容器名 = `<应用标识>` 本身**（🔴 不加 `-app` 等后缀）；密钥写哨兵 `__DB_PASSWORD__` / `__REDIS_PASSWORD__` / `__JWT_SECRET_KEY__`（**禁明文**）。
 - 🔴 **app↔共享库接线（最易错）**：共享库绑宿主 `127.0.0.1`、**不在** app 的 compose 网络里——`DB_HOST=mysql` 那套桥接网 DNS **连不到**。正解：app 走 **host 网络**（`network_mode: host`）、env `DB_HOST=127.0.0.1`/`REDIS_HOST=127.0.0.1`（不是服务名）；或 `extra_hosts: ["host.docker.internal:host-gateway"]` + `DB_HOST=host.docker.internal`。
 - 🔴 **per-app 库+账号默认靠 `compose.db` 让引擎建**（目前支持 **MySQL / PostgreSQL**，按所选凭据类型分流）：`compose.db`: `{ vaultId:<共享库的管理员凭据：MySQL 的 mysql_conn(root) / PostgreSQL 的 postgres_conn(postgres)>, mode:"create", dbName:"<应用标识>", dbUser:"<应用标识>" }` → 引擎自动「建库+建独立账号+**登记成第二条独立凭据（mysql_conn / postgres_conn，label=<应用标识>）**」。
@@ -10011,10 +10011,10 @@ description: 通用「用 OpsPub 部署任意应用」配方（框架无关）�
 ## 收尾自检（缺啥补啥，确保工作台可见可管）
 - 打开 OpsPub 工作台，**数据库 / 服务凭据 / 网站 / 证书 / 容器(编排) / 部署历史** 里都能看到这次部署吗？**用户现在能点开刚装的东西吗？** 不能则补登记 / 补隧道（第 5b 步）。
 - 装出来的常驻服务（1Panel / Portainer / 自建后台等）→ `save_credential` 登记一条（带 access_url / host / 端口），否则「服务凭据」页是空的。需要密码的这类服务用 `install_with_secret` 装，长安装（1Panel / Jenkins / Portainer 等 5~15 分钟级）显式传 `timeoutSecs: 1800`；`list_installed_services` 查、`delete_installed_service` 删。
-- 脚本 / 备份 / 上传产物放远程 `~/.reeve`（OpsPub 远程工作区），别臆造 `/data/...`、`/opt/backup` 这类不存在的路径。
+- 脚本 / 备份 / 上传产物放远程 `~/.opspub`（OpsPub 远程工作区），别臆造 `/data/...`、`/opt/backup` 这类不存在的路径。
 - 🔴 **用了 MySQL / PostgreSQL → 服务凭据应有两条同类型凭据（mysql_conn / postgres_conn）**：共享 `MySQL`(root) + app 专属 `<应用标识>`。只有一条 = 没走 `compose.db`（漏登记）→ 用 `save_credential` 补（host/port/user/database=`<应用标识>`，密码从 app 容器 `printenv DB_PASSWORD` 经脱敏 vaultRef 传 `fieldsFromVault`）。
 - 🔴 **走了手工出口的库（MongoDB 等）→ 同样要有 app 专属那条凭据**（kind 按该库类型，label=`<应用标识>`），没有就按上一条 `save_credential` 补。PostgreSQL 与 MySQL 一样由 `compose.db` 自动登记 `postgres_conn`。
-- 🔴 **后端容器在「编排」页是「自己的栈」而非「外部」** → 若显示「外部」=deployRoot 没落在 `/opt/reeve/stacks/`，下次部署改对。
+- 🔴 **后端容器在「编排」页是「自己的栈」而非「外部」** → 若显示「外部」=deployRoot 没落在 `/opt/opspub/stacks/`，下次部署改对。
 
 ## 铁律
 - 默认 Docker；内存紧张 = swap + `mem_limit` + 限堆 / 调 DB 缓冲，**仍 Docker**，不擅自切原生（除非用户明确要）。
@@ -10039,7 +10039,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 适用：用户说「用 OpsPub 部署 ruoyi-plus-uniapp / 若依-plus / ryplus 到某服务器」「上线后台管理系统」。
 本配方 = **Spring Boot 3 + JDK21 后端 + plus-ui(PC) 静态前端 + MySQL8 + Redis7**，默认 Docker。
 
-> 📎 **本技能 = 通用 `reeve-app-deploy` 配方的 ruoyi 特化**：通用骨架（探环境→install_app 共享库→deploy_upsert_target compose 托管两条凭据→stacks 目录→static-openresty 前端同域反代→验收）见 `reeve-app-deploy`（`get_skill("reeve-app-deploy")`），那里有完整步骤 + 每条铁律的原因。**本技能只补 ruoyi 的专属值**，对照着用。
+> 📎 **本技能 = 通用 `opspub-app-deploy` 配方的 ruoyi 特化**：通用骨架（探环境→install_app 共享库→deploy_upsert_target compose 托管两条凭据→stacks 目录→static-openresty 前端同域反代→验收）见 `opspub-app-deploy`（`get_skill("opspub-app-deploy")`），那里有完整步骤 + 每条铁律的原因。**本技能只补 ruoyi 的专属值**，对照着用。
 >
 > 🔴 **核心纪律（同通用）：走「部署目标(Target)」，绝不 `ssh_exec` 手写 docker-compose / openssl 生成 .env；建库账号默认也交给引擎（引擎不支持的库类型除外，见通用配方第 3 步「引擎不支持时的出口」）**——手写产物不进台账、不可一键重部署。
 
@@ -10048,7 +10048,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 |----|----|
 | `<应用标识>`（容器名/库名/库账号/栈目录/target 前缀） | **`ryplus_uni`**（来源：`ruoyi-admin/.../application.yml` 的 `app.id`；redisson keyPrefix/clientName/库名 DB_NAME 都=`${app.id}`） |
 | 后端镜像 | `bellsoft/liberica-openjdk-rocky:21` 挂载 jar 跑；本机 `mvn clean package -DskipTests` 出 jar |
-| 后端 deployRoot | `/opt/reeve/stacks/ryplus_uni`；容器名 `ryplus_uni`；监听 `127.0.0.1:5500` |
+| 后端 deployRoot | `/opt/opspub/stacks/ryplus_uni`；容器名 `ryplus_uni`；监听 `127.0.0.1:5500` |
 | compose.db | `{ vaultId:<共享 MySQL root>, mode:"create", dbName:"ryplus_uni", dbUser:"ryplus_uni" }` |
 | initSqls | `["<本机>/script/sql/ry_plus_sys.sql", "<本机>/script/sql/ry_plus_app.sql"]`（先 sys 后 app） |
 | 低内存 JVM | `-Xms256m -Xmx640m -XX:+UseG1GC`（<2G 必加 swap） |
@@ -10061,7 +10061,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 
 ## 🤖 第零步：优先用 OpsPub 专用工具
 - **探环境**（只读，任何档位放行）：`system_info` / `disk_usage`（看**内存+swap**、磁盘）、`port_check`（80/443/3306/6379/5500 是否占用）、`service_status`、`ssh_exec`(只读) 查 Docker/解析。
-- **装共享库**：`install_app(server, "mysql")` / `install_app(server, "redis")`（**应用商店同款**：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `reeve-mysql`/`reeve-redis`、绑 127.0.0.1、自动登记 _conn 带隧道）。🔴 **别用 `install_with_secret` 手写脚本装 DB**（手写易致存的密码≠容器密码、工作台连不上）。
+- **装共享库**：`install_app(server, "mysql")` / `install_app(server, "redis")`（**应用商店同款**：密码 OpsPub 生成同步进容器+凭据库**必连得上**、容器 `opspub-mysql`/`opspub-redis`、绑 127.0.0.1、自动登记 _conn 带隧道）。🔴 **别用 `install_with_secret` 手写脚本装 DB**（手写易致存的密码≠容器密码、工作台连不上）。
 - **建/触发部署**：`deploy_upsert_target`（产出部署目标，只写不执行）→ `deploy_dry_run`（预览）→ `deploy_run`（执行，进部署历史、可回滚）。
 - **传产物**：`sftp_upload`（jar / dist 大文件）；`sftp_read`/`sftp_write`（小文件/改配置）。
 - 改动型操作（装库/部署/sudo）会按服务器档位走**审批**——提前告知用户、被拒别原样重试。
@@ -10072,7 +10072,7 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 探完把现状 + 默认 Docker 方案讲给用户，**拿到明确「确认/继续」才动手**。重点报：内存+swap（ruoyi 全栈吃内存，<2G 必须加 swap）、Docker 装没装、域名解析、80/443 安全组、本地构建链（JDK21/Maven/Node/pnpm）。
 
 ### 2. 共享 MySQL/Redis 一次装好（通用设施，整机一套）
-- 🔴 用 **`install_app(server, "mysql")`** + **`install_app(server, "redis")`**（应用商店同款模板）——容器 `reeve-mysql`/`reeve-redis`、绑 `127.0.0.1`、密码两边一致**必连得上**、label 通用名（**不带项目**）、自动登记 `mysql_conn`/`redis_conn` 带 `__tunnel_server_id`。**别用 `install_with_secret` 手写**（连不上的根因）。
+- 🔴 用 **`install_app(server, "mysql")`** + **`install_app(server, "redis")`**（应用商店同款模板）——容器 `opspub-mysql`/`opspub-redis`、绑 `127.0.0.1`、密码两边一致**必连得上**、label 通用名（**不带项目**）、自动登记 `mysql_conn`/`redis_conn` 带 `__tunnel_server_id`。**别用 `install_with_secret` 手写**（连不上的根因）。
 - 🔴 **已装就复用**（`list_installed_services` 查），别按项目重复装、别套 `ryplus-` 前缀——它们是共享的，第二个 app 也用这套。
 - 记下返回的两个 `vault_id`，下一步引用。
 
@@ -10082,13 +10082,13 @@ description: RuoYi-Plus + uniapp（ruoyi-plus-uniapp）全栈部署配方 ——
 > - **应用自身的东西**（app 容器名、数据库名、为本 app 建的库账号）才用 `app.id`：本项目 `ruoyi-admin/.../application.yml` `app.id: ryplus_uni`（库名 DB_NAME、redisson keyPrefix/clientName 都=`${app.id}`）→ 容器名/库名/库账号用 `ryplus_uni`。
 > - 🔴 **别自造**"ryplus_uni 应用库账号 (MySQL)""Redis 7 (共享)"这类描述。引擎为本 app 建的库账号凭据会**自动用库名 `ryplus_uni` 作 label**（与共享 `MySQL` 凭据是两条，别混）。
 - `name`: 部署目标名 `ryplus_uni-backend`（target 名可带端后缀，不影响凭据名）；`servers`: `["<别名>"]`。
-- 🔴 **`release.deployRoot` 必须 = `/opt/reeve/stacks/ryplus_uni`**（= `/opt/reeve/stacks/<app.id>`）——compose 落这里、compose project=`ryplus_uni`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/ryplus` 这类 stacks 外的目录：会被扫成「外部栈」只读、且 project 名取目录名不唯一（之前的坑）。
+- 🔴 **`release.deployRoot` 必须 = `/opt/opspub/stacks/ryplus_uni`**（= `/opt/opspub/stacks/<app.id>`）——compose 落这里、compose project=`ryplus_uni`（唯一）→ OpsPub「容器/编排」页认作**自己的栈**（有启停/重建/编辑按钮）。**别用** `/opt/ryplus` 这类 stacks 外的目录：会被扫成「外部栈」只读、且 project 名取目录名不唯一（之前的坑）。
 - **`compose.template`：只含 app 一个服务**——🔴 **不要**在里面再起 mysql/redis（用第 2 步的共享库）。**容器名 = 应用 app.id 本身 `ryplus_uni`（🔴 不加 `-app` 等后缀）**；用 `bellsoft/liberica-openjdk-rocky:21` 挂载 jar 跑；密钥写哨兵 `__DB_PASSWORD__`/`__REDIS_PASSWORD__`/`__JWT_SECRET_KEY__`（**禁明文**）。
 - 🔴 **app↔共享库接线（最易错）**：共享库绑宿主 `127.0.0.1`、**不在** app 的 compose 网络里——`DB_HOST=mysql` 那套桥接网 DNS **连不到**。正解：app 走 **host 网络**（`network_mode: host`），env `DB_HOST=127.0.0.1`、`REDIS_HOST=127.0.0.1`（不是服务名）、`DB_NAME=ryplus_uni`、`DB_USERNAME=ryplus_uni`；或加 `extra_hosts: ["host.docker.internal:host-gateway"]` 且 `DB_HOST=host.docker.internal`。
 - 🔴 **库+账号默认靠 `compose.db` 让引擎建**（默认 MySQL 版；引擎也支持 PostgreSQL，见下）：`compose.db`: `{ vaultId:<共享 MySQL 的 mysql_conn(root)>, mode:"create", dbName:"ryplus_uni", dbUser:"ryplus_uni" }` → 引擎自动「建库+建独立账号+**登记成第二条独立 mysql_conn(label=ryplus_uni)**」。
   - ⚠️ **别图省事**用 `ssh_exec` / `db_execute` 跑 `CREATE DATABASE` / `CREATE USER` / `GRANT` 自己建账号——那样账号建了但**不会登记成 OpsPub 凭据**（服务凭据页只剩共享 root 一条，缺 app 专属那条，最小权限连接也没法在数据库页用）。这是已知翻车点。
   - ✅ **正确终态 = 两条 mysql_conn**：① 共享 `MySQL`(root，第 2 步 install_app 给) ② app 专属 `ryplus_uni`(本步 compose.db 自动给)。app 用 ② 连库（最小权限），① 仅供 OpsPub 管理/建库。
-  - 🔴 **PostgreSQL 版**：引擎也支持。`compose.db` 的 `vaultId` 选共享 PG 的 `postgres_conn` 管理员凭据（如 postgres），其余同上（`mode:"create"`、`dbName`/`dbUser`=`ryplus_uni`）：引擎建库 + 账号（库属主与 public schema 属主都归应用账号）、登记成第二条 `postgres_conn`，并**以应用账号**导入 `initSqls`（换成 PG 版脚本）。`DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD` 哨兵照常填充；应用侧的 PG 驱动 / JDBC URL 配置不归引擎管，要在 compose 环境变量里按 PG 配。用户明确要求手工建库时的出口，见通用配方 `get_skill("reeve-app-deploy")` 第 3 步「引擎不支持时的出口」。
+  - 🔴 **PostgreSQL 版**：引擎也支持。`compose.db` 的 `vaultId` 选共享 PG 的 `postgres_conn` 管理员凭据（如 postgres），其余同上（`mode:"create"`、`dbName`/`dbUser`=`ryplus_uni`）：引擎建库 + 账号（库属主与 public schema 属主都归应用账号）、登记成第二条 `postgres_conn`，并**以应用账号**导入 `initSqls`（换成 PG 版脚本）。`DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD` 哨兵照常填充；应用侧的 PG 驱动 / JDBC URL 配置不归引擎管，要在 compose 环境变量里按 PG 配。用户明确要求手工建库时的出口，见通用配方 `get_skill("opspub-app-deploy")` 第 3 步「引擎不支持时的出口」。
 - `compose.redis`: `{ vaultId:<redis_conn> }`；`secrets`: `["JWT_SECRET_KEY"]`。
 - `initSqls`: 按序 `["<本机>/script/sql/ry_plus_sys.sql", "<本机>/script/sql/ry_plus_app.sql"]`（系统表 + 业务表）。
 - **低内存 JVM**：`-Xms256m -Xmx640m -XX:+UseG1GC`；env 关 `MONITOR_ENABLED`/`SNAIL_JOB_ENABLED`/`ROCKETMQ_ENABLED`/`MQTT_ENABLED`/`LANGCHAIN4J_ENABLED`/`OPEN_API_ENABLED`（<2G 扛不住，要哪个再单开）。
@@ -10150,7 +10150,7 @@ dangerous_commands:
 - **改策略**（`semanage` / `setsebool -P` / `restorecon` / `audit2allow` / `aa-enforce`）属**改动型**，走 `ssh_exec` 过策略档位 + 审批。
 
 ⚠️ `setenforce 0`（临时关 SELinux）/ 改 `/etc/selinux/config` / `aa-disable` 关键服务 profile 会触发**用户审批**——执行前告诉用户"这步会降级安全防护、需要你批准"，**被拒后不要原样重试**。
-🔴 **关 SELinux 重启有"再也起不来"风险**：标签一旦失效，重新开 enforcing 时服务可能全拒。生成的自定义 module（`.pp`）、收集的 audit 片段放 `~/.reeve/scripts/` 或 `~/.reeve/tmp/`（OpsPub 统一工作区），别散落 /tmp。
+🔴 **关 SELinux 重启有"再也起不来"风险**：标签一旦失效，重新开 enforcing 时服务可能全拒。生成的自定义 module（`.pp`）、收集的 audit 片段放 `~/.opspub/scripts/` 或 `~/.opspub/tmp/`（OpsPub 统一工作区），别散落 /tmp。
 
 ## 对照
 
@@ -10531,8 +10531,8 @@ dangerous_commands:
 
 ```bash
 # 在改 sshd_config / 防火墙前，先布保险绳
-cp /etc/ssh/sshd_config ~/.reeve/backups/sshd_config.$(date +%s).bak   # 备份落 OpsPub 工作区
-echo "cp ~/.reeve/backups/sshd_config.<ts>.bak /etc/ssh/sshd_config && systemctl reload sshd && iptables -F" | at now + 5 minutes
+cp /etc/ssh/sshd_config ~/.opspub/backups/sshd_config.$(date +%s).bak   # 备份落 OpsPub 工作区
+echo "cp ~/.opspub/backups/sshd_config.<ts>.bak /etc/ssh/sshd_config && systemctl reload sshd && iptables -F" | at now + 5 minutes
 atq                                          # 看看保险绳排队了
 # 改完测通了 → atrm <job-id>
 ```
@@ -11056,7 +11056,7 @@ dangerous_commands:
 - **写/改 wg 配置** → 先 `sftp_read(server, "/etc/wireguard/wg0.conf")` 看现状，再 `sftp_write` 整文件写入——但 **`.conf`/含 privatekey 的文件属 SFTP 敏感路径，`sftp_write` 会被拦**（`*.key`/`.pem`/含密钥行）；改密钥相关内容时改用 `ssh_exec`（过审批），且**私钥永不进对话**（OpsPub 敏感库会自动捕获）。
 - `wg-quick up/down`、`wg set`、改 `ip_forward`、装 wg 这类**改动型**走 `ssh_exec`，过策略档位 + 审批。
 
-🔴 **VPN 改动极易"断自己"**：若你**正通过这条 VPN 连进来**，`wg-quick down` 就是断自己。`wg-quick down` / 停 wg-quick 服务 / `ip_forward=0` 会触发**用户审批**——执行前告诉用户风险，**被拒后不要原样重试**。改服务端配置前先把现配置备份到 `~/.reeve/backups/`，回滚脚本放 `~/.reeve/scripts/`。
+🔴 **VPN 改动极易"断自己"**：若你**正通过这条 VPN 连进来**，`wg-quick down` 就是断自己。`wg-quick down` / 停 wg-quick 服务 / `ip_forward=0` 会触发**用户审批**——执行前告诉用户风险，**被拒后不要原样重试**。改服务端配置前先把现配置备份到 `~/.opspub/backups/`，回滚脚本放 `~/.opspub/scripts/`。
 
 ## 第一步：安装
 
@@ -11307,7 +11307,7 @@ PersistentKeepalive = 25
 
 ## 教训
 
-- 服务端**远程**配 wg 时**永远先用 ssh 连进来**（不走 VPN），改完测通了再切。否则 `wg-quick down wg0` 是经典自杀。改 `wg0.conf` 前先 `cp /etc/wireguard/wg0.conf ~/.reeve/backups/`（OpsPub 统一工作区），改坏了好回滚。
+- 服务端**远程**配 wg 时**永远先用 ssh 连进来**（不走 VPN），改完测通了再切。否则 `wg-quick down wg0` 是经典自杀。改 `wg0.conf` 前先 `cp /etc/wireguard/wg0.conf ~/.opspub/backups/`（OpsPub 统一工作区），改坏了好回滚。
 - `PersistentKeepalive` 在 NAT 后的客户端**必加**（25 秒经验值），否则 NAT 表项过期 = 反向数据回不来。
 - 客户端 `AllowedIPs = 0.0.0.0/0`（全流量）要确认服务端有 NAT（MASQUERADE）+ ip_forward。
 - MTU 问题是"通但慢/掉包"的头号原因；优先试 `mtu 1280`。

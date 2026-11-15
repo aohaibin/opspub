@@ -180,12 +180,12 @@ skip-name-resolve
 
 ### ⭐ 推荐：用 `install_app(server, "mysql")` 一把过（应用商店同款，进台账）
 
-🔴 **装 MySQL 一律用 `install_app`**——MySQL 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器规范命名 `reeve-mysql`、绑 `127.0.0.1`、compose 落 `/opt/reeve/stacks/mysql`、**自动登记 `mysql_conn` 凭据并带 SSH 隧道**（「数据库」页即装即连）。
+🔴 **装 MySQL 一律用 `install_app`**——MySQL 在 OpsPub 应用商店目录里，`install_app` = 应用商店 UI 同款：密码 OpsPub 生成并**同步进容器+凭据库（两边一致、必连得上）**、容器规范命名 `opspub-mysql`、绑 `127.0.0.1`、compose 落 `/opt/opspub/stacks/mysql`、**自动登记 `mysql_conn` 凭据并带 SSH 隧道**（「数据库」页即装即连）。
 
 ```json
 { "tool": "install_app", "args": { "server": "<别名>", "app": "mysql" } }
 ```
-可选 `version`（如 `"8.4"`）/ `port`（默认 3306，绑 127.0.0.1）。MySQL 是**全机共享设施**：一台机装一套、label 通用名 `MySQL`、第二个项目复用同一套（在它上面建独立库账号，见 reeve-app-deploy 的 `compose.db`）。
+可选 `version`（如 `"8.4"`）/ `port`（默认 3306，绑 127.0.0.1）。MySQL 是**全机共享设施**：一台机装一套、label 通用名 `MySQL`、第二个项目复用同一套（在它上面建独立库账号，见 opspub-app-deploy 的 `compose.db`）。
 
 > ⛔ **别再用 `install_with_secret` 手写 docker-compose 装 MySQL**——手写脚本极易出"存进凭据库的密码 ≠ 容器实际密码"（工作台连不上，本项目踩过的坑），且容器命名 / 路径不规范。`install_with_secret` 只留给**应用商店目录里没有的自定义服务**。
 
@@ -317,23 +317,23 @@ KILL <thread_id>;            -- 从 processlist / trx 表拿 id
 
 ### 逻辑备份（mysqldump）
 
-> 💾 **备份产物统一落 `~/.reeve/backups/`**（OpsPub 远程工作区，便于统一管理 + 后续 SFTP 取回），别散落 `/tmp` 或臆造 `/data/backup`。先 `ssh_exec mkdir -p ~/.reeve/backups`。
+> 💾 **备份产物统一落 `~/.opspub/backups/`**（OpsPub 远程工作区，便于统一管理 + 后续 SFTP 取回），别散落 `/tmp` 或臆造 `/data/backup`。先 `ssh_exec mkdir -p ~/.opspub/backups`。
 
 ```bash
 # 单库
-mysqldump -u root -p --single-transaction --routines --triggers --events <db> > ~/.reeve/backups/<db>-$(date +%F).sql
+mysqldump -u root -p --single-transaction --routines --triggers --events <db> > ~/.opspub/backups/<db>-$(date +%F).sql
 
 # 多库
-mysqldump -u root -p --single-transaction --databases db1 db2 > ~/.reeve/backups/multi-$(date +%F).sql
+mysqldump -u root -p --single-transaction --databases db1 db2 > ~/.opspub/backups/multi-$(date +%F).sql
 
 # 全库（含 mysql 系统库）
-mysqldump -u root -p --all-databases --single-transaction --master-data=2 > ~/.reeve/backups/all-$(date +%F).sql
+mysqldump -u root -p --all-databases --single-transaction --master-data=2 > ~/.opspub/backups/all-$(date +%F).sql
 
 # 只导结构
-mysqldump -u root -p --no-data <db> > ~/.reeve/backups/<db>-schema.sql
+mysqldump -u root -p --no-data <db> > ~/.opspub/backups/<db>-schema.sql
 
 # 只导数据
-mysqldump -u root -p --no-create-info <db> > ~/.reeve/backups/<db>-data.sql
+mysqldump -u root -p --no-create-info <db> > ~/.opspub/backups/<db>-data.sql
 ```
 
 > ⚠️ `mysqldump ... > file.sql` 的 `>` 会**覆盖**同名文件——给文件名带日期（`$(date +%F)`）避免误覆盖昨天的备份。

@@ -225,7 +225,7 @@ command -v <cmd>                     # POSIX 标准
 
 ## 教训
 
-- **远程改防火墙 / 改 SSH 配置前永远先准备保险绳** —— `at now + 5 minutes` 跑一条恢复命令；改完测通了再 `atrm` 取消。复杂恢复脚本放 `~/.reeve/scripts/`（OpsPub 统一工作区，别散落 /tmp）。
+- **远程改防火墙 / 改 SSH 配置前永远先准备保险绳** —— `at now + 5 minutes` 跑一条恢复命令；改完测通了再 `atrm` 取消。复杂恢复脚本放 `~/.opspub/scripts/`（OpsPub 统一工作区，别散落 /tmp）。
 - `df` 显示满了但 `du` 加起来不到一半 = 多半是**被删但未关闭的文件占用**：`lsof | grep deleted` 找出来 → 重启对应进程或 truncate。
 - `free` 列很小**不代表内存不够** —— Linux 把空闲内存用作 page cache，看 `available` 列才是真实可用。
 - 时区不一致是日志关联失败的常见原因；服务器尽量统一 `UTC` 或公司标准时区，应用日志加时区标识。

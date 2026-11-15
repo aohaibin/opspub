@@ -3,13 +3,13 @@ name: db-tools
 description: OpsPub 数据库直连工具 db_query / db_execute —— 通过已登记的 DB 凭据（mysql_conn / postgres_conn / sqlite_conn / mssql_conn）跑 SQL，避免 ssh_exec + mysql/psql CLI 的密码暴露 + 输出解析坑。
 触发词: 数据库, 查 db, 查表, 查记录, 查询数据, mysql 查询, postgres 查询, sqlite 查询, SQL 查询, 数据库连接, db_query, db_execute, 数据条数, select 数据, insert 数据, update 数据, 看表, 看库, 表结构, desc 表, show tables, show databases, 跑 sql, 执行 sql, count 行, 多少条数据, 表里有多少, 查一下, 数据库直连, 不用 ssh 查库, 给我看, 表数据, explain, explain analyze, 查询计划, sql server 查询, sqlserver 查询, mssql 查询
 dangerous_commands:
-  # 这些匹配 pseudo command "[reeve-internal] db_<op> <sql 首 80 字>"。SQL 文本前 80 字内匹配即拦。
+  # 这些匹配 pseudo command "[opspub-internal] db_<op> <sql 首 80 字>"。SQL 文本前 80 字内匹配即拦。
   # 主防线在 services/db_exec/safe_sql.rs（任何档都拦库级 D-R-O-P / TRUNCATE / 无 WHERE 全表删改）；
   # 这里加一些 SQL 特有的高风险补充，让 trusted 档也能挡住。
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bDROP\s+USER\b'
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bALTER\s+USER\s+[^\n]*\bIDENTIFIED\s+BY\b'
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bFLUSH\s+PRIVILEGES\b'
-  - '(?i)\[reeve-internal\]\s+db_execute\s+[^\n]*\bSHUTDOWN\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bDROP\s+USER\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bALTER\s+USER\s+[^\n]*\bIDENTIFIED\s+BY\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bFLUSH\s+PRIVILEGES\b'
+  - '(?i)\[opspub-internal\]\s+db_execute\s+[^\n]*\bSHUTDOWN\b'
 ---
 
 # db-tools —— 数据库直连（首选 db_query / db_execute）

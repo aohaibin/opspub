@@ -22,7 +22,7 @@ dangerous_commands:
 - **改策略**（`semanage` / `setsebool -P` / `restorecon` / `audit2allow` / `aa-enforce`）属**改动型**，走 `ssh_exec` 过策略档位 + 审批。
 
 ⚠️ `setenforce 0`（临时关 SELinux）/ 改 `/etc/selinux/config` / `aa-disable` 关键服务 profile 会触发**用户审批**——执行前告诉用户"这步会降级安全防护、需要你批准"，**被拒后不要原样重试**。
-🔴 **关 SELinux 重启有"再也起不来"风险**：标签一旦失效，重新开 enforcing 时服务可能全拒。生成的自定义 module（`.pp`）、收集的 audit 片段放 `~/.reeve/scripts/` 或 `~/.reeve/tmp/`（OpsPub 统一工作区），别散落 /tmp。
+🔴 **关 SELinux 重启有"再也起不来"风险**：标签一旦失效，重新开 enforcing 时服务可能全拒。生成的自定义 module（`.pp`）、收集的 audit 片段放 `~/.opspub/scripts/` 或 `~/.opspub/tmp/`（OpsPub 统一工作区），别散落 /tmp。
 
 ## 对照
 

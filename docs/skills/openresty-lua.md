@@ -24,7 +24,7 @@ dangerous_commands:
 - ⚠️ **铁律：`sftp_write` 改完，先 `ssh_exec sudo nginx -t` 校验通过，再 reload**。OpenResty 的坑更深——`nginx -t` 过了 reload 仍可能因 **Lua 运行时错**让新 worker 全退（命中坏 worker 报 502），所以 reload 后必须 `tail_log` error.log 确认 worker 起来了。
 - ⚠️ `sudo nginx -t` / `sudo nginx -s reload` / `sudo systemctl reload` 含 sudo 会触发**用户审批**——提前告知用户，被拒后不要原样重试。
 
-> 改配置前先把现配置 `sftp_read` 出来留底（或落 `~/.reeve/backups`），reload 翻车能整文件 `sftp_write` 回滚。
+> 改配置前先把现配置 `sftp_read` 出来留底（或落 `~/.opspub/backups`），reload 翻车能整文件 `sftp_write` 回滚。
 
 ## 第一步：服务和配置语法
 

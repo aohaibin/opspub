@@ -1829,7 +1829,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_nanos())
             .unwrap_or_default();
-        std::env::temp_dir().join(format!("reeve-{name}-{}-{nonce}.db", std::process::id()))
+        std::env::temp_dir().join(format!("opspub-{name}-{}-{nonce}.db", std::process::id()))
     }
 
     fn sqlite_record(path: &std::path::Path) -> DatabaseConnection {

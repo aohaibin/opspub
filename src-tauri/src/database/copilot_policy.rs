@@ -5,6 +5,7 @@ use crate::error::AppError;
 use crate::models::{AiApproval, AiLockState};
 
 const LOCK_KEY: &str = "ai_unlock_until";
+const AI_APPROVAL_TIMEOUT_SECONDS: i64 = 300;
 
 fn now() -> i64 {
     chrono::Utc::now().timestamp()
@@ -111,7 +112,7 @@ impl Database {
             return Err(AppError::Custom("仅允许 AI 只读操作".into()));
         }
         let current = now();
-        tx.execute("INSERT INTO ai_approvals(server_id,server_alias,action,command,requested_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6)", params![server_id,alias,action,command,current,current+900])?;
+        tx.execute("INSERT INTO ai_approvals(server_id,server_alias,action,command,requested_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6)", params![server_id,alias,action,command,current,current+AI_APPROVAL_TIMEOUT_SECONDS])?;
         let id = tx.last_insert_rowid();
         tx.commit()?;
         drop(conn);
@@ -189,7 +190,32 @@ impl Database {
             .map_err(|e| AppError::Custom(e.to_string()))?;
         let tx = conn.transaction()?;
         let approval = tx.query_row("SELECT id,server_id,server_alias,action,command,status,requested_at,expires_at,decided_at,finished_at,result FROM ai_approvals WHERE id=?1", [id], approval_row).optional()?.ok_or_else(|| AppError::NotFound("审批记录不存在".into()))?;
-        if approval.status != "pending" || approval.expires_at <= now() {
+        if approval.status != "pending" {
+            return Err(AppError::Custom("审批已处理或已过期".into()));
+        }
+        let current_now = now();
+        if approval.expires_at <= current_now {
+            tx.execute(
+                "UPDATE ai_approvals SET status='expired', finished_at=?2,
+                 result='审批已超时，命令未执行，后续步骤已暂停'
+                 WHERE id=?1 AND status='pending'",
+                params![id, current_now],
+            )?;
+            tx.execute(
+                "UPDATE action_plans SET status='expired', updated_at=?2
+                 WHERE status='pending_approval' AND id IN (
+                   SELECT plan_id FROM ai_approval_plans WHERE approval_id=?1
+                 )",
+                params![id, current_now],
+            )?;
+            tx.execute(
+                "UPDATE approval_batches SET status='expired', finished_at=?2
+                 WHERE status='pending' AND plan_id IN (
+                   SELECT plan_id FROM ai_approval_plans WHERE approval_id=?1
+                 )",
+                params![id, current_now],
+            )?;
+            tx.commit()?;
             return Err(AppError::Custom("审批已处理或已过期".into()));
         }
         let value: Option<String> = tx
@@ -309,7 +335,7 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    use super::{lock_state, now, Database};
+    use super::{lock_state, now, Database, AI_APPROVAL_TIMEOUT_SECONDS};
     use crate::database::schema;
     use rusqlite::{params, Connection};
     use std::sync::Mutex;
@@ -422,6 +448,8 @@ mod tests {
         let first = db
             .create_ai_approval(1, "restart_nginx", "systemctl restart nginx")
             .expect("approval");
+        assert!(first.expires_at - first.requested_at <= AI_APPROVAL_TIMEOUT_SECONDS);
+        assert!(first.expires_at - first.requested_at > 0);
         db.set_ai_lock_until(None).expect("lock");
         assert!(db
             .take_ai_approval(first.id)
@@ -458,6 +486,13 @@ mod tests {
             .expect("expire");
         }
         assert!(db.take_ai_approval(expired.id).is_err());
+        assert_eq!(
+            db.get_ai_approval(expired.id)
+                .expect("get expired")
+                .expect("expired row")
+                .status,
+            "expired"
+        );
         assert_eq!(
             db.list_ai_approvals()
                 .expect("list")

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Empty, Progress, Spin, Tag, message } from "antd";
+import { Button, Empty, Progress, Spin, message } from "antd";
 import {
   Activity,
   AlertCircle,
@@ -50,6 +50,14 @@ interface Metrics {
   dbCount: number;
   cronCount: number;
   websiteCount: number;
+  partitions: DiskPartition[];
+}
+
+interface DiskPartition {
+  mount: string;
+  device: string;
+  used: number;
+  total: number;
 }
 
 interface Sample {
@@ -89,13 +97,15 @@ const EMPTY_METRICS: Metrics = {
   dbCount: 0,
   cronCount: 0,
   websiteCount: 0,
+  partitions: [],
 };
 
 const SAMPLE_COMMAND = [
   "printf 'CPU\\t%s\\n' \"$(nproc 2>/dev/null || echo 0)\"",
   "printf 'CPUTICKS\\t'; awk '/^cpu / {print $2+$3+$4+$5+$6+$7+$8 \":\" $5+$6; exit}' /proc/stat",
-  "printf 'MEM\\t'; free -m 2>/dev/null | awk 'NR==2 {print $2 \":\" $3}'",
+  "printf 'MEM\\t'; free -m 2>/dev/null | awk 'NR==2 {print $2 \":\" $7}'",
   "printf 'DISK\\t'; df -Pm / 2>/dev/null | awk 'NR==2 {print $2 \":\" $3}'",
+  "df -Pm -x tmpfs -x devtmpfs 2>/dev/null | awk 'NR>1 && $6 !~ /^\/run/ {printf \"PART\\t%s\\t%s\\t%s\\t%s\\n\",$6,$1,$3,$2}'",
   "printf 'LOAD\\t'; cut -d' ' -f1-3 /proc/loadavg 2>/dev/null",
   "printf 'UPTIME\\t'; uptime -p 2>/dev/null || uptime",
   "printf 'HOSTNAME\\t'; hostname 2>/dev/null",
@@ -117,10 +127,18 @@ function number(value: string | undefined): number {
 
 function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: number): Metrics {
   const result = { ...EMPTY_METRICS };
+  const partitions: DiskPartition[] = [];
   stdout.split(/\r?\n/).forEach((line) => {
     const [key, ...parts] = line.split("\t");
     const value = parts.join("\t").trim();
     if (!key) return;
+    if (key === "PART" && parts.length >= 4) {
+      const [mount, device, used, total] = parts;
+      const parsedUsed = number(used);
+      const parsedTotal = number(total);
+      if (mount && parsedTotal > 0) partitions.push({ mount, device, used: parsedUsed, total: parsedTotal });
+      return;
+    }
     if (key === "CPU") result.cpuCores = number(value);
     if (key === "CPUTICKS") {
       const [total, idle] = value.split(":");
@@ -128,9 +146,9 @@ function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: 
       result.cpuIdleTicks = number(idle);
     }
     if (key === "MEM") {
-      const [total, used] = value.split(":");
+      const [total, available] = value.split(":");
       result.memoryTotal = number(total);
-      result.memoryUsed = number(used);
+      result.memoryUsed = Math.max(0, result.memoryTotal - number(available));
     }
     if (key === "DISK") {
       const [total, used] = value.split(":");
@@ -162,6 +180,17 @@ function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: 
     if (key === "WEB") result.websiteCount = Math.max(0, number(value));
   });
 
+  result.partitions = partitions.slice(0, 8);
+
+  // 资源圆环优先展示 /data（面板通常把业务数据盘作为主盘），没有时回退到根分区。
+  const primaryPartition = partitions.find((partition) => partition.mount === "/data")
+    ?? partitions.find((partition) => partition.mount === "/")
+    ?? partitions[0];
+  if (primaryPartition) {
+    result.diskUsed = primaryPartition.used;
+    result.diskTotal = primaryPartition.total;
+  }
+
   result.memoryUsed = result.memoryUsed || 0;
   result.memoryTotal = result.memoryTotal || 0;
   result.diskUsed = result.diskUsed || 0;
@@ -170,7 +199,7 @@ function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: 
     const totalTicks = result.cpuTotalTicks - previous.cpuTotalTicks;
     const idleTicks = result.cpuIdleTicks - previous.cpuIdleTicks;
     result.cpuPercent = totalTicks > 0
-      ? Math.min(100, Math.max(0, Math.round(((totalTicks - idleTicks) / totalTicks) * 100)))
+      ? Math.min(100, Math.max(0, Number((((totalTicks - idleTicks) / totalTicks) * 100).toFixed(1))))
       : 0;
   }
 
@@ -197,7 +226,7 @@ function formatMegabytes(value: number): string {
 }
 
 function percent(used: number, total: number): number {
-  return total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  return total > 0 ? Math.min(100, Number(((used / total) * 100).toFixed(1))) : 0;
 }
 
 const TREND_META: Record<TrendMetric, { label: string; color: string; unit: string }> = {
@@ -350,6 +379,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
   const latestSample = visibleSamples[visibleSamples.length - 1];
   const memoryPercent = percent(metrics.memoryUsed, metrics.memoryTotal);
   const diskPercent = percent(metrics.diskUsed, metrics.diskTotal);
+  const displayPartitions = metrics.partitions.length > 0
+    ? metrics.partitions
+    : metrics.diskTotal > 0
+      ? [{ mount: "/", device: "-", used: metrics.diskUsed, total: metrics.diskTotal }]
+      : [];
 
   const overviewCards = [
     { label: "运行容器", value: metrics.appCount, icon: <PackageCheck size={17} />, color: "#2dd4bf" },
@@ -360,8 +394,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
   const resources = [
     { label: "CPU", value: metrics.cpuPercent, detail: `${metrics.cpuCores || "-"} 核 · 负载 ${metrics.loadText}`, color: "#2dd4bf" },
     { label: "内存", value: memoryPercent, detail: `${formatMegabytes(metrics.memoryUsed)} / ${formatMegabytes(metrics.memoryTotal)}`, color: "#a855f7" },
-    { label: "磁盘 /", value: diskPercent, detail: `${formatMegabytes(metrics.diskUsed)} / ${formatMegabytes(metrics.diskTotal)}`, color: "#fbbf24" },
     { label: "负载", value: metrics.load, detail: `${metrics.cpuCores || "-"} 核 · ${metrics.loadText}`, color: "#fb7185", raw: true },
+    { label: "磁盘", value: diskPercent, detail: `${formatMegabytes(metrics.diskUsed)} / ${formatMegabytes(metrics.diskTotal)}`, color: "#fbbf24" },
   ];
 
   if (!server) {
@@ -379,9 +413,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
           </div>
           <div className="ops-overview-metric-grid grid grid-cols-2 sm:grid-cols-4">
             {overviewCards.map((card) => (
-              <div key={card.label} className="flex items-center justify-between rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-900)" }}>
-                <div className="flex min-w-0 items-center gap-2.5"><div className="rounded-lg p-2" style={{ color: card.color, background: `${card.color}18` }}>{card.icon}</div><div className="min-w-0"><div className="text-xs" style={{ color: "var(--text-muted)" }}>{card.label}</div><div className="font-mono text-2xl font-bold" style={{ color: card.color }}>{card.value}</div></div></div>
-                <Tag color="default" className="m-0 text-[10px]">实时</Tag>
+              <div key={card.label} className="ops-overview-stat flex items-center gap-3 rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-900)" }}>
+                <div className="rounded-lg p-2" style={{ color: card.color, background: `${card.color}18` }}>{card.icon}</div>
+                <div className="min-w-0"><div className="text-xs" style={{ color: "var(--text-muted)" }}>{card.label}</div><div className="font-mono text-2xl font-bold leading-none" style={{ color: card.color }}>{card.value}</div></div>
               </div>
             ))}
           </div>
@@ -397,6 +431,21 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
                 <span className="text-center font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{resource.detail}</span>
               </div>
             ))}
+          </div>
+          <div className="ops-overview-partitions rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}>
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}><HardDrive size={14} className="text-amber-400" />分区</div>
+            {displayPartitions.length > 0 ? <div className="grid grid-cols-1 gap-x-6 gap-y-3 lg:grid-cols-2">{displayPartitions.map((partition) => {
+              const usedPercent = percent(partition.used, partition.total);
+              const available = Math.max(0, partition.total - partition.used);
+              return <div key={`${partition.device}-${partition.mount}`} className="min-w-0">
+                <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+                  <span className="flex min-w-0 items-center gap-2"><strong className="font-mono" style={{ color: "var(--text-primary)" }}>{partition.mount}</strong><span className="truncate font-mono" style={{ color: "var(--text-muted)" }}>{partition.device}</span></span>
+                  <span className="shrink-0 font-mono" style={{ color: usedPercent >= 85 ? "var(--warning)" : "var(--accent)" }}>{usedPercent}%</span>
+                </div>
+                <div className="mb-1.5 h-1.5 overflow-hidden rounded-full" style={{ background: "var(--border)" }}><div className="h-full rounded-full transition-all" style={{ width: `${usedPercent}%`, background: usedPercent >= 85 ? "var(--warning)" : "var(--accent)" }} /></div>
+                <div className="flex justify-between font-mono text-[11px]" style={{ color: "var(--text-muted)" }}><span>可用 {formatMegabytes(available)} / 共 {formatMegabytes(partition.total)}</span><span>已用 {formatMegabytes(partition.used)}</span></div>
+              </div>;
+            })}</div> : <div className="py-2 text-xs" style={{ color: "var(--text-muted)" }}>暂无分区数据</div>}
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border p-2.5 font-mono text-[11px]" style={{ borderColor: "var(--border)", background: "var(--surface-950)", color: "var(--text-muted)" }}>
             <span className="flex items-center gap-1.5"><Laptop size={13} />主机名 <strong style={{ color: "var(--text-primary)" }}>{metrics.hostname}</strong></span>

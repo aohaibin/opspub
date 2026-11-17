@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-skin="abyss">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsPub AI — 受控运维工作台 · 全新视觉 v3</title>
+<!--
+  全新视觉优化版原型 v3（2026-11-17）
+  参考基线：docs/remote-ops-ai-prototype.html（内容），视觉语言彻底重做。
+
+  相对 v2 / 老基线的改动：
+  1. 全新配色：主色由「靛蓝 #6366f1 + 翠绿」改为「青蓝 #22d3ee + 珊瑚橙 #fb7185」，
+     布局语言改为仪表盘风格（数据可视化 + 彩色标识条 + 更紧凑字阶），与老基线一眼区分；
+  2. 内容补全：把老原型被砍掉的详细画面全部补回——
+     工作台 13 子视图、服务器导入/收藏/最近/批量、数据库多引擎+NL2SQL、
+     批量执行、终端田字分屏、AI 桥接、MCP、技能库、巡检 4 子视图、
+     敏感库、凭据、告警、审批闭环、审计链、设置 4 大类；
+  3. 新增设计保留：总览首页、部署流水线 + 版本树 + 回滚、审批闭环、环境模型；
+  4. 桌面窗口：1440×900 默认 + 三联键 + ResizeObserver 自适应；
+  5. 全文件无 alert() / 无 CDN 依赖，Tauri asset 协议可离线打开。
+
+  纯前端单文件。路由 key 与 src/navigation/modules.ts 17 项对齐。
+-->
+<style>
+/* 1. 全新设计令牌 —— 青蓝 + 珊瑚橙 */
+:root{
+  --brand:#22d3ee; --brand-2:#67e8f9; --brand-6:#0891b2;
+  --accent:#fb7185; --accent-2:#fb923c; --violet:#c084fc;
+  --ok:#34d399; --warn:#fbbf24; --danger:#fb7185; --info:#38bdf8;
+  --ok-soft:rgba(52,211,153,.13); --warn-soft:rgba(251,191,36,.13);
+  --danger-soft:rgba(251,113,133,.13); --info-soft:rgba(56,189,248,.13);
+  --brand-soft:rgba(34,211,238,.13);
+  --r:10px; --r-sm:7px;
+  --font:"Inter","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+html[data-theme="dark"]{
+  --bg:#080d14; --bg-2:#0c1420; --panel:#101b2b; --panel-2:#16243a; --panel-3:#1d3049;
+  --line:rgba(125,160,200,.16); --line2:rgba(125,160,200,.3);
+  --text:#dce8f5; --text2:#8ba3bd; --text3:#5d7692; --card:#101b2b;
+  --shadow:0 14px 40px rgba(0,0,0,.45);
+}
+html[data-theme="light"]{
+  --bg:#eef3f8; --bg-2:#e3ebf3; --panel:#ffffff; --panel-2:#f4f8fc; --panel-3:#e6eef6;
+  --line:rgba(20,50,80,.12); --line2:rgba(20,50,80,.22);
+  --text:#14263b; --text2:#4c6580; --text3:#8197ae; --card:#ffffff;
+  --shadow:0 12px 34px rgba(20,50,80,.12);
+}
+html[data-skin="abyss"] { --skin-bg:#080d14; --brand:#22d3ee; --brand-2:#67e8f9; }
+html[data-skin="ember"] { --skin-bg:#160d0c; --brand:#fb923c; --brand-2:#fdba74; }
+html[data-skin="mint"]  { --skin-bg:#08130f; --brand:#34d399; --brand-2:#6ee7b7; }
+html[data-skin="violet"]{ --skin-bg:#0d0a16; --brand:#a78bfa; --brand-2:#c4b5fd; }
+html[data-skin="steel"] { --skin-bg:#0b0f14; --brand:#94a3b8; --brand-2:#cbd5e1; }
+html[data-skin="paper"] { --skin-bg:#f4f1ea; --brand:#0e7490; --brand-2:#0891b2; }
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:var(--font);color:var(--text);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 8%,#152335 0%,#05080d 100%)}
+html[data-theme="light"] body{background:radial-gradient(circle at 50% 8%,#dbe6f0 0%,#a7b8c9 100%)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--mono)}
+.ico{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ico.sm{width:13px;height:13px}.ico.lg{width:19px;height:19px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--panel-3);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* 桌面窗口外壳：1440×900 */
+#win{width:1440px;height:900px;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);
+  aspect-ratio:1440/900;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  border-radius:12px;background:var(--bg);border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 28px 80px -16px rgba(0,0,0,.72),0 0 46px rgba(34,211,238,.08);
+  transition:width .24s cubic-bezier(.16,1,.3,1),height .24s cubic-bezier(.16,1,.3,1),border-radius .2s,transform .24s,opacity .24s}
+#win.maximized{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;aspect-ratio:auto!important;border-radius:0!important;border:0!important;box-shadow:none!important}
+#win.minimizing{transform:scale(.82) translateY(36px);opacity:.35}
+.app{height:100%;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#sizeHint{position:fixed;right:16px;bottom:14px;z-index:60;font-family:var(--mono);font-size:10px;
+  padding:5px 10px;border-radius:7px;color:#cbd5e1;background:rgba(8,12,20,.85);
+  border:1px solid rgba(148,163,184,.2);pointer-events:none;backdrop-filter:blur(6px)}
+#sizeHint b{color:var(--brand-2);font-weight:600}
+
+/* 顶栏 */
+.top{height:50px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;
+  background:linear-gradient(180deg,var(--panel),var(--bg-2));border-bottom:1px solid var(--line);
+  z-index:30;-webkit-app-region:drag}
+.top button,.top input,.top select{-webkit-app-region:no-drag}
+.brand{display:flex;align-items:center;gap:8px;font-weight:750;letter-spacing:.2px;white-space:nowrap}
+.brand .mark{width:25px;height:25px;border-radius:7px;display:grid;place-items:center;color:#05202b;
+  background:linear-gradient(135deg,var(--brand),var(--brand-2));box-shadow:0 0 14px var(--brand-soft)}
+.brand em{font-style:normal;font-size:9px;color:var(--text3);font-family:var(--mono);font-weight:500}
+.env{display:flex;gap:2px;padding:3px;border-radius:8px;background:var(--bg);border:1px solid var(--line2)}
+.env button{padding:3px 9px;border-radius:5px;font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text3)}
+.env button.on[data-env="prod"]{background:var(--danger-soft);color:var(--accent)}
+.env button.on[data-env="staging"]{background:var(--warn-soft);color:var(--warn)}
+.env button.on[data-env="dev"]{background:var(--ok-soft);color:var(--ok)}
+.crumb{color:var(--text3);font-size:11.5px;min-width:0;display:flex;gap:6px;align-items:center}
+.crumb strong{color:var(--text);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp{flex:1}
+.tb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 9px;border-radius:7px;
+  border:1px solid var(--line);background:var(--bg);color:var(--text2);font-size:11px}
+.tb:hover{color:var(--text);border-color:var(--line2)}
+.tbi{width:28px;height:28px;display:grid;place-items:center;border-radius:7px;color:var(--text2);border:1px solid var(--line);background:var(--bg);position:relative}
+.tbi:hover{color:var(--text)}
+.lock{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:7px;font-size:10.5px;font-family:var(--mono);font-weight:700;border:1px solid}
+.lock.on{color:var(--ok);background:var(--ok-soft);border-color:rgba(52,211,153,.3)}
+.lock.off{color:var(--accent);background:var(--danger-soft);border-color:rgba(251,113,133,.3)}
+.winctl{display:flex;gap:1px;margin-left:2px}
+.winctl button{width:28px;height:26px;display:grid;place-items:center;border-radius:5px;color:var(--text3)}
+.winctl button:hover{background:var(--panel-3);color:var(--text)}
+.winctl button.x:hover{background:#e11d48;color:#fff}
+.dot{width:6px;height:6px;border-radius:50%;flex:none;display:inline-block}
+.dot.ok{background:var(--ok);box-shadow:0 0 7px var(--ok)}
+.dot.warn{background:var(--warn)}.dot.danger{background:var(--danger);animation:pl 1.7s infinite}
+@keyframes pl{50%{opacity:.3}}
+
+/* 主体：导航轨 + 内容 */
+.body{flex:1;display:flex;min-height:0}
+.rail{width:70px;flex:none;display:flex;flex-direction:column;align-items:center;background:var(--bg-2);
+  border-right:1px solid var(--line);padding:7px 0;overflow-y:auto;overscroll-behavior:contain}
+.rail-scroll{width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 0 6px}
+.rail-gap{width:26px;border-top:1px solid var(--line);margin:5px 0}
+.rail-cap{font-size:8px;color:var(--text3);font-family:var(--mono);letter-spacing:.5px;margin:6px 0 2px;text-transform:uppercase}
+.nav{width:58px;min-height:44px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  color:var(--text3);position:relative;transition:.15s;padding:3px 1px}
+.nav:hover{background:var(--panel-2);color:var(--text)}
+.nav .t{font-size:9.5px;line-height:1.05;white-space:nowrap}
+.nav .b{position:absolute;top:3px;right:7px;width:5px;height:5px;border-radius:50%;background:var(--brand)}
+.nav .b.danger{background:var(--danger)}.nav .b.warn{background:var(--warn)}
+/* 选中态：青蓝左侧光条，不用翠绿 */
+.nav.on{color:var(--brand-2);background:var(--brand-soft);box-shadow:inset 2px 0 0 var(--brand)}
+.nav.on .ico{color:var(--brand)}
+.rail-foot{width:100%;margin-top:auto;border-top:1px solid var(--line);padding-top:5px;display:flex;flex-direction:column;align-items:center;gap:2px}
+main{flex:1;min-width:0;overflow-y:auto;background:radial-gradient(circle at 90% 0%,var(--brand-soft),transparent 32%),var(--bg)}
+.page{padding:16px 20px 26px;max-width:1560px;margin:0 auto}
+
+/* 通用组件 */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.pt{display:flex;align-items:center;gap:9px}.pt h1{font-size:17px;margin:0;font-weight:750;letter-spacing:.2px}
+.pt .ico{color:var(--brand)}.pd{color:var(--text3);font-size:11px;margin-top:3px}
+.acts{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  font-size:11.5px;font-weight:650;border:1px solid var(--line2);background:var(--panel-2);color:var(--text2);transition:.15s;white-space:nowrap}
+.btn:hover{color:var(--text);background:var(--panel-3)}
+.btn.pri{background:linear-gradient(135deg,var(--brand-6),var(--brand));border-color:transparent;color:#052029;box-shadow:0 3px 14px var(--brand-soft)}
+.btn.pri:hover{filter:brightness(1.1)}
+.btn.acc{background:var(--danger-soft);border-color:rgba(251,113,133,.3);color:var(--accent)}
+.btn.ok{background:var(--ok-soft);border-color:rgba(52,211,153,.3);color:var(--ok)}
+.btn.gh{background:transparent;border-color:transparent;color:var(--text3)}
+.btn.gh:hover{background:var(--panel-2);color:var(--text)}
+.btn.sm{height:25px;padding:0 8px;font-size:10.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.card{background:linear-gradient(180deg,var(--card),color-mix(in srgb,var(--card) 94%,var(--bg)));
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;position:relative}
+.card.bar:before,.card.acc-bar:before,.card.warn-bar:before,.card.ok-bar:before{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.card.bar:before{background:linear-gradient(90deg,var(--brand),transparent 70%)}
+.card.acc-bar:before{background:linear-gradient(90deg,var(--accent),transparent 70%)}
+.card.warn-bar:before{background:linear-gradient(90deg,var(--warn),transparent 70%)}
+.card.ok-bar:before{background:linear-gradient(90deg,var(--ok),transparent 70%)}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:11px 13px;border-bottom:1px solid var(--line)}
+.ch h3{margin:0;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.ch h3 .ico{color:var(--brand)}
+.cb{padding:13px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.g12{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
+.mb{margin-bottom:12px}.muted{color:var(--text3)}.small{font-size:10.5px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:650;border:1px solid var(--line2);color:var(--text2);white-space:nowrap}
+.tag.ok{background:var(--ok-soft);border-color:rgba(52,211,153,.3);color:var(--ok)}
+.tag.warn{background:var(--warn-soft);border-color:rgba(251,191,36,.3);color:var(--warn)}
+.tag.danger{background:var(--danger-soft);border-color:rgba(251,113,133,.3);color:var(--accent)}
+.tag.info{background:var(--info-soft);border-color:rgba(56,189,248,.3);color:var(--info)}
+.tag.brand{background:var(--brand-soft);border-color:rgba(34,211,238,.3);color:var(--brand-2)}
+.search{display:flex;align-items:center;gap:6px;height:30px;padding:0 9px;border-radius:7px;border:1px solid var(--line2);background:var(--bg);min-width:190px}
+.search input{border:0;outline:0;background:transparent;width:100%;font-size:11.5px}
+.search input::placeholder{color:var(--text3)}
+.kbd{font-family:var(--mono);font-size:9px;padding:1px 4px;border-radius:4px;border:1px solid var(--line2);color:var(--text3)}
+.sel{height:30px;padding:0 8px;border-radius:7px;border:1px solid var(--line2);background:var(--bg);font-size:11px;color:var(--text2)}
+
+/* 表格 */
+.tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.tbl th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:650;font-size:9.5px;letter-spacing:.4px;border-bottom:1px solid var(--line);white-space:nowrap;text-transform:uppercase}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}.tbl tbody tr:hover{background:var(--brand-soft)}
+.link{color:var(--brand-2);font-weight:650;cursor:pointer}.link:hover{text-decoration:underline}
+.rowact{display:flex;gap:5px}
+.notice{display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border-radius:8px;font-size:11px;border:1px solid}
+.notice.warn{background:var(--warn-soft);border-color:rgba(251,191,36,.3);color:var(--warn)}
+.notice.info{background:var(--info-soft);border-color:rgba(56,189,248,.3);color:var(--info)}
+.notice.danger{background:var(--danger-soft);border-color:rgba(251,113,133,.3);color:var(--accent)}
+.notice.ok{background:var(--ok-soft);border-color:rgba(52,211,153,.3);color:var(--ok)}
+
+/* 数据可视化 */
+.kpi{padding:12px 14px}
+.kpi .kt{display:flex;align-items:center;justify-content:space-between;color:var(--text2);font-size:11px}
+.kpi .kv{font-size:25px;font-weight:780;letter-spacing:-.6px;font-family:var(--mono);margin-top:5px;line-height:1.1}
+.kpi .ks{font-size:10px;color:var(--text3);margin-top:3px}
+.donut{width:62px;height:62px}
+.pipe{display:flex;gap:0;overflow-x:auto;padding:4px 0 8px}
+.stage{flex:1;min-width:104px;text-align:center;position:relative;padding:0 4px}
+.stage:not(:last-child):after{content:"";position:absolute;top:14px;left:calc(50% + 16px);right:calc(-50% + 16px);height:2px;background:var(--panel-3);z-index:0}
+.stage.done:not(:last-child):after{background:var(--ok)}
+.stage .node{width:30px;height:30px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;
+  background:var(--panel-2);border:2px solid var(--panel-3);color:var(--text3);position:relative;z-index:1}
+.stage.done .node{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.stage.active .node{background:var(--brand);border-color:var(--brand-2);color:#052029;box-shadow:0 0 0 5px var(--brand-soft)}
+.stage .sn{font-size:11px;font-weight:650;color:var(--text2)}
+.stage.active .sn{color:var(--text)}
+.stage .st{font-size:9.5px;color:var(--text3);font-family:var(--mono)}
+.console{background:#050a12;border:1px solid var(--line);border-radius:7px;padding:10px 12px;font-family:var(--mono);
+  font-size:10.5px;line-height:1.7;color:#9fb4cc;height:190px;overflow-y:auto}
+.console .ln{white-space:pre-wrap;word-break:break-all}
+.console .t{color:#54708f}.console .ok{color:var(--ok)}.console .warn{color:var(--warn)}.console .info{color:var(--info)}
+.code{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:10px 12px;font-family:var(--mono);font-size:10.5px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-all}
+.code .c{color:var(--text3)}.code .k{color:var(--violet)}
+.vrow{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;border:1px solid transparent}
+.vrow:hover{background:var(--panel-2);border-color:var(--line)}
+.vrow.current{background:var(--ok-soft);border-color:rgba(52,211,153,.3)}
+.vline{width:1px;height:10px;background:var(--line2);margin-left:15px}
+
+.ticket{display:flex;gap:10px;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);margin-bottom:7px;cursor:pointer;transition:.15s}
+.ticket:hover{border-color:var(--line2);transform:translateX(2px)}
+.ticket.on{border-color:var(--brand);background:var(--brand-soft)}
+.ticket .risk{width:3px;border-radius:3px;flex:none}
+.risk.high{background:var(--danger)}.risk.mid{background:var(--warn)}.risk.low{background:var(--ok)}
+.chain{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-family:var(--mono);font-size:9.5px;color:var(--text3)}
+.chain .blk{padding:3px 6px;border:1px solid var(--line2);border-radius:4px;background:var(--bg)}
+.chain .blk.head{color:var(--brand-2);border-color:rgba(34,211,238,.35)}
+
+/* 工作台二级侧栏 */
+.wbside{width:150px;flex:none;border-right:1px solid var(--line);background:var(--bg-2);padding:8px 6px;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+.wbcap{font-size:8.5px;color:var(--text3);font-weight:700;letter-spacing:.5px;padding:0 7px;text-transform:uppercase}
+.wbn{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border-radius:7px;font-size:11px;color:var(--text2);text-align:left}
+.wbn:hover{background:var(--panel-2);color:var(--text)}
+.wbn.on{background:var(--brand-soft);color:var(--brand-2);font-weight:650;box-shadow:inset 2px 0 0 var(--brand)}
+.wbmain{flex:1;min-width:0;overflow-y:auto;padding:13px 15px}
+.hostbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
+
+.sw{position:relative;width:36px;height:20px;border-radius:20px;background:var(--panel-3);transition:.2s;flex:none}
+.sw:after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--brand-6)}.sw.on:after{transform:translateX(16px)}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.setrow:last-child{border-bottom:0}
+.seg{display:flex;gap:2px;padding:2px;border-radius:7px;background:var(--bg);border:1px solid var(--line)}
+.seg button{padding:3px 9px;border-radius:5px;font-size:10px;color:var(--text3)}
+.seg button.on{background:var(--brand-soft);color:var(--brand-2);font-weight:650}
+
+.ov{position:fixed;inset:0;background:rgba(3,7,13,.66);backdrop-filter:blur(4px);z-index:80;display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
+.ov.show{display:flex}
+.palette{width:min(580px,92vw);background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.palette-in{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.palette-in input{flex:1;border:0;outline:0;background:transparent;font-size:13px}
+.plist{max-height:370px;overflow-y:auto;padding:6px}
+.pi{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;cursor:pointer;color:var(--text2)}
+.pi:hover,.pi.sel{background:var(--panel-2);color:var(--text)}
+.pi .pg{margin-left:auto;font-size:9.5px;color:var(--text3);font-family:var(--mono)}
+#toasts{position:fixed;right:16px;bottom:16px;z-index:100;display:flex;flex-direction:column;gap:7px;align-items:flex-end}
+.toast{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line2);box-shadow:var(--shadow);font-size:11.5px;max-width:400px;animation:tin .2s}
+.toast.ok{border-color:rgba(52,211,153,.4)}.toast.warn{border-color:rgba(251,191,36,.4)}.toast.danger{border-color:rgba(251,113,133,.4)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+.modal{width:min(500px,92vw);background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.mh{padding:13px 16px;border-bottom:1px solid var(--line);font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.mb{padding:16px}.mf{padding:11px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:7px}
+.field{margin-bottom:12px}.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:650}
+.field input,.field select{width:100%;height:32px;padding:0 9px;border-radius:7px;border:1px solid var(--line2);background:var(--bg);outline:0}
+
+/* 容器断点（基于窗口宽度） */
+#win[data-size="md"] .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+#win[data-size="md"] .g21,#win[data-size="md"] .g12{grid-template-columns:1fr}
+#win[data-size="md"] .page{padding:13px 15px}
+#win[data-size="md"] .crumb{display:none}
+#win[data-size="sm"] .g4,#win[data-size="sm"] .g3{grid-template-columns:repeat(2,minmax(0,1fr))}
+#win[data-size="sm"] .g2,#win[data-size="sm"] .g21,#win[data-size="sm"] .g12{grid-template-columns:1fr}
+#win[data-size="sm"] .page{padding:11px 12px}
+#win[data-size="sm"] .crumb,#win[data-size="sm"] .brand em,#win[data-size="sm"] .tb{display:none}
+#win[data-size="sm"] .rail{width:58px}#win[data-size="sm"] .nav{width:50px}
+#win[data-size="sm"] .wbside{width:120px}
+#win.maximized .page{max-width:1700px}
+</style>
+</head>
+<body>
+
+<!-- 内联 SVG 图标精灵（无 CDN） -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+<symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></symbol>
+<symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+<symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></symbol>
+<symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 15c-1 2-1 4-1 4s2 0 4-1M9 15l-3-3c2-6 6-9 12-9 0 6-3 10-9 12z"/><circle cx="14.5" cy="9.5" r="1.5"/></symbol>
+<symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 14h.01M15 14h.01M9 18h6"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></symbol>
+<symbol id="i-shield-alert" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.2 8 9 4.6-.8 8-4 8-9V6z"/><path d="M12 9v4M12 16h.01"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.2 8 9 4.6-.8 8-4 8-9V6z"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l2 2M14 9l2 2"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
+<symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.2 8 9 4.6-.8 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-scroll" viewBox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 8h8M8 12h8M8 16h5"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+<symbol id="i-rollback" viewBox="0 0 24 24"><path d="M3 10h11a5 5 0 1 1 0 10H9"/><path d="m7 6-4 4 4 4"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17h.01"/></symbol>
+<symbol id="i-activity" viewBox="0 0 24 24"><path d="M2 12h4l3-8 5 16 3-8h5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7-2.6"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-5L4 8M4 4v4h4M4 13a8 8 0 0 0 14 5l2-2M20 20v-4h-4"/></symbol>
+<symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9a6 6 0 0 1-6 6H6"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+<symbol id="i-network" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M5 17v-5h14v5"/></symbol>
+<symbol id="i-zap" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 9-12h-7z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-square" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+<symbol id="i-restore" viewBox="0 0 24 24"><rect x="8" y="4" width="12" height="12" rx="2"/><path d="M16 20H6a2 2 0 0 1-2-2V8"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.4l6-.9z"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 9 5v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M10 12h4"/></symbol>
+<symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V4h6v3M3 12h18"/></symbol>
+</svg>
+
+<div id="win" class="windowed">
+<div class="app">
+  <header class="top">
+    <div class="brand"><div class="mark"><svg class="ico sm"><use href="#i-shield-check"/></svg></div>OpsPub <em>AI · v3</em></div>
+    <div class="env" id="envSwitch">
+      <button data-env="dev" onclick="setEnv('dev')">dev</button>
+      <button data-env="staging" onclick="setEnv('staging')">staging</button>
+      <button data-env="prod" class="on" onclick="setEnv('prod')">prod</button>
+    </div>
+    <div class="crumb"><span>/</span><strong id="crumb">总览</strong></div>
+    <div class="sp"></div>
+    <button class="lock on" id="lockBtn" onclick="toggleLock()"><svg class="ico sm"><use href="#i-lock"/></svg><span id="lockTxt">AI 操作：已锁定</span></button>
+    <button class="tb" onclick="openPalette()"><svg class="ico sm"><use href="#i-search"/></svg>跳转<span class="kbd">⌘K</span></button>
+    <button class="tbi" id="themeBtn" onclick="toggleTheme()" title="亮/暗主题"><svg class="ico"><use href="#i-sun"/></svg></button>
+    <button class="tbi" onclick="cycleSkin()" title="切换皮肤"><svg class="ico"><use href="#i-spark"/></svg></button>
+    <button class="tbi" onclick="go('alerts')" title="告警"><svg class="ico"><use href="#i-bell"/></svg><span class="dot danger" style="position:absolute;top:5px;right:5px"></span></button>
+    <div class="brand" style="font-size:10.5px;gap:5px;color:var(--text3)"><svg class="ico sm"><use href="#i-user"/></svg>notime</div>
+    <div class="winctl">
+      <button onclick="minimizeWin()" title="最小化"><svg class="ico sm"><use href="#i-minus"/></svg></button>
+      <button id="maxBtn" onclick="toggleMax()" title="最大化/还原"><svg class="ico sm"><use href="#i-square"/></svg></button>
+      <button class="x" onclick="closeWin()" title="关闭"><svg class="ico sm"><use href="#i-x"/></svg></button>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="rail"><div class="rail-scroll" id="rail"></div><div class="rail-foot" id="railFoot"></div></aside>
+    <main id="main"><div class="page" id="page"></div></main>
+  </div>
+</div>
+</div>
+
+<div id="sizeHint">窗口 <b id="sizeTxt">1440 × 900</b> · 标准视窗 · 拖动浏览器或点最大化体验适配</div>
+
+<div class="ov" id="palOv" onclick="if(event.target===this)closePalette()">
+  <div class="palette"><div class="palette-in"><svg class="ico"><use href="#i-search"/></svg>
+    <input id="palIn" placeholder="搜索模块，例如：部署 / 审批 / 证书 / 备份…" oninput="renderPal()" onkeydown="palKey(event)"><span class="kbd">ESC</span></div>
+    <div class="plist" id="palList"></div></div>
+</div>
+<div class="ov" id="mdOv" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+<div id="toasts"></div>
+
+<script>
+/* 模块注册表：与 src/navigation/modules.ts 17 项对齐 */
+const GROUPS=[
+ {key:'core',label:'运维执行',items:[
+  {id:'servers',label:'服务器',title:'服务器资产清单',icon:'i-server',desc:'分组树 / 标签 / 收藏 / 最近用过 / 批量测通',dot:'ok'},
+  {id:'terminal',label:'终端',title:'远程终端',icon:'i-terminal',desc:'多标签 + 田字分屏 + 广播输入'},
+  {id:'workbench',label:'工作台',title:'主机工作台',icon:'i-layout',desc:'左侧机器面板 + 13 个子视图'},
+  {id:'sftp',label:'SFTP',title:'SFTP 文件传输',icon:'i-folder',desc:'双栏目录对拷 / 分块续传'},
+  {id:'database',label:'数据库',title:'数据库统一工作台',icon:'i-db',desc:'多引擎连接树 / NL2SQL / 结果表格'},
+  {id:'batch',label:'批量',title:'批量执行',icon:'i-layers',desc:'多机并发 / 独立超时 / 失败重试'},
+  {id:'deploy',label:'部署',title:'应用部署与发布',icon:'i-rocket',desc:'配方 / 流水线 / 版本树 / 原子回滚',dot:'warn'},
+ ]},
+ {key:'ai',label:'AI 能力',items:[
+  {id:'copilot',label:'AI助手',title:'AI 桥接中心',icon:'i-bot',desc:'对话 / 工具调用 / 多 Agent 编排',dot:'warn'},
+  {id:'mcp',label:'MCP接入',title:'MCP 接入中心',icon:'i-plug',desc:'stdio sidecar / HTTP 受控暴露'},
+  {id:'skills',label:'技能',title:'技能与经验库',icon:'i-spark',desc:'内置技能 / 事故复盘 SOP'},
+ ]},
+ {key:'sec',label:'安全治理',items:[
+  {id:'inspector',label:'巡检',title:'AI 巡检与漏洞雷达',icon:'i-shield-alert',desc:'诊断 / 规则库 / 调度 / 历史',dot:'danger'},
+  {id:'sensitive',label:'敏感库',title:'敏感库（出口脱敏）',icon:'i-eye',desc:'出站识别 / 拦截裁决 / 规则库',dot:'warn'},
+  {id:'credentials',label:'凭据',title:'服务凭据金库',icon:'i-key',desc:'AES-256 / 环境隔离 / 虚拟句柄'},
+  {id:'alerts',label:'告警',title:'告警与通知',icon:'i-bell',desc:'活跃事件 / 规则 / 通知通道',dot:'danger'},
+  {id:'security',label:'审批',title:'安全闸门与操作审批',icon:'i-shield-check',desc:'工单 / 裁决 / 审计链',dot:'warn'},
+  {id:'audit',label:'审计',title:'不可篡改审计日志',icon:'i-scroll',desc:'多维检索 / SHA-256 链'},
+ ]},
+];
+const SET={id:'settings',label:'设置',title:'系统与模型配置',icon:'i-settings',desc:'外观 / AI网络 / 安全 / 数据 四大类'};
+const HOME={id:'overview',label:'总览',title:'运维总览',icon:'i-grid',desc:'一屏掌握资产、发布、审批与告警'};
+const ALL=[HOME,...GROUPS.flatMap(g=>g.items),SET],MOD=Object.fromEntries(ALL.map(m=>[m.id,m]));
+
+const S={view:'overview',env:'prod',theme:'dark',skin:'abyss',locked:true,skinIdx:0,
+ skins:['abyss','ember','mint','violet','steel','paper'],wbSub:'overview',
+ srvGroup:'all',inspSub:'diagnose',setCat:'appearance',
+ deployStage:2,deploying:false,
+ releases:[{v:'20261117_0942',by:'CI · main@8f3c',env:'prod',time:'今天 09:42',current:true},
+  {v:'20261116_1830',by:'CI · main@7a21',env:'prod',time:'昨天 18:30',current:false},
+  {v:'20261115_1105',by:'手动 · notime',env:'staging',time:'11-15 11:05',current:false}],
+ tickets:[
+  {id:'t1',title:'生产网关 OpenResty 配置变更',risk:'high',env:'prod',host:'prod-gw-01',score:87,status:'pending',time:'2 分钟前',cmd:'sudo openresty -t && sudo systemctl reload openresty',why:'改动型操作且目标为生产网关，命中高危闸门。',radius:'1 台生产网关 · 约 2.4k QPS'},
+  {id:'t2',title:'批量清理 /var/log 悬空日志',risk:'mid',env:'staging',host:'staging-* (4)',score:56,status:'pending',time:'18 分钟前',cmd:'find /var/log -type f -name "*.log" -mtime +30 -delete',why:'删除型命令，需复核路径与爆炸半径。',radius:'4 台预发主机 · 仅日志文件'},
+  {id:'t3',title:'MySQL 慢查询只读诊断',risk:'low',env:'dev',host:'dev-db-01',score:12,status:'pending',time:'1 小时前',cmd:'SHOW FULL PROCESSLIST; EXPLAIN SELECT * FROM orders WHERE status=1',why:'只读探针，命中白名单，可直接放行。',radius:'1 台开发库 · 只读'}],
+ selTicket:'t1',
+ audit:[{t:'14:02:31',who:'AI Copilot',act:'生成变更计划',obj:'prod-web / 6 阶段',h:'a91f…c2e8'},
+  {t:'14:02:36',who:'闸门策略',act:'命中高危规则 G-07',obj:'reload 生产服务',h:'b03c…77da'},
+  {t:'14:03:02',who:'notime',act:'放行工单 #T1',obj:'限时 2h',h:'c1de…90af'}],
+ logs:[]};
+const ic=(id,c='ico')=>`<svg class="${c}"><use href="#${id}"/></svg>`;
+const toast=(m,t='info')=>{const e=document.createElement('div');e.className='toast '+t;
+ e.innerHTML=ic(t==='ok'?'i-check':t==='danger'?'i-alert':'i-zap','ico sm')+`<span>${m}</span>`;
+ document.getElementById('toasts').appendChild(e);setTimeout(()=>{e.style.opacity='0';e.style.transition='.25s';setTimeout(()=>e.remove(),250)},2500)};
+
+/* 视觉基础 */
+function applyTheme(){document.documentElement.dataset.theme=S.theme;document.documentElement.dataset.skin=S.skin;
+ document.getElementById('themeBtn').innerHTML=ic(S.theme==='dark'?'i-sun':'i-moon')}
+function toggleTheme(){S.theme=S.theme==='dark'?'light':'dark';applyTheme();toast('已切换至'+(S.theme==='dark'?'暗色':'亮色')+'主题','ok')}
+function cycleSkin(){S.skinIdx=(S.skinIdx+1)%S.skins.length;S.skin=S.skins[S.skinIdx];applyTheme();toast('皮肤：'+S.skin,'ok')}
+const POLICY={dev:'自动放行 · 凭据隔离 dev 专用',staging:'需复核 · 凭据隔离 staging 专用',prod:'必须人工审批 · 凭据隔离 prod 专用'};
+function setEnv(e){S.env=e;document.querySelectorAll('#envSwitch button').forEach(b=>b.classList.toggle('on',b.dataset.env===e));
+ if(['deploy','security','settings'].includes(S.view))render();toast('环境：'+e+' — '+POLICY[e],e==='prod'?'warn':'ok')}
+function toggleLock(){S.locked=!S.locked;const b=document.getElementById('lockBtn');
+ b.className='lock '+(S.locked?'on':'off');b.innerHTML=ic(S.locked?'i-lock':'i-unlock','ico sm')+`<span>AI 操作：${S.locked?'已锁定':'已放行'}</span>`;
+ toast(S.locked?'AI 已锁定：改动型工具拒绝':'AI 限时放行 2 小时，到期自动回归',S.locked?'info':'warn')}
+function renderRail(){const n=m=>`<button class="nav ${S.view===m.id?'on':''}" onclick="go('${m.id}')" title="${m.title}">
+ ${m.dot?`<span class="b ${m.dot}"></span>`:''}${ic(m.icon,'ico lg')}<span class="t">${m.label}</span></button>`;
+ document.getElementById('rail').innerHTML=n(HOME)+`<div class="rail-gap"></div>`+
+  GROUPS.map(g=>`<div class="rail-cap">${g.label}</div>${g.items.map(n).join('')}<div class="rail-gap"></div>`).join('');
+ document.getElementById('railFoot').innerHTML=n(SET)}
+
+/* 命令面板 */
+let palIdx=0,palMatch=[];
+function openPalette(){document.getElementById('palOv').classList.add('show');const i=document.getElementById('palIn');i.value='';i.focus();renderPal()}
+function closePalette(){document.getElementById('palOv').classList.remove('show')}
+function renderPal(){const q=document.getElementById('palIn').value.trim().toLowerCase();
+ palMatch=ALL.filter(m=>!q||m.title.toLowerCase().includes(q)||m.label.toLowerCase().includes(q)||m.desc.toLowerCase().includes(q));
+ if(palIdx>=palMatch.length)palIdx=0;
+ document.getElementById('palList').innerHTML=palMatch.length?palMatch.map((m,i)=>
+  `<div class="pi ${i===palIdx?'sel':''}" onclick="go('${m.id}');closePalette()">${ic(m.icon)}<div><div style="font-weight:650">${m.title}</div><div class="small muted">${m.desc}</div></div><span class="pg">${GROUPS.find(g=>g.items.includes(m))?.label||'系统'}</span></div>`).join(''):`<div class="pi muted">没有匹配的模块</div>`}
+function palKey(e){if(e.key==='Escape')closePalette();
+ if(e.key==='ArrowDown'){e.preventDefault();palIdx=Math.min(palIdx+1,palMatch.length-1);renderPal()}
+ if(e.key==='ArrowUp'){e.preventDefault();palIdx=Math.max(palIdx-1,0);renderPal()}
+ if(e.key==='Enter'&&palMatch[palIdx]){go(palMatch[palIdx].id);closePalette()}}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openPalette()}if(e.key==='Escape')closePalette()});
+
+/* 数据可视化 */
+function spark(data,color){const max=Math.max(...data),min=Math.min(...data),w=100,h=26;
+ const pts=data.map((v,i)=>`${(i/(data.length-1)*w).toFixed(1)},${(h-2-(v-min)/(max-min||1)*(h-6)).toFixed(1)}`).join(' ');
+ return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:54px;height:17px"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`}
+function donut(pct,color){const r=24,c=2*Math.PI*r,off=c*(1-pct/100);
+ return `<svg class="donut" viewBox="0 0 64 64"><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--panel-3)" stroke-width="6"/>
+ <circle cx="32" cy="32" r="${r}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 32 32)"/>
+ <text x="32" y="36" text-anchor="middle" font-size="14" font-family="var(--mono)" fill="var(--text)" font-weight="700">${pct}%</text></svg>`}
+function head(icon,title,desc,acts=''){return `<div class="ph"><div><div class="pt">${ic(icon,'ico lg')}<h1>${title}</h1></div><div class="pd">${desc}</div></div><div class="acts">${acts}</div></div>`}
+function kpi(label,val,sub,data,color){return `<div class="card bar kpi"><div class="kt"><span>${label}</span>${spark(data,color)}</div>
+ <div class="kv" style="color:${color}">${val}</div><div class="ks">${sub}</div></div>`}
+function envBanner(){return `<div class="notice ${S.env==='prod'?'warn':'info'} mb">${ic('i-network','ico sm')}<div><b>当前环境 ${S.env}</b> — ${POLICY[S.env]}。${S.env==='prod'?'生产发布与改动型操作一律走人工审批闸门。':'非生产按策略简化审批，仍全程留痕。'}</div></div>`}
+
+/* 总览 */
+function vOverview(){const pend=S.tickets.filter(t=>t.status==='pending').length;
+ return head('i-grid','运维总览','一屏掌握资产、发布、审批与告警；环境维度贯穿全局',
+  `<div class="env">${['dev','staging','prod'].map(e=>`<button data-env="${e}" class="${S.env===e?'on':''}" onclick="setEnv('${e}')">${e}</button>`).join('')}</div>
+   <button class="btn pri" onclick="go('deploy')">${ic('i-rocket','ico sm')}发起发布</button>`)+envBanner()+
+ `<div class="grid g4 mb">${kpi('在线主机','12/14','2 台失联',[8,9,9,10,11,11,12,12],'var(--ok)')}
+  ${kpi('待我审批',String(pend),'1 项生产高危',[1,2,1,3,2,3,3,3],'var(--warn)')}
+  ${kpi('活跃告警','5','2 项需立即处理',[2,3,2,4,3,5,4,5],'var(--accent)')}
+  ${kpi('今日发布','3','最近 09:42 · prod-web',[1,1,2,2,2,3,3,3],'var(--brand)')}</div>
+ <div class="grid g21 mb">
+  <div class="card bar"><div class="ch"><h3>${ic('i-rocket','ico sm')}最新发布流水线</h3><button class="btn gh sm" onclick="go('deploy')">查看全部 ${ic('i-arrow','ico sm')}</button></div><div class="cb">${pipelineHTML(false)}</div></div>
+  <div class="card acc-bar"><div class="ch"><h3>${ic('i-shield-check','ico sm')}待办审批</h3><button class="btn gh sm" onclick="go('security')">前往裁决</button></div><div class="cb">
+   ${S.tickets.filter(t=>t.status==='pending').slice(0,3).map(t=>`<div class="setrow" style="padding:7px 0"><span style="width:3px;height:24px;border-radius:3px;background:var(--${t.risk==='high'?'danger':t.risk==='mid'?'warn':'ok'})"></span>
+    <div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div><div class="small muted">${t.env} · ${t.host} · 风险 ${t.score}</div></div>
+    <span class="tag ${t.risk==='high'?'danger':t.risk==='mid'?'warn':'ok'}">${t.risk==='high'?'高危':t.risk==='mid'?'中危':'低危'}</span></div>`).join('')}</div></div>
+ </div>
+ <div class="grid g3">
+  <div class="card"><div class="ch"><h3>${ic('i-server','ico sm')}主机健康</h3><button class="btn gh sm" onclick="go('servers')">资产清单</button></div><div class="cb" style="padding-top:6px">
+   ${[['prod-web-01','prod','ok','38ms'],['prod-gw-01','prod','warn','445ms'],['staging-api-01','staging','ok','42ms'],['dev-db-01','dev','ok','19ms']].map(([n,e,s,l])=>`<div class="setrow" style="padding:7px 0"><span class="dot ${s}"></span><span class="mono small" style="flex:1">${n}</span><span class="tag">${e}</span><span class="small mono muted">${l}</span></div>`).join('')}</div></div>
+  <div class="card"><div class="ch"><h3>${ic('i-activity','ico sm')}资源水位</h3><span class="small muted">prod-web-01</span></div><div class="cb" style="display:flex;gap:10px;align-items:center;justify-content:space-around">
+   ${donut(42,'var(--brand)')}<div style="font-size:10px;color:var(--text3)">CPU<br>8 核</div>${donut(68,'var(--accent-2)')}<div style="font-size:10px;color:var(--text3)">内存<br>21.8/32G</div></div></div>
+  <div class="card"><div class="ch"><h3>${ic('i-clock','ico sm')}近期会话</h3><button class="btn gh sm" onclick="go('copilot')">继续对话</button></div><div class="cb" style="padding-top:6px">
+   ${[['i-alert','Nginx 502 错误排查','2 分钟前'],['i-key','自动续签 SSL 证书','昨天'],['i-db','MySQL 慢查询巡检','2 天前'],['i-zap','清理 /var/log 空间','10-28']].map(([i,t,tm])=>`<div class="setrow" style="padding:6px 0"><span class="tag brand" style="width:26px;height:26px;padding:0;justify-content:center">${ic(i,'ico sm')}</span><span style="flex:1">${t}</span><span class="small muted">${tm}</span></div>`).join('')}</div></div>
+ </div>`}
+
+/* 服务器 */
+const SRV=[['prod-web-01','156.226.177.226:22000','prod','Ubuntu 22.04','ok','可信','38ms',true],
+ ['prod-gw-01','111.231.166.192:22','prod','Rocky 9','warn','需审批','445ms',false],
+ ['staging-api-01','106.14.39.78:22','staging','Ubuntu 24.04','ok','白名单','42ms',false],
+ ['dev-db-01','8.145.62.223:22','dev','Debian 12','ok','可信','19ms',false],
+ ['edge-node-01','10.0.8.15:22','prod','Alpine 3.20','ok','禁止','55ms',false]];
+function srvRows(q){return SRV.filter(r=>!q||r[0].includes(q)||r[1].includes(q)).map(r=>`
+ <tr><td><div style="display:flex;align-items:center;gap:5px"><button class="btn gh sm" style="padding:0;color:${r[7]?'var(--warn)':'var(--text3)'}" onclick="toast('${r[7]?'已取消收藏':'已加入收藏'}','ok')">${ic('i-star','ico sm')}</button><span style="font-weight:650">${r[0]}</span></div><div class="small mono muted">${r[1]}</div></td>
+ <td><span class="tag ${r[2]==='prod'?'danger':r[2]==='staging'?'warn':'info'}">${r[2]}</span></td><td class="small">${r[3]}</td>
+ <td><span class="dot ${r[4]}"></span> <span class="small">${r[4]==='ok'?'在线':'异常'}</span></td>
+ <td><span class="tag ${r[5]==='禁止'?'danger':r[5]==='需审批'?'warn':'ok'}">${r[5]}</span></td><td class="mono small">${r[6]}</td>
+ <td><div class="rowact"><button class="btn sm" onclick="go('workbench')">工作台</button><button class="btn sm" onclick="go('terminal')">终端</button></div></td></tr>`).join('')||`<tr><td colspan="7" class="muted small" style="text-align:center;padding:22px">没有匹配的主机</td></tr>`}
+function vServers(){const groups=[['all','全部主机','14'],['starred','我的收藏','2'],['recent','最近用过','5'],['prod','生产集群','4'],['staging','预发环境','4'],['dev','开发环境','4']];
+ return head('i-server','服务器资产清单','所有终端、SFTP、工作台、数据库与 AI 工具调用的根源基石',
+  `<div style="position:relative"><button class="btn" onclick="toggleImportMenu()">${ic('i-download','ico sm')}导入服务器 ▾</button>
+    <div id="importMenu" style="display:none;position:absolute;right:0;top:33px;z-index:20;width:210px;background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:5px;box-shadow:var(--shadow)">
+     ${[['~/.ssh/config','解析 Host 块，凭据留空'],['FinalShell 导出','文件夹层级原样变分组'],['Excel / CSV','表格批量导入']].map(([t,d])=>`<div class="pi" onclick="closeImportMenu();toast('已选择：${t}（演示）','ok')" style="display:block"><div style="font-weight:650">${t}</div><div class="small muted">${d}</div></div>`).join('')}</div></div>
+   <button class="btn pri" onclick="openServerModal()">${ic('i-plus','ico sm')}新建服务器</button>`)+
+ `<div class="grid" style="grid-template-columns:180px minmax(0,1fr)">
+  <div class="card" style="align-self:start"><div class="ch"><h3>分组</h3><span class="small muted">6</span></div><div class="cb" style="padding:7px">
+   ${groups.map(([k,n,c])=>`<div class="pi" onclick="selectSrvGroup('${k}')" style="${S.srvGroup===k?'background:var(--brand-soft);color:var(--brand-2)':''}">${ic(k==='starred'?'i-star':k==='recent'?'i-clock':'i-folder','ico sm')}<span style="flex:1">${n}</span><span class="small muted">${c}</span></div>`).join('')}
+  </div></div>
+  <div>
+   <div class="card mb"><div class="cb" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <div class="search">${ic('i-search','ico sm')}<input id="srvQ" placeholder="搜索名称 / IP / 标签" oninput="filterSrv()"></div>
+    <select class="sel" onchange="toast('系统筛选：'+this.value)"><option>全部系统</option><option>Linux</option><option>Windows</option></select>
+    <select class="sel" onchange="toast('AI 策略：'+this.value)"><option>全部 AI 策略</option><option>可信</option><option>需审批</option><option>禁止</option></select>
+    <span class="small muted">共 5 台（演示数据）</span></div></div>
+   <div class="card"><table class="tbl"><thead><tr><th>主机</th><th>环境</th><th>系统</th><th>状态</th><th>AI 策略</th><th>延迟</th><th>操作</th></tr></thead><tbody id="srvBody">${srvRows('')}</tbody></table>
+    <div style="padding:9px 12px;border-top:1px solid var(--line);display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+     <span class="small muted">批量操作：</span><button class="btn sm" onclick="toast('批量测通完成：5 台在线','ok')">批量测通</button>
+     <button class="btn sm" onclick="toast('批量打标签：已应用','ok')">批量打标签</button>
+     <button class="btn sm" onclick="toast('批量调整 AI 策略','ok')">批量调策略</button></div></div>
+  </div>
+ </div>`}
+function selectSrvGroup(k){S.srvGroup=k;render();toast('已筛选分组：'+k)}
+function toggleImportMenu(){const m=document.getElementById('importMenu');m.style.display=m.style.display==='none'?'block':'none'}
+function closeImportMenu(){const m=document.getElementById('importMenu');if(m)m.style.display='none'}
+function filterSrv(){document.getElementById('srvBody').innerHTML=srvRows(document.getElementById('srvQ').value.trim())}
+
+/* 工作台 13 子视图 */
+const WB=[['业务',[['appstore','应用商店','i-box'],['website','网站','i-globe'],['database','数据库','i-db'],['containers','容器','i-box']]],
+ ['数据',[['file','文件','i-folder'],['backup','数据备份','i-archive']]],
+ ['运维',[['cron','计划任务','i-clock'],['system','系统','i-cpu'],['terminal','终端','i-terminal'],['logs','日志','i-file']]],
+ ['其他',[['workspace','工作区','i-briefcase'],['settings','设置','i-settings']]]];
+const WB_TITLE={overview:'概览',appstore:'应用商店',website:'网站',database:'数据库',containers:'容器',file:'文件',backup:'数据备份',cron:'计划任务',system:'系统',terminal:'终端',logs:'日志',workspace:'工作区',settings:'设置'};
+function wbBody(){const k=S.wbSub;const C={
+ overview:`<div class="grid g4 mb">${kpi('CPU','42%','8 核',[3,4,4,5,4,4,5,4],'var(--brand)')}${kpi('内存','68%','21.8/32GB',[5,6,6,7,7,7,7,7],'var(--accent-2)')}${kpi('磁盘','31%','142/460GB',[2,2,3,3,3,3,3,3],'var(--ok)')}${kpi('网络','124Mb','入86/出38',[4,7,5,8,6,9,7,8],'var(--info)')}</div>
+  <div class="card bar"><div class="ch"><h3>实时监控探针</h3><span class="tag ok">SSH 指纹已核验</span></div><div class="cb"><div class="console" style="height:150px">
+  <div class="ln ok">✓ 主机身份与 SSH 指纹核验通过</div><div class="ln t">$ uptime</div><div class="ln"> 14:02:31 up 46 days, load average: 0.42, 0.38, 0.31</div><div class="ln info">→ 采集周期 5s · 指标写入审计链</div></div></div></div>`,
+ appstore:`<div class="grid g3">${[['Redis 7','缓存','已安装'],['PostgreSQL 16','数据库','可安装'],['MinIO','对象存储','可安装'],['Nginx','Web','已安装'],['Prometheus','监控','可安装'],['Grafana','可视化','可安装']].map(([n,t,s])=>`<div class="card bar cb"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${n}</div><span class="tag ${s==='已安装'?'ok':'brand'}">${s}</span></div><div class="small muted" style="margin-top:4px">${t}</div><button class="btn sm" style="margin-top:10px;width:100%" onclick="toast('${n}：${s==='已安装'?'已打开管理页':'开始安装流程'}','ok')">${s==='已安装'?'管理':'安装'}</button></div>`).join('')}</div>`,
+ website:`<div class="card bar"><div class="ch"><h3>${ic('i-globe','ico sm')}网站管理 · OpenResty</h3><div class="seg"><button class="on" onclick="segOn(this);toast('站点列表')">站点</button><button onclick="segOn(this);toast('SSL 证书列表')">SSL 证书</button><button onclick="segOn(this);toast('四层代理列表')">四层代理</button></div></div>
+  <div class="cb"><table class="tbl"><thead><tr><th>域名</th><th>根路径</th><th>SSL</th><th>状态</th></tr></thead><tbody>
+  ${[['ops.example.com','/srv/www/ops','Let’s Encrypt · 剩余 62 天','ok'],['api.example.com','/srv/api','通配符证书 · 14 天到期','warn'],['internal.corp','/srv/internal','自签','ok']].map(([d,p,s,st])=>`<tr><td class="mono">${d}</td><td class="mono small">${p}</td><td class="small">${s}</td><td><span class="dot ${st}"></span> <span class="small">运行中</span></td></tr>`).join('')}</tbody></table>
+  <div class="acts" style="margin-top:11px"><button class="btn sm" onclick="toast('已打开申请证书抽屉（演示）')">申请 SSL 证书</button><button class="btn sm" onclick="toast('DNS 账户管理（演示）')">DNS 账户</button><button class="btn sm" onclick="toast('四层转发规则（演示）')">新建四层转发</button></div></div></div>`,
+ database:`<div class="grid g12"><div class="card" style="align-self:start"><div class="ch"><h3>连接树</h3></div><div class="cb" style="padding:7px">
+  ${['MySQL · prod-db-01','Redis · cache-01','MongoDB · mongo-01','PostgreSQL · analytics'].map(x=>`<div class="pi" onclick="toast('已切换：${x}','ok')">${ic('i-db','ico sm')}${x}</div>`).join('')}</div></div>
+  <div class="card bar"><div class="ch"><h3>NL2SQL · 自然语言查询</h3><span class="tag brand">只读会话</span></div><div class="cb">
+  <div class="search mb" style="width:100%">${ic('i-spark','ico sm')}<input placeholder="用中文描述查询，例如：统计昨日活跃用户数" onkeydown="if(event.key==='Enter')toast('AI 已生成 SQL（演示）','ok')"></div>
+  <div class="code"><span class="c">-- AI 生成 · ${S.env} · 只读</span>\n<span class="k">SELECT</span> DATE(created_at), COUNT(DISTINCT user_id)\n<span class="k">FROM</span> events <span class="k">WHERE</span> created_at &gt;= NOW() - INTERVAL 1 DAY;</div>
+  <table class="tbl" style="margin-top:10px"><thead><tr><th>日期</th><th>活跃用户</th><th>新增</th></tr></thead><tbody><tr><td class="mono">2026-11-16</td><td class="mono">1,284</td><td class="mono">156</td></tr><tr><td class="mono">2026-11-15</td><td class="mono">1,190</td><td class="mono">142</td></tr></tbody></table>
+  <div class="notice warn" style="margin-top:10px">${ic('i-lock','ico sm')}<div>写操作强制走审批闸门，当前会话仅只读。</div></div></div></div></div>`,
+ containers:`<div class="card bar"><div class="ch"><h3>${ic('i-box','ico sm')}容器治理 · Docker</h3><button class="btn sm" onclick="toast('容器列表已刷新','ok')">刷新</button></div><div class="cb"><table class="tbl"><thead><tr><th>容器</th><th>镜像</th><th>状态</th><th>CPU</th><th>内存</th></tr></thead><tbody>
+  ${[['opspub-web','ghcr.io/opspub/web:8f3c','运行中','12%','340M'],['opspub-gateway','nginx:1.27','运行中','4%','96M'],['redis-cache','redis:7-alpine','运行中','2%','48M'],['worker-old','celery:5.2','已停止','0%','0M']].map(([n,i,s,c,m])=>`<tr><td class="mono">${n}</td><td class="mono small">${i}</td><td><span class="tag ${s==='运行中'?'ok':''}">${s}</span></td><td class="mono small">${c}</td><td class="mono small">${m}</td></tr>`).join('')}</tbody></table></div></div>`,
+ file:`<div class="card bar"><div class="ch"><h3>文件管理 · /srv/app</h3><span class="tag info">拖拽上传</span></div><div class="cb"><table class="tbl"><thead><tr><th>名称</th><th>大小</th><th>修改时间</th></tr></thead><tbody>
+  ${[['dist/','—','今天 09:42'],['package.json','2.1 KB','昨天'],['Dockerfile','856 B','11-15'],['README.md','4.3 KB','11-10']].map(([n,s,t])=>`<tr><td>${ic('i-folder','ico sm')} ${n}</td><td class="small muted">${s}</td><td class="small muted">${t}</td></tr>`).join('')}</tbody></table></div></div>`,
+ backup:`<div class="card bar"><div class="ch"><h3>${ic('i-archive','ico sm')}数据备份</h3><button class="btn pri sm" onclick="toast('已创建备份任务（演示）','ok')">新建备份</button></div><div class="cb"><table class="tbl"><thead><tr><th>任务</th><th>目标</th><th>策略</th><th>最近执行</th><th>状态</th></tr></thead><tbody>
+  ${[['db-daily','prod-db-01','每日 02:00 · 保留 14 天','今天 02:00','ok'],['files-weekly','/srv/app','每周日 03:00','11-16 03:00','ok'],['cloud-sync','备份目录','增量同步 OSS','今天 02:30','warn']].map(([n,t,p,l,s])=>`<tr><td class="mono">${n}</td><td class="mono small">${t}</td><td class="small">${p}</td><td class="small">${l}</td><td><span class="dot ${s}"></span></td></tr>`).join('')}</tbody></table></div></div>`,
+ cron:`<div class="card bar"><div class="ch"><h3>${ic('i-clock','ico sm')}计划任务</h3><button class="btn pri sm" onclick="toast('新建计划任务（演示）')">新建任务</button></div><div class="cb"><table class="tbl"><thead><tr><th>任务</th><th>Cron</th><th>命令</th><th>下次执行</th></tr></thead><tbody>
+  ${[['清理悬空镜像','0 3 * * 1','docker image prune -f','周一 03:00'],['SSL 续期检查','0 2 * * *','certbot renew --dry-run','明天 02:00'],['日志归档','0 1 * * *','logrotate /etc/logrotate.conf','明天 01:00']].map(([n,c,cmd,nx])=>`<tr><td class="mono">${n}</td><td class="mono small">${c}</td><td class="mono small">${cmd}</td><td class="small">${nx}</td></tr>`).join('')}</tbody></table></div></div>`,
+ system:`<div class="grid g2"><div class="card bar"><div class="ch"><h3>系统服务</h3></div><div class="cb">${[['nginx','running'],['docker','running'],['sshd','running'],['cron','running']].map(([n,s])=>`<div class="setrow"><div class="mono">${n}</div><span class="tag ok">${s}</span></div>`).join('')}</div></div>
+  <div class="card warn-bar"><div class="ch"><h3>系统进程 TOP</h3></div><div class="cb"><table class="tbl"><thead><tr><th>PID</th><th>进程</th><th>CPU%</th></tr></thead><tbody>${[[1241,'nginx: worker','12.4'],[3872,'node app.js','8.1'],[920,'dockerd','3.2']].map(([p,n,c])=>`<tr><td class="mono">${p}</td><td class="mono small">${n}</td><td class="mono small">${c}</td></tr>`).join('')}</tbody></table></div></div></div>`,
+ terminal:`<div class="card bar"><div class="ch"><h3>终端 · 田字分屏</h3><button class="btn sm" onclick="toast('广播输入已开启','warn')">广播输入</button></div><div class="cb"><div class="grid g2" style="gap:7px">
+  ${['prod-web-01','prod-gw-01','staging-api-01','dev-db-01'].map((h,i)=>`<div class="console" style="height:110px"><div class="ln t">─ ${h} ──</div><div class="ln">user@${h}:~$ ${['df -h','systemctl status nginx','free -m','tail -f app.log'][i]}</div><div class="ln ok">✓ done in 0.0${i+1}s</div></div>`).join('')}</div></div></div>`,
+ logs:`<div class="card bar"><div class="ch"><h3>系统日志</h3><span class="tag brand">journalctl -f</span></div><div class="cb"><div class="console" style="height:200px">
+  <div class="ln">Nov 17 14:01:22 prod-web-01 nginx[1241]: 10.0.0.8 - "GET /api/health 200"</div><div class="ln warn">Nov 17 14:01:58 prod-gw-01 openresty: upstream timeout (10.0.0.21:8080)</div><div class="ln">Nov 17 14:02:03 systemd[1]: Started daily backup timer.</div><div class="ln ok">Nov 17 14:02:31 opspub-agent: config synced</div></div></div></div>`,
+ workspace:`<div class="card bar"><div class="ch"><h3>工作区</h3><span class="small muted">项目快捷入口</span></div><div class="cb"><div class="grid g3">
+  ${[['OpsPub 主站','/srv/opspub','i-globe'],['API 网关','/srv/gateway','i-network'],['数据服务','/srv/data','i-db']].map(([n,p,i])=>`<div class="card cb" style="cursor:pointer" onclick="toast('已打开工作区：${n}','ok')">${ic(i,'ico lg')}<div style="font-weight:700;margin-top:8px">${n}</div><div class="mono small muted">${p}</div></div>`).join('')}</div></div></div>`,
+ settings:`<div class="card bar"><div class="ch"><h3>工作台设置</h3></div><div class="cb">
+  <div class="setrow"><div><div style="font-weight:650">终端配色跟随皮肤</div><div class="small muted">切换皮肤时终端配色同步变化</div></div><button class="sw on" onclick="this.classList.toggle('on')"></button></div>
+  <div class="setrow"><div><div style="font-weight:650">探针采集周期</div><div class="small muted">实时指标刷新间隔</div></div><select class="sel" onchange="toast('采集周期：'+this.value)"><option>5 秒</option><option>10 秒</option><option>30 秒</option></select></div>
+  <div class="setrow"><div><div style="font-weight:650">会话录制</div><div class="small muted">全量录制写入不可篡改审计</div></div><button class="sw on" onclick="this.classList.toggle('on')"></button></div></div></div>`};
+ return C[k]||C.overview}
+function segOn(b){b.parentNode.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on')}
+function vWorkbench(){return head('i-layout','主机工作台','左侧机器面板 + 13 个子视图',
+ `<button class="btn" onclick="go('servers')">${ic('i-server','ico sm')}切换主机</button><button class="btn pri" onclick="go('terminal')">${ic('i-terminal','ico sm')}打开终端</button>`)+
+ `<div class="card" style="display:flex;min-height:560px">
+  <div class="wbside"><div class="wbcap">机器面板</div>
+   <button class="wbn ${S.wbSub==='overview'?'on':''}" onclick="wbGo('overview')">${ic('i-grid','ico sm')}概览</button>
+   ${WB.map(([g,items])=>`<div class="wbcap">${g}</div>${items.map(([k,n,i])=>`<button class="wbn ${S.wbSub===k?'on':''}" onclick="wbGo('${k}')">${ic(i,'ico sm')}${n}</button>`).join('')}`).join('')}
+  </div>
+  <div class="wbmain"><div class="hostbar"><span class="dot ok"></span><b style="font-size:12px">prod-web-01</b><span class="tag brand">${S.env}</span>
+   <span class="small muted">Ubuntu 22.04 · 156.226.177.226</span><span class="sp"></span>${ic('i-shield-check','ico sm')}<span class="small muted">指纹已核验</span></div>
+   ${wbBody()}</div>
+ </div>`}
+function wbGo(k){S.wbSub=k;render();document.getElementById('crumb').textContent='工作台 / '+WB_TITLE[k]}
+
+/* 部署 */
+const STAGES=[['拉码','git fetch','12s'],['构建','pnpm build','48s'],['制品','docker build','31s'],['分发','scp → 4 节点','9s'],['软链','releases→current','1s'],['健康检查','HTTP 200','6s']];
+function pipelineHTML(full){let h='<div class="pipe">';STAGES.forEach((s,i)=>{const st=S.deploying?(i<S.deployStage?'done':i===S.deployStage?'active':'pending'):['done','done','done','active','pending','pending'][i];
+ h+=`<div class="stage ${st}"><div class="node">${st==='done'?ic('i-check','ico sm'):st==='active'?ic('i-zap','ico sm'):ic('i-clock','ico sm')}</div><div class="sn">${s[0]}</div><div class="st">${s[2]}</div></div>`});h+='</div>';
+ if(full&&S.env==='prod')h+=`<div class="notice warn">${ic('i-shield-check','ico sm')}<div><b>生产闸门：</b>“软链切换”与“健康检查”需人工放行。<span class="link" onclick="go('security')">查看工单 #T1 →</span></div></div>`;return h}
+function logsHTML(){const base=[['t','$ git fetch --all --prune'],['ok','✓ main@8f3c2d1 已拉取'],['','→ pnpm build'],['ok','✓ dist/ 生成完成 (2.4 MB)'],['','→ docker build -t opspub-web:8f3c2d1 .'],['ok','✓ 镜像推送完成'],['info','→ scp 制品至 4 个节点']];
+ const ex=S.deploying?[['warn','⏳ 等待闸门放行：软链切换'],['t','$ ln -sfn releases/'+S.releases[0].v+' current']]:[];return [...base,...ex,...S.logs].map(([c,t])=>`<div class="ln ${c}">${t}</div>`).join('')}
+function treeHTML(){return S.releases.map((r,i)=>`${i?'<div class="vline"></div>':''}<div class="vrow ${r.current?'current':''}"><span class="dot" style="background:${r.current?'var(--ok)':'var(--panel-3)'}"></span>
+ <div style="flex:1;min-width:0"><div class="mono small" style="font-weight:650">${r.v}</div><div class="small muted">${r.by} · ${r.time} · ${r.env}</div></div>
+ ${r.current?`<span class="tag ok">current →</span>`:`<button class="btn sm" onclick="rollbackTo('${r.v}')">${ic('i-rollback','ico sm')}回滚</button>`}</div>`).join('')}
+function vDeploy(){return head('i-rocket','应用部署与发布','配方驱动 · 原子软链发布 · 失败秒级回滚',
+ `<button class="btn" onclick="toast('列表已刷新','ok')">${ic('i-refresh','ico sm')}刷新</button><button class="btn pri" onclick="startDeploy()">${ic('i-play','ico sm')}发起发布</button>`)+envBanner()+
+ `<div class="grid g4 mb">${kpi('部署目标','3','2 生产 / 1 预发',[1,1,2,2,3,3,3,3])}${kpi('进行中',S.deploying?'1':'0',S.deploying?'prod-web · 分发':'无任务',[0,0,1,1,1,1,1,1],'var(--warn)')}
+  ${kpi('成功率','99.2%','近 30 天 124 次',[8,9,9,9,10,9,10,10],'var(--ok)')}${kpi('平均耗时','1m 47s','全流水线',[9,8,9,7,8,7,6,7],'var(--info)')}</div>
+ <div class="card bar mb"><div class="ch"><h3>${ic('i-activity','ico sm')}发布流水线 · <span class="mono">prod-web</span></h3><div class="acts"><span class="tag brand">6 阶段</span><span class="small muted">${S.deploying?'运行中':'已就绪'}</span></div></div>
+  <div class="cb">${pipelineHTML(true)}<div class="acts" style="margin-top:6px"><button class="btn ok sm" onclick="approveStage()" ${S.deploying?'':'disabled'}>${ic('i-check','ico sm')}放行当前阶段</button>
+  <button class="btn acc sm" onclick="rollback()">${ic('i-rollback','ico sm')}立即回滚</button></div></div></div>
+ <div class="grid g21"><div class="card"><div class="ch"><h3>实时构建日志</h3><button class="btn gh sm" onclick="toast('日志已复制','ok')">${ic('i-copy','ico sm')}复制</button></div><div class="cb"><div class="console">${logsHTML()}</div></div></div>
+  <div class="card ok-bar"><div class="ch"><h3>${ic('i-branch','ico sm')}制品与版本树</h3><span class="small muted">releases/</span></div><div class="cb">${treeHTML()}</div></div></div>`}
+function startDeploy(){if(S.deploying){toast('已有任务进行中','warn');return}S.deploying=true;S.deployStage=3;S.logs=[];toast('发布已触发：prod-web / 6 阶段','info');render();
+ const t=setInterval(()=>{if(S.deployStage>=5){clearInterval(t);S.deploying=false;S.logs.push(['ok','✓ 健康检查通过 HTTP 200 · 发布完成']);render();toast('发布完成：prod-web 已切换至 '+S.releases[0].v,'ok');return}S.deployStage++;S.logs.push(['info','→ 阶段 '+S.deployStage+'/6 执行中']);render()},1400)}
+function approveStage(){if(!S.deploying){toast('没有待放行阶段','warn');return}
+ if(S.env==='prod'){S.logs.push(['warn','⚠ 生产闸门：人工放行已记录并写入审计链']);S.audit.unshift({t:new Date().toLocaleTimeString('zh-CN'),who:'notime',act:'放行部署阶段',obj:'prod-web / 阶段 '+(S.deployStage+1),h:'d4f2…11bc'})}
+ else S.logs.push(['ok','✓ 阶段放行（非生产按策略自动通过）']);toast('阶段已放行','ok');render()}
+function rollback(){if(S.releases.length<2){toast('无历史版本','warn');return}
+ openModal('确认回滚',`<div class="notice danger mb">${ic('i-alert','ico sm')}<div>将 <b class="mono">current</b> 从 <span class="mono">${S.releases[0].v}</span> 切回上一版本，原子软链约 1 秒完成。</div></div><p class="small muted">回滚将写入审计链${S.env==='prod'?'，并需安全闸门放行':''}。</p>`,
+  [{t:'取消',cls:'btn',fn:'closeModal()'},{t:'确认回滚',cls:'btn acc',fn:'doRollback()'}])}
+function doRollback(){const o=S.releases.shift();o.current=false;S.releases[0].current=true;
+ S.audit.unshift({t:new Date().toLocaleTimeString('zh-CN'),who:'notime',act:'原子回滚',obj:o.v+' → '+S.releases[0].v,h:'e7a1…3d90'});closeModal();render();toast('已回滚至 '+S.releases[0].v,'ok')}
+function rollbackTo(v){openModal('回滚到指定版本',`<p class="small">目标：<span class="mono">${v}</span></p><div class="notice info" style="margin-top:9px">${ic('i-shield-check','ico sm')}<div>该操作${S.env==='prod'?'将触发生产审批工单':'将直接执行并留痕'}。</div></div>`,
+ [{t:'取消',cls:'btn',fn:'closeModal()'},{t:'确认',cls:'btn pri',fn:"doRollbackTo('"+v+"')"}])}
+function doRollbackTo(v){S.releases.forEach(r=>r.current=false);const r=S.releases.find(x=>x.v===v);if(r)r.current=true;
+ S.audit.unshift({t:new Date().toLocaleTimeString('zh-CN'),who:'notime',act:'回滚到指定版本',obj:v,h:'f02b…8ca1'});closeModal();render();toast('current 已指向 '+v,'ok')}
+
+/* 审批闭环 */
+function vSecurity(){const t=S.tickets.find(x=>x.id===S.selTicket)||S.tickets[0],pend=S.tickets.filter(x=>x.status==='pending').length;
+ return head('i-shield-check','安全闸门与操作审批','AI 负责探查起草，人类掌握高危终审裁决权',
+ `<button class="btn" onclick="toast('闸门策略已刷新','ok')">${ic('i-refresh','ico sm')}刷新策略</button><button class="btn pri" onclick="toast('新建闸门策略（演示）')">新建策略</button>`)+envBanner()+
+ `<div class="grid g4 mb">${kpi('待裁决工单',String(pend),'1 项生产高危',[1,2,2,3,3,3,3,3],'var(--warn)')}${kpi('今日已处理','12','平均 2m18s',[4,5,6,6,7,8,9,12],'var(--ok)')}
+  ${kpi('拦截高危','3','极高危永久拒绝',[1,1,2,2,3,3,3,3],'var(--accent)')}${kpi('闸门策略','18','覆盖 6 类操作',[8,10,12,13,15,16,17,18],'var(--violet)')}</div>
+ <div class="grid g12"><div class="card"><div class="ch"><h3>${ic('i-file','ico sm')}工单队列</h3><span class="tag warn">${pend} 待办</span></div><div class="cb">
+  ${S.tickets.map(x=>`<div class="ticket ${x.id===t.id?'on':''}" onclick="selTicket('${x.id}')"><div class="risk ${x.risk}"></div><div style="flex:1;min-width:0"><div style="font-weight:650;font-size:11.5px">${x.title}</div><div class="small muted">${x.env} · ${x.host} · ${x.time}</div></div><span class="tag ${x.status!=='pending'?'info':x.risk==='high'?'danger':x.risk==='mid'?'warn':'ok'}">${x.status==='pending'?'待裁决':'已'+x.status}</span></div>`).join('')}
+ </div></div>
+ <div class="card acc-bar"><div class="ch"><h3>${ic('i-eye','ico sm')}工单详情 · <span class="mono small">#${t.id.toUpperCase()}</span></h3><span class="tag ${t.risk==='high'?'danger':t.risk==='mid'?'warn':'ok'}">风险分 ${t.score}</span></div><div class="cb">
+  <div class="grid g3 mb"><div><div class="small muted">环境</div><div class="mono" style="font-weight:650">${t.env}</div></div><div><div class="small muted">目标</div><div class="mono" style="font-weight:650">${t.host}</div></div><div><div class="small muted">操作类型</div><div class="mono" style="font-weight:650">${t.ops}</div></div></div>
+  <div class="small muted" style="margin-bottom:5px">AI 起草的操作计划</div><div class="code mb"><span class="c"># 目标：${t.title}</span>\n<span class="k">${t.cmd}</span></div>
+  <div class="notice warn mb">${ic('i-alert','ico sm')}<div><b>判定依据：</b>${t.why}<br><b>爆炸半径：</b>${t.radius}</div></div>
+  <div class="acts"><button class="btn ok" onclick="decide('放行')" ${t.status!=='pending'?'disabled':''}>${ic('i-check','ico sm')}放行</button>
+   <button class="btn acc" onclick="decide('拒绝')" ${t.status!=='pending'?'disabled':''}>${ic('i-x','ico sm')}拒绝</button>
+   <button class="btn" onclick="decide('限时放行 2h')" ${t.status!=='pending'?'disabled':''}>${ic('i-clock','ico sm')}限时放行 2h</button></div>
+ </div></div></div>
+ <div class="card" style="margin-top:12px"><div class="ch"><h3>${ic('i-scroll','ico sm')}不可篡改审计链</h3><span class="small muted">SHA-256 逐条链接</span></div><div class="cb">
+  <table class="tbl"><thead><tr><th>时间</th><th>主体</th><th>动作</th><th>对象</th><th>哈希</th></tr></thead><tbody>
+  ${S.audit.map(a=>`<tr><td class="mono small">${a.t}</td><td>${a.who}</td><td>${a.act}</td><td class="mono small">${a.obj}</td><td class="mono small link">${a.h}</td></tr>`).join('')}</tbody></table>
+  <div class="chain" style="margin-top:10px"><span class="blk head">GENESIS</span><span>→</span>${S.audit.slice(0,4).map(a=>`<span class="blk">${a.h}</span><span>→</span>`).join('')}<span class="muted">…</span></div>
+ </div></div>`}
+function selTicket(id){S.selTicket=id;render()}
+function decide(act){const t=S.tickets.find(x=>x.id===S.selTicket);if(!t||t.status!=='pending')return;
+ t.status=act==='拒绝'?'rejected':'approved';
+ S.audit.unshift({t:new Date().toLocaleTimeString('zh-CN'),who:'notime',act:`裁决 #${t.id.toUpperCase()}：${act}`,obj:t.host,h:Math.random().toString(16).slice(2,6)+'…'+Math.random().toString(16).slice(2,6)});
+ render();toast(`工单 #${t.id.toUpperCase()} 已${act} · 写入审计链`,act==='拒绝'?'danger':'ok')}
+
+/* 其余模块 */
+function vGeneric(id){const m=MOD[id];const B={
+ terminal:head('i-terminal','远程终端','多标签 + 田字分屏 + 广播输入',`<button class="btn" onclick="toast('广播输入已开启','warn')">广播输入</button><button class="btn pri" onclick="toast('新建会话（演示）','ok')">新建会话</button>`)+
+  `<div class="grid g2">${['prod-web-01','prod-gw-01','staging-api-01','dev-db-01'].map((h,i)=>`<div class="card"><div class="ch"><h3><span class="dot ok"></span>${h}</h3><span class="small muted">ssh</span></div><div style="padding:0"><div class="console" style="height:180px;border:0;border-radius:0"><div class="ln t">─ ${h} ──</div><div class="ln">user@${h}:~$ ${['df -h','systemctl status nginx','free -m','tail -f app.log'][i]}</div><div class="ln ok">✓ completed in 0.0${i+1}s</div></div></div></div>`).join('')}</div>`,
+ sftp:head('i-folder','SFTP 文件传输','russh-sftp 安全信道 · 双栏目录对拷',`<button class="btn pri" onclick="toast('上传队列已开始（演示）','ok')">${ic('i-zap','ico sm')}上传</button>`)+
+  `<div class="grid g2">${[['本地 /Users/notime/project',['dist/','package.json','Dockerfile','README.md']],['远程 prod-web-01:/srv/app',['releases/','current →','nginx.conf','app.log']]].map(([p,fs])=>`<div class="card bar"><div class="ch"><h3>${p}</h3><span class="tag brand">可拖拽</span></div><div class="cb"><table class="tbl"><thead><tr><th>名称</th><th>大小</th></tr></thead><tbody>${fs.map(f=>`<tr><td>${ic('i-folder','ico sm')} ${f}</td><td class="small muted">${f.endsWith('/')?'—':'2.1 KB'}</td></tr>`).join('')}</tbody></table></div></div>`).join('')}</div>
+  <div class="notice info" style="margin-top:12px">${ic('i-shield','ico sm')}<div>在线代码审查：不落地直接看；AI 出口自动对凭据打码。</div></div>`,
+ database:`<div class="grid g12"><div class="card" style="align-self:start"><div class="ch"><h3>连接树</h3></div><div class="cb" style="padding:6px">${['MySQL · prod-db-01','PostgreSQL · analytics','Redis · cache-01','MongoDB · logs'].map(x=>`<div class="pi" onclick="toast('已切换：${x}','ok')">${ic('i-db','ico sm')}${x}</div>`).join('')}</div></div>
+  <div class="card bar"><div class="ch"><h3>NL2SQL 自然语言查询</h3><select class="sel"><option>MySQL · prod-db-01</option><option>Redis · cache-01</option></select></div><div class="cb"><div class="search mb" style="width:100%">${ic('i-spark','ico sm')}<input placeholder="用中文描述查询…"></div>
+  <div class="code"><span class="c">-- AI 生成 · 只读</span>\n<span class="k">SELECT</span> * <span class="k">FROM</span> orders <span class="k">WHERE</span> status=1 <span class="k">LIMIT</span> 10;</div>
+  <div class="notice warn" style="margin-top:9px">${ic('i-lock','ico sm')}<div>写操作强制走审批闸门，当前会话仅只读。</div></div></div></div></div>`,
+ batch:head('i-layers','批量执行','多机并发下发 · 每台独立超时 · 失败单机重试',`<button class="btn pri" onclick="toast('已下发到 4 台主机','ok')">下发命令</button>`)+
+  `<div class="card bar"><div class="ch"><h3>命令</h3><span class="tag brand">4 台主机</span></div><div class="cb"><div class="code mb">$ uptime && df -h | grep overlay</div>
+  <table class="tbl"><thead><tr><th>主机</th><th>耗时</th><th>状态</th><th>结果</th></tr></thead><tbody>${[['prod-web-01','0.3s','ok','成功'],['prod-gw-01','0.4s','ok','成功'],['staging-api-01','timeout','warn','超时 · 可重试'],['dev-db-01','0.2s','ok','成功']].map(([h,t,s,r])=>`<tr><td class="mono">${h}</td><td class="mono small">${t}</td><td><span class="tag ${s}">${r}</span></td><td><button class="btn sm" onclick="toast('查看 ${h} 结果','ok')">查看</button></td></tr>`).join('')}</tbody></table></div></div>`,
+ copilot:head('i-bot','AI 桥接中心','页面内对话 · 工具调用 · 多 Agent 编排',`<span class="tag ${S.locked?'danger':'ok'}">${S.locked?'AI 操作已锁定':'AI 操作已放行'}</span>`)+
+  `<div class="card bar"><div class="cb" style="max-width:720px;margin:auto">
+  <div class="seg mb" style="width:max-content">${[['运维调度'],['开发排障'],['架构巡检']].map(([n],i)=>`<button class="${i===0?'on':''}" onclick="segOn(this);toast('模式：${n}')">${n}</button>`).join('')}</div>
+  <div class="notice warn mb">${ic('i-lock','ico sm')}<div>受控模式：只读工具默认放行，改动型工具须经安全闸门人工审批。</div></div>
+  <div class="code" style="min-height:64px">用户：排查 prod-gw-01 的 502，并给出加固建议</div>
+  <div class="code" style="margin-top:7px"><span class="c">AI 计划（只读）：</span> ① 读取 error.log ② 检查 upstream ③ 生成诊断报告\n<span style="color:var(--warn)">⚠ 涉及 reload → 已生成审批工单 #T1，等待人工裁决</span></div>
+  <div class="search" style="margin-top:9px">${ic('i-zap','ico sm')}<input placeholder="继续提问…" onkeydown="if(event.key==='Enter')toast('AI 已检索技能库并生成计划（演示）','ok')"></div></div></div>`,
+ mcp:`<div class="grid g2"><div class="card bar"><div class="ch"><h3>MCP 服务端点</h3><span class="tag ok">127.0.0.1:7432</span></div><div class="cb"><div class="code">transport: stdio sidecar / http\nscope: 仅本机监听\nauth: 本地令牌 + 显式选定服务器</div><div class="acts" style="margin-top:9px"><button class="btn sm" onclick="toast('连接测试通过：17 个工具可用','ok')">测试连接</button><button class="btn sm" onclick="toast('已复制注入命令','ok')">复制注入命令</button></div></div></div>
+  <div class="card"><div class="ch"><h3>客户端授权</h3></div><div class="cb">${['Claude Code','Codex','Cursor','OpenCode'].map(c=>`<div class="setrow"><span>${c}</span><button class="sw on" onclick="this.classList.toggle('on');toast('${c} 授权已更新','ok')"></button></div>`).join('')}</div></div></div>`,
+ skills:`<div class="card bar"><div class="ch"><h3>技能与经验库</h3><span class="small muted">41 技能 · 19 篇 SOP</span></div><div class="cb"><table class="tbl"><thead><tr><th>名称</th><th>类型</th><th>来源</th><th>命中</th></tr></thead><tbody>
+  ${[['nginx-502-diagnose','排障 SOP','内置','128'],['ssl-cert-renew','自动化技能','内置','96'],['mysql-slow-query','诊断技能','自建','74'],['docker-dangling-clean','清理技能','外部导入','51']].map(([n,t,s,c])=>`<tr><td style="font-weight:650">${n}</td><td><span class="tag brand">${t}</span></td><td class="small">${s}</td><td class="mono small">${c}</td></tr>`).join('')}</tbody></table></div></div>`,
+ sensitive:`<div class="card acc-bar"><div class="ch"><h3>敏感库 · AI 出口脱敏</h3><span class="tag danger">7 条待处理拦截</span></div><div class="cb"><table class="tbl"><thead><tr><th>时间</th><th>命中规则</th><th>目标模型</th><th>处置</th></tr></thead><tbody>
+  ${[['14:01','AWS_ACCESS_KEY 正则','Claude','待裁决'],['13:52','内网 IP 段','OpenAI','待裁决'],['13:40','私钥 PEM 头','本地模型','已打码']].map(([t,r,mo,s])=>`<tr><td class="mono small">${t}</td><td>${r}</td><td class="small">${mo}</td><td><span class="tag ${s==='待裁决'?'warn':'ok'}">${s}</span></td></tr>`).join('')}</tbody></table>
+  <div class="acts" style="margin-top:10px"><button class="btn sm" onclick="toast('已保留','ok')">保留</button><button class="btn sm" onclick="toast('已标记误判','ok')">误判</button><button class="btn acc sm" onclick="toast('已丢弃','danger')">丢弃</button></div></div></div>`,
+ credentials:`<div class="card bar"><div class="ch"><h3>服务凭据金库</h3><span class="tag ok">AES-256-GCM · 硬件脱钩</span></div><div class="cb"><div class="notice info mb">${ic('i-lock','ico sm')}<div>按环境隔离：<b>${S.env}</b> 环境凭据仅对该环境可见；云端 AI 只拿到虚拟引用句柄。</div></div>
+  <table class="tbl"><thead><tr><th>名称</th><th>环境</th><th>句柄</th><th>状态</th></tr></thead><tbody>${[['prod-db-password','prod','vault://ref/8fa2'],['staging-api-token','staging','vault://ref/31bc'],['dev-ssh-key','dev','vault://ref/90de']].map(([n,e,h])=>`<tr><td style="font-weight:650">${n}</td><td><span class="tag ${e==='prod'?'danger':e==='staging'?'warn':'info'}">${e}</span></td><td class="mono small">${h}</td><td><span class="tag ok">受保护</span></td></tr>`).join('')}</tbody></table></div></div>`,
+ alerts:`<div class="card acc-bar"><div class="ch"><h3>活跃告警事件</h3><span class="tag danger">2 待处置</span></div><div class="cb">
+  ${[['prod-gw-01 延迟飙升至 445ms','high','14:01'],['SSL 证书 14 天后到期','warn','13:20']].map(([t,r,tm])=>`<div class="setrow"><div><div style="font-weight:650">${t}</div><div class="small muted">${tm} · AI 已生成根因分析</div></div><div class="acts"><span class="tag ${r}">${r==='high'?'严重':'警告'}</span><button class="btn sm" onclick="toast('已标记恢复','ok')">标记恢复</button><button class="btn sm" onclick="go('security')">处置工单</button></div></div>`).join('')}</div></div>`,
+ audit:`<div class="card bar"><div class="ch"><h3>不可篡改审计日志</h3><button class="btn sm" onclick="toast('已导出脱敏审计包','ok')">导出 CSV</button></div><div class="cb"><table class="tbl"><thead><tr><th>时间</th><th>来源</th><th>动作</th><th>对象</th><th>哈希</th></tr></thead><tbody>
+  ${S.audit.map(a=>`<tr><td class="mono small">${a.t}</td><td>${a.who}</td><td>${a.act}</td><td class="mono small">${a.obj}</td><td class="mono small link">${a.h}</td></tr>`).join('')}</tbody></table>
+  <div class="chain" style="margin-top:10px">${S.audit.slice().reverse().map(a=>`<span class="blk">${a.h}</span><span>←</span>`).join('')}<span class="blk head">GENESIS</span></div></div></div>`,
+ };return head(m.icon,m.title,m.desc,`<button class="btn" onclick="toast('${m.title}：已刷新（演示）','ok')">${ic('i-refresh','ico sm')}刷新</button>`)+(B[id]||`<div class="card"><div class="cb">${m.desc}</div></div>`)}
+
+/* 巡检 4 子视图 */
+function vInspector(){const subs=[['diagnose','健康体检'],['rules','规则库'],['schedule','定时调度'],['history','历史走势']];
+ return head('i-shield-alert','AI 巡检与漏洞雷达','定期巡检 · 基线核查 · 漏洞分级 · 自动根因推导',
+ `<div class="seg">${subs.map(([k,n])=>`<button class="${S.inspSub===k?'on':''}" onclick="inspGo('${k}')">${n}</button>`).join('')}</div>
+  <button class="btn pri" onclick="toast('已启动全量巡检（演示）','ok')">立即巡检</button>`)+
+ `<div class="card acc-bar"><div class="cb">${inspBody()}</div></div>`}
+function inspBody(){const k=S.inspSub;
+ if(k==='diagnose')return `<div class="grid g4 mb">${kpi('巡检主机','14','4 组',[8,9,11,12,12,13,14,14],'var(--brand)')}${kpi('高危','2','需立即加固',[1,1,2,2,2,2,2,2],'var(--accent)')}
+  ${kpi('中危','5','建议处理',[2,3,3,4,4,5,5,5],'var(--warn)')}${kpi('合规率','86%','较上周 +4%',[70,74,78,80,82,84,85,86],'var(--ok)')}</div>
+  <div class="notice danger mb">${ic('i-alert','ico sm')}<div>发现 <b>2 项高危</b>：SSH 允许 root 登录、OpenSSL 低于 3.0 基线。</div></div>
+  ${[['SSH root 登录未禁用','high','prod-gw-01','CIS-5.2'],['OpenSSL 1.1.1 < 3.0','high','edge-node-01','CVE-2024-0727'],['防火墙未限制 22 端口来源','mid','dev-db-01','CIS-3.4']].map(([t,r,h,c])=>`<div class="setrow"><div><div style="font-weight:650">${t}</div><div class="small muted mono">${h} · ${c}</div></div><div class="acts"><span class="tag ${r}">${r==='high'?'高危':'中危'}</span><button class="btn sm" onclick="go('security')">生成工单</button></div></div>`).join('')}`;
+ if(k==='rules')return `<div class="notice info mb">${ic('i-file','ico sm')}<div>36 项标准规范 · 覆盖 CIS / 等保 / 厂商标基线，可按主机组启用。</div></div>
+  <table class="tbl"><thead><tr><th>规则</th><th>类别</th><th>级别</th><th>启用</th></tr></thead><tbody>${[['SSH 禁止 root 登录','基线','高危'],['密码复杂度 ≥ 12 位','基线','中危'],['Nginx 隐藏版本号','Web','低危'],['Redis 绑定 127.0.0.1','数据库','高危'],['审计日志保留 ≥ 180 天','合规','中危']].map(([n,c,l])=>`<tr><td class="mono">${n}</td><td class="small">${c}</td><td><span class="tag ${l==='高危'?'danger':l==='中危'?'warn':'ok'}">${l}</span></td><td><button class="sw on" onclick="this.classList.toggle('on')"></button></td></tr>`).join('')}</tbody></table>`;
+ if(k==='schedule')return `<div class="notice info mb">${ic('i-clock','ico sm')}<div>4 个活跃巡检任务，执行结果自动联动告警通道。</div></div>
+  <table class="tbl"><thead><tr><th>任务</th><th>Cron</th><th>范围</th><th>通知</th><th>状态</th></tr></thead><tbody>${[['全量基线巡检','0 2 * * 1','全部主机','飞书','启用'],['SSL 到期检查','0 9 * * *','生产集群','邮件','启用'],['漏洞库同步','0 3 * * *','—','—','启用'],['容器镜像扫描','0 4 * * 3','生产集群','企业微信','暂停']].map(([n,c,r,no,s])=>`<tr><td class="mono">${n}</td><td class="mono small">${c}</td><td class="small">${r}</td><td class="small">${no}</td><td><span class="tag ${s==='启用'?'ok':''}">${s}</span></td></tr>`).join('')}</tbody></table>`;
+ return `<div class="grid g2"><div class="card"><div class="ch"><h3>合规率走势</h3></div><div class="cb"><div style="height:40px">${spark([70,74,72,78,80,79,84,86],'var(--brand)').replace('width:54px;height:17px','width:100%;height:36px')}</div><div class="small muted" style="margin-top:6px">近 8 周 · 当前 86%</div></div></div>
+  <div class="card"><div class="ch"><h3>报告归档</h3></div><div class="cb">${['2026-11-10 全量巡检报告','2026-11-03 基线核查报告','2026-10-27 漏洞扫描报告'].map(n=>`<div class="setrow"><span class="small">${n}</span><button class="btn sm" onclick="toast('已下载报告（演示）','ok')">下载</button></div>`).join('')}</div></div></div>`}
+function inspGo(k){S.inspSub=k;render()}
+
+/* 设置 4 大类 */
+function vSettings(){const cats=[['appearance','外观与交互','i-sun'],['ai','AI 与网络','i-bot'],['security','安全','i-shield'],['data','数据','i-archive']];
+ return head('i-settings','系统与模型配置','外观 / AI网络 / 安全 / 数据 四大类',`<button class="btn pri" onclick="toast('设置已保存到本地（演示）','ok')">保存设置</button>`)+
+ `<div class="card"><div style="display:flex;min-height:480px">
+  <div class="wbside"><div class="wbcap">设置分类</div>${cats.map(([k,n,i])=>`<button class="wbn ${S.setCat===k?'on':''}" onclick="setGo('${k}')">${ic(i,'ico sm')}${n}</button>`).join('')}</div>
+  <div class="wbmain">${setBody()}</div></div></div>`}
+function setBody(){const k=S.setCat;
+ const rows={
+ appearance:[['主题','暗色 / 亮色，与系统设置独立','<button class="btn sm" onclick="toggleTheme();render()">'+(S.theme==='dark'?'暗色':'亮色')+' · 切换</button>'],
+  ['皮肤','6 套皮肤，只覆盖背景与品牌色','<button class="btn sm" onclick="cycleSkin();render()">'+S.skin+'</button>'],
+  ['界面语言','简体中文 / English','<select class="sel" onchange="toast(\'语言：\'+this.value)"><option>简体中文</option><option>English</option></select>'],
+  ['界面密度','紧凑 / 标准 / 宽松','<select class="sel"><option>标准</option><option>紧凑</option><option>宽松</option></select>'],
+  ['启动行为','开机自启 / 启动时最小化','<button class="sw on" onclick="this.classList.toggle(\'on\')"></button>'],
+  ['窗口与托盘','关闭时最小化到托盘','<button class="sw on" onclick="this.classList.toggle(\'on\')"></button>']],
+ ai:[['模型服务','内置 AI 对话的模型服务 / 主备切换','<button class="btn sm" onclick="toast(\'模型服务管理（演示）\')">管理</button>'],
+  ['网络代理','HTTP / SOCKS5 代理','<button class="sw" onclick="this.classList.toggle(\'on\')"></button>'],
+  ['出站地址白名单','仅允许白名单域名出站','<button class="btn sm" onclick="toast(\'白名单配置（演示）\')">配置</button>'],
+  ['AI 操作锁','改动型工具默认拒绝','<button class="sw on" onclick="toggleLock();render()"></button>']],
+ security:[['SSH 密钥','本地密钥管理','<button class="btn sm" onclick="toast(\'密钥管理（演示）\')">管理</button>'],
+  ['主密码 / 应用锁定','启动与唤醒需主密码','<button class="sw on" onclick="this.classList.toggle(\'on\')"></button>'],
+  ['命令黑名单','极高危命令永久拒绝','<button class="btn sm" onclick="toast(\'黑名单：18 条规则\')">查看</button>'],
+  ['审计保留','审计日志保留周期','<select class="sel"><option>180 天</option><option>365 天</option><option>永久</option></select>']],
+ data:[['备份与还原','本地配置与数据库备份','<button class="btn sm" onclick="toast(\'备份管理（演示）\')">管理</button>'],
+  ['云端同步','配置加密同步到云端','<button class="sw" onclick="this.classList.toggle(\'on\')"></button>'],
+  ['存储端点','S3 / OSS / WebDAV','<button class="btn sm" onclick="toast(\'存储端点（演示）\')">配置</button>']]};
+ const names={appearance:'外观与交互',ai:'AI 与网络',security:'安全',data:'数据'};
+ const descs={appearance:'主题、语言、启动与窗口行为',ai:'模型服务、代理与出站安全',security:'密钥、锁定与审计策略',data:'备份还原与存储'};
+ return `<h3 style="margin:0 0 6px;font-size:14px">${names[k]}</h3><div class="small muted mb">${descs[k]}</div>
+  ${rows[k].map(([n,d,c])=>`<div class="setrow"><div><div style="font-weight:650">${n}</div><div class="small muted">${d}</div></div>${c}</div>`).join('')}
+  ${k==='appearance'?`<div class="notice info" style="margin-top:12px">${ic('i-spark','ico sm')}<div>环境模型已在顶栏作为一等公民：审批策略、凭据隔离、部署目标均按环境绑定。</div></div>`:''}`}
+function setGo(k){S.setCat=k;render()}
+
+/* 路由 / 渲染 / 窗口 */
+function render(){renderRail();const m=MOD[S.view]||HOME;document.getElementById('crumb').textContent=S.view==='workbench'?'工作台 / '+WB_TITLE[S.wbSub]:m.title;
+ let h;if(S.view==='overview')h=vOverview();else if(S.view==='servers')h=vServers();else if(S.view==='workbench')h=vWorkbench();
+ else if(S.view==='deploy')h=vDeploy();else if(S.view==='security')h=vSecurity();else if(S.view==='inspector')h=vInspector();
+ else if(S.view==='settings')h=vSettings();else h=vGeneric(S.view);
+ document.getElementById('page').innerHTML=h;document.getElementById('main').scrollTop=0}
+function go(id){if(!MOD[id]){toast('模块不存在：'+id,'danger');return}S.view=id;location.hash='#'+id;render()}
+function openModal(title,html,acts){document.getElementById('modal').innerHTML=`<div class="mh"><span>${title}</span><button class="tbi" onclick="closeModal()">${ic('i-x','ico sm')}</button></div><div class="mb">${html}</div><div class="mf">${acts.map(a=>`<button class="${a.cls}" onclick="${a.fn}">${a.t}</button>`).join('')}</div>`;document.getElementById('mdOv').classList.add('show')}
+function closeModal(){document.getElementById('mdOv').classList.remove('show')}
+function openServerModal(){openModal('新建服务器',`<div class="field"><label>主机名称</label><input id="nfName" placeholder="prod-web-02"></div><div class="field"><label>地址（IP:端口）</label><input id="nfIp" placeholder="10.0.0.12:22"></div><div class="field"><label>环境</label><select><option>dev</option><option>staging</option><option>prod</option></select></div><div class="field"><label>认证方式</label><select><option>密码</option><option>私钥</option><option>SSH-Agent</option><option>ProxyJump 跳板机</option></select></div><div class="notice info">${ic('i-shield','ico sm')}<div>保存后自动做 TCP 探活，按环境绑定 AI 策略与凭据句柄。</div></div>`,
+ [{t:'取消',cls:'btn',fn:'closeModal()'},{t:'创建',cls:'btn pri',fn:'createServer()'}])}
+function createServer(){const n=document.getElementById('nfName').value.trim();if(!n){toast('请填写主机名称','warn');return}closeModal();toast('主机 '+n+' 已创建，TCP 探活通过','ok');render()}
+window.addEventListener('hashchange',()=>{const id=location.hash.slice(1);if(MOD[id]&&id!==S.view){S.view=id;render()}});
+
+const WIN=document.getElementById('win');
+function toggleMax(){const mx=WIN.classList.toggle('maximized');document.getElementById('maxBtn').innerHTML=ic(mx?'i-restore':'i-square','ico sm');toast(mx?'窗口已最大化 · 内容按宽屏重排':'已还原为 1440×900',mx?'warn':'ok');updateSize()}
+function minimizeWin(){WIN.classList.add('minimizing');setTimeout(()=>{WIN.classList.remove('minimizing');toast('已最小化到托盘（原型演示）','info')},340)}
+function closeWin(){toast('关闭窗口：实际应用将退出或最小化到托盘（原型演示）','warn')}
+function updateSize(){if(!WIN)return;const w=WIN.clientWidth,h=WIN.clientHeight;
+ const size=w<1180?'sm':w<1360?'md':'lg';WIN.dataset.size=size;
+ const t=document.getElementById('sizeTxt');if(t)t.textContent=w+' × '+h+' · '+(WIN.classList.contains('maximized')?'最大化':size==='lg'?'标准视窗':size==='md'?'中等窗口':'紧凑窗口')}
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(updateSize).observe(WIN);else window.addEventListener('resize',updateSize);
+
+applyTheme();const ih=location.hash.slice(1);if(MOD[ih])S.view=ih;render();updateSize();
+</script>
+</body>
+</html>

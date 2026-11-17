@@ -1212,6 +1212,51 @@
   min-width: 0;
 }
 
+.ops-workbench-overview {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.ops-workbench-overview .ops-overview-stat {
+  min-height: 72px;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.ops-workbench-overview .ops-overview-stat:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border)) !important;
+  background: color-mix(in srgb, var(--surface-900) 88%, var(--accent)) !important;
+}
+
+.ops-workbench-overview .ops-overview-resource-grid > * {
+  min-height: 148px;
+}
+
+.ops-workbench-overview .ops-overview-partitions {
+  min-height: 92px;
+}
+
+.ops-workbench-overview .ops-overview-monitor-grid > * {
+  min-height: 142px;
+}
+
+@media (max-width: 900px) {
+  .ops-workbench-overview .ops-overview-resource-grid > * {
+    min-height: 136px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ops-workbench-overview .ops-overview-metric-grid,
+  .ops-workbench-overview .ops-overview-resource-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-workbench-overview .ops-overview-stat {
+    min-height: 64px;
+  }
+}
+
 .ops-overview-metric-grid,
 .ops-overview-resource-grid,
 .ops-overview-monitor-grid {

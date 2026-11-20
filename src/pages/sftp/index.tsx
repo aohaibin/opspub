@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox, Dropdown, Input, Modal, Spin, Tooltip, message } from "antd";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useLocation } from "react-router-dom";
 import type { MenuProps } from "antd";
 import {
@@ -61,17 +62,38 @@ import { serverApi } from "@/lib/api/server";
 import { sftpApi } from "@/lib/api/sftp";
 import { getErrorMessage } from "@/lib/api/client";
 import { useSshSessionStore } from "@/store/ssh";
+import { isTransferActive, transferDirectoryKey, useSftpTransferStore } from "@/store/sftp-transfers";
+import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import { ServerFormModal } from "@/pages/servers/components/ServerFormModal";
+import { AI_POLICY_META, normalizeAIPolicy } from "@/pages/servers/lib/serverMeta";
 import { SshConnectModal } from "@/components/server/SshConnectModal";
 import type { Server, SshCredentials, SshProbeResult } from "@/types";
+import { SftpSidebar } from "./SftpSidebar";
+import { useSftpWorkspaceStore, type SftpPane } from "./workspace-state";
 import {
   type RemoteFileItem,
-  type SftpLayoutMode,
   type SftpCredentials,
   type SftpSessionInfo,
   type SftpSessionTab,
   type SftpViewMode,
 } from "./types";
+
+interface DirectoryView {
+  path: string;
+  files: RemoteFileItem[];
+  loading: boolean;
+  error?: string;
+}
+
+interface FileSelection {
+  directory: string;
+  names: string[];
+}
+
+// 跨菜单返回时，同一主机仍可能在建立连接。
+const connectingServers = new Set<number>();
+// 浏览器前进和后退会复用历史条目的 key，页面卸载后仍需记住已处理的资产直达。
+const handledSftpEntries = new Set<string>();
 
 /** 格式化字节为易读大小 */
 function formatFileSize(bytes: number): string {
@@ -108,7 +130,7 @@ function getFileIcon(item: RemoteFileItem) {
 
 /** 统一远程路径格式，确保根目录始终显示为 `/`，并避免重复或尾部斜杠。 */
 function normalizeRemotePath(path: string): string {
-  const trimmed = path.trim();
+  const trimmed = path.trim().replace(/\\/g, "/");
   if (!trimmed || trimmed === "/") return "/";
 
   const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
@@ -122,7 +144,9 @@ export default function SftpPage() {
     (location.state as { serverId?: number } | null)?.serverId ?? null;
   // 服务器资产列表
   const [servers, setServers] = useState<Server[]>([]);
-  const [loadingServers, setLoadingServers] = useState(false);
+  const [loadingServers, setLoadingServers] = useState(true);
+  const [serverLoadError, setServerLoadError] = useState<string>();
+  const [sessionLoadError, setSessionLoadError] = useState<string>();
   const [serverSearchKeyword, setServerSearchKeyword] = useState("");
   const [serverViewMode, setServerViewMode] = useState<SftpViewMode>("grid");
   const [selectedTreeServerId, setSelectedTreeServerId] = useState<number | null>(null);
@@ -130,8 +154,12 @@ export default function SftpPage() {
   const [connectivityByServer, setConnectivityByServer] = useState<Record<number, { loading: boolean; result?: { ok: boolean; latency_ms: number | null; message: string } }>>({});
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [sshServer, setSshServer] = useState<Server | null>(null);
-  const [sshTargetPane, setSshTargetPane] = useState<"left" | "right">("left");
+  const sshTarget = useRef<{ pane: SftpPane; originTabId: string | null }>({ pane: "left", originTabId: null });
   const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
+  const enqueueUpload = useSftpTransferStore((state) => state.enqueue);
+  const showTransfers = useSftpTransferStore((state) => state.setDisplay);
+  const hasTransfers = useSftpTransferStore((state) => state.tasks.length > 0);
+  const transferDirectoryVersions = useSftpTransferStore((state) => state.directoryVersions);
   const setSharedCredentials = useSshSessionStore((state) => state.setCredentials);
   const credentialsByServer = useMemo<Record<number, SftpCredentials>>(
     () => Object.fromEntries(
@@ -150,35 +178,25 @@ export default function SftpPage() {
   } | null>(null);
 
   // 多标签页状态
-  const [tabs, setTabs] = useState<SftpSessionTab[]>([]);
-  const [restoredSessions, setRestoredSessions] = useState<SftpSessionInfo[]>([]);
-  const [sessionsLoaded, setSessionsLoaded] = useState(false);
-  // 标签恢复完成前禁止路由自动连接，否则自动连接可能用空 tabs 覆盖已恢复的会话。
-  const [tabsInitialized, setTabsInitialized] = useState(false);
-  const restoredDirectoryIdsRef = useRef(new Set<string>());
-  const [activeTabId, setActiveTabId] = useState<string>("picker");
-  const [secondaryTabId, setSecondaryTabId] = useState<string | null>(null);
+  const { tabs, setTabs, initialized, activeTabId, secondaryTabId, activePane, layoutMode, selectTab, openPicker, setLayoutMode } = useSftpWorkspaceStore();
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
   const [dragOverTabId, setDragOverTabId] = useState<string | null>(null);
   const [dragOverSide, setDragOverSide] = useState<"left" | "right" | null>(null);
-
-  // 分屏模式（单栏 / 左右分屏）
-  const [layoutMode, setLayoutMode] = useState<SftpLayoutMode>("single");
 
   // 全部关闭确认弹窗
   const [closeAllModalOpen, setCloseAllModalOpen] = useState(false);
 
   // 每个标签的远程文件列表（按 tabId 分离存储）
-  const [filesByTab, setFilesByTab] = useState<Record<string, RemoteFileItem[]>>({});
-  const [loadingByTab, setLoadingByTab] = useState<Record<string, boolean>>({});
+  const [directoryByTab, setDirectoryByTab] = useState<Record<string, DirectoryView>>({});
+  const directoryRequests = useRef(new Map<string, { path: string; version: number }>());
 
   // 左右窗格各自独立的过滤搜索词
   const [leftFilterKeyword, setLeftFilterKeyword] = useState("");
   const [rightFilterKeyword, setRightFilterKeyword] = useState("");
 
   // 左右窗格各自选中的文件集合
-  const [leftSelectedNames, setLeftSelectedNames] = useState<string[]>([]);
-  const [rightSelectedNames, setRightSelectedNames] = useState<string[]>([]);
+  const [leftSelection, setLeftSelection] = useState<FileSelection>();
+  const [rightSelection, setRightSelection] = useState<FileSelection>();
 
   // 左右窗格各自路径输入框聚焦与编辑状态
   const [leftEditingPath, setLeftEditingPath] = useState(false);
@@ -191,10 +209,6 @@ export default function SftpPage() {
   const leftDragCounter = useRef(0);
   const [rightDraggingOver, setRightDraggingOver] = useState(false);
   const rightDragCounter = useRef(0);
-
-  // 本地文件上传 input 引用
-  const leftFileInputRef = useRef<HTMLInputElement>(null);
-  const rightFileInputRef = useRef<HTMLInputElement>(null);
 
   // 新建文件夹弹窗
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
@@ -222,116 +236,15 @@ export default function SftpPage() {
   const [newFileName, setNewFileName] = useState("untitled.txt");
   const [newFileTargetTabId, setNewFileTargetTabId] = useState("");
 
-  // 加载服务器列表
+  // 资产列表失败时保留真实错误，避免把示例服务器 ID 用于实际连接。
   const loadServers = useCallback(async () => {
     setLoadingServers(true);
+    setServerLoadError(undefined);
+    setSessionLoadError(undefined);
     try {
-      const data = await serverApi.list();
-      setServers(data);
-    } catch {
-      // 离线模式降级，使用常用演示数据
-      setServers([
-        {
-          id: 1,
-          alias: "我的腾讯云0209",
-          hostname: "111.231.166.192",
-          port: 22,
-          username: "root",
-          auth_type: "key",
-          group: "我的服务器",
-          tags: JSON.stringify(["腾讯云", "生产网关"]),
-          ai_policy: "trusted",
-          os_type: "linux",
-          favorite: false,
-          arch: "x86_64",
-          last_used_at: null,
-          host_key_fingerprint: "",
-          last_connection_status: "verified",
-          last_connection_message: "",
-          last_connected_at: null,
-          allow_sudo: true,
-          use_local_proxy: false,
-          bastion_id: null,
-          ai_username: "",
-          created_at: "2024-01-01",
-          updated_at: "2024-01-01",
-        },
-        {
-          id: 2,
-          alias: "我的阿里云",
-          hostname: "106.14.39.78",
-          port: 22,
-          username: "root",
-          auth_type: "key",
-          group: "我的服务器",
-          tags: JSON.stringify(["阿里云", "核心库"]),
-          ai_policy: "trusted",
-          os_type: "linux",
-          favorite: false,
-          arch: "x86_64",
-          last_used_at: null,
-          host_key_fingerprint: "",
-          last_connection_status: "verified",
-          last_connection_message: "",
-          last_connected_at: null,
-          allow_sudo: true,
-          use_local_proxy: false,
-          bastion_id: null,
-          ai_username: "",
-          created_at: "2024-01-01",
-          updated_at: "2024-01-01",
-        },
-        {
-          id: 3,
-          alias: "我的阿里云3045",
-          hostname: "8.145.62.223",
-          port: 22,
-          username: "root",
-          auth_type: "password",
-          group: "我的服务器",
-          tags: JSON.stringify(["开发测试"]),
-          ai_policy: "trusted",
-          os_type: "linux",
-          favorite: false,
-          arch: "x86_64",
-          last_used_at: null,
-          host_key_fingerprint: "",
-          last_connection_status: "verified",
-          last_connection_message: "",
-          last_connected_at: null,
-          allow_sudo: true,
-          use_local_proxy: false,
-          bastion_id: null,
-          ai_username: "",
-          created_at: "2024-01-01",
-          updated_at: "2024-01-01",
-        },
-        {
-          id: 4,
-          alias: "我的香草云",
-          hostname: "156.226.177.226",
-          port: 22000,
-          username: "root",
-          auth_type: "key",
-          group: "我的服务器",
-          tags: JSON.stringify(["海外备用"]),
-          ai_policy: "trusted",
-          os_type: "linux",
-          favorite: false,
-          arch: "x86_64",
-          last_used_at: null,
-          host_key_fingerprint: "",
-          last_connection_status: "verified",
-          last_connection_message: "",
-          last_connected_at: null,
-          allow_sudo: true,
-          use_local_proxy: false,
-          bastion_id: null,
-          ai_username: "",
-          created_at: "2024-01-01",
-          updated_at: "2024-01-01",
-        },
-      ]);
+      setServers((await serverApi.list()).filter((server) => server.protocol !== "rdp"));
+    } catch (error) {
+      setServerLoadError(getErrorMessage(error));
     } finally {
       setLoadingServers(false);
     }
@@ -341,77 +254,22 @@ export default function SftpPage() {
     void loadServers();
   }, [loadServers]);
 
-  // SFTP 会话由 Rust 全局管理器持有，页面重新挂载时只恢复标签视图，不重新握手。
+  // 首次进入时接回后端会话，切菜单后的标签和路径从前端进程内状态恢复。
   useEffect(() => {
+    if (initialized || loadingServers || serverLoadError || sessionLoadError) return;
     let disposed = false;
-    void sftpApi.listSessions()
-      .then((sessions) => {
-        if (!disposed) setRestoredSessions(sessions);
-      })
-      .catch((error) => {
-        if (!disposed) message.error(getErrorMessage(error));
-      })
-      .finally(() => {
-        if (!disposed) setSessionsLoaded(true);
-      });
-    return () => { disposed = true; };
-  }, []);
-
-  // 初始化：默认打开一个「选择服务器...」标签，与截图 1 对应
-  useEffect(() => {
-    if (!sessionsLoaded || loadingServers || tabsInitialized) return;
-    const restoredTabs: SftpSessionTab[] = [];
-    restoredSessions.forEach((session) => {
-      const server = servers.find((item) => item.id === session.serverId);
-      if (!server) return;
-      restoredTabs.push({
-        id: session.sessionId,
-        serverId: server.id,
-        serverName: server.alias || server.hostname,
-        serverHost: `${server.hostname}:${server.port}`,
-        serverUser: server.username,
-        currentPath: "/root",
-        history: ["/root"],
-        historyIndex: 0,
-      });
+    const restore = (sessions: SftpSessionInfo[]) => {
+      if (!disposed) useSftpWorkspaceStore.getState().restore(sessions, servers);
+    };
+    void sftpApi.listSessions().then(restore).catch((error) => {
+      if (!disposed) setSessionLoadError(getErrorMessage(error));
     });
-    if (restoredTabs.length > 0) {
-      setTabs(restoredTabs);
-      setActiveTabId(routeServerId && restoredTabs.some((tab) => tab.serverId === routeServerId)
-        ? restoredTabs.find((tab) => tab.serverId === routeServerId)?.id ?? restoredTabs[0].id
-        : restoredTabs[0].id);
-    } else {
-      const defaultTab: SftpSessionTab = {
-        id: "picker-tab-default",
-        serverId: null,
-        serverName: "选择服务器...",
-        serverHost: "",
-        serverUser: "",
-        currentPath: "/root",
-        history: ["/root"],
-        historyIndex: 0,
-      };
-      setTabs([defaultTab]);
-      setActiveTabId(defaultTab.id);
-    }
-    setTabsInitialized(true);
-  }, [loadingServers, restoredSessions, routeServerId, servers, sessionsLoaded, tabsInitialized]);
+    return () => { disposed = true; };
+  }, [initialized, loadingServers, serverLoadError, servers, sessionLoadError]);
 
-  // 左侧（主）激活的标签对象
-  const activeLeftTab = useMemo(() => {
-    return tabs.find((t) => t.id === activeTabId) || tabs[0] || null;
-  }, [tabs, activeTabId]);
-
-  // 右侧激活的标签对象
-  const activeRightTab = useMemo(() => {
-    if (secondaryTabId) {
-      const found = tabs.find((t) => t.id === secondaryTabId);
-      if (found) return found;
-    }
-    const other = tabs.find((t) => t.id !== activeTabId && t.serverId !== null);
-    if (other) return other;
-    return tabs.find((t) => t.id !== activeTabId) || null;
-  }, [tabs, secondaryTabId, activeTabId]);
+  const activeLeftTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+  const activeRightTab = tabs.find((tab) => tab.id === secondaryTabId) ?? null;
+  const sidebarTab = activePane === "right" ? activeRightTab : activeLeftTab;
 
   // 过滤后的服务器列表（选机视图搜索）
   const filteredServers = useMemo(() => {
@@ -455,187 +313,118 @@ export default function SftpPage() {
 
   const loadRemoteDirectory = useCallback(
     async (tabId: string, path: string, overrideCredentials?: SftpCredentials) => {
-      const tab = tabs.find((item) => item.id === tabId);
-      const credentials = overrideCredentials ?? (tab?.serverId ? credentialsByServer[tab.serverId] : undefined);
-      if (!credentials) return;
+      const tab = useSftpWorkspaceStore.getState().tabs.find((item) => item.id === tabId);
+      if (tab?.serverId == null || tab.currentPath !== path) return;
+      const serverId = tab.serverId;
+      const credentials = overrideCredentials ?? { serverId, ...useSshSessionStore.getState().getCredentials(serverId) };
+      const key = transferDirectoryKey(serverId, path);
+      const request = { path, version: useSftpTransferStore.getState().directoryVersions[key] ?? 0 };
+      directoryRequests.current.set(tabId, request);
+      setDirectoryByTab((current) => ({
+        ...current,
+        [tabId]: { path, files: current[tabId]?.path === path ? current[tabId].files : [], loading: true },
+      }));
+      const isCurrentRequest = () => directoryRequests.current.get(tabId) === request &&
+        useSftpWorkspaceStore.getState().tabs.some((item) => item.id === tabId && item.currentPath === path);
 
-      setLoadingByTab((prev) => ({ ...prev, [tabId]: true }));
       try {
         const remoteFiles = await sftpApi.list(credentials, path);
-        setFilesByTab((prev) => ({
-          ...prev,
-          [tabId]: remoteFiles.map((file) => ({
-            ...file,
-            sizeFormatted: formatFileSize(file.size),
-          })),
-        }));
+        if (!isCurrentRequest()) return;
+        const files = remoteFiles.map((file) => ({ ...file, sizeFormatted: formatFileSize(file.size) }));
+        setDirectoryByTab((current) => ({ ...current, [tabId]: { path, files, loading: false } }));
       } catch (error) {
-        message.error(getErrorMessage(error));
-      } finally {
-        setLoadingByTab((prev) => ({ ...prev, [tabId]: false }));
+        if (!isCurrentRequest()) return;
+        setDirectoryByTab((current) => ({
+          ...current,
+          [tabId]: { path, files: [], loading: false, error: getErrorMessage(error) },
+        }));
       }
     },
-    [credentialsByServer, tabs],
+    [],
   );
 
   useEffect(() => {
-    if (!sessionsLoaded) return;
-    tabs.forEach((tab) => {
-      if (!tab.serverId || restoredDirectoryIdsRef.current.has(tab.id)) return;
-      const credentials = credentialsByServer[tab.serverId];
-      if (!credentials) return;
-      restoredDirectoryIdsRef.current.add(tab.id);
-      void loadRemoteDirectory(tab.id, tab.currentPath, credentials);
-    });
-  }, [credentialsByServer, loadRemoteDirectory, sessionsLoaded, tabs]);
+    const requests = directoryRequests.current;
+    return () => { requests.clear(); };
+  }, []);
+
+  useEffect(() => {
+    for (const tab of tabs) {
+      if (tab.serverId === null) continue;
+      const key = transferDirectoryKey(tab.serverId, tab.currentPath);
+      const version = transferDirectoryVersions[key] ?? 0;
+      const request = directoryRequests.current.get(tab.id);
+      // 仅重读实际写入的主机和目录。切页回来时本地目录列表为空，会重新读取当前路径。
+      if (request?.path !== tab.currentPath || request.version !== version) {
+        void loadRemoteDirectory(tab.id, tab.currentPath);
+      }
+    }
+  }, [loadRemoteDirectory, tabs, transferDirectoryVersions]);
 
   const openSessionForServer = useCallback(
-    (server: Server, targetPane: "left" | "right", credentials: SftpCredentials) => {
-      const serverDisplayName = server.alias || server.hostname;
-      const existingTab = tabs.find((tab) => tab.serverId === server.id);
-      if (existingTab) {
-        if (targetPane === "left") setActiveTabId(existingTab.id);
-        else setSecondaryTabId(existingTab.id);
-        void loadRemoteDirectory(existingTab.id, existingTab.currentPath, credentials);
-        message.info(`已切入【${serverDisplayName}】的 SFTP 会话`);
-        return;
+    async (server: Server, targetPane: SftpPane, originTabId: string | null, credentials: SftpCredentials) => {
+      if (connectingServers.has(server.id)) return;
+      connectingServers.add(server.id);
+      try {
+        const session = await sftpApi.open(credentials);
+        useSftpWorkspaceStore.getState().attachSession(session, server, targetPane, originTabId);
+      } catch (error) {
+        message.error(`连接 SFTP 失败：${getErrorMessage(error)}`);
+      } finally {
+        connectingServers.delete(server.id);
       }
-
-      const newTabId = `sftp-session-${server.id}-${Date.now()}`;
-      const newTab: SftpSessionTab = {
-        id: newTabId,
-        serverId: server.id,
-        serverName: serverDisplayName,
-        serverHost: `${server.hostname}:${server.port}`,
-        serverUser: server.username,
-        currentPath: "/root",
-        history: ["/root"],
-        historyIndex: 0,
-      };
-
-      setFilesByTab((prev) => ({ ...prev, [newTabId]: [] }));
-      setTabs((prev) => {
-        const isCurrentPicker = targetPane === "left" && activeLeftTab?.serverId === null;
-        if (isCurrentPicker && activeLeftTab) {
-          return prev.map((tab) => (tab.id === activeLeftTab.id ? newTab : tab));
-        }
-        return [...prev, newTab];
-      });
-      if (targetPane === "left") setActiveTabId(newTabId);
-      else setSecondaryTabId(newTabId);
-
-      void loadRemoteDirectory(newTabId, "/root", credentials);
-      message.success(`已建立与【${serverDisplayName}】的 SFTP 连接`);
     },
-    [activeLeftTab, loadRemoteDirectory, tabs],
+    [],
   );
 
   // 连接某台服务器进入 SFTP
   const handleConnectServer = useCallback(
-    (server: Server, targetPane: "left" | "right" = "left") => {
+    (server: Server, targetPane: SftpPane = "left") => {
+      const workspace = useSftpWorkspaceStore.getState();
+      const existing = workspace.tabs.find((tab) => tab.serverId === server.id);
+      if (existing) {
+        workspace.selectTab(existing.id, targetPane);
+        return;
+      }
+      if (connectingServers.has(server.id)) return;
+
+      const originTabId = targetPane === "left" ? workspace.activeTabId : workspace.secondaryTabId;
       const credentials = credentialsByServer[server.id];
-      // 表单保存的密码不等于 SSH 已完成主机指纹确认；首次进入 SFTP 必须先走验证弹窗。
-      // 否则后端会拒绝未确认指纹的会话，页面只能显示一条无法继续操作的错误。
+      // 首次连接沿用 SSH 验证弹窗，确认主机指纹并写入系统凭据库。
       if (!credentials || !server.host_key_fingerprint) {
-        setSshTargetPane(targetPane);
+        sshTarget.current = { pane: targetPane, originTabId };
         setSshServer(server);
         return;
       }
-      openSessionForServer(server, targetPane, credentials);
+      void openSessionForServer(server, targetPane, originTabId, credentials);
     },
     [credentialsByServer, openSessionForServer],
   );
 
-  // 服务器资产页明确点击 SFTP 时，直接打开该服务器的会话或验证框。
-  const autoConnectedServerRef = useRef<number | null>(null);
   useEffect(() => {
-    // 离开带 serverId 的路由后允许下一次同服务器跳转重新触发一次定位。
-    if (routeServerId === null) {
-      autoConnectedServerRef.current = null;
-      return;
-    }
-
-    if (
-      loadingServers ||
-      !sessionsLoaded ||
-      !tabsInitialized ||
-      sshServer !== null
-    ) {
-      return;
-    }
-
+    if (routeServerId === null || loadingServers || serverLoadError || !initialized || sshServer) return;
+    if (handledSftpEntries.has(location.key)) return;
+    handledSftpEntries.add(location.key);
     const server = servers.find((item) => item.id === routeServerId);
-    if (!server) return;
+    if (server) handleConnectServer(server);
+    else message.warning("找不到该服务器的 SFTP 连接");
+  }, [handleConnectServer, initialized, loadingServers, location.key, routeServerId, serverLoadError, servers, sshServer]);
 
-    // 路由只负责进入页面时定位一次。后续顶部标签切换不能再次执行这里，
-    // 否则会把用户手动切换的标签强制切回路由携带的服务器。
-    if (autoConnectedServerRef.current === routeServerId) return;
-    autoConnectedServerRef.current = routeServerId;
-
-    // 路由从服务器列表跳转回来时优先切换到已恢复的标签，
-    // 不再因为凭据状态尚未 hydrate 而重复弹出 SSH 验证框。
-    const existingTab = tabs.find((tab) => tab.serverId === routeServerId);
-    if (existingTab) {
-      setActiveTabId(existingTab.id);
-      return;
-    }
-
-    handleConnectServer(server);
-  }, [handleConnectServer, loadingServers, routeServerId, servers, sessionsLoaded, sshServer, tabs, tabsInitialized]);
-
-  // 关闭单个标签
-  const handleCloseTab = (tabId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const closingTab = tabs.find((tab) => tab.id === tabId);
-    if (closingTab?.serverId) {
-      // 关闭标签即用户明确关闭该服务器的 SFTP 会话；页面卸载本身不会触发这里。
-      void sftpApi.close(closingTab.serverId).catch((error) => {
-        message.error(getErrorMessage(error));
-      });
-    }
-    if (tabs.length <= 1) {
-      const resetTab: SftpSessionTab = {
-        id: "picker-tab-default",
-        serverId: null,
-        serverName: "选择服务器...",
-        serverHost: "",
-        serverUser: "",
-        currentPath: "/root",
-        history: ["/root"],
-        historyIndex: 0,
-      };
-      setTabs([resetTab]);
-      setActiveTabId(resetTab.id);
-      setSecondaryTabId(null);
-      return;
-    }
-
-    const nextTabs = tabs.filter((t) => t.id !== tabId);
-    setTabs(nextTabs);
-
-    if (activeTabId === tabId) {
-      setActiveTabId(nextTabs[0].id);
-    }
-    if (secondaryTabId === tabId) {
-      setSecondaryTabId(nextTabs.find((t) => t.id !== nextTabs[0].id)?.id || null);
+  // 明确关闭标签才会断开后端会话，页面卸载不会关闭连接。
+  const handleCloseTab = async (tab: SftpSessionTab, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      if (tab.serverId !== null) await sftpApi.close(tab.serverId);
+      useSftpWorkspaceStore.getState().removeTab(tab.id);
+      directoryRequests.current.delete(tab.id);
+      setDirectoryByTab(({ [tab.id]: _, ...remaining }) => remaining);
+    } catch (error) {
+      message.error(getErrorMessage(error));
     }
   };
 
   // 添加新标签（选择服务器）
-  const handleAddTab = () => {
-    const newPickerTab: SftpSessionTab = {
-      id: `picker-tab-${Date.now()}`,
-      serverId: null,
-      serverName: "选择服务器...",
-      serverHost: "",
-      serverUser: "",
-      currentPath: "/root",
-      history: ["/root"],
-      historyIndex: 0,
-    };
-    setTabs((prev) => [...prev, newPickerTab]);
-    setActiveTabId(newPickerTab.id);
-  };
+  const handleAddTab = () => openPicker("left");
 
   const handleTabDragStart = (event: React.DragEvent<HTMLDivElement>, tabId: string) => {
     setDraggingTabId(tabId);
@@ -681,43 +470,22 @@ export default function SftpPage() {
   };
 
   // 确认全部关闭
-  const handleConfirmCloseAll = () => {
-    const defaultTab: SftpSessionTab = {
-      id: "picker-tab-default",
-      serverId: null,
-      serverName: "选择服务器...",
-      serverHost: "",
-      serverUser: "",
-      currentPath: "/root",
-      history: ["/root"],
-      historyIndex: 0,
-    };
-    setTabs([defaultTab]);
-    setActiveTabId(defaultTab.id);
-    setSecondaryTabId(null);
-    setCloseAllModalOpen(false);
-    void sftpApi.closeAll().catch((error) => {
+  const handleConfirmCloseAll = async () => {
+    if (connectingServers.size > 0) {
+      message.info("请等待 SFTP 建连完成");
+      return;
+    }
+    try {
+      const { tasks, cancel } = useSftpTransferStore.getState();
+      await Promise.all(tasks.filter((task) => isTransferActive(task.status)).map((task) => cancel(task.id)));
+      await sftpApi.closeAll();
+      useSftpWorkspaceStore.getState().clearTabs();
+      directoryRequests.current.clear();
+      setDirectoryByTab({});
+      setCloseAllModalOpen(false);
+      message.success("已成功关闭全部 SFTP 会话");
+    } catch (error) {
       message.error(getErrorMessage(error));
-    });
-    message.success("已成功关闭全部 SFTP 会话");
-  };
-
-  // 切换分屏模式
-  const handleToggleLayout = (mode: SftpLayoutMode) => {
-    setLayoutMode(mode);
-    if (mode === "dual-h") {
-      if (!secondaryTabId || secondaryTabId === activeTabId) {
-        const otherTab = tabs.find((t) => t.id !== activeTabId && t.serverId !== null);
-        if (otherTab) {
-          setSecondaryTabId(otherTab.id);
-        } else if (servers.length >= 2) {
-          const secondServer = servers[1];
-          handleConnectServer(secondServer, "right");
-        }
-      }
-      message.success("已开启左右双栏分屏视图，支持左右独立浏览与拖拽上传");
-    } else {
-      message.info("已切换为单栏专注视图");
     }
   };
 
@@ -727,7 +495,7 @@ export default function SftpPage() {
 
     setTabs((prev) =>
       prev.map((t) => {
-        if (t.id !== tabId) return t;
+        if (t.id !== tabId || t.currentPath === cleanPath) return t;
         const newHistory = t.history.slice(0, t.historyIndex + 1);
         newHistory.push(cleanPath);
         return {
@@ -740,7 +508,6 @@ export default function SftpPage() {
     );
     if (tabId === activeTabId) setLeftPathInputVal(cleanPath);
     if (tabId === activeRightTab?.id) setRightPathInputVal(cleanPath);
-    void loadRemoteDirectory(tabId, cleanPath);
   };
 
   // 后退
@@ -753,7 +520,6 @@ export default function SftpPage() {
     );
     if (tab.id === activeTabId) setLeftPathInputVal(targetPath);
     if (tab.id === activeRightTab?.id) setRightPathInputVal(targetPath);
-    void loadRemoteDirectory(tab.id, targetPath);
   };
 
   // 前进
@@ -766,7 +532,6 @@ export default function SftpPage() {
     );
     if (tab.id === activeTabId) setLeftPathInputVal(targetPath);
     if (tab.id === activeRightTab?.id) setRightPathInputVal(targetPath);
-    void loadRemoteDirectory(tab.id, targetPath);
   };
 
   // 上一级目录
@@ -886,31 +651,33 @@ export default function SftpPage() {
     }
   };
 
-  // 通过 IPC 上传本地文件内容，凭据只随当前请求传递。
-  const executeUploadFiles = async (tab: SftpSessionTab, fileList: FileList | File[]) => {
-    if (!fileList || fileList.length === 0) return;
-    const credentials = tab.serverId ? credentialsByServer[tab.serverId] : undefined;
-    if (!credentials) {
+  // 上传任务脱离 SFTP 页面生命周期，浮窗由应用外壳持续显示真实传输进度。
+  const queueUploadSources = (tab: SftpSessionTab, sources: (File | string)[]) => {
+    if (sources.length === 0) return;
+    const serverId = tab.serverId;
+    if (serverId === null || !useSshSessionStore.getState().getCredentials(serverId)) {
       message.warning("SFTP 会话凭据已失效，请重新连接服务器");
       return;
     }
-    const files = Array.from(fileList);
-    let uploaded = 0;
+    enqueueUpload({
+      serverId,
+      serverName: tab.serverName,
+      remoteDir: tab.currentPath,
+    }, sources);
+    message.success(`${sources.length} 个文件已加入后台上传队列`);
+  };
+
+  const executeUploadFiles = (tab: SftpSessionTab, fileList: FileList | File[]) => {
+    queueUploadSources(tab, Array.from(fileList));
+  };
+
+  const selectUploadFiles = async (tab: SftpSessionTab) => {
     try {
-      for (const file of files) {
-        const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
-        await sftpApi.upload({
-          request: credentials,
-          remoteDir: tab.currentPath,
-          fileName: file.name,
-          content: bytes,
-        });
-        uploaded += 1;
-      }
-      await loadRemoteDirectory(tab.id, tab.currentPath, credentials);
-      message.success(`已上传 ${uploaded} 个文件到 ${tab.currentPath}`);
+      const selected = await openFileDialog({ multiple: true, directory: false });
+      if (!selected) return;
+      queueUploadSources(tab, Array.isArray(selected) ? selected : [selected]);
     } catch (error) {
-      message.error(getErrorMessage(error));
+      message.error(`打开本地文件失败：${getErrorMessage(error)}`);
     }
   };
 
@@ -996,26 +763,33 @@ export default function SftpPage() {
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(url);
+    // 让 WebView 先接收下载请求，再回收 Blob URL。
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const handleDownload = async (tab: SftpSessionTab, item: RemoteFileItem) => {
-    const credentials = tab.serverId ? credentialsByServer[tab.serverId] : undefined;
-    if (!credentials) {
-      message.warning("SFTP 会话凭据已失效，请重新连接服务器");
-      return;
-    }
+    if (tab.serverId === null) return;
+    const credentials = credentialsByServer[tab.serverId] ?? { serverId: tab.serverId };
     const fullPath = `${tab.currentPath}/${item.name}`.replace(/\/+/g, "/");
-    const downloadPath = item.isDir ? `${fullPath}.tar.gz` : fullPath;
+    // 每次打包使用单独的远程临时文件，避免覆盖同名归档或影响并发下载。
+    const archivePath = item.isDir
+      ? normalizeRemotePath(`${tab.currentPath}/.opspub-download-${crypto.randomUUID()}.tar.gz`)
+      : null;
     try {
-      if (item.isDir) {
-        await sftpApi.archive(credentials, fullPath, downloadPath);
-      }
-      const bytes = await sftpApi.download(credentials, downloadPath);
+      if (archivePath) await sftpApi.archive(credentials, fullPath, archivePath);
+      const bytes = await sftpApi.download(credentials, archivePath ?? fullPath);
       triggerDownload(item.isDir ? `${item.name}.tar.gz` : item.name, bytes);
-      message.success(`已下载【${item.name}】`);
+      message.success(`已发起【${item.name}】的下载`);
     } catch (error) {
       message.error(getErrorMessage(error));
+    } finally {
+      if (archivePath) {
+        try {
+          await sftpApi.delete(credentials, archivePath);
+        } catch (error) {
+          message.warning(`未能清理下载临时归档 ${archivePath}：${getErrorMessage(error)}`);
+        }
+      }
     }
   };
 
@@ -1174,11 +948,23 @@ export default function SftpPage() {
   };
 
   // 渲染选机视图卡片（当没有选中具体服务器时）
-  const renderServerPicker = (targetPane: "left" | "right") => {
+  const renderServerPicker = (targetPane: SftpPane) => {
+    const loadError = serverLoadError ?? sessionLoadError;
+    if (loadingServers || (!initialized && !loadError)) {
+      return <div className="grid flex-1 place-items-center"><Spin aria-label="正在加载 SFTP 连接" /></div>;
+    }
+    if (loadError) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4">
+          <p role="status">{serverLoadError ? "无法加载服务器" : "无法恢复 SFTP 会话"}：{loadError}</p>
+          <button type="button" className="text-[var(--accent)] underline" onClick={() => void loadServers()}>重试</button>
+        </div>
+      );
+    }
     return (
-      <div className="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto custom-scrollbar">
+      <div className="@container/sftp-picker flex-1 flex flex-col p-4 space-y-4 overflow-y-auto custom-scrollbar">
         {/* 顶层检索与快捷操作条 */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <span className="flex items-center space-x-1.5 font-bold text-sm text-white">
               <Zap size={15} className="text-[var(--accent,#0d9488)]" />
@@ -1189,8 +975,8 @@ export default function SftpPage() {
             </span>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <div className="relative w-64">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className="relative w-64 max-w-full">
               <Input
                 value={serverSearchKeyword}
                 onChange={(e) => setServerSearchKeyword(e.target.value)}
@@ -1254,8 +1040,8 @@ export default function SftpPage() {
                 没有匹配的服务器，请更换搜索词或新建服务器
               </div>
             ) : serverViewMode === "tree" ? (
-              <div className="sftp-tree-view">
-                <aside className="sftp-tree-sidebar" aria-label="服务器分组">
+              <div className="sftp-tree-view @max-[650px]/sftp-picker:flex-col">
+                <aside className="sftp-tree-sidebar @max-[650px]/sftp-picker:w-full @max-[650px]/sftp-picker:max-h-52" aria-label="服务器分组">
                   {serverGroups.map(({ name, items }) => {
                     const collapsed = collapsedServerGroups[name] ?? false;
                     return (
@@ -1276,7 +1062,7 @@ export default function SftpPage() {
                           <div className="sftp-tree-items">
                             {items.map((server) => {
                               const probe = connectivityByServer[server.id]?.result;
-                              const online = probe?.ok || server.last_connection_status === "verified";
+                              const online = probe?.ok ?? server.last_connection_status === "verified";
                               return (
                                 <button
                                   key={server.id}
@@ -1309,20 +1095,17 @@ export default function SftpPage() {
                 {selectedTreeServer ? (() => {
                   const server = selectedTreeServer;
                   const probe = connectivityByServer[server.id];
-                  const isOnline = probe?.result?.ok || server.last_connection_status === "verified";
-                  const policy = server.ai_policy || "approval";
-                  const policyLabel: Record<string, string> = {
-                    disabled: "禁用", readonly: "只读", approval: "审批", allowlist: "白名单", trusted: "信任",
-                  };
+                  const isOnline = probe?.result?.ok ?? server.last_connection_status === "verified";
+                  const policyLabel = AI_POLICY_META[normalizeAIPolicy(server.ai_policy)]?.label ?? "未知";
                   return (
                     <section className="sftp-tree-detail">
-                      <div className="sftp-tree-detail-head">
+                      <div className="sftp-tree-detail-head @max-[380px]/sftp-picker:flex-wrap">
                         <div className="sftp-tree-detail-title">
                           <span className="sftp-tree-detail-icon"><ServerIcon size={20} /></span>
                           <span>
                             <span className="sftp-tree-detail-name">
                               <strong>{server.alias || server.hostname}</strong>
-                              <em>{policyLabel[policy] || policy}</em>
+                              <em>{policyLabel}</em>
                             </span>
                             <span className={`sftp-tree-detail-status ${isOnline ? "online" : "pending"}`}>
                               <span className="sftp-tree-status-dot" />
@@ -1339,7 +1122,7 @@ export default function SftpPage() {
                         <div><span>主机</span><strong>{server.hostname}:{server.port}</strong></div>
                         <div><span>用户名</span><strong>{server.username}</strong></div>
                         <div><span>分组</span><strong>{server.group || "我的服务器"}</strong></div>
-                        <div><span>AI 策略</span><strong>{policyLabel[policy] || policy}</strong></div>
+                        <div><span>AI 策略</span><strong>{policyLabel}</strong></div>
                         <div><span>系统</span><strong>{server.os_type === "windows" ? "Windows" : "Linux"}</strong></div>
                         <div className="sftp-tree-online-row">
                           <span>在线状态</span>
@@ -1360,43 +1143,46 @@ export default function SftpPage() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {filteredServers.map((server, idx) => {
-                  const fakeLatency = [272, 258, 293, 432][idx % 4];
+              <div className={serverViewMode === "list" ? "grid grid-cols-1 gap-2" : "grid grid-cols-1 @min-[440px]/sftp-picker:grid-cols-2 @min-[660px]/sftp-picker:grid-cols-3 @min-[880px]/sftp-picker:grid-cols-4 gap-3"}>
+                {filteredServers.map((server) => {
+                  const probe = connectivityByServer[server.id]?.result;
+                  const connected = tabs.some((tab) => tab.serverId === server.id);
+                  const policyLabel = AI_POLICY_META[normalizeAIPolicy(server.ai_policy)]?.label ?? "未知";
                   return (
-                    <div
+                    <button
                       key={server.id}
+                      type="button"
                       onClick={() => handleConnectServer(server, targetPane)}
-                      className="group relative p-3 rounded-xl bg-surface-900/80 hover:bg-surface-850 border border-slate-800/90 hover:border-[var(--accent,#0d9488)]/50 hover:shadow-[0_0_15px_rgba(13,148,136,0.2)] transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-2.5"
+                      className="group relative min-w-0 p-3 text-left rounded-xl bg-surface-900/80 hover:bg-surface-850 border border-slate-800/90 hover:border-[var(--accent,#0d9488)]/50 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-2.5"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-2.5 min-w-0">
+                      <span className="flex w-full items-start justify-between gap-2">
+                        <span className="flex items-center space-x-2.5 min-w-0">
                           {/* 服务器卡片图标：严格跟随服务器菜单图标（ServerIcon）并遵从主题色 */}
-                          <div className="relative w-8 h-8 rounded-lg bg-[var(--accent,#0d9488)]/15 border border-[var(--accent,#0d9488)]/30 flex items-center justify-center shrink-0">
+                          <span className="relative w-8 h-8 rounded-lg bg-[var(--accent,#0d9488)]/15 border border-[var(--accent,#0d9488)]/30 flex items-center justify-center shrink-0">
                             <ServerIcon size={15} className="text-[var(--accent,#0d9488)]" />
-                            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--accent,#0d9488)] ring-2 ring-surface-900"></span>
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center space-x-1.5">
-                              <span className="font-bold text-xs text-white group-hover:text-[var(--accent-hover,#2dd4bf)] transition truncate max-w-[110px]">
+                            {connected && <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--accent,#0d9488)] ring-2 ring-surface-900" />}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="flex items-center space-x-1.5">
+                              <span className="font-bold text-xs text-[var(--text-primary)] group-hover:text-[var(--accent-hover)] transition truncate">
                                 {server.alias || server.hostname}
                               </span>
                               <span className="text-[9px] px-1 py-0.2 rounded font-sans bg-rose-500/15 text-rose-300 border border-rose-500/30 shrink-0">
-                                信任
+                                {policyLabel}
                               </span>
-                            </div>
-                            <span className="text-[10px] text-[var(--accent,#0d9488)]/90">已开 1</span>
-                          </div>
-                        </div>
-                        <span className="font-mono text-[10px] text-amber-400/90 shrink-0 font-medium">
-                          {fakeLatency}ms
+                            </span>
+                            {connected && <span className="text-[10px] text-[var(--accent)]">会话已打开</span>}
+                          </span>
                         </span>
-                      </div>
+                        {probe?.ok && probe.latency_ms !== null && (
+                          <span className="font-mono text-[10px] text-[var(--text-secondary)] shrink-0">{probe.latency_ms}ms</span>
+                        )}
+                      </span>
 
-                      <div className="font-mono text-[10px] text-slate-400 truncate">
+                      <span className="block w-full font-mono text-[10px] text-[var(--text-secondary)] truncate">
                         {server.username}@{server.hostname}:{server.port}
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -1404,41 +1190,44 @@ export default function SftpPage() {
           </div>
         </Spin>
 
-        {/* 底部键盘快捷提示 */}
-        <div className="mt-auto pt-4 text-center text-[11px] text-slate-500 font-mono">
-          ↑↓ 选择 · 回车连接 · 直接输入即搜索
-        </div>
       </div>
     );
   };
 
   // 渲染单个窗格文件浏览器
   const renderExplorerPane = (
-    pane: "left" | "right",
+    pane: SftpPane,
     tab: SftpSessionTab,
     isDual: boolean
   ) => {
     const isLeft = pane === "left";
     const isDraggingOver = isLeft ? leftDraggingOver : rightDraggingOver;
-    const fileInputRef = isLeft ? leftFileInputRef : rightFileInputRef;
-    const filterKw = (isLeft ? leftFilterKeyword : rightFilterKeyword).trim().toLowerCase();
+    const filterInput = isLeft ? leftFilterKeyword : rightFilterKeyword;
+    const filterKw = filterInput.trim().toLowerCase();
     const setFilterKw = isLeft ? setLeftFilterKeyword : setRightFilterKeyword;
-    const selectedNames = isLeft ? leftSelectedNames : rightSelectedNames;
-    const setSelectedNames = isLeft ? setLeftSelectedNames : setRightSelectedNames;
+    const selection = isLeft ? leftSelection : rightSelection;
+    const setSelection = isLeft ? setLeftSelection : setRightSelection;
+    const selectionDirectory = `${tab.id}:${tab.currentPath}`;
+    const selectedNames = selection?.directory === selectionDirectory ? selection.names : [];
+    const setSelectedNames = (names: string[]) => setSelection({ directory: selectionDirectory, names });
     const isEditingPath = isLeft ? leftEditingPath : rightEditingPath;
     const setIsEditingPath = isLeft ? setLeftEditingPath : setRightEditingPath;
     const pathInputVal = isLeft ? leftPathInputVal : rightPathInputVal;
     const setPathInputVal = isLeft ? setLeftPathInputVal : setRightPathInputVal;
 
-    const allFiles = filesByTab[tab.id] || [];
+    const directory = directoryByTab[tab.id];
+    const currentDirectory = directory?.path === tab.currentPath ? directory : undefined;
+    const allFiles = currentDirectory?.files ?? [];
     const displayFiles = filterKw
       ? allFiles.filter((f) => f.name.toLowerCase().includes(filterKw))
       : allFiles;
 
-    const isAllSelected = displayFiles.length > 0 && selectedNames.length === displayFiles.length;
+    const visibleSelected = displayFiles.filter((file) => selectedNames.includes(file.name)).length;
+    const isAllSelected = displayFiles.length > 0 && visibleSelected === displayFiles.length;
 
     // 拖拽事件监听
     const handleDragEnter = (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
       e.preventDefault();
       e.stopPropagation();
       if (isLeft) {
@@ -1451,12 +1240,14 @@ export default function SftpPage() {
     };
 
     const handleDragOver = (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
       e.preventDefault();
       e.stopPropagation();
       e.dataTransfer.dropEffect = "copy";
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
       e.preventDefault();
       e.stopPropagation();
       if (isLeft) {
@@ -1491,7 +1282,7 @@ export default function SftpPage() {
 
     return (
       <div
-        className="flex-1 flex flex-col min-h-0 relative overflow-hidden bg-[#0a0f1d]"
+        className="@container/sftp-pane flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden bg-[var(--surface-950)]"
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -1507,35 +1298,21 @@ export default function SftpPage() {
               松开鼠标以上传文件
             </h3>
             <p className="text-xs text-[var(--accent-hover,#2dd4bf)] font-mono">
-              将直接以 256KiB 分块流上传至【{tab.serverName}】当前目录:{" "}
+              上传至 {tab.serverName} ·{" "}
               <strong>{tab.currentPath}</strong>
             </p>
           </div>
         )}
 
-        {/* 隐藏的文件选择 input */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files && e.target.files.length > 0) {
-              executeUploadFiles(tab, e.target.files);
-              e.target.value = "";
-            }
-          }}
-        />
-
         {/* 分屏模式下显示的窗格轻量标头 */}
         {isDual && (
-          <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-surface-900 border-b border-slate-800 text-xs">
-            <div className="flex items-center space-x-2">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 bg-surface-900 border-b border-slate-800 text-xs">
+            <div className="flex min-w-0 items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-[var(--accent,#0d9488)]"></span>
-              <span className="font-semibold text-white">
+              <span className="truncate font-semibold text-white" title={tab.serverName}>
                 {isLeft ? "左窗格" : "右窗格"} · {tab.serverName}
               </span>
-              <span className="font-mono text-[10px] text-slate-400">
+              <span className="truncate font-mono text-[10px] text-slate-400" title={tab.serverHost}>
                 ({tab.serverHost})
               </span>
             </div>
@@ -1543,21 +1320,22 @@ export default function SftpPage() {
             {/* 允许在分屏下自由切换该窗格对应哪个 Tab */}
             <Dropdown
               menu={{
-                items: tabs.map((t) => ({
-                  key: t.id,
-                  label: t.serverName,
-                  icon: t.serverId ? <ServerIcon size={12} className="text-[var(--accent,#0d9488)]" /> : <Zap size={12} className="text-cyan-400" />,
-                  onClick: () => {
-                    if (isLeft) setActiveTabId(t.id);
-                    else setSecondaryTabId(t.id);
-                  },
-                })),
+                selectedKeys: [tab.id],
+                items: [
+                  { key: "pick-server", label: "选择服务器…", icon: <Plus size={12} />, onClick: () => openPicker(pane) },
+                  ...tabs.filter((t) => t.serverId !== null).map((t) => ({
+                    key: t.id,
+                    label: t.serverName,
+                    icon: <ServerIcon size={12} className="text-[var(--accent,#0d9488)]" />,
+                    onClick: () => selectTab(t.id, pane),
+                  })),
+                ],
               }}
               trigger={["click"]}
             >
               <button
                 type="button"
-                className="text-[11px] text-slate-400 hover:text-[var(--accent,#0d9488)] flex items-center space-x-1 px-1.5 py-0.5 rounded bg-surface-800 hover:bg-surface-750 transition cursor-pointer"
+                className="shrink-0 text-[11px] text-slate-400 hover:text-[var(--accent,#0d9488)] flex items-center space-x-1 px-1.5 py-0.5 rounded bg-surface-800 hover:bg-surface-750 transition cursor-pointer"
               >
                 <span>切换会话</span>
               </button>
@@ -1567,7 +1345,7 @@ export default function SftpPage() {
 
         {/* 路径导航工具条 (对应截图 1 / 截图 2) */}
         <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-slate-800/80 bg-surface-950/90 gap-2">
-          <div className="flex items-center space-x-1 flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1 flex-1 min-w-0">
             <button
               type="button"
               onClick={() => handleHistoryBack(tab)}
@@ -1604,7 +1382,7 @@ export default function SftpPage() {
             </button>
 
             {/* 面包屑路径输入框 */}
-            <div className="flex-1 min-w-[120px] max-w-xl mx-1">
+            <div className="flex-1 basis-28 min-w-0 max-w-xl mx-1">
               {isEditingPath ? (
                 <Input
                   value={pathInputVal}
@@ -1615,12 +1393,7 @@ export default function SftpPage() {
                     }
                     setIsEditingPath(false);
                   }}
-                  onPressEnter={() => {
-                    if (pathInputVal.trim()) {
-                      handleNavigateToPath(tab.id, pathInputVal.trim());
-                    }
-                    setIsEditingPath(false);
-                  }}
+                  onPressEnter={(event) => event.currentTarget.blur()}
                   autoFocus
                   size="small"
                   className="bg-surface-900 border-[var(--accent,#0d9488)] font-mono text-xs text-white"
@@ -1670,8 +1443,8 @@ export default function SftpPage() {
         </div>
 
         {/* 操作工具栏：上传文件大按钮(主题色) + 紧随其后 4 个工具图标按钮 + 搜索过滤 (截图 1 / 截图 2) */}
-        <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-surface-950/60 border-b border-slate-800/60 gap-2 text-xs">
-          <div className="flex items-center space-x-2">
+        <div className="shrink-0 flex flex-wrap items-center justify-between px-3 py-1.5 bg-surface-950/60 border-b border-slate-800/60 gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
             {remoteClipboard && (
               <button
                 type="button"
@@ -1683,14 +1456,30 @@ export default function SftpPage() {
               </button>
             )}
             {/* 上传文件主按钮：严格按照主题色走 */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer text-white bg-[var(--accent,#0d9488)] hover:brightness-110 shadow-[0_0_12px_var(--accent-glow,rgba(13,148,136,0.35))]"
-            >
-              <Upload size={14} />
-              <span>上传文件</span>
-            </button>
+            <div className="flex rounded-lg bg-[var(--accent)] text-white">
+              <button
+                type="button"
+                onClick={() => void selectUploadFiles(tab)}
+                title={`上传至 ${tab.serverName} · ${tab.currentPath}`}
+                className="flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 font-semibold hover:bg-white/15"
+              >
+                <Upload size={14} />
+                <span>上传文件</span>
+              </button>
+              <Dropdown
+                trigger={["click"]}
+                menu={{
+                  items: [
+                    { key: "upload", label: "选择本地文件…", onClick: () => void selectUploadFiles(tab) },
+                    { key: "transfers", label: "打开传输任务", disabled: !hasTransfers, onClick: () => showTransfers("expanded") },
+                  ],
+                }}
+              >
+                <button type="button" aria-label="上传选项" className="rounded-r-lg border-l border-white/25 px-1.5 hover:bg-white/15">
+                  <ChevronDown size={14} />
+                </button>
+              </Dropdown>
+            </div>
 
             {/* 紧接着右侧的 4 个精巧工具图标按钮 (截图 1 / 截图 2) */}
             <div className="flex items-center space-x-1">
@@ -1741,7 +1530,7 @@ export default function SftpPage() {
           <div className="flex items-center space-x-2">
             <div className="relative w-40 sm:w-48">
               <Input
-                value={filterKw}
+                value={filterInput}
                 onChange={(e) => setFilterKw(e.target.value)}
                 placeholder="过滤"
                 prefix={<Search size={12} className="text-slate-500 mr-1" />}
@@ -1756,7 +1545,7 @@ export default function SftpPage() {
         {/* 文件表格核心区 (表头、图标主题色与右侧操作列完全对齐截图 1 / 截图 2) */}
         <div className="flex-1 min-h-0 overflow-hidden">
           <Spin
-            spinning={Boolean(loadingByTab[tab.id])}
+            spinning={!currentDirectory || currentDirectory.loading}
             className="block h-full [&>.ant-spin-container]:h-full"
           >
         <div className="h-full min-h-0 overflow-auto custom-scrollbar relative">
@@ -1766,7 +1555,7 @@ export default function SftpPage() {
                 <th className="py-2 px-3 w-8">
                   <Checkbox
                     checked={isAllSelected}
-                    indeterminate={selectedNames.length > 0 && !isAllSelected}
+                    indeterminate={visibleSelected > 0 && !isAllSelected}
                     onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedNames(displayFiles.map((f) => f.name));
@@ -1778,8 +1567,8 @@ export default function SftpPage() {
                 </th>
                 <th className="py-2 px-3 font-medium">名称</th>
                 <th className="py-2 px-3 font-medium w-24">大小</th>
-                <th className="py-2 px-3 font-medium w-36">修改时间</th>
-                <th className="py-2 px-3 font-medium w-36">权限 / 属主</th>
+                <th className="py-2 px-3 font-medium w-36 @max-[540px]/sftp-pane:hidden">修改时间</th>
+                <th className="py-2 px-3 font-medium w-36 @max-[540px]/sftp-pane:hidden">权限 / 属主</th>
                 <th className="py-2 px-3 font-medium w-28 text-right">操作</th>
               </tr>
             </thead>
@@ -1787,7 +1576,11 @@ export default function SftpPage() {
               {displayFiles.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-500 font-sans">
-                    {filterKw ? "没有匹配的文件或目录" : "此目录为空，可直接将本地文件拖拽至此上传"}
+                    {currentDirectory?.error ? (
+                      <span role="status" className="text-[var(--danger)]">无法读取目录：{currentDirectory.error}</span>
+                    ) : currentDirectory?.loading === false ? (
+                      filterKw ? "没有匹配的文件或目录" : "此目录为空，可直接将本地文件拖拽至此上传"
+                    ) : null}
                   </td>
                 </tr>
               ) : (
@@ -1836,8 +1629,8 @@ export default function SftpPage() {
                         </div>
                       </td>
                       <td className="py-2.5 px-3 text-slate-400">{item.sizeFormatted}</td>
-                      <td className="py-2.5 px-3 text-slate-400">{item.modified}</td>
-                      <td className="py-2.5 px-3 text-slate-400">
+                      <td className="py-2.5 px-3 text-slate-400 @max-[540px]/sftp-pane:hidden">{item.modified}</td>
+                      <td className="py-2.5 px-3 text-slate-400 @max-[540px]/sftp-pane:hidden">
                         <span>{item.permissions}</span>
                         <span className="text-slate-600 mx-1.5">·</span>
                         <span>{item.owner}</span>
@@ -1872,6 +1665,7 @@ export default function SftpPage() {
                             <button
                               type="button"
                               onClick={() => void handleDownload(tab, item)}
+                              aria-label={`下载 ${item.name}`}
                               className="p-1 rounded hover:bg-surface-800 text-slate-400 hover:text-[var(--accent,#0d9488)] transition cursor-pointer"
                             >
                               <Download size={14} />
@@ -1917,8 +1711,30 @@ export default function SftpPage() {
     );
   };
 
+  const focusPane = (pane: SftpPane) => {
+    if (useSftpWorkspaceStore.getState().activePane !== pane) {
+      useSftpWorkspaceStore.setState({ activePane: pane });
+    }
+  };
+
   return (
     <div className="ops-page ops-sftp-page flex flex-col h-full overflow-hidden select-none bg-[var(--bg-primary)] text-slate-200 font-sans">
+      <WorkspaceSidebarSlot>
+        <SftpSidebar
+          sessions={tabs.filter((tab) => tab.serverId !== null)}
+          activeTab={sidebarTab}
+          pane={activePane}
+          split={layoutMode === "dual-h"}
+          ready={initialized}
+          onSelectSession={(id) => selectTab(id, activePane)}
+          onChooseServer={() => {
+            if (!sidebarTab || sidebarTab.serverId !== null) openPicker(activePane);
+          }}
+          onOpenPath={(path) => {
+            if (sidebarTab?.serverId != null) handleNavigateToPath(sidebarTab.id, path);
+          }}
+        />
+      </WorkspaceSidebarSlot>
       {/* ========================================================================= */}
       {/* 1. 顶栏 Header：文件传输标题 + 右上角分栏切换按钮（严格跟随主题色走） */}
       {/* ========================================================================= */}
@@ -1930,7 +1746,7 @@ export default function SftpPage() {
             </span>
             <h1 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
               <span>文件传输 (SFTP)</span>
-              <Tooltip title="基于安全 SSH 子系统流式传输，支持目录拖拽直接上传、多标签页并发与双栏传输">
+              <Tooltip title="通过 SFTP 上传和下载文件。可以选择本地文件，或将文件拖入目标窗格。">
                 <HelpCircle size={13} className="text-slate-500 hover:text-slate-300 cursor-pointer" />
               </Tooltip>
             </h1>
@@ -1944,7 +1760,9 @@ export default function SftpPage() {
         <div className="flex items-center space-x-1 p-1 rounded-lg bg-surface-900 border border-slate-800 text-slate-400">
           <button
             type="button"
-            onClick={() => handleToggleLayout("single")}
+            onClick={() => setLayoutMode("single")}
+            aria-pressed={layoutMode === "single"}
+            disabled={!initialized}
             title="单栏专注视图"
             className={`flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
               layoutMode === "single"
@@ -1957,7 +1775,9 @@ export default function SftpPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleToggleLayout("dual-h")}
+            onClick={() => setLayoutMode("dual-h")}
+            aria-pressed={layoutMode === "dual-h"}
+            disabled={!initialized}
             title="左右双栏对比与传输"
             className={`flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
               layoutMode === "dual-h"
@@ -1984,7 +1804,7 @@ export default function SftpPage() {
               <div
                 key={tab.id}
                 draggable
-                onClick={() => setActiveTabId(tab.id)}
+                onClick={() => selectTab(tab.id, "left")}
                 onDragStart={(event) => handleTabDragStart(event, tab.id)}
                 onDragOver={(event) => handleTabDragOver(event, tab.id)}
                 onDragLeave={() => {
@@ -2011,7 +1831,7 @@ export default function SftpPage() {
                 <span className="truncate max-w-[120px]">{tab.serverName}</span>
                 <button
                   type="button"
-                  onClick={(e) => handleCloseTab(tab.id, e)}
+                  onClick={(e) => void handleCloseTab(tab, e)}
                   className="opacity-40 group-hover:opacity-100 hover:text-rose-400 rounded p-0.5 transition"
                   title="关闭标签页"
                 >
@@ -2024,6 +1844,7 @@ export default function SftpPage() {
           <button
             type="button"
             onClick={handleAddTab}
+            disabled={!initialized}
             title="新建会话标签"
             className="p-1 rounded hover:bg-surface-800 text-slate-400 hover:text-white transition cursor-pointer"
           >
@@ -2061,14 +1882,22 @@ export default function SftpPage() {
           /* 左右双栏分屏视图 */
           <div className="flex-1 grid grid-cols-2 gap-2.5 p-2.5 min-h-0 overflow-hidden">
             {/* 左栏 */}
-            <div className="flex flex-col h-full min-h-0 rounded-xl border border-slate-800/90 overflow-hidden shadow-sm">
+            <div
+              className="flex flex-col h-full min-h-0 min-w-0 rounded-xl border border-slate-800/90 overflow-hidden shadow-sm"
+              onFocusCapture={() => focusPane("left")}
+              onPointerDownCapture={() => focusPane("left")}
+            >
               {!activeLeftTab || activeLeftTab.serverId === null
                 ? renderServerPicker("left")
                 : renderExplorerPane("left", activeLeftTab, true)}
             </div>
 
             {/* 右栏 */}
-            <div className="flex flex-col h-full min-h-0 rounded-xl border border-slate-800/90 overflow-hidden shadow-sm">
+            <div
+              className="flex flex-col h-full min-h-0 min-w-0 rounded-xl border border-slate-800/90 overflow-hidden shadow-sm"
+              onFocusCapture={() => focusPane("right")}
+              onPointerDownCapture={() => focusPane("right")}
+            >
               {!activeRightTab || activeRightTab.serverId === null
                 ? renderServerPicker("right")
                 : renderExplorerPane("right", activeRightTab, true)}
@@ -2103,7 +1932,7 @@ export default function SftpPage() {
         <div className="py-2 text-slate-300 text-xs leading-relaxed">
           确定要关闭所有当前已建立的 SFTP 文件传输会话吗？
           <br />
-          关闭后将断开所有主机会话连接并返回「选择服务器」初始状态。
+          关闭后将断开所有主机会话，并取消正在进行的后台上传。
         </div>
       </Modal>
 
@@ -2234,10 +2063,11 @@ export default function SftpPage() {
         onVerified={async (_result: SshProbeResult, credentials: SshCredentials) => {
           if (!sshServer) return;
           const server = sshServer;
+          const { pane, originTabId } = sshTarget.current;
           const sftpCredentials: SftpCredentials = { serverId: server.id, ...credentials };
           await setSharedCredentials(server.id, credentials);
           setSshServer(null);
-          openSessionForServer(server, sshTargetPane, sftpCredentials);
+          void openSessionForServer(server, pane, originTabId, sftpCredentials);
         }}
         onStatusChanged={() => loadServers()}
       />

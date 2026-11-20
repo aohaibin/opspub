@@ -24,6 +24,7 @@ import { McpAiUnlockModal } from "./header/McpAiUnlockModal";
 import { SkinSwitcher } from "./header/SkinSwitcher";
 import { VersionBadge } from "./header/VersionBadge";
 import { CommandPalette } from "./CommandPalette";
+import { SftpTransferWidget } from "./SftpTransferWidget";
 
 import "./workspace.css";
 
@@ -195,6 +196,7 @@ export function AppLayout() {
 
       <CommandPalette />
       <McpAiUnlockModal />
+      <SftpTransferWidget />
     </div>
   );
 }

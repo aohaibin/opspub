@@ -1,7 +1,18 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import type { SftpCredentials, SftpRemoteFile, SftpSessionInfo } from "@/pages/sftp/types";
 
 export const sftpApi = {
+  uploadTransfer: (
+    input: { taskId: string; request: SftpCredentials; remoteDir: string; fileName: string; localPath?: string; content?: number[] },
+    onProgress: (progress: { loaded: number; total: number }) => void,
+  ) => {
+    const channel = new Channel<{ loaded: number; total: number }>();
+    channel.onmessage = onProgress;
+    return invoke<SftpRemoteFile>("sftp_upload_transfer", { input, onProgress: channel });
+  },
+
+  cancelTransfer: (taskId: string) => invoke<void>("sftp_cancel_transfer", { taskId }),
+
   open: (request: SftpCredentials) =>
     invoke<SftpSessionInfo>("open_sftp_session", { request }),
 

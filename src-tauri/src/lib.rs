@@ -229,6 +229,8 @@ pub fn run() {
             commands::sftp::close_all_sftp_sessions,
             commands::sftp::sftp_list,
             commands::sftp::sftp_upload,
+            commands::sftp::sftp_upload_transfer,
+            commands::sftp::sftp_cancel_transfer,
             commands::sftp::sftp_download,
             commands::sftp::sftp_mkdir,
             commands::sftp::sftp_rename,

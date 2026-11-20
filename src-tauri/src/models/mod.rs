@@ -194,6 +194,25 @@ pub struct SftpUploadRequest {
     pub content: Vec<u8>,
 }
 
+/// 后台上传可直接读取用户选择的本地文件，避免大文件经 JSON 整体复制到 WebView。
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpTransferRequest {
+    pub task_id: String,
+    pub request: SftpRequest,
+    pub remote_dir: String,
+    pub file_name: String,
+    pub local_path: Option<String>,
+    pub content: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpTransferProgress {
+    pub loaded: u64,
+    pub total: u64,
+}
+
 /// SFTP 下载请求。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

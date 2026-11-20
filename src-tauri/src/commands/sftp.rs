@@ -1,10 +1,48 @@
 use crate::error::CommandError;
 use crate::models::{
     SftpArchiveRequest, SftpChmodRequest, SftpCopyRequest, SftpFileEntry, SftpPathRequest,
-    SftpRenameRequest, SftpRequest, SftpSessionInfo, SftpUploadRequest,
+    SftpRenameRequest, SftpRequest, SftpSessionInfo, SftpTransferProgress, SftpTransferRequest,
+    SftpUploadRequest,
 };
 use crate::state::AppState;
 use tauri::Manager;
+
+/// Channel 随任务存活，不依赖 SFTP 页面是否仍然挂载。
+#[tauri::command]
+pub async fn sftp_upload_transfer(
+    app: tauri::AppHandle,
+    input: SftpTransferRequest,
+    on_progress: tauri::ipc::Channel<SftpTransferProgress>,
+) -> Result<SftpFileEntry, CommandError> {
+    let id = input.task_id.clone();
+    let cancelled = app
+        .state::<AppState>()
+        .sftps
+        .reserve_transfer(&id)
+        .map_err(CommandError::from)?;
+    let worker_app = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let state = worker_app.state::<AppState>();
+        state
+            .sftps
+            .transfer(&state.db, input, &cancelled, |event| {
+                let _ = on_progress.send(event);
+            })
+            .map_err(CommandError::from)
+    })
+    .await
+    .map_err(|error| CommandError {
+        code: "INTERNAL".into(),
+        message: format!("上传后台任务异常终止: {error}"),
+    });
+    app.state::<AppState>().sftps.finish_transfer(&id);
+    result?
+}
+
+#[tauri::command]
+pub fn sftp_cancel_transfer(state: tauri::State<'_, AppState>, task_id: String) {
+    state.sftps.cancel_transfer(&task_id);
+}
 
 /// 读取远程目录。
 #[tauri::command]

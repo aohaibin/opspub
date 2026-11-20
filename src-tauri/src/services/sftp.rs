@@ -17,6 +17,8 @@ use crate::models::{
 };
 use crate::services::server::ServerService;
 
+mod transfer;
+
 enum SftpOperation {
     List {
         path: String,
@@ -78,6 +80,7 @@ pub struct SftpManager {
     sequence: AtomicU64,
     // 建连过程跨越 TCP、SSH 握手和凭据认证，需保证同一服务器不会并发创建并覆盖会话。
     connect_lock: Mutex<()>,
+    transfers: DashMap<String, Arc<std::sync::atomic::AtomicBool>>,
 }
 
 impl Default for SftpManager {
@@ -87,6 +90,7 @@ impl Default for SftpManager {
             session_info: Arc::new(DashMap::new()),
             sequence: AtomicU64::new(1),
             connect_lock: Mutex::new(()),
+            transfers: DashMap::new(),
         }
     }
 }
@@ -200,6 +204,9 @@ impl SftpManager {
     }
 
     pub fn close_all(&self) {
+        for task in &self.transfers {
+            task.value().store(true, Ordering::Release);
+        }
         let ids: Vec<i64> = self.sessions.iter().map(|item| *item.key()).collect();
         for server_id in ids {
             self.close(server_id);

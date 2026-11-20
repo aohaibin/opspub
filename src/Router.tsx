@@ -30,7 +30,6 @@ import {
 } from "@/navigation/modules";
 import ServersPage from "@/pages/servers";
 import WorkbenchPage from "@/pages/workbench";
-import TerminalPage from "@/pages/terminal";
 import SftpPage from "@/pages/sftp";
 import SettingsPage from "@/pages/settings";
 import ServerCredentialsPage from "@/pages/credentials/ServerCredentialsPage";
@@ -51,7 +50,6 @@ import { ModulePlaceholder } from "@/pages/module";
 const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
   servers: ServersPage,
   workbench: WorkbenchPage,
-  terminal: TerminalPage,
   sftp: SftpPage,
   settings: SettingsPage,
   credentials: ServerCredentialsPage,
@@ -70,6 +68,8 @@ const IMPLEMENTED_PAGES: Record<string, ComponentType> = {
 
 /** 路由路径按模块注册表的顺序生成，与左侧导航轨严格同序 */
 const moduleRoutes: RouteObject[] = MODULES.map((mod) => {
+  // 终端由公共工作区保活，路由仍负责路径匹配与导航。
+  if (mod.key === "terminal") return { path: mod.key, element: <></> };
   const Page = IMPLEMENTED_PAGES[mod.key];
   return {
     path: mod.key,

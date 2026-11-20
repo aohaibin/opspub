@@ -11,6 +11,7 @@ import { translateModule } from "@/navigation/translations";
 import { resolveWorkspace, WORKSPACE_DOMAINS, type WorkspaceDomain } from "@/navigation/workspace";
 import { useAppStore } from "@/store/app";
 import { useSettingsStore } from "@/store/settings";
+import TerminalPage from "@/pages/terminal";
 import {
   WorkspaceNavigation,
   WorkspaceSidebarTarget,
@@ -107,6 +108,12 @@ export function AppLayout() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activateDomain]);
 
+  const terminalActive = module?.key === "terminal";
+  const [terminalVisited, setTerminalVisited] = useState(terminalActive);
+  useEffect(() => {
+    if (terminalActive) setTerminalVisited(true);
+  }, [terminalActive]);
+
   const domainLabel = workspaceDomainLabel(domain, language);
   const moduleLabel = module ? translateModule(module, language).title : undefined;
   const toggleLabel = sidebarOpen
@@ -177,8 +184,10 @@ export function AppLayout() {
           }}
           sidebarRef={setSidebarTarget}
         />
-        <main className="workspace-content custom-scrollbar" data-full-bleed={module?.key === "terminal"}>
+        <main className="workspace-content custom-scrollbar" data-full-bleed={terminalActive}>
           <WorkspaceSidebarTarget.Provider value={sidebarTarget}>
+            {/* 终端首次访问后留在工作区，切换模块时继续保存会话输出和当前标签。 */}
+            {(terminalActive || terminalVisited) && <TerminalPage active={terminalActive} />}
             <Outlet />
           </WorkspaceSidebarTarget.Provider>
         </main>

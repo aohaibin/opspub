@@ -33,6 +33,7 @@ import {
   Zap,
 } from "lucide-react";
 import { SshConnectModal } from "@/components/server/SshConnectModal";
+import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import { TerminalPane } from "@/components/terminal/TerminalPane";
 import { TerminalSnippets } from "@/components/terminal/TerminalSnippets";
 import { TERMINAL_PASTE_EVENT } from "@/lib/terminal-interactions";
@@ -58,6 +59,8 @@ import type {
   TerminalStatusEvent,
 } from "@/types";
 import { AI_POLICY_META, OS_TYPE_LABEL } from "@/pages/servers/lib/serverMeta";
+import { TerminalSidebar } from "./TerminalSidebar";
+import "./terminal-workspace.css";
 
 type SplitMode = "single" | "dual-h" | "dual-v" | "quad";
 type DrawerTab = "monitor" | "commands" | "sftp" | "ai" | "settings" | "history" | "snippets";
@@ -87,19 +90,87 @@ function needsSshCredentials(error: unknown): boolean {
     .some((hint) => message.includes(hint));
 }
 
-export default function TerminalPage() {
+const TERMINAL_OUTPUT_LIMIT = 750_000;
+const TERMINAL_OUTPUT_RETAINED = 600_000;
+
+function appendTerminalOutput(previous: string, data: string): string {
+  const next = previous + data;
+  return next.length > TERMINAL_OUTPUT_LIMIT ? next.slice(-TERMINAL_OUTPUT_RETAINED) : next;
+}
+
+function canReuseSession(status: TerminalSessionInfo["status"]): boolean {
+  return status === "connected" || status === "connecting";
+}
+
+function canApplySessionStatus(current: TerminalSessionInfo["status"], incoming: TerminalSessionInfo["status"]): boolean {
+  if (incoming === "closed" || incoming === "error") return true;
+  if (current === "closed" || current === "error") return false;
+  return current !== "closing" || incoming === "closing";
+}
+
+function reconcileSessionStatus(session: TerminalSessionInfo, event?: TerminalStatusEvent): TerminalSessionInfo {
+  if (!event || !canApplySessionStatus(session.status, event.status)) return session;
+  return { ...session, status: event.status, message: event.message };
+}
+
+interface TerminalOutputBuffer {
+  text: string | null;
+  sequence: number;
+  chunks: Map<number, string>;
+  pendingLength: number;
+}
+
+function drainTerminalOutput(buffer: TerminalOutputBuffer) {
+  if (buffer.text === null) return;
+
+  // 高序号先到时跨过缺口会把迟到的输出判为重复，也会打乱终端控制序列。
+  let next = buffer.chunks.get(buffer.sequence + 1);
+  while (next !== undefined) {
+    buffer.sequence += 1;
+    buffer.chunks.delete(buffer.sequence);
+    buffer.pendingLength -= next.length;
+    buffer.text = appendTerminalOutput(buffer.text, next);
+    next = buffer.chunks.get(buffer.sequence + 1);
+  }
+}
+
+function flushTerminalOutput(buffer: TerminalOutputBuffer) {
+  drainTerminalOutput(buffer);
+  if (buffer.text === null || buffer.pendingLength <= TERMINAL_OUTPUT_LIMIT) return;
+
+  // 确认快照覆盖范围后才限制未合并队列，避免快照已含的事件触发额外截断。
+  // 缺口后已收到的输出超过历史窗口时，旧文本和最早的等待块自然移出保留范围。
+  buffer.text = "";
+  for (const [sequence, data] of [...buffer.chunks].sort(([left], [right]) => left - right)) {
+    if (buffer.pendingLength - data.length < TERMINAL_OUTPUT_RETAINED) break;
+    buffer.chunks.delete(sequence);
+    buffer.pendingLength -= data.length;
+    buffer.sequence = sequence;
+  }
+  drainTerminalOutput(buffer);
+}
+
+export default function TerminalPage({ active }: { active: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const routeServerId =
-    (location.state as { serverId?: number } | null)?.serverId ?? null;
+  const routeServerId = active
+    ? (location.state as { serverId?: number } | null)?.serverId ?? null
+    : null;
+  const initialServerId = useRef(routeServerId);
   const [servers, setServers] = useState<Server[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [serverListResult, setServerListResult] = useState<{ key: string; ok: boolean } | null>(null);
+  const serverListRequest = useRef(0);
+  const [handledRouteKey, setHandledRouteKey] = useState<string | null>(null);
+  const awaitingRouteTarget = routeServerId !== null && handledRouteKey !== location.key;
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState<"grid" | "list" | "tree">("grid");
   const [splitMode, setSplitMode] = useState<SplitMode>("single");
   const [syncInput, setSyncInput] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sessions, setSessions] = useState<TerminalSessionInfo[]>([]);
+  const discardedSessionIds = useRef(new Set<string>());
+  const [sessionsRestored, setSessionsRestored] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [quickTabs, setQuickTabs] = useState<string[]>(["quick-1"]);
   const [activeQuickTabId, setActiveQuickTabId] = useState("quick-1");
@@ -108,7 +179,11 @@ export default function TerminalPage() {
   const nextQuickTabId = useRef(2);
   const [terminalOutputs, setTerminalOutputs] = useState<Record<string, string>>({});
   const [sessionMessages, setSessionMessages] = useState<Record<string, string>>({});
+  const outputBuffers = useRef(new Map<string, TerminalOutputBuffer>());
+  const observedStatuses = useRef(new Map<string, TerminalStatusEvent>());
   const [sshServer, setSshServer] = useState<Server | null>(null);
+  const requestedServerId = useRef<number | null>(null);
+  const openingServers = useRef(new Set<number>());
   const [createServerOpen, setCreateServerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("ai");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -120,69 +195,86 @@ export default function TerminalPage() {
   const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
   const setSharedCredentials = useSshSessionStore((state) => state.setCredentials);
 
-  const loadServers = useCallback(async (): Promise<Server[]> => {
+  const loadServers = useCallback(async (): Promise<Server[] | null> => {
+    const request = ++serverListRequest.current;
     setLoading(true);
     try {
       const data = await serverApi.list();
-      setServers(data);
-      const current = useAppStore.getState().activeServerId;
-      if (current === null || !data.some((server) => server.id === current)) {
-        setActiveServerId(data[0]?.id ?? null);
-      }
+      if (request === serverListRequest.current) setServers(data);
       return data;
     } catch (error) {
-      message.error(getErrorMessage(error));
-      return [];
+      if (request === serverListRequest.current) message.error(getErrorMessage(error));
+      return null;
     } finally {
-      setLoading(false);
+      if (request === serverListRequest.current) setLoading(false);
     }
-  }, [setActiveServerId]);
+  }, []);
 
   useEffect(() => {
-    void loadServers();
-  }, [loadServers]);
-
-  // 终端页面是路由页面，会在切换菜单时卸载；SSH 会话不随页面卸载，
-  // 重新进入时从 Rust 全局会话管理器恢复标签、状态和离线期间的输出。
-  useEffect(() => {
+    if (!active) return;
     let disposed = false;
-    void terminalApi.list().then((restored) => {
-      if (disposed) return;
-      setSessions(restored);
-      if (restored.length > 0) {
-        setQuickTabs([]);
-        setTabOrder(restored.map((session) => `session:${session.sessionId}`));
-      }
-      setTerminalOutputs(Object.fromEntries(restored.map((session) => [session.sessionId, session.output ?? ""])));
-      setSessionMessages(Object.fromEntries(restored.map((session) => [session.sessionId, session.message ?? ""])));
-      const preferredServerId = routeServerId ?? useAppStore.getState().activeServerId;
-      const preferred = restored.find((session) => session.serverId === preferredServerId) ?? restored[0];
-      if (preferred) {
-        setActiveSessionId(preferred.sessionId);
-        setActiveServerId(preferred.serverId);
-      }
-    }).catch((error) => {
-      if (!disposed) message.error(getErrorMessage(error));
+    // 终端保活期间，资产可能已在其他菜单新增、编辑或删除。
+    void loadServers().then((data) => {
+      if (!disposed) setServerListResult({ key: location.key, ok: data !== null });
     });
     return () => { disposed = true; };
-  }, [routeServerId, setActiveServerId]);
+  }, [active, loadServers, location.key]);
 
+  const getOutputBuffer = useCallback((sessionId: string) => {
+    let buffer = outputBuffers.current.get(sessionId);
+    if (!buffer) {
+      buffer = { text: null, sequence: 0, chunks: new Map<number, string>(), pendingLength: 0 };
+      outputBuffers.current.set(sessionId, buffer);
+    }
+    return buffer;
+  }, []);
+
+  const restoreOutput = useCallback(({ sessionId, output, outputSequence }: TerminalSessionInfo) => {
+    const buffer = getOutputBuffer(sessionId);
+    buffer.text = output;
+    buffer.sequence = outputSequence;
+    for (const [sequence, data] of buffer.chunks) {
+      if (sequence <= outputSequence) {
+        buffer.chunks.delete(sequence);
+        buffer.pendingLength -= data.length;
+      }
+    }
+    flushTerminalOutput(buffer);
+    return buffer.text;
+  }, [getOutputBuffer]);
+
+  // 先订阅，再恢复快照。等待快照期间暂存事件，合并后才允许直达复用会话。
   useEffect(() => {
     let disposed = false;
+    let restoring = true;
     const unlisteners: Array<() => void> = [];
+    const trackListener = async (registration: Promise<() => void>) => {
+      const unlisten = await registration;
+      if (disposed) unlisten();
+      else unlisteners.push(unlisten);
+    };
 
-    void Promise.all([
-      listen<TerminalOutputEvent>(TERMINAL_OUTPUT_EVENT, ({ payload }) => {
-        setTerminalOutputs((current) => {
-          const previous = current[payload.sessionId] ?? "";
-          const next = `${previous}${payload.data}`;
-          return {
-            ...current,
-            [payload.sessionId]: next.length > 750_000 ? next.slice(-600_000) : next,
-          };
-        });
-      }),
-      listen<TerminalStatusEvent>(TERMINAL_STATUS_EVENT, ({ payload }) => {
+    const subscriptions = Promise.allSettled([
+      trackListener(listen<TerminalOutputEvent>(TERMINAL_OUTPUT_EVENT, ({ payload: { sessionId, data, sequence } }) => {
+        if (disposed || discardedSessionIds.current.has(sessionId)) return;
+        const buffer = getOutputBuffer(sessionId);
+        if (sequence <= buffer.sequence || buffer.chunks.has(sequence)) return;
+        buffer.chunks.set(sequence, data);
+        buffer.pendingLength += data.length;
+        const previous = buffer.text;
+        flushTerminalOutput(buffer);
+        const output = buffer.text;
+        if (output !== null && output !== previous) {
+          setTerminalOutputs((current) => ({ ...current, [sessionId]: output }));
+        }
+      })),
+      trackListener(listen<TerminalStatusEvent>(TERMINAL_STATUS_EVENT, ({ payload }) => {
+        if (disposed || discardedSessionIds.current.has(payload.sessionId)) return;
+        const previous = observedStatuses.current.get(payload.sessionId);
+        // 同一个会话 ID 结束后不会再次连接，迟到的 connected 不能回退状态或提示。
+        if (previous && !canApplySessionStatus(previous.status, payload.status)) return;
+        observedStatuses.current.set(payload.sessionId, payload);
+        if (restoring) return;
         setSessionMessages((current) => ({
           ...current,
           [payload.sessionId]: payload.message,
@@ -194,33 +286,79 @@ export default function TerminalPage() {
               : session
           )
         );
-      }),
-    ]).then((cleanups) => {
-      if (disposed) cleanups.forEach((cleanup) => cleanup());
-      else unlisteners.push(...cleanups);
-    }).catch((error) => {
-      message.error(getErrorMessage(error));
-    });
+      })),
+    ]);
+
+    const restoreSessions = async () => {
+      const registered = await subscriptions;
+      if (disposed) return;
+      for (const result of registered) {
+        if (result.status === "rejected") message.error(getErrorMessage(result.reason));
+      }
+      const snapshot = await terminalApi.list().catch((error) => {
+        if (!disposed) message.error(getErrorMessage(error));
+        return [];
+      });
+      if (disposed) return;
+
+      const outputs: Record<string, string> = {};
+      const messages: Record<string, string> = {};
+      const restored = snapshot.map((session) => {
+        const { sessionId } = session;
+        const updated = reconcileSessionStatus(session, observedStatuses.current.get(sessionId));
+        observedStatuses.current.set(sessionId, { sessionId, status: updated.status, message: updated.message });
+        outputs[sessionId] = restoreOutput(session);
+        messages[sessionId] = updated.message;
+        return updated;
+      });
+      restoring = false;
+      setSessions(restored);
+      setTerminalOutputs(outputs);
+      setSessionMessages(messages);
+
+      const directTarget = initialServerId.current;
+      const preferredServerId = directTarget ?? useAppStore.getState().activeServerId;
+      const preferred = restored.find((session) => session.serverId === preferredServerId && canReuseSession(session.status))
+        ?? (directTarget === null ? restored[0] : undefined);
+      setTabOrder((current) => [
+        ...restored.map((session) => `session:${session.sessionId}`),
+        ...(preferred ? [] : current),
+      ]);
+      if (preferred) {
+        setQuickTabs([]);
+        setActiveSessionId(preferred.sessionId);
+      }
+      setSessionsRestored(true);
+    };
+    void restoreSessions();
 
     return () => {
       disposed = true;
       unlisteners.forEach((cleanup) => cleanup());
     };
-  }, []);
+  }, [getOutputBuffer, restoreOutput]);
 
+  const sshServers = useMemo(() => servers.filter((server) => server.protocol !== "rdp"), [servers]);
   const filteredServers = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return servers;
-    return servers.filter((server) =>
+    if (!query) return sshServers;
+    return sshServers.filter((server) =>
       [server.alias, server.hostname, server.username, server.group, server.tags]
         .join(" ")
         .toLowerCase()
         .includes(query)
     );
-  }, [search, servers]);
+  }, [search, sshServers]);
 
   const activeSession = sessions.find((session) => session.sessionId === activeSessionId) ?? null;
   const activeServer = servers.find((server) => server.id === activeSession?.serverId) ?? null;
+  const currentServerId = activeSession?.serverId;
+  useEffect(() => {
+    if (active && !awaitingRouteTarget && currentServerId !== undefined) {
+      setActiveServerId(currentServerId);
+    }
+  }, [active, awaitingRouteTarget, currentServerId, setActiveServerId]);
+
   const visibleSessions = useMemo(() => {
     if (!activeSessionId) return [];
     const ordered = [
@@ -232,17 +370,54 @@ export default function TerminalPage() {
     return ordered.slice(0, count);
   }, [activeSessionId, sessions, splitMode]);
 
-  const openTerminalSession = useCallback(async (server: Server, credentials: SshCredentials) => {
-    const session = await terminalApi.open({
+  const showSession = useCallback((session: TerminalSessionInfo) => {
+    requestedServerId.current = null;
+    setSshServer(null);
+    setActiveSessionId(session.sessionId);
+    setActiveServerId(session.serverId);
+  }, [setActiveServerId]);
+
+  const showQuickTab = useCallback((quickId: string) => {
+    requestedServerId.current = null;
+    setSshServer(null);
+    setActiveSessionId(null);
+    setActiveQuickTabId(quickId);
+    setActiveServerId(null);
+  }, [setActiveServerId]);
+
+  const createQuickTab = useCallback(() => {
+    const quickId = `quick-${nextQuickTabId.current++}`;
+    setQuickTabs((current) => [...current, quickId]);
+    setTabOrder((current) => [...current, `quick:${quickId}`]);
+    showQuickTab(quickId);
+    return quickId;
+  }, [showQuickTab]);
+
+  const openTerminalSession = useCallback(async (
+    server: Server,
+    credentials: SshCredentials,
+    quickTab: string | null,
+  ) => {
+    const snapshot = await terminalApi.open({
       serverId: server.id,
       password: credentials.password,
       privateKeyPath: credentials.privateKeyPath,
       passphrase: credentials.passphrase,
     });
+    const { sessionId } = snapshot;
+    if (discardedSessionIds.current.has(sessionId)) throw new Error("SSH 终端已结束，请重新连接");
+    const session = reconcileSessionStatus(snapshot, observedStatuses.current.get(sessionId));
+    observedStatuses.current.set(sessionId, { sessionId, status: session.status, message: session.message });
+    if (outputBuffers.current.get(sessionId)?.text == null) {
+      const output = restoreOutput(snapshot);
+      setTerminalOutputs((current) => ({ ...current, [sessionId]: output }));
+    }
     setSessions((current) => current.some((item) => item.sessionId === session.sessionId)
       ? current.map((item) => item.sessionId === session.sessionId ? session : item)
       : [...current, session]);
-    const replaceQuickTab = activeSessionId === null ? activeQuickTabId : null;
+    // 较早的连接请求仍可加入标签，但不能抢走用户后来选中的会话。
+    const activateSession = requestedServerId.current === server.id;
+    const replaceQuickTab = activateSession ? quickTab : null;
     if (replaceQuickTab) setQuickTabs((current) => current.filter((id) => id !== replaceQuickTab));
     setTabOrder((current) => {
       const withoutActiveQuick = replaceQuickTab
@@ -251,57 +426,85 @@ export default function TerminalPage() {
       const sessionKey = `session:${session.sessionId}`;
       return withoutActiveQuick.includes(sessionKey) ? withoutActiveQuick : [...withoutActiveQuick, sessionKey];
     });
-    setTerminalOutputs((current) => ({ ...current, [session.sessionId]: session.output ?? current[session.sessionId] ?? "" }));
     setSessionMessages((current) => ({
       ...current,
       [session.sessionId]: session.message || "SSH 终端已连接",
     }));
-    setActiveSessionId(session.sessionId);
-    setActiveServerId(server.id);
-    await loadServers();
-  }, [activeQuickTabId, activeSessionId, loadServers, setActiveServerId]);
+    if (activateSession) {
+      requestedServerId.current = null;
+      setActiveSessionId(session.sessionId);
+    }
+    void loadServers();
+  }, [loadServers, restoreOutput]);
 
-  const openConnection = (server: Server) => {
+  const openConnection = useCallback((server: Server, quickTab = activeSessionId === null ? activeQuickTabId : null) => {
+    if (!sessionsRestored) return;
     setDropdownOpen(false);
-    setActiveServerId(server.id);
+    setSshServer(null);
+    requestedServerId.current = server.id;
+    if (quickTab !== null) setActiveServerId(server.id);
+    if (openingServers.current.has(server.id)) return;
+    openingServers.current.add(server.id);
     const cachedCredentials = sharedCredentials[server.id];
     // 即使前端启动恢复没有拿到状态，也先让 Rust 从系统凭据管理器尝试连接；
     // 只有确认缺少或失效凭据时才弹窗，避免重启后因 WebView 内存为空重复验证。
-    void openTerminalSession(server, cachedCredentials ?? {}).catch((error) => {
+    void openTerminalSession(server, cachedCredentials ?? {}, quickTab).catch((error) => {
+      if (requestedServerId.current !== server.id) return;
       if (needsSshCredentials(error)) {
         setSshServer(server);
       } else {
+        requestedServerId.current = null;
         message.error(getErrorMessage(error));
       }
+    }).finally(() => {
+      openingServers.current.delete(server.id);
     });
-  };
+  }, [activeQuickTabId, activeSessionId, openTerminalSession, sessionsRestored, setActiveServerId, sharedCredentials]);
 
   // 服务器资产页的“连接”动作会携带目标主机，进入终端后立即复用会话或打开验证框。
-  // 用 ref 保证加载服务器列表、凭证状态变化时不会重复创建同一条终端会话。
-  const autoConnectedRouteRef = useRef<string | null>(null);
   useEffect(() => {
-    const routeKey = `${location.key}:${routeServerId}`;
-    if (
-      routeServerId === null ||
-      loading ||
-      sshServer !== null ||
-      autoConnectedRouteRef.current === routeKey
-    ) {
-      return;
+    if (!awaitingRouteTarget || !sessionsRestored || serverListResult?.key !== location.key || loading) return;
+    setHandledRouteKey(location.key);
+    const server = serverListResult.ok ? sshServers.find((item) => item.id === routeServerId) : undefined;
+    const targetSessions = sessions
+      .filter((session) => session.serverId === routeServerId)
+      .map((session) => reconcileSessionStatus(session, observedStatuses.current.get(session.sessionId)));
+    const endedIds = new Set(targetSessions
+      .filter((session) => !canReuseSession(session.status))
+      .map((session) => session.sessionId));
+    if (endedIds.size > 0) {
+      // 结束状态已由后端上报。清理本地标签和缓冲，并忽略该会话的迟到事件。
+      for (const sessionId of endedIds) {
+        discardedSessionIds.current.add(sessionId);
+        outputBuffers.current.delete(sessionId);
+        observedStatuses.current.delete(sessionId);
+        lineBuffersRef.current.delete(sessionId);
+      }
+      const clearEntries = (current: Record<string, string>) => {
+        const next = { ...current };
+        for (const sessionId of endedIds) delete next[sessionId];
+        return next;
+      };
+      setSessions((current) => current.filter((session) => !endedIds.has(session.sessionId)));
+      setTabOrder((current) => current.filter((key) => !key.startsWith("session:") || !endedIds.has(key.slice("session:".length))));
+      setTerminalOutputs(clearEntries);
+      setSessionMessages(clearEntries);
     }
-
-    const server = servers.find((item) => item.id === routeServerId);
-    if (!server) return;
-
-    autoConnectedRouteRef.current = routeKey;
-    const existingSession = sessions.find((session) => session.serverId === server.id);
+    const existingSession = server && targetSessions.find((session) => canReuseSession(session.status));
     if (existingSession) {
-      setActiveSessionId(existingSession.sessionId);
-      setActiveServerId(existingSession.serverId);
+      showSession(existingSession);
       return;
     }
-    openConnection(server);
-  }, [loading, location.key, openConnection, routeServerId, servers, sessions, setActiveServerId, sshServer]);
+    const quickId = activeSessionId === null ? activeQuickTabId : quickTabs[0];
+    if (quickId) showQuickTab(quickId);
+    const targetQuickId = quickId ?? createQuickTab();
+    if (server) openConnection(server, targetQuickId);
+    else if (serverListResult.ok) message.error("找不到可用的 SSH 服务器");
+  }, [
+    activeQuickTabId, activeSessionId, awaitingRouteTarget, createQuickTab, loading, location.key,
+    openConnection, quickTabs, routeServerId, serverListResult, sessions, sessionsRestored,
+    showQuickTab, showSession, sshServers,
+  ]);
 
   const handleCreateServer = async (
     payload: ServerPayload,
@@ -313,7 +516,7 @@ export default function TerminalPage() {
       setCreateServerOpen(false);
 
       const nextServers = await loadServers();
-      const savedServer = nextServers.find((server) => server.id === serverId);
+      const savedServer = nextServers?.find((server) => server.id === serverId);
       if (savedServer) {
         await setSharedCredentials(savedServer.id, {});
       }
@@ -329,11 +532,21 @@ export default function TerminalPage() {
     if (!sshServer) return;
     const server = sshServer;
     await setSharedCredentials(server.id, credentials);
+    if (requestedServerId.current !== server.id) return;
     setSshServer(null);
-    await openTerminalSession(server, credentials);
+    const quickTab = activeSessionId === null ? activeQuickTabId : null;
+    openingServers.current.add(server.id);
+    try {
+      await openTerminalSession(server, credentials, quickTab);
+    } finally {
+      openingServers.current.delete(server.id);
+    }
   };
 
   const closeSession = (sessionId: string) => {
+    discardedSessionIds.current.add(sessionId);
+    outputBuffers.current.delete(sessionId);
+    observedStatuses.current.delete(sessionId);
     void terminalApi.close(sessionId).catch((error) => {
       message.error(getErrorMessage(error));
     });
@@ -348,31 +561,17 @@ export default function TerminalPage() {
     if (activeSessionId === sessionId) {
       const next = remaining[0] ?? null;
       if (next) {
-        setActiveSessionId(next.sessionId);
-        setActiveServerId(next.serverId);
+        showSession(next);
       } else if (quickTabs.length > 0) {
-        setActiveSessionId(null);
-        setActiveQuickTabId(quickTabs[quickTabs.length - 1]);
-        setActiveServerId(null);
+        showQuickTab(quickTabs[quickTabs.length - 1]);
       } else {
         const quickId = `quick-${nextQuickTabId.current++}`;
         setQuickTabs([quickId]);
-        setActiveQuickTabId(quickId);
         setTabOrder([`quick:${quickId}`]);
-        setActiveSessionId(null);
-        setActiveServerId(null);
+        showQuickTab(quickId);
       }
     }
     setTabOrder((current) => current.filter((key) => key !== `session:${sessionId}`));
-  };
-
-  const createQuickTab = () => {
-    const quickId = `quick-${nextQuickTabId.current++}`;
-    setQuickTabs((current) => [...current, quickId]);
-    setTabOrder((current) => [...current, `quick:${quickId}`]);
-    setActiveQuickTabId(quickId);
-    setActiveSessionId(null);
-    setActiveServerId(null);
   };
 
   const closeQuickTab = (quickId: string) => {
@@ -383,19 +582,17 @@ export default function TerminalPage() {
 
     const nextQuickId = remainingQuickTabs[0];
     if (nextQuickId) {
-      setActiveQuickTabId(nextQuickId);
-      setActiveServerId(null);
+      showQuickTab(nextQuickId);
       return;
     }
     const nextSession = sessions[0];
     if (nextSession) {
-      setActiveSessionId(nextSession.sessionId);
-      setActiveServerId(nextSession.serverId);
+      showSession(nextSession);
       return;
     }
     const fallbackId = `quick-${nextQuickTabId.current++}`;
     setQuickTabs([fallbackId]);
-    setActiveQuickTabId(fallbackId);
+    showQuickTab(fallbackId);
     setTabOrder([`quick:${fallbackId}`]);
   };
 
@@ -468,9 +665,24 @@ export default function TerminalPage() {
     }));
   };
 
+  // 会话和输出留在页面状态中，离开页面时卸载视图及其浮层，避免挡住其他模块。
+  if (!active) return null;
+
   return (
     <div className="ops-terminal-page">
-      <section className="ops-terminal-shell">
+      <WorkspaceSidebarSlot>
+        <TerminalSidebar
+          servers={sshServers}
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          loading={loading || !sessionsRestored}
+          disabled={awaitingRouteTarget}
+          onSelectSession={showSession}
+          onOpenServer={openConnection}
+        />
+      </WorkspaceSidebarSlot>
+      {awaitingRouteTarget && <div className="ops-terminal-route-loading" role="status">正在定位终端会话…</div>}
+      <section className="ops-terminal-shell" hidden={awaitingRouteTarget}>
         <div className="ops-terminal-toolbar">
           <div className="flex items-center gap-2">
             <div className="ops-terminal-split-buttons">
@@ -503,6 +715,7 @@ export default function TerminalPage() {
             <button
               type="button"
               className="ops-terminal-open-button"
+              disabled={!sessionsRestored}
               onClick={() => setDropdownOpen((current) => !current)}
             >
               <Plus size={14} />
@@ -512,7 +725,7 @@ export default function TerminalPage() {
             {dropdownOpen && (
               <div className="ops-terminal-dropdown">
                 <div className="ops-terminal-dropdown-title">选择已有服务器连接</div>
-                {servers.map((server) => (
+                {sshServers.map((server) => (
                   <button key={server.id} type="button" onClick={() => openConnection(server)}>
                     <span className="flex min-w-0 items-center gap-2">
                       <Circle size={8} fill="var(--success)" color="var(--success)" />
@@ -521,7 +734,7 @@ export default function TerminalPage() {
                     <span>{server.hostname}</span>
                   </button>
                 ))}
-                {servers.length === 0 && <div className="ops-terminal-empty">暂无纳管服务器</div>}
+                {sshServers.length === 0 && <div className="ops-terminal-empty">暂无纳管 SSH 服务器</div>}
                 <button className="create" type="button" onClick={() => { setDropdownOpen(false); setCreateServerOpen(true); }}>
                   <Plus size={14} /> 新建服务器连接...
                 </button>
@@ -542,7 +755,7 @@ export default function TerminalPage() {
                     type="button"
                     draggable
                     className={`ops-terminal-tab ops-terminal-quick-tab tab-draggable ${activeSessionId === null && activeQuickTabId === id ? "active" : ""} ${draggingTab === tabKey ? "dragging" : ""}`}
-                    onClick={() => { setActiveSessionId(null); setActiveQuickTabId(id); setActiveServerId(null); }}
+                    onClick={() => showQuickTab(id)}
                     onDragStart={() => setDraggingTab(tabKey)}
                     onDragOver={(event) => reorderTab(tabKey, event)}
                     onDragEnd={() => setDraggingTab(null)}
@@ -555,25 +768,25 @@ export default function TerminalPage() {
               }
               const session = sessions.find((item) => item.sessionId === id);
               const server = session ? servers.find((item) => item.id === session.serverId) : null;
-              if (!session || !server) return null;
+              if (!session) return null;
               return (
                 <button
                   key={tabKey}
                   type="button"
                   draggable
                   className={`ops-terminal-tab tab-draggable ${activeSessionId === session.sessionId ? "active" : ""} ${draggingTab === tabKey ? "dragging" : ""}`}
-                  onClick={() => { setActiveSessionId(session.sessionId); setActiveServerId(session.serverId); }}
+                  onClick={() => showSession(session)}
                   onDragStart={() => setDraggingTab(tabKey)}
                   onDragOver={(event) => reorderTab(tabKey, event)}
                   onDragEnd={() => setDraggingTab(null)}
                 >
                   <Circle size={8} fill={session.status === "connected" ? "var(--success)" : "var(--danger)"} color={session.status === "connected" ? "var(--success)" : "var(--danger)"} />
-                  <span>{server.alias}</span>
+                  <span>{server?.alias ?? `服务器 #${session.serverId}`}</span>
                   <X size={12} onClick={(event) => { event.stopPropagation(); closeSession(session.sessionId); }} />
                 </button>
               );
             })}
-            <button type="button" className="ops-terminal-new-tab" title="新建终端连接" onClick={createQuickTab}>
+            <button type="button" className="ops-terminal-new-tab" title="新建终端连接" disabled={!sessionsRestored} onClick={createQuickTab}>
               <Plus size={14} />
             </button>
           </div>
@@ -589,11 +802,11 @@ export default function TerminalPage() {
 
         <div className="ops-terminal-workspace">
           <main className="ops-terminal-main">
-            {activeSessionId === null ? (
+            {awaitingRouteTarget ? null : activeSessionId === null ? (
               <QuickConnectView
                 servers={filteredServers}
                 sessions={sessions}
-                loading={loading}
+                loading={loading || !sessionsRestored}
                 search={search}
                 layout={layout}
                 onSearch={setSearch}
@@ -615,8 +828,7 @@ export default function TerminalPage() {
                 }}
                 onFocus={(sessionId) => {
                   const session = sessions.find((item) => item.sessionId === sessionId);
-                  setActiveSessionId(sessionId);
-                  setActiveServerId(session?.serverId ?? null);
+                  if (session && !awaitingRouteTarget && session.sessionId !== activeSessionId) showSession(session);
                 }}
               />
             )}
@@ -656,10 +868,11 @@ export default function TerminalPage() {
       </section>
 
       <SshConnectModal
-        open={sshServer !== null}
+        open={sshServer !== null && !awaitingRouteTarget}
         server={sshServer}
         initialCredentials={sshServer ? sharedCredentials[sshServer.id] : undefined}
         onCancel={() => {
+          requestedServerId.current = null;
           setSshServer(null);
         }}
         onVerified={handleVerified}
@@ -670,7 +883,7 @@ export default function TerminalPage() {
 
       <ServerFormModal
         allowRdp={false}
-        open={createServerOpen}
+        open={createServerOpen && !awaitingRouteTarget}
         server={null}
         existingServers={servers}
         onCancel={() => setCreateServerOpen(false)}

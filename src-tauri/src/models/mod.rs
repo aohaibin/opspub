@@ -840,6 +840,8 @@ pub struct TerminalSessionInfo {
     pub started_at: String,
     /// 会话离开终端页面期间累积的输出，重新进入时用于恢复显示。
     pub output: String,
+    /// 输出快照已覆盖的最后一个事件序号。从 0 开始，保留窗口截断时继续递增。
+    pub output_sequence: u64,
     /// 最近一次生命周期状态提示。
     pub message: String,
 }
@@ -850,6 +852,7 @@ pub struct TerminalSessionInfo {
 pub struct TerminalOutputEvent {
     pub session_id: String,
     pub data: String,
+    pub sequence: u64,
 }
 
 /// SSH PTY 生命周期事件。

@@ -30,7 +30,6 @@ pub struct TerminalManager {
     sessions: Arc<DashMap<String, mpsc::Sender<TerminalControl>>>,
     session_info: Arc<DashMap<String, TerminalSessionInfo>>,
     server_sessions: Arc<DashMap<i64, String>>,
-    output_history: Arc<DashMap<String, String>>,
     sequence: AtomicU64,
 }
 
@@ -40,7 +39,6 @@ impl Default for TerminalManager {
             sessions: Arc::new(DashMap::new()),
             session_info: Arc::new(DashMap::new()),
             server_sessions: Arc::new(DashMap::new()),
-            output_history: Arc::new(DashMap::new()),
             sequence: AtomicU64::new(1),
         }
     }
@@ -103,19 +101,17 @@ impl TerminalManager {
             status: "connected".into(),
             started_at: chrono::Local::now().to_rfc3339(),
             output: String::new(),
+            output_sequence: 0,
             message: "SSH 终端已连接".into(),
         };
         let (sender, receiver) = mpsc::channel();
         self.sessions.insert(session_id.clone(), sender);
         self.session_info.insert(session_id.clone(), info.clone());
         self.server_sessions.insert(server.id, session_id.clone());
-        self.output_history
-            .insert(session_id.clone(), String::new());
 
         let registry = Arc::clone(&self.sessions);
         let session_info = Arc::clone(&self.session_info);
         let server_sessions = Arc::clone(&self.server_sessions);
-        let output_history = Arc::clone(&self.output_history);
         let worker_id = session_id.clone();
         thread::Builder::new()
             .name(format!("ssh-{worker_id}"))
@@ -125,7 +121,6 @@ impl TerminalManager {
                     registry,
                     session_info,
                     server_sessions,
-                    output_history,
                     worker_id,
                     server.id,
                     session,
@@ -137,7 +132,6 @@ impl TerminalManager {
                 self.sessions.remove(&session_id);
                 self.session_info.remove(&session_id);
                 self.server_sessions.remove(&server.id);
-                self.output_history.remove(&session_id);
                 AppError::Custom(format!("启动 SSH 终端线程失败: {error}"))
             })?;
 
@@ -188,15 +182,7 @@ impl TerminalManager {
     pub fn list(&self) -> Vec<TerminalSessionInfo> {
         self.session_info
             .iter()
-            .map(|item| {
-                let mut info = item.value().clone();
-                info.output = self
-                    .output_history
-                    .get(item.key())
-                    .map(|value| value.clone())
-                    .unwrap_or_default();
-                info
-            })
+            .map(|item| item.value().clone())
             .collect()
     }
 
@@ -228,20 +214,12 @@ fn run_terminal(
     registry: Arc<DashMap<String, mpsc::Sender<TerminalControl>>>,
     session_info: Arc<DashMap<String, TerminalSessionInfo>>,
     server_sessions: Arc<DashMap<i64, String>>,
-    output_history: Arc<DashMap<String, String>>,
     session_id: String,
     server_id: i64,
     session: Session,
     mut channel: Channel,
     receiver: mpsc::Receiver<TerminalControl>,
 ) {
-    update_session(
-        &session_info,
-        &output_history,
-        &session_id,
-        "connected",
-        "SSH 终端已连接",
-    );
     emit_status(&app, &session_id, "connected", "SSH 终端已连接");
     let mut pending = VecDeque::<u8>::new();
     // libssh2 在非阻塞模式下返回 EAGAIN 时，下一次 write 必须收到完全相同
@@ -348,8 +326,7 @@ fn run_terminal(
             Ok(0) => {}
             Ok(size) => {
                 received_output = true;
-                append_output(&output_history, &session_id, &stdout[..size]);
-                emit_output(&app, &session_id, &stdout[..size]);
+                publish_output(&app, &session_info, &session_id, &stdout[..size]);
             }
             Err(error) if is_retryable_io(&error) => {}
             Err(error) => {
@@ -362,8 +339,7 @@ fn run_terminal(
             Ok(0) => {}
             Ok(size) => {
                 received_output = true;
-                append_output(&output_history, &session_id, &stderr[..size]);
-                emit_output(&app, &session_id, &stderr[..size]);
+                publish_output(&app, &session_info, &session_id, &stderr[..size]);
             }
             Err(error) if is_retryable_io(&error) => {}
             Err(error) => {
@@ -395,18 +371,11 @@ fn run_terminal(
     remove_server_mapping_if_matches(&server_sessions, server_id, &session_id);
 
     if let Some(message) = failure_message {
-        update_session(
-            &session_info,
-            &output_history,
-            &session_id,
-            "error",
-            &message,
-        );
+        update_session(&session_info, &session_id, "error", &message);
         emit_status(&app, &session_id, "error", &message);
     } else {
         update_session(
             &session_info,
-            &output_history,
             &session_id,
             "closed",
             "SSH 终端已断开",
@@ -414,7 +383,6 @@ fn run_terminal(
         emit_status(&app, &session_id, "closed", "SSH 终端已断开");
     }
     session_info.remove(&session_id);
-    output_history.remove(&session_id);
 }
 
 fn remove_server_mapping_if_matches(
@@ -425,21 +393,22 @@ fn remove_server_mapping_if_matches(
     server_sessions.remove_if(&server_id, |_server_id, mapped| mapped == session_id);
 }
 
-fn append_output(history: &DashMap<String, String>, session_id: &str, bytes: &[u8]) {
-    let mut entry = history.entry(session_id.to_string()).or_default();
-    entry.push_str(&String::from_utf8_lossy(bytes));
-    if entry.len() > 750_000 {
-        let mut start = entry.len() - 600_000;
-        while !entry.is_char_boundary(start) {
+fn append_output(info: &mut TerminalSessionInfo, data: &str) -> u64 {
+    // 文本与序号在同一条会话记录的写锁内更新，快照不会读到不一致的覆盖边界。
+    info.output.push_str(data);
+    if info.output.len() > 750_000 {
+        let mut start = info.output.len() - 600_000;
+        while !info.output.is_char_boundary(start) {
             start += 1;
         }
-        entry.drain(..start);
+        info.output.drain(..start);
     }
+    info.output_sequence += 1;
+    info.output_sequence
 }
 
 fn update_session(
     info: &DashMap<String, TerminalSessionInfo>,
-    history: &DashMap<String, String>,
     session_id: &str,
     status: &str,
     message: &str,
@@ -447,10 +416,6 @@ fn update_session(
     if let Some(mut item) = info.get_mut(session_id) {
         item.status = status.to_string();
         item.message = message.to_string();
-        item.output = history
-            .get(session_id)
-            .map(|value| value.clone())
-            .unwrap_or_default();
     }
 }
 
@@ -482,10 +447,23 @@ fn is_retryable_ssh_error(error: &ssh2::Error) -> bool {
         || message.contains("window exceeded")
 }
 
-fn emit_output(app: &AppHandle, session_id: &str, bytes: &[u8]) {
+fn publish_output(
+    app: &AppHandle,
+    sessions: &DashMap<String, TerminalSessionInfo>,
+    session_id: &str,
+    bytes: &[u8],
+) {
+    let data = String::from_utf8_lossy(bytes);
+    let Some(sequence) = sessions
+        .get_mut(session_id)
+        .map(|mut info| append_output(&mut info, &data))
+    else {
+        return;
+    };
     let payload = TerminalOutputEvent {
         session_id: session_id.to_string(),
-        data: String::from_utf8_lossy(bytes).into_owned(),
+        data: data.into_owned(),
+        sequence,
     };
     if let Err(error) = app.emit(TERMINAL_OUTPUT_EVENT, payload) {
         log::warn!("推送终端输出失败 (session={}): {}", session_id, error);
@@ -505,9 +483,39 @@ fn emit_status(app: &AppHandle, session_id: &str, status: &str, message: &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_retryable_io, is_retryable_ssh_error};
+    use super::{append_output, is_retryable_io, is_retryable_ssh_error};
+    use crate::models::{TerminalOutputEvent, TerminalSessionInfo};
     use ssh2::{Error, ErrorCode};
     use std::io::{Error as IoError, ErrorKind};
+
+    #[test]
+    fn output_snapshot_keeps_its_sequence_after_history_is_trimmed() -> Result<(), serde_json::Error> {
+        let mut session = TerminalSessionInfo {
+            session_id: "term-test".into(),
+            server_id: 101,
+            status: "connected".into(),
+            started_at: String::new(),
+            output: String::new(),
+            output_sequence: 0,
+            message: String::new(),
+        };
+        assert_eq!(append_output(&mut session, &"h".repeat(700_000)), 1);
+        assert_eq!(append_output(&mut session, &"界".repeat(30_000)), 2);
+        assert!(session.output.len() <= 600_000);
+        assert!(session.output.ends_with('界'));
+        let sequence = append_output(&mut session, "new");
+        let event = TerminalOutputEvent {
+            session_id: session.session_id.clone(),
+            data: "new".into(),
+            sequence,
+        };
+        let snapshot_json = serde_json::to_value(&session)?;
+        let event_json = serde_json::to_value(&event)?;
+        assert_eq!(snapshot_json["outputSequence"], 3);
+        assert_eq!(event_json["sequence"], snapshot_json["outputSequence"]);
+        assert!(session.output.ends_with("new"));
+        Ok(())
+    }
 
     #[test]
     fn socket_timeout_is_retryable_for_nonblocking_pty() {

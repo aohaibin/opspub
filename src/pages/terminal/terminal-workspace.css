@@ -1,0 +1,111 @@
+.ops-terminal-route-loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+}
+
+.ops-terminal-page > .ops-terminal-shell[hidden] {
+  display: none;
+}
+
+.ops-terminal-sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  margin-inline: 9px;
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--border);
+}
+
+.ops-terminal-sidebar-picker .ant-select {
+  position: relative;
+  width: 100%;
+}
+
+.ops-terminal-sidebar-session {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-850);
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ops-terminal-sidebar-session:disabled {
+  cursor: default;
+  opacity: .65;
+}
+
+.ops-terminal-sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 3px 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ops-terminal-sidebar-heading h3 {
+  font-weight: 650;
+}
+
+.ops-terminal-sidebar-empty {
+  padding-inline: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.ops-terminal-sidebar-session:not(:disabled):hover {
+  background: var(--bg-hover);
+}
+
+.ops-terminal-sidebar-session[aria-pressed="true"] {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+}
+
+.ops-terminal-sidebar button:focus-visible {
+  outline: 2px solid var(--nav-active-icon);
+  outline-offset: 1px;
+}
+
+.ops-terminal-sidebar-dot {
+  flex: 0 0 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.ops-terminal-sidebar-dot[data-status="connected"] {
+  background: var(--success);
+}
+
+.ops-terminal-sidebar-dot[data-status="connecting"] {
+  background: var(--warning);
+}
+
+.ops-terminal-sidebar-dot[data-status="error"] {
+  background: var(--danger);
+}
+
+.ops-terminal-sidebar-alias {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-terminal-sidebar-status {
+  flex: 0 0 auto;
+  font-size: 11px;
+}

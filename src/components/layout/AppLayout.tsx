@@ -1,28 +1,30 @@
 /**
- * 应用外壳：顶栏 + 左侧导航轨 + 内容区。
- *
- * 严格对齐原型 docs/remote-ops-ai-prototype.html 的 header + aside#appSidebar：
- *   顶栏左  —— OpsPub Logo + 品牌名 + 本地安全模式提示
- *   顶栏右  —— 版本徽标 / AI 操作锁 / 皮肤调色盘 / 告警铃 / 窗口三键
- *   主体    —— 68px 图标导轨 + 右侧内容区
- *
- * 与原型的一处必要差异：原型是单页 switchTab，这里是多路由 <Outlet />。
+ * 新版工作区外壳。使用现有路由渲染页面，双轨和标题随当前路由同步。
  */
 
-import { useRef } from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import { Layout } from "antd";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
-import { NavRail } from "./NavRail";
+import { ChevronRight, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { modulePath } from "@/navigation/modules";
+import { translateModule } from "@/navigation/translations";
+import { resolveWorkspace, WORKSPACE_DOMAINS, type WorkspaceDomain } from "@/navigation/workspace";
+import { useAppStore } from "@/store/app";
+import { useSettingsStore } from "@/store/settings";
+import {
+  WorkspaceNavigation,
+  WorkspaceSidebarTarget,
+  WORKSPACE_SIDEBAR_ID,
+  workspaceDomainLabel,
+} from "./WorkspaceNavigation";
 import { WindowControls } from "./WindowControls";
 import { AiLockControl } from "./header/AiLockControl";
 import { McpAiUnlockModal } from "./header/McpAiUnlockModal";
 import { SkinSwitcher } from "./header/SkinSwitcher";
-import { AlertBell } from "./header/AlertBell";
 import { VersionBadge } from "./header/VersionBadge";
 import { CommandPalette } from "./CommandPalette";
 
-const { Content } = Layout;
+import "./workspace.css";
 
 function getAppWindow(): Window | null {
   try {
@@ -37,10 +39,10 @@ function getAppWindow(): Window | null {
  * 窗口开了 decorations: false，没有原生标题栏，拖拽只能自己实现；
  * 顶栏中间的空白区域作为拖拽区，避免把额外标题栏渲染到原型之外。
  */
-function DragRegion({ className }: { className?: string }) {
+function DragRegion() {
   const windowRef = useRef<Window | null>(getAppWindow());
 
-  function handleMouseDown(e: React.MouseEvent) {
+  function handleMouseDown(e: MouseEvent) {
     if (e.buttons === 1 && windowRef.current) {
       if (e.detail === 2) {
         // 双击标题栏区域最大化 / 还原，符合桌面端习惯
@@ -53,114 +55,137 @@ function DragRegion({ className }: { className?: string }) {
 
   return (
     <div
-      className={className}
+      className="workspace-drag-region"
       onMouseDown={handleMouseDown}
-      style={{ flex: 1, height: "100%", minWidth: 24, cursor: "default", userSelect: "none" }}
     />
   );
 }
 
 export function AppLayout() {
   const location = useLocation();
-  const isTerminal = location.pathname.startsWith("/terminal");
+  const navigate = useNavigate();
+  const { domain, module } = resolveWorkspace(location.pathname);
+  const language = useSettingsStore((state) => state.language);
+  const english = language === "en-US";
+  const openSearch = useAppStore((state) => state.setCommandPaletteOpen);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarTarget, setSidebarTarget] = useState<HTMLDivElement | null>(null);
+  const sidebarToggle = useRef<HTMLButtonElement>(null);
+  const SidebarIcon = sidebarOpen ? PanelLeftClose : PanelLeftOpen;
+
+  const activateDomain = useCallback((next: WorkspaceDomain) => {
+    setSidebarOpen(true);
+    if (module && next.key === domain.key) return;
+    void navigate(modulePath(next.modules[0]));
+  }, [domain.key, module, navigate]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.isComposing || event.repeat) return;
+      // 终端、编辑器和弹窗需要保留自己的数字输入和 Ctrl+B 行为。
+      if (event.target instanceof Element && event.target.closest(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], .xterm, [role="dialog"]',
+      )) return;
+      if (event.altKey || event.shiftKey) return;
+      const isToggle = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b";
+      if (isToggle) {
+        event.preventDefault();
+        if (document.getElementById(WORKSPACE_SIDEBAR_ID)?.contains(document.activeElement)) {
+          sidebarToggle.current?.focus();
+        }
+        setSidebarOpen((open) => !open);
+        return;
+      }
+      if (event.ctrlKey || event.metaKey) return;
+      const destination = WORKSPACE_DOMAINS.find((item) => item.shortcut === event.key);
+      if (destination) {
+        event.preventDefault();
+        activateDomain(destination);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activateDomain]);
+
+  const domainLabel = workspaceDomainLabel(domain, language);
+  const moduleLabel = module ? translateModule(module, language).title : undefined;
+  const toggleLabel = sidebarOpen
+    ? english ? "Collapse sidebar" : "收起二级栏"
+    : english ? "Expand sidebar" : "展开二级栏";
+  const searchLabel = english ? "Search modules" : "搜索模块";
 
   return (
-    <Layout style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <header
-        className="glass-nav shrink-0 flex items-center"
-        style={{
-          height: "var(--header-height)",
-          padding: "0 16px",
-          gap: 12,
-          zIndex: 40,
-          userSelect: "none",
-        }}
-      >
-        {/* 左侧：Logo、品牌名和本地安全模式提示 */}
-        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
-            <div
-              className="flex items-center justify-center overflow-hidden"
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 7,
-                filter: "drop-shadow(0 0 8px rgba(16, 185, 129, 0.35))",
-              }}
-            >
-              <img
-                src="/logo.png"
-                alt="OpsPub Logo"
-                width={28}
-                height={28}
-                style={{ display: "block", objectFit: "contain" }}
-              />
-            </div>
-            <span
-              style={{
-                fontWeight: 700,
-                fontSize: 14,
-                letterSpacing: "0.02em",
-                color: "var(--text-primary)",
-              }}
-            >
-              OpsPub
-            </span>
-            <span style={{ color: "var(--text-muted)" }}>|</span>
-            <span
-              style={{
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-                color: "var(--text-secondary)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              本地安全模式 · MCP 仅监听 127.0.0.1
-            </span>
+    <div className="workspace-shell">
+      <header className="workspace-header glass-nav">
+        <div className="workspace-brand">
+          <img src="/logo.png" alt="" width={24} height={24} draggable={false} />
+          <span>OpsPub</span>
         </div>
-
-        {/* 中间留白区域同时承担无边框窗口拖拽 */}
+        <button
+          ref={sidebarToggle}
+          type="button"
+          className="workspace-plain-button workspace-header-toggle"
+          aria-label={toggleLabel}
+          aria-expanded={sidebarOpen}
+          aria-controls={WORKSPACE_SIDEBAR_ID}
+          title={`${toggleLabel} (Ctrl+B)`}
+          onClick={() => setSidebarOpen((open) => !open)}
+        >
+          <SidebarIcon size={17} aria-hidden />
+        </button>
+        <div className="workspace-breadcrumb" aria-label={english ? "Current location" : "当前位置"}>
+          <span title={domainLabel}>{domainLabel}</span>
+          {moduleLabel && (
+            <>
+              <ChevronRight size={13} aria-hidden />
+              <span title={moduleLabel} aria-current="page">{moduleLabel}</span>
+            </>
+          )}
+        </div>
         <DragRegion />
-
-        {/* 右侧：版本 / AI 锁 / 皮肤 / 告警 / 窗口控制 */}
-        <div className="flex items-center shrink-0" style={{ gap: 8 }}>
+        <button
+          type="button"
+          className="workspace-search header-pill"
+          title={`${searchLabel} (Ctrl+K)`}
+          onClick={() => openSearch(true)}
+        >
+          <Search size={15} aria-hidden />
+          <span>{searchLabel}</span>
+          <kbd aria-hidden>Ctrl K</kbd>
+        </button>
+        <DragRegion />
+        <div className="workspace-header-controls">
           <VersionBadge />
           <AiLockControl />
           <SkinSwitcher />
-          <AlertBell />
-          <div
-            className="flex items-center shrink-0"
-            style={{ gap: 1, paddingLeft: 8, borderLeft: "1px solid var(--border)" }}
-          >
+          <div className="workspace-window-controls">
             <WindowControls />
           </div>
         </div>
       </header>
 
-      {/*
-        内层 Layout 必须显式 flexDirection: "row"。
-        antd 的 Layout 默认是 column，只有检测到 <Sider> 子组件时才会自动加
-        ant-layout-has-sider 切成横向。这里用的是原生 <aside> 导航轨，
-        拿不到那个类，不写这一行内容区会被整块挤到视口外面（表现是右侧一片空白）。
-      */}
-      <Layout style={{ flex: 1, minHeight: 0, flexDirection: "row" }}>
-        <NavRail />
-        <Content
-          className="custom-scrollbar"
-          style={{
-            padding: isTerminal ? 0 : 20,
-            overflow: isTerminal ? "hidden" : "auto",
-            overscrollBehavior: "contain",
-            minHeight: 0,
-            minWidth: 0,
-            background: "var(--surface-950)",
+      <div className="workspace-body">
+        <WorkspaceNavigation
+          activeDomain={domain}
+          activeModuleKey={module?.key}
+          language={language}
+          sidebarOpen={sidebarOpen}
+          onActivate={activateDomain}
+          onCollapse={() => {
+            setSidebarOpen(false);
+            sidebarToggle.current?.focus();
           }}
-        >
-          <Outlet />
-        </Content>
-      </Layout>
+          sidebarRef={setSidebarTarget}
+        />
+        <main className="workspace-content custom-scrollbar" data-full-bleed={module?.key === "terminal"}>
+          <WorkspaceSidebarTarget.Provider value={sidebarTarget}>
+            <Outlet />
+          </WorkspaceSidebarTarget.Provider>
+        </main>
+      </div>
 
       <CommandPalette />
       <McpAiUnlockModal />
-    </Layout>
+    </div>
   );
 }

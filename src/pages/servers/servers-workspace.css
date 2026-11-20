@@ -1,0 +1,209 @@
+.ops-asset-sidebar {
+  display: grid;
+  gap: 10px;
+  margin-inline: 9px;
+  padding-block: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.ops-asset-sidebar button[aria-pressed] {
+  font-size: 12px;
+}
+
+.ops-asset-system-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 30px;
+  padding-inline: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ops-asset-system-group:hover {
+  background: var(--bg-hover);
+}
+
+.ops-asset-system-group[aria-pressed="true"] {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  font-weight: 600;
+}
+
+.ops-asset-sidebar-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ops-asset-sidebar-tag > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-asset-header-actions,
+.ops-asset-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ops-asset-main > .ops-server-group-slot {
+  flex: 0 0 auto;
+  max-width: min(450px, 45%);
+}
+
+.ops-asset-main .ops-server-resizer {
+  touch-action: none;
+}
+
+.ops-asset-main > .ops-server-group-slot .ops-server-group > div:last-child {
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+.ops-asset-main .ops-server-resizer:focus-visible,
+.ops-asset-sidebar button:focus-visible {
+  outline: 2px solid var(--nav-active-icon);
+  outline-offset: 1px;
+}
+
+.ops-asset-table-panel {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ops-asset-toolbar {
+  flex: 0 0 auto;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.ops-asset-toolbar-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding-inline: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-900);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ops-asset-toolbar-toggle:hover,
+.ops-asset-toolbar-toggle[aria-expanded="true"],
+.ops-asset-toolbar-toggle[aria-pressed="true"] {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+}
+
+.ops-asset-table-panel .ant-table-thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface-900);
+}
+
+.ops-asset-table-panel .ant-table-thead > tr > .ant-table-cell-fix-right {
+  z-index: 4;
+}
+
+.ops-asset-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.ops-asset-row-actions .ops-server-row-icon {
+  flex-basis: 23px;
+  width: 23px;
+}
+
+.ops-asset-alias {
+  min-width: 0;
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ops-asset-alias:hover {
+  text-decoration: underline;
+}
+
+.ops-asset-details {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.ops-asset-details .ops-server-host-label,
+.ops-asset-tag {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ops-asset-details .ops-server-host-label {
+  flex: 0 1 auto;
+  max-width: 65%;
+}
+
+.ops-asset-tag {
+  padding-inline: 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ops-asset-table-panel[data-wrap="true"] .ops-asset-details {
+  flex-wrap: wrap;
+}
+
+.ops-asset-table-panel[data-wrap="true"] :is(.ops-asset-alias, .ops-server-host-label, .ops-asset-tag) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (max-width: 1023px) {
+  .ops-asset-main {
+    height: auto;
+  }
+
+  .ops-asset-main > .ops-server-group-slot {
+    width: 100% !important;
+    max-width: none;
+    height: auto;
+  }
+
+  .ops-asset-main .ops-server-resizer {
+    display: none;
+  }
+}

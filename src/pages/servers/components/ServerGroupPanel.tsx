@@ -42,7 +42,10 @@ interface ServerGroupPanelProps {
   tagStats: { tag: string; count: number }[];
   selectedTags: string[];
   onToggleTag: (tag: string) => void;
-  onClearTags: () => void;
+  onResetFilters: () => void;
+  placement?: "sidebar" | "content";
+  groupOrderVersion: number;
+  onGroupOrderChange: () => void;
 }
 
 /** 分组图标：虚拟分组固定图标，自定义分组统一用文件夹 */
@@ -67,15 +70,10 @@ function GroupCountBadge({ count, active }: { count: number; active: boolean }) 
           : ""
       }`}
       style={{
-        background: active
-          ? "rgba(99, 102, 241, 0.22)"
-          : "rgba(255, 255, 255, 0.05)",
-        border: active
-          ? "1px solid rgba(99, 102, 241, 0.45)"
-          : "1px solid rgba(255, 255, 255, 0.08)",
-        color: active ? "var(--accent-hover)" : "var(--text-muted)",
+        background: active ? "var(--nav-active-bg)" : "var(--bg-tertiary)",
+        border: `1px solid ${active ? "var(--nav-active-border)" : "var(--border)"}`,
+        color: active ? "var(--nav-active-text)" : "var(--text-secondary)",
         fontWeight: active ? 600 : 500,
-        boxShadow: active ? "0 0 6px rgba(99, 102, 241, 0.2)" : "none",
       }}
     >
       {count}
@@ -96,7 +94,10 @@ export function ServerGroupPanel({
   tagStats,
   selectedTags,
   onToggleTag,
-  onClearTags,
+  onResetFilters,
+  placement = "content",
+  groupOrderVersion,
+  onGroupOrderChange,
 }: ServerGroupPanelProps) {
   const [subGroupModalOpen, setSubGroupModalOpen] = useState(false);
   const [subGroupTarget, setSubGroupTarget] = useState("");
@@ -116,7 +117,6 @@ export function ServerGroupPanel({
     position: "before" | "after" | "inside";
   } | null>(null);
   const [dragOverRoot, setDragOverRoot] = useState(false);
-  const [groupOrderVersion, setGroupOrderVersion] = useState(0);
 
   const handleDragStart = (e: React.DragEvent, groupKey: string) => {
     setDraggingGroup(groupKey);
@@ -182,7 +182,7 @@ export function ServerGroupPanel({
 
       try {
         localStorage.setItem("ops_server_group_order", JSON.stringify(currentKeys));
-        setGroupOrderVersion((v) => v + 1);
+        onGroupOrderChange();
         message.success("已调整分组显示顺序");
       } catch (_) {}
     }
@@ -251,19 +251,19 @@ export function ServerGroupPanel({
         key: VIRTUAL_GROUP_ALL,
         label: "全部主机",
         count: servers.length,
-        accent: "#818cf8",
+        accent: "var(--nav-active-icon)",
       },
       {
         key: VIRTUAL_GROUP_STARRED,
         label: "我的收藏",
         count: servers.filter((s) => s.favorite).length,
-        accent: "#fbbf24",
+        accent: "var(--warning)",
       },
       {
         key: VIRTUAL_GROUP_RECENT,
         label: "最近用过",
         count: servers.filter((s) => s.last_used_at).length,
-        accent: "#22d3ee",
+        accent: "var(--info)",
       },
     ];
   }, [servers]);
@@ -435,39 +435,38 @@ export function ServerGroupPanel({
   };
 
   return (
-    <div className="glass-card ops-server-group rounded-xl p-3">
-      <div
-        className="flex items-center justify-between pb-2"
-        style={{ borderBottom: "1px solid var(--border)" }}
-      >
-        <span
-          className="flex items-center gap-1.5 text-xs font-semibold"
-          style={{ color: "var(--text-primary)" }}
+    <div
+      className={placement === "sidebar" ? "ops-asset-sidebar" : "glass-card ops-server-group rounded-xl p-3"}
+    >
+      {placement === "content" && (
+        <div
+          className="flex items-center gap-1.5 border-b pb-2 text-xs font-semibold"
+          style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
         >
           <FolderTree size={14} style={{ color: "var(--accent)" }} />
           <span>服务器分组</span>
-        </span>
-      </div>
+        </div>
+      )}
 
-      <div className="ops-server-group-list custom-scrollbar space-y-1 py-2 pr-0.5">
+      <div className={placement === "sidebar" ? "space-y-1" : "ops-server-group-list custom-scrollbar space-y-1 py-2 pr-0.5"}>
         {/* 顶部固定分组 (系统预设视图，不可删除/不可重命名) */}
         <div className="space-y-1">
           {/* 预设视图专属标头 */}
           <div className="px-1.5 pt-0.5 pb-1 flex items-center justify-between text-[11px]">
             <span className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--text-secondary)" }}>
-              <Compass size={13} style={{ color: "var(--accent)" }} />
+              {placement === "content" && <Compass size={13} style={{ color: "var(--accent)" }} />}
               <span>系统视图</span>
             </span>
             <span
               className="text-[9px] px-1.5 py-0.5 rounded font-medium"
               style={{
-                background: "rgba(255, 255, 255, 0.06)",
+                background: "var(--bg-secondary)",
                 border: "1px solid var(--border)",
                 color: "var(--text-muted)",
               }}
               title="系统内置筛选视图，不可重命名或解散"
             >
-              🔒 内置固定
+              内置固定
             </span>
           </div>
 
@@ -477,14 +476,9 @@ export function ServerGroupPanel({
               <button
                 key={group.key}
                 type="button"
+                aria-pressed={active}
                 onClick={() => onSelectGroup(group.key)}
-                className="group/item w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition select-none cursor-pointer"
-                style={{
-                  background: active ? "rgba(99, 102, 241, 0.18)" : "transparent",
-                  border: active ? "1px solid rgba(99, 102, 241, 0.45)" : "1px solid transparent",
-                  color: active ? "var(--accent-hover)" : "var(--text-secondary)",
-                  fontWeight: active ? 600 : 400,
-                }}
+                className="ops-asset-system-group group/item"
                 title="系统固定分组 (不可删除/重命名)"
               >
                 <span className="flex items-center gap-2 min-w-0">
@@ -512,7 +506,7 @@ export function ServerGroupPanel({
           title={draggingGroup && draggingGroup.includes("/") ? "拖拽松开移至根目录 (顶级)" : undefined}
         >
           <span className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--text-secondary)" }}>
-            <Folder size={13} style={{ color: "#f59e0b" }} />
+            {placement === "content" && <Folder size={13} style={{ color: "var(--warning)" }} />}
             <span>业务分组</span>
             <span className="text-[10px] font-normal" style={{ color: "var(--text-muted)" }}>
               ({customGroups.length})
@@ -529,9 +523,9 @@ export function ServerGroupPanel({
             title="新建业务分组"
             className="group/btn inline-flex items-center gap-1 h-[20px] px-2 rounded-md text-[10px] font-medium transition-all duration-150 cursor-pointer select-none active:scale-95 hover:border-indigo-500/50 hover:bg-indigo-500/15 hover:text-indigo-300 hover:shadow-[0_0_8px_rgba(99,102,241,0.2)]"
             style={{
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.09)",
-              color: "var(--text-muted)",
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border)",
+              color: "var(--text-secondary)",
             }}
           >
             <Plus size={11} className="transition-transform duration-200 group-hover/btn:rotate-90 group-hover/btn:text-indigo-400" />
@@ -585,7 +579,7 @@ export function ServerGroupPanel({
                 }`}
                 style={{
                   opacity: isDragging ? 0.35 : 1,
-                  paddingLeft: `${8 + group.depth * 14}px`,
+                  paddingLeft: `${8 + Math.min(group.depth, 5) * 12}px`,
                   background:
                     targetPos === "inside"
                       ? "rgba(99, 102, 241, 0.25)"
@@ -616,7 +610,7 @@ export function ServerGroupPanel({
                   {group.depth > 0 ? (
                     <CornerDownRight size={12} className="opacity-60 shrink-0 text-slate-400" />
                   ) : (
-                    <Folder size={13} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                  <Folder size={13} style={{ color: "var(--warning)", flexShrink: 0 }} />
                   )}
                   <span className="truncate">{group.displayName}</span>
                   {targetPos === "inside" && (
@@ -675,6 +669,7 @@ export function ServerGroupPanel({
         okText="确认创建"
         cancelText="取消"
         destroyOnClose
+        maskClosable={false}
       >
         <div className="space-y-3 py-2 text-xs">
           <div>
@@ -705,6 +700,7 @@ export function ServerGroupPanel({
         okText="确认修改"
         cancelText="取消"
         destroyOnClose
+        maskClosable={false}
       >
         <div className="space-y-3 py-2 text-xs">
           <div>
@@ -736,6 +732,7 @@ export function ServerGroupPanel({
         cancelText="取消"
         okButtonProps={{ danger: true }}
         destroyOnClose
+        maskClosable={false}
       >
         <div className="space-y-2 py-2 text-xs text-slate-300">
           <p>
@@ -755,16 +752,15 @@ export function ServerGroupPanel({
           >
             标签快捷过滤
           </span>
-          {selectedTags.length > 0 && (
-            <button
-              type="button"
-              onClick={onClearTags}
-              className="text-[10px]"
-              style={{ color: "var(--accent-hover)" }}
-            >
-              清空
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="text-[11px]"
+            style={{ color: "var(--accent-hover)" }}
+            title="重置所有过滤条件"
+          >
+            重置
+          </button>
         </div>
 
         {tagStats.length === 0 ? (
@@ -781,18 +777,18 @@ export function ServerGroupPanel({
                 <button
                   key={tag}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => onToggleTag(tag)}
                   title={`${count} 台主机使用该标签`}
-                  className="px-2 py-0.5 rounded text-[10px] transition"
+                  className="ops-asset-sidebar-tag"
                   style={{
-                    background: active
-                      ? "rgba(99, 102, 241, 0.25)"
-                      : "var(--bg-tertiary)",
-                    color: active ? "var(--accent-hover)" : "var(--text-secondary)",
+                    background: active ? "var(--nav-active-bg)" : "var(--bg-tertiary)",
+                    borderColor: active ? "var(--nav-active-border)" : "var(--border)",
+                    color: active ? "var(--nav-active-text)" : "var(--text-secondary)",
                   }}
                 >
-                  {tag}
-                  <span className="ml-1 opacity-60">{count}</span>
+                  <span>{tag}</span>
+                  <span className="opacity-70">{count}</span>
                 </button>
               );
             })}

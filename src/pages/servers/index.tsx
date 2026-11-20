@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
@@ -6,7 +6,6 @@ import {
   Input,
   Modal,
   Select,
-  Space,
   Table,
   Tooltip,
   message,
@@ -44,6 +43,7 @@ import { modulePath, requireModule } from "@/navigation/modules";
 import { ServerGroupPanel } from "./components/ServerGroupPanel";
 import {
   ServerToolbar,
+  type ActionLayout,
   type OsFilter,
   type StatusFilter,
   type PolicyFilter,
@@ -56,6 +56,8 @@ import { serverImportApi, type ServerImportSource } from "@/lib/api/server-impor
 import { AiPolicyBadge } from "./components/AiPolicyBadge";
 import { AiApprovalBypassPopover } from "./components/AiApprovalBypassPopover";
 import { ServerRowActions } from "./components/ServerRowActions";
+import "./servers-workspace.css";
+import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 
 import {
   AI_POLICY_META,
@@ -77,16 +79,14 @@ const MODULE = requireModule("servers");
 /** 每行的探测状态：探测中、已出结果、或尚未探测 */
 type ProbeState = Record<number, ConnectivityResult | "testing">;
 
-/** 行内标签胶囊，对齐原型（px-1.5 rounded text-[10px] bg-slate-800 border-slate-700） */
-const TAG_PILL: CSSProperties = {
-  padding: "1px 6px",
-  borderRadius: 4,
-  fontSize: 12,
-  lineHeight: "16px",
-  background: "var(--bg-secondary)",
-  border: "1px solid var(--border)",
-  color: "var(--text-secondary)",
-};
+const DEFAULT_GROUP_WIDTH = 190;
+const MIN_GROUP_WIDTH = 140;
+const MAX_GROUP_WIDTH = 450;
+const GROUP_WIDTH_KEY = "ops_server_group_width";
+const GROUP_PANEL_KEY = "ops_content_group_panel_visible";
+const ACTION_LAYOUT_KEY = "ops_server_actions_layout_mode";
+const EXPANDED_TABLE_MIN_WIDTH = 888;
+const COMPACT_TABLE_MIN_WIDTH = 720;
 
 /**
  * SSH 身份认证状态。
@@ -111,6 +111,47 @@ export default function ServersPage() {
   const [policyFilter, setPolicyFilter] = useState<PolicyFilter>("all");
   const [activeGroup, setActiveGroup] = useState<string>(VIRTUAL_GROUP_ALL);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [groupPanelOpen, setGroupPanelOpen] = useState(() => {
+    try {
+      return localStorage.getItem(GROUP_PANEL_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [groupWidth, setGroupWidth] = useState(() => {
+    try {
+      const width = Number(localStorage.getItem(GROUP_WIDTH_KEY));
+      if (width >= MIN_GROUP_WIDTH && width <= MAX_GROUP_WIDTH) return width;
+    } catch {
+      // 无本地存储时使用默认宽度。
+    }
+    return DEFAULT_GROUP_WIDTH;
+  });
+  const groupResize = useRef<{ x: number; width: number } | null>(null);
+  const [groupOrderVersion, setGroupOrderVersion] = useState(0);
+  const [wrapRows, setWrapRows] = useState(false);
+  const [actionLayout, setActionLayout] = useState<ActionLayout>(() => {
+    try {
+      const saved = localStorage.getItem(ACTION_LAYOUT_KEY);
+      if (saved === "expanded" || saved === "compact") return saved;
+    } catch {
+      // 未读取到偏好时根据表格宽度布局。
+    }
+    return "auto";
+  });
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [autoCompact, setAutoCompact] = useState(false);
+  const compactActions = actionLayout === "auto" ? autoCompact : actionLayout === "compact";
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setAutoCompact(entry.contentRect.width < EXPANDED_TABLE_MIN_WIDTH);
+    });
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, []);
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [batchPinging, setBatchPinging] = useState(false);
@@ -132,60 +173,55 @@ export default function ServersPage() {
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [policyInput, setPolicyInput] = useState<AIPolicy>("approval");
 
-  /** 左侧分组栏宽度（支持拖拽调整、双击还原 190px 以及 localStorage 持久化） */
-  const [groupWidth, setGroupWidth] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem("ops_server_group_width");
-      if (saved) {
-        const num = parseInt(saved, 10);
-        if (num >= 140 && num <= 450) return num;
-      }
-    } catch {}
-    return 190;
-  });
-
-  const handleResizerMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startW = groupWidth;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    let currentW = startW;
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const delta = moveEvent.clientX - startX;
-      let nextW = startW + delta;
-      if (nextW < 140) nextW = 140;
-      if (nextW > 450) nextW = 450;
-      currentW = nextW;
-      setGroupWidth(nextW);
-    };
-
-    const onMouseUp = () => {
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      try {
-        localStorage.setItem("ops_server_group_width", String(currentW));
-      } catch {}
-    };
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  };
-
-  const handleResizerDoubleClick = () => {
-    setGroupWidth(190);
-    try {
-      localStorage.setItem("ops_server_group_width", "190");
-    } catch {}
-    message.info("已恢复分组栏默认宽度 (190px)");
-  };
-
   const navigate = useNavigate();
   const setActiveServerId = useAppStore((s) => s.setActiveServerId);
   const setSharedCredentials = useSshSessionStore((s) => s.setCredentials);
+
+  const toggleGroupPanel = () => {
+    const next = !groupPanelOpen;
+    setGroupPanelOpen(next);
+    try {
+      localStorage.setItem(GROUP_PANEL_KEY, String(next));
+    } catch {
+      // 展开状态仍可在当前页面内使用。
+    }
+  };
+
+  const toggleActionLayout = () => {
+    const next = actionLayout === "auto" ? "expanded" : actionLayout === "expanded" ? "compact" : "auto";
+    setActionLayout(next);
+    try {
+      localStorage.setItem(ACTION_LAYOUT_KEY, next);
+    } catch {
+      // 继续使用当前会话中的布局。
+    }
+  };
+
+  const resizeGroupPanel = (width: number) => {
+    const next = Math.max(MIN_GROUP_WIDTH, Math.min(width, MAX_GROUP_WIDTH));
+    setGroupWidth(next);
+    try {
+      localStorage.setItem(GROUP_WIDTH_KEY, String(next));
+    } catch {
+      // 保留当前会话中的宽度。
+    }
+  };
+
+  const startGroupResize = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    groupResize.current = { x: event.clientX, width: groupWidth };
+  };
+
+  const moveGroupResize = (event: PointerEvent<HTMLDivElement>) => {
+    const start = groupResize.current;
+    if (!start) return;
+    setGroupWidth(Math.max(MIN_GROUP_WIDTH, Math.min(
+      start.width + event.clientX - start.x,
+      MAX_GROUP_WIDTH,
+    )));
+  };
 
   const loadServers = useCallback(async (): Promise<Server[]> => {
     setLoading(true);
@@ -223,12 +259,12 @@ export default function ServersPage() {
         return false;
       }
 
-      // 快速状态过滤
+      // 尚未探测的主机没有可用于判断连通性的结果。
       if (statusFilter !== "all") {
         const probe = probeStates[server.id];
-        const isOnline = probe && probe !== "testing" ? probe.ok : true;
-        if (statusFilter === "online" && !isOnline) return false;
-        if (statusFilter === "offline" && isOnline) return false;
+        if (!probe || probe === "testing" || probe.ok !== (statusFilter === "online")) {
+          return false;
+        }
       }
 
       // 快速策略过滤 (使用 normalizeAIPolicy 双向兼容新旧策略代号)
@@ -621,12 +657,28 @@ export default function ServersPage() {
     }
   };
 
+  const groupPanelProps = {
+    servers,
+    activeGroup,
+    onSelectGroup: setActiveGroup,
+    onCreateGroup: handleCreateGroup,
+    onRenameGroup: handleRenameGroup,
+    onDissolveGroup: handleDissolveGroup,
+    onCreateSubGroup: handleCreateSubGroup,
+    onMoveGroup: handleMoveGroup,
+    tagStats,
+    selectedTags,
+    onToggleTag: handleToggleTag,
+    onResetFilters: resetAllFilters,
+    groupOrderVersion,
+    onGroupOrderChange: () => setGroupOrderVersion((value) => value + 1),
+  };
+
   /** 原型字段：别名/主机、分组、AI 策略、凭证、状态、操作。 */
   const columns: TableProps<Server>["columns"] = [
     {
       title: "别名 / 主机",
       key: "alias",
-      width: 220,
       sorter: (a, b) => a.alias.localeCompare(b.alias, "zh-CN"),
       render: (_: unknown, server: Server) => {
         const tags = parseTags(server.tags);
@@ -644,13 +696,14 @@ export default function ServersPage() {
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 font-bold" style={{ color: "var(--text-primary)" }}>
-                <span
-                  className="truncate cursor-pointer hover:underline text-xs"
+                <button
+                  type="button"
+                  className="ops-asset-alias"
                   onClick={() => goModule("workbench", server)}
-                  title="点击进入工作台"
+                  title={`${server.alias} · 点击进入工作台`}
                 >
                   {server.alias}
-                </span>
+                </button>
                 <Lock size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                 <button
                   type="button"
@@ -666,12 +719,12 @@ export default function ServersPage() {
                 </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                <span className="ops-server-host-label">
+              <div className="ops-asset-details">
+                <span className="ops-server-host-label" title={`${server.username}@${server.hostname}:${server.port}`}>
                   {server.username}@{server.hostname}:{server.port}
                 </span>
                 {tags.map((tag) => (
-                  <span key={tag} style={TAG_PILL}>
+                  <span key={tag} className="ops-asset-tag" title={tag}>
                     {tag}
                   </span>
                 ))}
@@ -684,7 +737,7 @@ export default function ServersPage() {
     {
       title: "分组",
       key: "group",
-      width: 120,
+      width: 102,
       render: (_: unknown, server: Server) => {
         return (
           <select
@@ -705,7 +758,7 @@ export default function ServersPage() {
     {
       title: "AI 策略",
       key: "ai_policy",
-      width: 130,
+      width: 122,
       sorter: (a, b) => (a.ai_policy || "").localeCompare(b.ai_policy || ""),
       render: (_: unknown, server: Server) => (
         <div className="flex items-center gap-1.5">
@@ -720,7 +773,7 @@ export default function ServersPage() {
     {
       title: <ShieldCheck size={14} className="mx-auto" />,
       key: "credentials",
-      width: 48,
+      width: 42,
       align: "center",
       render: (_: unknown, server: Server) => {
         const meta = SSH_STATUS_META[server.last_connection_status] ?? SSH_STATUS_META.unknown;
@@ -741,7 +794,7 @@ export default function ServersPage() {
     {
       title: "状态",
       key: "status",
-      width: 112,
+      width: 90,
       sorter: (a, b) => a.hostname.localeCompare(b.hostname),
       render: (_: unknown, server: Server) => {
         const state = probeStates[server.id];
@@ -772,12 +825,13 @@ export default function ServersPage() {
     {
       title: "操作",
       key: "action",
-      width: 280,
+      width: compactActions ? 132 : 288,
       fixed: "right",
       render: (_: unknown, server: Server) => (
         <ServerRowActions
           server={server}
           probing={probeStates[server.id] === "testing"}
+          compact={compactActions}
           onConnect={(item) => {
             if (item.protocol === "rdp") void serverImportApi.openRemoteDesktop(item.id).catch(e => message.error(getErrorMessage(e)));
             else goModule("terminal", item);
@@ -801,17 +855,20 @@ export default function ServersPage() {
 
   return (
     <div className="ops-page ops-server-page">
+      <WorkspaceSidebarSlot>
+        <ServerGroupPanel {...groupPanelProps} placement="sidebar" />
+      </WorkspaceSidebarSlot>
+
       <div className="ops-page-head">
         <div style={{ minWidth: 0 }}>
-          {/* 标题与说明取自模块注册表，保证与左侧导航的 tooltip、占位页文案三处一致 */}
           <h1 className="ops-page-title">
-            <span>{MODULE.title}</span>
+            <span>服务器资产清单</span>
             <span className="ops-page-subtitle">（{MODULE.subtitle}）</span>
           </h1>
           <p className="ops-page-desc">{MODULE.desc}</p>
         </div>
 
-        <Space className="ops-server-actions" size={8}>
+        <div className="ops-server-actions ops-asset-header-actions">
           <Tooltip title="Windows 服务器？点这里获取准备脚本（开通 SSH / 装 Chocolatey）" placement="bottom" styles={{ container: { padding: "10px 12px", borderRadius: 12, fontSize: 12, textAlign: "center", border: "1px solid var(--border)" } }}>
           <Button
             icon={<Monitor size={14} style={{ color: "var(--info)" }} />}
@@ -842,47 +899,47 @@ export default function ServersPage() {
               setFormOpen(true);
             }}
           >
-            纳管服务器
+            新增服务器
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <div
-        className="ops-server-main"
-        style={{
-          display: "flex",
-          gap: 6,
-          alignItems: "stretch",
-        }}
-      >
-        <div className="ops-server-group-slot" style={{ width: groupWidth, flexShrink: 0, minWidth: 140, maxWidth: 450 }}>
-          <ServerGroupPanel
-            servers={servers}
-            activeGroup={activeGroup}
-            onSelectGroup={setActiveGroup}
-            onCreateGroup={handleCreateGroup}
-            onRenameGroup={handleRenameGroup}
-            onDissolveGroup={handleDissolveGroup}
-            onCreateSubGroup={handleCreateSubGroup}
-            onMoveGroup={handleMoveGroup}
-            tagStats={tagStats}
-            selectedTags={selectedTags}
-            onToggleTag={handleToggleTag}
-            onClearTags={() => setSelectedTags([])}
-          />
-        </div>
-
-        {/* 垂直宽度拖拽分割条 */}
-        <div
-          onMouseDown={handleResizerMouseDown}
-          onDoubleClick={handleResizerDoubleClick}
-          className="ops-server-resizer"
-          title="按住左右拖拽调整宽度，双击恢复默认 (190px)"
-        >
-          <div className="ops-server-resizer-handle" />
-        </div>
-
-        <div className="ops-panel ops-server-table-panel" style={{ flex: "1 1 0%", minWidth: 0 }}>
+      <div className="ops-server-main ops-asset-main">
+        {groupPanelOpen && (
+          <>
+            <div id="server-asset-group-panel" className="ops-server-group-slot" style={{ width: groupWidth }}>
+              <ServerGroupPanel {...groupPanelProps} />
+            </div>
+            <div
+              role="separator"
+              aria-label="调整分组面板宽度"
+              aria-orientation="vertical"
+              aria-valuenow={groupWidth}
+              aria-valuemin={MIN_GROUP_WIDTH}
+              aria-valuemax={MAX_GROUP_WIDTH}
+              tabIndex={0}
+              title="拖拽调整宽度，双击恢复默认宽度"
+              className="ops-server-resizer"
+              onPointerDown={startGroupResize}
+              onPointerMove={moveGroupResize}
+              onLostPointerCapture={() => {
+                if (!groupResize.current) return;
+                groupResize.current = null;
+                resizeGroupPanel(groupWidth);
+              }}
+              onDoubleClick={() => resizeGroupPanel(DEFAULT_GROUP_WIDTH)}
+              onKeyDown={(event) => {
+                const adjustment = event.key === "ArrowLeft" ? -10 : event.key === "ArrowRight" ? 10 : 0;
+                if (!adjustment) return;
+                event.preventDefault();
+                resizeGroupPanel(groupWidth + adjustment);
+              }}
+            >
+              <div className="ops-server-resizer-handle" />
+            </div>
+          </>
+        )}
+        <div ref={panelRef} className="ops-panel ops-server-table-panel ops-asset-table-panel" data-wrap={wrapRows}>
           <ServerToolbar
             keyword={keyword}
             onKeywordChange={setKeyword}
@@ -897,6 +954,12 @@ export default function ServersPage() {
             selectedTags={selectedTags}
             onToggleTag={handleToggleTag}
             onResetTags={() => setSelectedTags([])}
+            groupPanelOpen={groupPanelOpen}
+            onToggleGroupPanel={toggleGroupPanel}
+            wrapRows={wrapRows}
+            onToggleWrap={() => setWrapRows((value) => !value)}
+            actionLayout={actionLayout}
+            onToggleActionLayout={toggleActionLayout}
           />
 
           <Table<Server>
@@ -907,16 +970,19 @@ export default function ServersPage() {
               loading={loading}
               size="middle"
               pagination={false}
-              scroll={{ x: "max-content" }}
+              tableLayout="fixed"
+              scroll={{ x: compactActions ? COMPACT_TABLE_MIN_WIDTH : EXPANDED_TABLE_MIN_WIDTH }}
               rowSelection={{
-                columnWidth: 42,
+                columnWidth: 38,
                 selectedRowKeys: selectedIds,
+                // 表格只接收可见行，其他分组中已勾选的主机仍属于批量目标。
+                preserveSelectedRowKeys: true,
                 onChange: (keys) => setSelectedIds(keys as number[]),
               }}
               locale={{
                 emptyText:
                   servers.length === 0
-                    ? "还没有纳管任何服务器，点击右上角「纳管服务器」开始"
+                    ? "还没有纳管服务器，点击右上角「新增服务器」开始"
                     : (
                       <div className="py-6 space-y-2">
                         <p style={{ color: "var(--text-muted)" }}>

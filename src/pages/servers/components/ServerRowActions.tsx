@@ -1,11 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Tooltip } from "antd";
+import { Dropdown, Tooltip } from "antd";
 import {
   Database,
   FolderSync,
   LayoutDashboard,
   Network,
   Monitor,
+  MoreHorizontal,
   Pencil,
   SquareTerminal,
   Trash2,
@@ -65,6 +66,7 @@ function ConnectButton({ onClick, rdp = false }: { onClick: () => void; rdp?: bo
 interface ServerRowActionsProps {
   server: Server;
   probing: boolean;
+  compact: boolean;
   onConnect: (server: Server) => void;
   onOpenSftp: (server: Server) => void;
   onOpenWorkbench: (server: Server) => void;
@@ -80,6 +82,7 @@ interface ServerRowActionsProps {
 export function ServerRowActions({
   server,
   probing,
+  compact,
   onConnect,
   onOpenSftp,
   onOpenWorkbench,
@@ -90,36 +93,43 @@ export function ServerRowActions({
   onEdit,
   onDelete,
 }: ServerRowActionsProps) {
+  const isRdp = server.protocol === "rdp";
+  const actions = [
+    ...(isRdp || !server.connection_options?.rdpEnabled ? [] : [{
+      key: "rdp",
+      title: "远程桌面",
+      icon: <Monitor size={14} />,
+      tone: "info" as const,
+      onClick: () => onOpenRdp(server),
+    }]),
+    { key: "sftp", title: "在 SFTP 中打开", icon: <FolderSync size={14} />, tone: "success" as const, disabled: isRdp, onClick: () => onOpenSftp(server) },
+    { key: "workbench", title: "打开工作台", icon: <LayoutDashboard size={14} />, disabled: isRdp, onClick: () => onOpenWorkbench(server) },
+    { key: "probe", title: probing ? "正在测试连接" : "连接测试", icon: <Wifi size={14} className={probing ? "animate-pulse" : undefined} />, tone: "success" as const, disabled: probing, onClick: () => onProbe(server) },
+    { key: "tunnel", title: "隧道", icon: <Network size={14} />, tone: "info" as const, disabled: isRdp, onClick: () => onOpenTunnel(server) },
+    { key: "credentials", title: "服务凭证", icon: <Database size={14} />, tone: "success" as const, onClick: () => onOpenCredentials(server) },
+    { key: "edit", title: "编辑", icon: <Pencil size={14} />, onClick: () => onEdit(server) },
+    { key: "delete", title: "删除", icon: <Trash2 size={14} />, tone: "danger" as const, onClick: () => onDelete(server) },
+  ];
   return (
-    <div className="flex items-center justify-end flex-nowrap gap-1">
-      <ConnectButton rdp={server.protocol === "rdp"} onClick={() => onConnect(server)} />
-      {server.protocol !== "rdp" && server.connection_options?.rdpEnabled && <ActionIconButton title="远程桌面" tone="info" onClick={() => onOpenRdp(server)}><Monitor size={14} /></ActionIconButton>}
-      <ActionIconButton title="在 SFTP 中打开" disabled={server.protocol === "rdp"} tone="success" onClick={() => onOpenSftp(server)}>
-        <FolderSync size={14} />
-      </ActionIconButton>
-      <ActionIconButton title="打开工作台" disabled={server.protocol === "rdp"} onClick={() => onOpenWorkbench(server)}>
-        <LayoutDashboard size={14} />
-      </ActionIconButton>
-      <ActionIconButton
-        title={probing ? "正在测试连接" : "连接测试"}
-        tone="success"
-        disabled={probing}
-        onClick={() => onProbe(server)}
-      >
-        <Wifi size={14} className={probing ? "animate-pulse" : undefined} />
-      </ActionIconButton>
-      <ActionIconButton title="隧道" disabled={server.protocol === "rdp"} tone="info" onClick={() => onOpenTunnel(server)}>
-        <Network size={14} />
-      </ActionIconButton>
-      <ActionIconButton title="服务凭证" tone="success" onClick={() => onOpenCredentials(server)}>
-        <Database size={14} />
-      </ActionIconButton>
-      <ActionIconButton title="编辑" onClick={() => onEdit(server)}>
-        <Pencil size={14} />
-      </ActionIconButton>
-      <ActionIconButton title="删除" tone="danger" onClick={() => onDelete(server)}>
-        <Trash2 size={14} />
-      </ActionIconButton>
+    <div className="ops-asset-row-actions">
+      <ConnectButton rdp={isRdp} onClick={() => onConnect(server)} />
+      {compact ? (
+        <Dropdown
+          placement="bottomRight"
+          trigger={["click"]}
+          menu={{
+            items: actions.map(({ key, title, icon, tone, disabled, onClick }) => ({
+              key, label: title, icon, danger: tone === "danger", disabled, onClick,
+            })),
+          }}
+        >
+          <button type="button" className="ops-server-row-icon" aria-label={`${server.alias}更多操作`} aria-haspopup="menu">
+            <MoreHorizontal size={15} aria-hidden />
+          </button>
+        </Dropdown>
+      ) : actions.map(({ key, icon, ...action }) => (
+        <ActionIconButton key={key} {...action}>{icon}</ActionIconButton>
+      ))}
     </div>
   );
 }

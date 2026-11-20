@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { Badge, Checkbox, Dropdown, Input, Popover, type MenuProps } from "antd";
-import { ChevronDown, Filter, Search } from "lucide-react";
+import { AlignJustify, ChevronDown, Filter, FolderTree, PanelRight, Search, WrapText } from "lucide-react";
 import type { AIPolicy, OsType } from "@/types";
 import { AI_POLICY_ORDER, POLICY_STYLES } from "../lib/serverMeta";
 
 export type OsFilter = "all" | OsType;
 export type StatusFilter = "all" | "online" | "offline";
 export type PolicyFilter = "all" | AIPolicy;
+export type ActionLayout = "auto" | "expanded" | "compact";
+
+const ACTION_LAYOUT_LABELS: Record<ActionLayout, string> = {
+  auto: "自适应操作",
+  expanded: "平铺操作",
+  compact: "折叠操作",
+};
 
 const OS_TABS: { key: OsFilter; label: string }[] = [
   { key: "all", label: "全部" },
@@ -19,7 +26,6 @@ interface ServerToolbarProps {
   onKeywordChange: (value: string) => void;
   osFilter: OsFilter;
   onOsFilterChange: (value: OsFilter) => void;
-  /** 保留这些回调以兼容页面的状态过滤逻辑，原型不再显示对应控件。 */
   statusFilter?: StatusFilter;
   onStatusFilterChange?: (value: StatusFilter) => void;
   policyFilter?: PolicyFilter;
@@ -29,6 +35,12 @@ interface ServerToolbarProps {
   selectedTags: string[];
   onToggleTag: (tag: string) => void;
   onResetTags: () => void;
+  groupPanelOpen: boolean;
+  onToggleGroupPanel: () => void;
+  wrapRows: boolean;
+  onToggleWrap: () => void;
+  actionLayout: ActionLayout;
+  onToggleActionLayout: () => void;
 }
 
 export function ServerToolbar({
@@ -45,6 +57,12 @@ export function ServerToolbar({
   selectedTags,
   onToggleTag,
   onResetTags,
+  groupPanelOpen,
+  onToggleGroupPanel,
+  wrapRows,
+  onToggleWrap,
+  actionLayout,
+  onToggleActionLayout,
 }: ServerToolbarProps) {
   const [tagPanelOpen, setTagPanelOpen] = useState(false);
 
@@ -122,17 +140,27 @@ export function ServerToolbar({
 
   return (
     <div
-      className="px-3 py-3 flex flex-wrap items-center justify-between gap-3"
+      className="ops-asset-toolbar"
       style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-secondary)" }}
     >
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="ops-asset-toolbar-toggle"
+          aria-expanded={groupPanelOpen}
+          aria-controls="server-asset-group-panel"
+          onClick={onToggleGroupPanel}
+        >
+          <FolderTree size={14} aria-hidden />
+          <span>分组面板</span>
+        </button>
         <Input
           allowClear
           value={keyword}
           onChange={(event) => onKeywordChange(event.target.value)}
           placeholder="搜索别名 / 主机 / 标签 / 用户..."
           prefix={<Search size={13} style={{ color: "var(--text-muted)" }} />}
-          className="min-w-[220px] max-w-xl flex-1"
+          className="min-w-[150px] max-w-80 flex-1"
           style={{ height: 32 }}
         />
 
@@ -164,13 +192,14 @@ export function ServerToolbar({
         </Dropdown>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {OS_TABS.map(({ key, label }) => {
           const active = osFilter === key;
           return (
             <button
               key={key}
               type="button"
+              aria-pressed={active}
               onClick={() => onOsFilterChange(key)}
               className="px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
               style={{
@@ -214,6 +243,25 @@ export function ServerToolbar({
             <ChevronDown size={11} />
           </button>
         </Popover>
+        <button
+          type="button"
+          className="ops-asset-toolbar-toggle"
+          title="切换操作列显示方式"
+          onClick={onToggleActionLayout}
+        >
+          <PanelRight size={14} aria-hidden />
+          <span>{ACTION_LAYOUT_LABELS[actionLayout]}</span>
+        </button>
+        <button
+          type="button"
+          className="ops-asset-toolbar-toggle"
+          aria-label="换行展开"
+          aria-pressed={wrapRows}
+          onClick={onToggleWrap}
+        >
+          {wrapRows ? <WrapText size={14} aria-hidden /> : <AlignJustify size={14} aria-hidden />}
+          <span>{wrapRows ? "换行展开" : "单行不换行"}</span>
+        </button>
       </div>
     </div>
   );

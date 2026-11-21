@@ -1,15 +1,15 @@
-/* 固定工作区高度，让主机树与执行看板等高，并各自滚动。 */
+/* 使用公共内容区的可用高度，主机树与执行看板各自滚动。 */
 .ops-page.ops-batch-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--app-chrome-height) - 40px);
-  min-height: 0;
+  height: 100%;
+  min-height: 560px;
   gap: 12px;
   color: var(--text-secondary);
   font-family: var(--font-ui);
   font-size: 14px;
   line-height: 1.55;
-  overflow: hidden;
+  container-type: inline-size;
 }
 
 .batch-page-heading, .batch-title, .batch-actions, .batch-controls,
@@ -48,13 +48,13 @@
 .batch-control-fields .ant-input-number { width: 70px; }
 .batch-control-fields > label > span:last-child { cursor: help; }
 
-.batch-workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); gap: 12px; overflow: hidden; }
+.batch-workspace { flex: 1 0 240px; min-height: 0; display: grid; grid-template-columns: minmax(250px, 1fr) minmax(0, 2fr); gap: 12px; }
 .batch-hosts { display: flex; flex-direction: column; overflow: hidden; padding: 12px; }
 .batch-hosts > .ant-input-affix-wrapper { flex-shrink: 0; border-radius: 12px; }
 .batch-selection-bar { flex-shrink: 0; justify-content: space-between; padding: 12px 8px 8px; }
 .batch-selection-bar > span { font-size: 13px; font-family: var(--font-mono); }
 .batch-host-list { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; }
-.batch-loading { padding: 40px; text-align: center; }
+.batch-loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px 8px; }
 .batch-group-heading { justify-content: space-between; padding: 7px 3px; }
 .batch-group-heading > button { min-width: 0; flex: 1; text-align: left; color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; }
 .batch-group-heading > button svg { flex-shrink: 0; transition: transform .15s; }
@@ -65,7 +65,7 @@
 .batch-host:hover { background: var(--bg-hover); }
 .batch-host.is-selected { background: color-mix(in srgb, var(--accent) 8%, transparent); border-color: color-mix(in srgb, var(--accent) 24%, transparent); }
 .batch-host > .ant-checkbox-wrapper { min-width: 0; flex: 1; align-items: flex-start; gap: 4px; }
-.batch-host .ant-checkbox { margin-top: 3px; }
+.batch-host .ant-checkbox { flex: none; margin-top: 3px; }
 .batch-host .ant-checkbox + span { overflow: hidden; min-width: 0; }
 .batch-host-name, .batch-host-address { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .batch-host-name { color: var(--text-primary); font-weight: 500; font-size: 14px; }
@@ -77,7 +77,7 @@
 .batch-empty-icon { display: grid; place-items: center; width: 50px; height: 50px; border: 1px solid var(--border); background: var(--bg-tertiary); border-radius: 16px; color: var(--text-primary); }
 .batch-empty h2 { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 14px 0 0; }
 .batch-empty p { font-size: 13px; margin: 6px 0 0; }
-.batch-result-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.batch-result-heading { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
 .batch-result-heading strong { color: var(--text-primary); font-size: 14px; }
 .batch-result-heading p { margin: 4px 0 0; font-size: 13px; }
 .batch-output-list { flex: 1; overflow-y: auto; min-height: 0; padding-right: 3px; margin-top: 12px; }
@@ -88,6 +88,9 @@
 .batch-output-identity > svg { flex-shrink: 0; }
 .batch-output-identity > strong { min-width: 0; color: var(--text-primary); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .batch-output-identity > span, .batch-output-card .batch-actions > span { flex-shrink: 0; font-size: 12px; font-family: var(--font-mono); }
+.batch-output-status[data-status="success"] { color: var(--success); }
+.batch-output-status[data-status="failed"], .batch-output-error { color: var(--danger); }
+.batch-output-status[data-status="running"] { color: var(--accent); }
 .batch-output-meta { padding: 7px 12px 0; font-size: 12px; font-family: var(--font-mono); overflow-wrap: anywhere; }
 .batch-output-command { margin: 0; padding: 8px 12px; font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
 .batch-output-body { max-height: 260px; overflow: auto; padding: 4px 12px 12px; color: var(--success); }
@@ -96,17 +99,13 @@
 .batch-snippets { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 .batch-snippets > div { display: flex; align-items: flex-start; gap: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
 .batch-snippets code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13.5px; }
+.batch-confirm-targets { margin: 0; padding-inline-start: 20px; max-height: 160px; overflow: auto; overflow-wrap: anywhere; list-style: disc; }
 .batch-confirm-command { margin: 12px 0 0; max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-family: var(--font-mono); font-size: 14px; }
 .ops-batch-page .ant-input, .ops-batch-page .ant-btn, .ops-batch-page .ant-checkbox-label, .ops-batch-page .ant-segmented { font-size: 13.5px; }
 
-/* 窄窗口与较矮窗口使用页面滚动，保留两个面板内的独立滚动区域。 */
-@media (max-width: 880px), (max-height: 650px) {
-  .ops-page.ops-batch-page { height: auto; min-height: 100%; }
-  .batch-workspace { min-height: 420px; }
-  .batch-host-list, .batch-output-list { max-height: 450px; }
-}
-@media (max-width: 720px) {
-  .batch-workspace { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+/* 依据内容区宽度换行，收起二级栏时可立即利用腾出的空间。 */
+@container (max-width: 610px) {
+  .batch-workspace { flex-basis: auto; grid-template-columns: minmax(0, 1fr); }
   .batch-prompt-row { flex-wrap: wrap; }
   .batch-prompt-row > .ant-input { flex-basis: calc(100% - 36px); }
   .batch-host-list { max-height: 280px; }

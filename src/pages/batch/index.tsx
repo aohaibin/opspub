@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Alert, Button, Input, InputNumber, Modal, Popconfirm, Segmented, Select, Switch, message } from "antd";
 import { Check, FileCode2, Layers3, Play, RotateCcw, Save, Sparkles, X } from "lucide-react";
@@ -16,21 +16,40 @@ import "@/pages/batch/batch.css";
 const SNIPPET_KEY = "batch.command_snippets";
 const MODE_OPTIONS: { label: string; value: Mode }[] = [{ label: "并发 (上限 10)", value: "concurrent" }, { label: "滚动批次", value: "rolling" }, { label: "串行", value: "serial" }];
 
-function confirmDispatch(count: number, command: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    Modal.confirm({ title: `确认向 ${count} 台服务器下发命令`,
-      content: <pre className="batch-confirm-command">{command}</pre>,
-      okText: "确认执行", cancelText: "取消", okButtonProps: { danger: true },
-      onOk: () => { resolve(true); }, onCancel: () => { resolve(false); },
-    });
-  });
+function isBatchTarget(server: Server) {
+  return server.os_type === "linux" && server.protocol !== "rdp";
+}
+
+interface RunOptions {
+  command: string;
+  timeout: number;
+  mode: Mode;
+  failStop: boolean;
+}
+
+interface RunConfirmation {
+  targets: Server[];
+  options: RunOptions;
+  retryRow?: RunRow;
 }
 
 export default function BatchPage() {
   const location = useLocation();
+  const incoming = (location.state as { serverIds?: unknown } | null)?.serverIds;
+  const preselectedIds = Array.isArray(incoming)
+    ? [...new Set(incoming.filter((id): id is number => typeof id === "number" && Number.isSafeInteger(id) && id > 0))]
+    : [];
+
+  // 每个历史条目都有自己的预选。重复直达同一路由也要使用这次的服务器 ID。
+  return <BatchWorkspace key={location.key} preselectedIds={preselectedIds} />;
+}
+
+function BatchWorkspace({ preselectedIds }: { preselectedIds: number[] }) {
   const [servers, setServers] = useState<Server[]>([]);
   const [loadingServers, setLoadingServers] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<number[]>((location.state as { serverIds?: number[] } | null)?.serverIds ?? []);
+  const [serverError, setServerError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [selectedIds, setSelectedIds] = useState(preselectedIds);
   const [prompt, setPrompt] = useState("");
   const [command, setCommand] = useState("");
   const [mode, setMode] = useState<Mode>("concurrent");
@@ -38,7 +57,7 @@ export default function BatchPage() {
   const [failStop, setFailStop] = useState(false);
   const [running, setRunning] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [confirmation, setConfirmation] = useState<RunConfirmation | null>(null);
   const [rows, setRows] = useState<RunRow[]>([]);
   const [snippets, setSnippets] = useState<string[]>([]);
   const [snippetsReady, setSnippetsReady] = useState(false);
@@ -49,16 +68,33 @@ export default function BatchPage() {
   const [error, setError] = useState("");
   const [favoriteLoadingIds, setFavoriteLoadingIds] = useState<number[]>([]);
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
-  const [lastRun, setLastRun] = useState({ command: "", timeout: 30, mode: "concurrent" as Mode, failStop: false });
+  const [lastRun, setLastRun] = useState<RunOptions>({ command: "", timeout: 30, mode: "concurrent", failStop: false });
   const runIdRef = useRef(0);
   const busyRef = useRef(false);
-  const disabled = running || generating || confirming;
+  const disabled = running || generating || confirmation !== null;
+
+  useLayoutEffect(() => {
+    return () => {
+      // 离开页面后停止后续派发，已提交的命令仍由后端完成并写审计。
+      runIdRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
-    void serverApi.list().then((items) => { if (active) setServers(items); })
-      .catch((failure) => { if (active) setError(getErrorMessage(failure)); })
+    void serverApi.list().then((items) => {
+      if (!active) return;
+      const targetIds = new Set(items.filter(isBatchTarget).map((server) => server.id));
+      setServers(items);
+      setSelectedIds((current) => current.filter((id) => targetIds.has(id)));
+    })
+      .catch((failure) => { if (active) setServerError(getErrorMessage(failure)); })
       .finally(() => { if (active) setLoadingServers(false); });
+    return () => { active = false; };
+  }, [loadAttempt]);
+
+  useEffect(() => {
+    let active = true;
     void modelServiceApi.listProfiles().then((items) => {
       if (!active) return;
       const enabled = items.filter((item) => item.enabled);
@@ -70,11 +106,12 @@ export default function BatchPage() {
       if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) throw new Error("命令片段数据格式无效");
       if (active) { setSnippets(parsed as string[]); setSnippetsReady(true); }
     }).catch((failure) => { if (active) setError(getErrorMessage(failure)); });
-    // 离开页面后停止后续派发，已提交的远端命令仍由后端完成并写审计。
-    return () => { active = false; runIdRef.current += 1; };
+    return () => { active = false; };
   }, []);
 
-  const selectedServers = servers.filter((server) => server.os_type === "linux" && selectedIds.includes(server.id));
+  const eligibleServers = servers.filter(isBatchTarget);
+  const selectedServers = eligibleServers.filter((server) => selectedIds.includes(server.id));
+  const unavailableCount = preselectedIds.filter((id) => !eligibleServers.some((server) => server.id === id)).length;
   const updateRow = (id: number, patch: Partial<RunRow>) => setRows((current) => current.map((row) => row.server.id === id ? { ...row, ...patch } : row));
 
   const executeOne = async (server: Server, text: string, timeout: number, runId: number, attempts = 1) => {
@@ -89,52 +126,55 @@ export default function BatchPage() {
     }
   };
 
-  const runTargets = async (targets: Server[], text: string, runMode: Mode, stopOnFailure: boolean, timeout: number) => {
-    const runId = ++runIdRef.current;
-    const started = performance.now();
-    setRunning(true); setElapsedMs(null);
-    setLastRun({ command: text, timeout, mode: runMode, failStop: stopOnFailure });
+  const runTargets = async (targets: Server[], options: RunOptions, runId: number) => {
+    setElapsedMs(null);
+    setLastRun(options);
     setRows(targets.map((server) => ({ server, status: "queued", attempts: 0 })));
-    const width = runMode === "serial" ? 1 : runMode === "rolling" ? 3 : 10;
+    const width = options.mode === "serial" ? 1 : options.mode === "rolling" ? 3 : 10;
     // 等当前批次的真实结果后再派发下一批；失败即停不伪装成取消已执行的命令。
-    for (let offset = 0; offset < targets.length && runId === runIdRef.current; offset += width) {
-      const results = await Promise.all(targets.slice(offset, offset + width).map((server) => executeOne(server, text, timeout, runId)));
-      if (stopOnFailure && results.some((ok) => !ok)) {
+    for (let offset = 0; offset < targets.length; offset += width) {
+      const results = await Promise.all(targets.slice(offset, offset + width).map(
+        (server) => executeOne(server, options.command, options.timeout, runId),
+      ));
+      if (runId !== runIdRef.current) return;
+      if (options.failStop && results.some((ok) => !ok)) {
         setRows((current) => current.map((row) => row.status === "queued" ? { ...row, status: "skipped" } : row));
         break;
       }
     }
-    if (runId === runIdRef.current) { setElapsedMs(Math.round(performance.now() - started)); setRunning(false); }
   };
 
-  const dispatch = async (rerun = false) => {
+  const dispatch = (rerun = false) => {
     if (busyRef.current || disabled) return;
     const targets = rerun ? rows.map((row) => row.server) : selectedServers;
-    const text = rerun ? lastRun.command : command.trim();
-    const timeout = rerun ? lastRun.timeout : timeoutSecs;
+    const options = rerun ? lastRun : { command: command.trim(), timeout: timeoutSecs, mode, failStop };
+    const { command: text, timeout } = options;
     if (!targets.length) return message.warning("请先选择 Linux 服务器");
-    if (!text || /[\r\n]/.test(text) || text.length > 4096) return message.warning("请输入 4096 字以内的单行命令");
+    // Rust 按 UTF-8 字节校验长度，与输入框的字符计数不同。
+    if (!text || /[\r\n]/.test(text) || new TextEncoder().encode(text).length > 4096) return message.warning("请输入 4096 字节以内的单行命令");
     if (!Number.isInteger(timeout) || timeout < 1 || timeout > 600) return message.warning("单台超时须在 1 到 600 秒之间");
-    busyRef.current = true; setConfirming(true);
-    const currentRunId = runIdRef.current;
-    try {
-      if (!await confirmDispatch(targets.length, text) || currentRunId !== runIdRef.current) return;
-      setConfirming(false);
-      await runTargets(targets, text, rerun ? lastRun.mode : mode, rerun ? lastRun.failStop : failStop, timeout);
-    } finally { busyRef.current = false; setConfirming(false); }
+    setConfirmation({ targets, options });
   };
 
-  const retry = async (row: RunRow) => {
-    if (busyRef.current || disabled) return;
-    busyRef.current = true; setConfirming(true);
-    const currentRunId = runIdRef.current;
+  const startConfirmedRun = async () => {
+    if (!confirmation || busyRef.current) return;
+    const { targets, options, retryRow } = confirmation;
+    const runId = ++runIdRef.current;
+    const started = performance.now();
+    busyRef.current = true;
+    setRunning(true);
+    setConfirmation(null);
     try {
-      if (!await confirmDispatch(1, lastRun.command) || currentRunId !== runIdRef.current) return;
-      setConfirming(false); setRunning(true);
-      const started = performance.now();
-      await executeOne(row.server, lastRun.command, lastRun.timeout, runIdRef.current, row.attempts + 1);
-      setElapsedMs((current) => (current ?? 0) + Math.round(performance.now() - started));
-    } finally { busyRef.current = false; setConfirming(false); setRunning(false); }
+      if (retryRow) await executeOne(retryRow.server, options.command, options.timeout, runId, retryRow.attempts + 1);
+      else await runTargets(targets, options, runId);
+    } finally {
+      busyRef.current = false;
+      if (runId === runIdRef.current) {
+        const elapsed = Math.round(performance.now() - started);
+        setElapsedMs((current) => retryRow ? (current ?? 0) + elapsed : elapsed);
+        setRunning(false);
+      }
+    }
   };
 
   const generate = async () => {
@@ -169,7 +209,7 @@ export default function BatchPage() {
   return <div className="ops-page ops-batch-page">
     <header className="batch-page-heading">
       <div className="batch-title"><div className="batch-title-icon"><Layers3 size={21} /></div><div><h1>批量执行</h1><p>一条命令发往多台机器；以服务器主账号执行，每台独立超时、失败可即停，全过程写审计</p></div></div>
-      <div className="batch-actions"><Button icon={<RotateCcw size={15} />} onClick={reset} disabled={disabled} title="重置命令与执行结果" aria-label="重置批量执行表单" /><Button type="primary" icon={<Play size={15} />} onClick={() => void dispatch()} loading={running} disabled={disabled || !selectedServers.length || !command.trim()}>开始批量执行 ({selectedServers.length})</Button></div>
+      <div className="batch-actions"><Button icon={<RotateCcw size={15} />} onClick={reset} disabled={disabled} title="重置命令与执行结果" aria-label="重置批量执行表单" /><Button type="primary" icon={<Play size={15} />} onClick={() => dispatch()} loading={running} disabled={disabled || !selectedServers.length || !command.trim()}>开始批量执行 ({selectedServers.length})</Button></div>
     </header>
     {error && <Alert type="error" showIcon closable title={error} onClose={() => setError("")} />}
     <section className="batch-panel batch-config">
@@ -192,9 +232,53 @@ export default function BatchPage() {
       </div>
     </section>
     <div className="batch-workspace">
-      <BatchHosts servers={servers} selectedIds={selectedIds} onSelection={setSelectedIds} loading={loadingServers} disabled={disabled} favoriteLoadingIds={favoriteLoadingIds} onFavorite={(server) => void favorite(server)} />
-      <BatchResults rows={rows} command={lastRun.command} running={running} disabled={disabled} elapsedMs={elapsedMs} onRetry={(row) => void retry(row)} onRerun={() => void dispatch(true)} onClear={clear} />
+      <BatchHosts
+        servers={eligibleServers}
+        selectedIds={selectedIds}
+        onSelection={setSelectedIds}
+        loading={loadingServers}
+        error={serverError}
+        onReload={() => {
+          setLoadingServers(true);
+          setServerError("");
+          setLoadAttempt((current) => current + 1);
+        }}
+        unavailableCount={unavailableCount}
+        excludedCount={servers.length - eligibleServers.length}
+        disabled={disabled}
+        favoriteLoadingIds={favoriteLoadingIds}
+        onFavorite={(server) => void favorite(server)}
+      />
+      <BatchResults
+        rows={rows}
+        command={lastRun.command}
+        running={running}
+        disabled={disabled}
+        elapsedMs={elapsedMs}
+        onRetry={(row) => setConfirmation({ targets: [row.server], options: lastRun, retryRow: row })}
+        onRerun={() => dispatch(true)}
+        onClear={clear}
+      />
     </div>
+    {confirmation && (
+      <Modal
+        open
+        title={`确认向 ${confirmation.targets.length} 台服务器下发命令`}
+        okText="确认执行"
+        cancelText="取消"
+        okButtonProps={{ danger: true }}
+        mask={{ closable: false }}
+        onOk={() => void startConfirmedRun()}
+        onCancel={() => setConfirmation(null)}
+      >
+        <ul className="batch-confirm-targets" aria-label="将执行命令的服务器">
+          {confirmation.targets.map((server) => (
+            <li key={server.id}><strong>{server.alias}</strong> · {server.hostname}:{server.port}</li>
+          ))}
+        </ul>
+        <pre className="batch-confirm-command">{confirmation.options.command}</pre>
+      </Modal>
+    )}
     <Modal title="命令片段" open={snippetsOpen} onCancel={() => setSnippetsOpen(false)} footer={null} width={720}>
       <div className="batch-snippets custom-scrollbar">{[...PRESETS.map((preset) => preset.command), ...snippets.filter((snippet) => !PRESETS.some((preset) => preset.command === snippet))].map((snippet) => <div key={snippet}><code>{snippet}</code><Button size="small" title="载入片段" aria-label={`载入 ${snippet}`} icon={<Check size={14} />} onClick={() => { setCommand(snippet); setSnippetsOpen(false); }} />{snippets.includes(snippet) && <Popconfirm title="删除此命令片段？" onConfirm={() => persistSnippets(snippets.filter((item) => item !== snippet))}><Button size="small" disabled={snippetSaving} title="删除片段" aria-label={`删除 ${snippet}`} icon={<X size={14} />} /></Popconfirm>}</div>)}</div>
     </Modal>

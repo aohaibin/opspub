@@ -185,7 +185,7 @@ export function AppLayout() {
           }}
           sidebarRef={setSidebarTarget}
         />
-        <main className="workspace-content custom-scrollbar" data-full-bleed={terminalActive}>
+        <main className="workspace-content custom-scrollbar" data-full-bleed={terminalActive || module?.key === "workbench"}>
           <WorkspaceSidebarTarget.Provider value={sidebarTarget}>
             {/* 终端首次访问后留在工作区，切换模块时继续保存会话输出和当前标签。 */}
             {(terminalActive || terminalVisited) && <TerminalPage active={terminalActive} />}

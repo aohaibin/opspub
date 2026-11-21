@@ -2,6 +2,8 @@ import React from "react";
 import { Tooltip } from "antd";
 import {
   LayoutDashboard,
+  Activity,
+  Radio,
   ShoppingBag,
   Globe,
   Database,
@@ -17,11 +19,66 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import type { WorkbenchViewKey } from "../types";
+import type { Server } from "@/types";
+import type { WorkbenchViewKey } from "@/pages/workbench/types";
+
+const shortcuts = [
+  { view: "overview", label: "系统状态总览", icon: Activity },
+  { view: "processes", label: "实时进程管理器", icon: Cpu },
+  { view: "ports", label: "网络监听端口", icon: Radio },
+  { view: "system", label: "Systemd 服务控制", icon: Settings },
+  { view: "containers", label: "Docker 容器", icon: Container },
+] as const;
+
+export function WorkbenchWorkspaceNavigation({
+  server,
+  status,
+  currentView,
+  onSelectView,
+}: {
+  server: Server | null;
+  status: string;
+  currentView: WorkbenchViewKey;
+  onSelectView: (view: WorkbenchViewKey) => void;
+}) {
+  return (
+    <section aria-label="工作台导航" className="space-y-3 px-2 pt-1">
+      <div className="space-y-1.5 border-t border-[var(--border)] pt-2">
+        <h3 className="px-1.5 text-[11px] font-semibold text-[var(--text-secondary)]">当前监控目标</h3>
+        <div className="space-y-1 rounded-xl border border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] px-2.5 py-2 text-[var(--nav-active-text)]">
+          <div className="truncate text-xs font-semibold" title={server?.alias}>{server?.alias ?? "未选择服务器"}</div>
+          {server && (
+            <>
+              <div className="truncate font-mono text-[11px]" title={`${server.hostname}:${server.port}`}>{server.hostname}:{server.port}</div>
+              <div className="text-[11px] text-[var(--text-secondary)]">{status}</div>
+            </>
+          )}
+        </div>
+      </div>
+      <nav aria-label="工作台模块导航" className="space-y-0.5 border-t border-[var(--border)] pt-2">
+        <h3 className="px-1.5 pb-1 text-[11px] font-semibold text-[var(--text-secondary)]">工作台模块导航</h3>
+        {shortcuts.map(({ view, label, icon: Icon }) => (
+          <button
+            key={view}
+            type="button"
+            aria-current={currentView === view ? "true" : undefined}
+            disabled={!server}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-800)] aria-current:bg-[var(--surface-800)] aria-current:text-[var(--nav-active-text)] disabled:opacity-50"
+            onClick={() => onSelectView(view)}
+          >
+            <Icon size={14} className="shrink-0" aria-hidden />
+            {label}
+          </button>
+        ))}
+      </nav>
+    </section>
+  );
+}
 
 interface WorkbenchSidebarProps {
   currentView: WorkbenchViewKey;
   onSelectView: (view: WorkbenchViewKey) => void;
+  disabled: boolean;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
@@ -29,6 +86,7 @@ interface WorkbenchSidebarProps {
 export const WorkbenchSidebar: React.FC<WorkbenchSidebarProps> = ({
   currentView,
   onSelectView,
+  disabled,
   collapsed,
   onToggleCollapse,
 }) => {
@@ -36,57 +94,46 @@ export const WorkbenchSidebar: React.FC<WorkbenchSidebarProps> = ({
     key: WorkbenchViewKey,
     label: string,
     IconComponent: React.ComponentType<{ size?: number; className?: string }>,
-    badge?: number | string
   ) => {
-    const isActive = currentView === key;
+    const isActive = currentView === key ||
+      (key === "system" && (currentView === "processes" || currentView === "ports" || currentView === "firewall"));
     return (
       <button
         key={key}
         type="button"
+        aria-current={isActive ? "true" : undefined}
+        aria-label={collapsed ? label : undefined}
+        disabled={disabled}
         onClick={() => onSelectView(key)}
         className={`w-full flex items-center ${
           collapsed ? "justify-center px-1" : "justify-between px-2.5"
-        } py-1.5 rounded-lg text-xs font-medium transition cursor-pointer select-none`}
+        } py-1.5 rounded-lg text-xs font-medium transition cursor-pointer select-none hover:bg-[var(--surface-800)] disabled:cursor-not-allowed disabled:opacity-50`}
         style={{
-          background: isActive ? "rgba(20, 184, 166, 0.15)" : "transparent",
-          color: isActive ? "#2dd4bf" : "var(--text-secondary)",
-          border: isActive
-            ? "1px solid rgba(20, 184, 166, 0.3)"
-            : "1px solid transparent",
-          boxShadow: isActive ? "0 0 10px rgba(20,184,166,0.12)" : undefined,
+          backgroundColor: isActive ? "var(--nav-active-bg)" : undefined,
+          color: isActive ? "var(--nav-active-text)" : "var(--text-secondary)",
+          border: `1px solid ${isActive ? "var(--nav-active-border)" : "transparent"}`,
         }}
         title={collapsed ? label : undefined}
       >
         <div className="flex items-center space-x-2.5">
           <IconComponent
             size={15}
-            className={isActive ? "text-teal-400" : "text-slate-400 shrink-0"}
+            className="shrink-0"
           />
           {!collapsed && <span>{label}</span>}
         </div>
-        {!collapsed && badge !== undefined && (
-          <span
-            className="px-1.5 py-0.2 rounded-full text-[10px] font-mono"
-            style={{
-              background: "var(--bg-elevated)",
-              color: "var(--text-muted)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            {badge}
-          </span>
-        )}
       </button>
     );
   };
 
   return (
     <aside
+      aria-label="机器面板"
       className={`shrink-0 flex flex-col border-r select-none py-2 px-2 overflow-y-auto custom-scrollbar transition-all duration-200`}
       style={{
         width: collapsed ? 56 : 176,
         borderColor: "var(--border)",
-        background: "var(--bg-secondary)",
+        background: "var(--surface-950)",
       }}
     >
       {/* 侧边栏标题与折叠开关 */}
@@ -100,6 +147,8 @@ export const WorkbenchSidebar: React.FC<WorkbenchSidebarProps> = ({
         <Tooltip title={collapsed ? "展开面板" : "折叠面板"}>
           <button
             type="button"
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "展开面板" : "折叠面板"}
             onClick={onToggleCollapse}
             className="p-1 rounded transition hover:text-white"
             style={{ color: "var(--text-muted)" }}
@@ -123,7 +172,7 @@ export const WorkbenchSidebar: React.FC<WorkbenchSidebarProps> = ({
               业务
             </div>
           )}
-          {renderItem("appstore", "应用商店", ShoppingBag, 1)}
+          {renderItem("appstore", "应用商店", ShoppingBag)}
           {renderItem("website", "网站", Globe)}
           {renderItem("database", "数据库", Database)}
           {renderItem("containers", "容器", Container)}

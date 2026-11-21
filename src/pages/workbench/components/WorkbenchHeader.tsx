@@ -1,16 +1,11 @@
-import React from "react";
-import { Button, Select, Switch, Tooltip, message } from "antd";
-import {
-  ChevronLeft,
-  ChevronRight,
-  LayoutGrid,
-  Bell,
-  Activity,
-} from "lucide-react";
+import { Button, Select, Switch, Tooltip } from "antd";
+import { Activity, ArrowLeft, ArrowRight, Bell, LayoutGrid } from "lucide-react";
+import { Link } from "react-router-dom";
+import { modulePath } from "@/navigation/modules";
 import type { Server } from "@/types";
-import type { WorkbenchViewKey } from "../types";
+import type { WorkbenchViewKey } from "@/pages/workbench/types";
 
-const VIEW_LABEL_MAP: Record<WorkbenchViewKey, string> = {
+const VIEW_LABELS: Record<WorkbenchViewKey, string> = {
   overview: "概览",
   appstore: "应用商店",
   website: "网站",
@@ -19,7 +14,10 @@ const VIEW_LABEL_MAP: Record<WorkbenchViewKey, string> = {
   file: "文件",
   backup: "数据备份",
   cron: "计划任务",
-  system: "系统",
+  system: "系统服务",
+  processes: "实时进程",
+  ports: "网络端口",
+  firewall: "防火墙",
   terminal: "终端",
   logs: "日志",
   workspace: "工作区",
@@ -29,132 +27,78 @@ const VIEW_LABEL_MAP: Record<WorkbenchViewKey, string> = {
 interface WorkbenchHeaderProps {
   currentView: WorkbenchViewKey;
   servers: Server[];
-  selectedServerId: number | null;
+  server: Server | null;
+  loading: boolean;
   onSelectServer: (id: number) => void;
   canGoBack: boolean;
   canGoForward: boolean;
   onHistoryBack: () => void;
   onHistoryForward: () => void;
-  bgMonitor: boolean;
-  onToggleBgMonitor: (checked: boolean) => void;
-  connected: boolean;
+  autoRefresh: boolean;
+  onToggleAutoRefresh: (checked: boolean) => void;
   onConnect: () => void;
 }
 
-export const WorkbenchHeader: React.FC<WorkbenchHeaderProps> = ({
+export function WorkbenchHeader({
   currentView,
   servers,
-  selectedServerId,
+  server,
+  loading,
   onSelectServer,
   canGoBack,
   canGoForward,
   onHistoryBack,
   onHistoryForward,
-  bgMonitor,
-  onToggleBgMonitor,
-  connected,
+  autoRefresh,
+  onToggleAutoRefresh,
   onConnect,
-}) => {
+}: WorkbenchHeaderProps) {
   return (
-    <div
-      className="shrink-0 flex items-center justify-between px-4 py-2 border-b select-none transition-colors"
-      style={{
-        borderColor: "var(--border)",
-        background: "var(--bg-secondary)",
-      }}
-    >
-      {/* 左侧：前进后退 + 面包屑 + 服务器切换下拉 + 状态 */}
-      <div className="flex items-center space-x-3">
-        <div className="flex items-center space-x-1">
-          <Tooltip title="后退">
-            <Button
-              type="text"
-              size="small"
-              disabled={!canGoBack}
-              icon={<ChevronLeft size={14} />}
-              onClick={onHistoryBack}
-            />
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[var(--border)] bg-[var(--surface-950)] px-4 py-2 text-[var(--text-secondary)]">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex gap-0.5">
+          <Tooltip title="工作台后退">
+            <Button type="text" size="small" aria-label="工作台后退" disabled={!canGoBack} icon={<ArrowLeft size={15} />} onClick={onHistoryBack} />
           </Tooltip>
-          <Tooltip title="前进">
-            <Button
-              type="text"
-              size="small"
-              disabled={!canGoForward}
-              icon={<ChevronRight size={14} />}
-              onClick={onHistoryForward}
-            />
+          <Tooltip title="工作台前进">
+            <Button type="text" size="small" aria-label="工作台前进" disabled={!canGoForward} icon={<ArrowRight size={15} />} onClick={onHistoryForward} />
           </Tooltip>
         </div>
-
-        {/* 面包屑 */}
-        <div className="flex items-center space-x-1.5 text-xs">
-          <span className="p-1 rounded bg-teal-500/15 text-teal-400">
-            <LayoutGrid size={14} />
-          </span>
-          <span style={{ color: "var(--text-secondary)" }}>工作台</span>
-          <span style={{ color: "var(--text-muted)" }}>/</span>
-          <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-            {VIEW_LABEL_MAP[currentView] ?? "概览"}
-          </span>
+        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+          <span className="rounded bg-[var(--nav-active-bg)] p-1 text-[var(--nav-active-text)]"><LayoutGrid size={14} aria-hidden /></span>
+          <span>工作台</span>
+          <span aria-hidden>/</span>
+          <span className="font-semibold text-[var(--text-primary)]">{VIEW_LABELS[currentView]}</span>
         </div>
-
-        {/* 服务器切换下拉选择 */}
-        <div className="ml-2">
-          <Select
-            value={selectedServerId ?? undefined}
-            onChange={(val) => onSelectServer(val)}
-            placeholder="选择服务器..."
-            size="small"
-            style={{ width: 230 }}
-            options={servers.map((s) => ({
-              label: (
-                <div className="flex items-center justify-between gap-1 text-xs">
-                  <span className="truncate font-medium">{s.alias}</span>
-                  <span
-                    className="text-[10px] opacity-70"
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    {s.hostname}:{s.port}
-                  </span>
-                </div>
-              ),
-              value: s.id,
-            }))}
-          />
-        </div>
-
-        {/* 在线与延迟标志 */}
-        <div className={`flex items-center space-x-2 text-[11px] font-mono ${connected ? "text-teal-400" : "text-slate-400"}`}>
-          <Button size="small" type="link" onClick={onConnect} className="!px-0 !text-[11px]">
-            {connected ? "重连" : "连接"}
-          </Button>
-          <span className={`w-2 h-2 rounded-full ${connected ? "bg-teal-400 shadow-[0_0_6px_rgba(45,212,191,0.8)] animate-pulse" : "bg-slate-500"}`} />
-          <span>在线 445ms</span>
-        </div>
+        <Select<number>
+          aria-label="工作台目标服务器"
+          value={server?.id}
+          onChange={onSelectServer}
+          placeholder="选择服务器"
+          size="small"
+          className="w-56"
+          loading={loading}
+          showSearch={{ optionFilterProp: "label" }}
+          options={servers.map(({ id, alias, hostname, port }) => ({
+            value: id,
+            label: `${alias} · ${hostname}:${port}`,
+          }))}
+        />
+        <Button size="small" type="link" disabled={!server} onClick={onConnect}>
+          验证 SSH
+        </Button>
       </div>
-
-      {/* 右侧：后台监控开关与告警链接 */}
-      <div className="flex items-center space-x-4 text-xs">
-        <div className="flex items-center space-x-2" style={{ color: "var(--text-secondary)" }}>
-          <Activity size={14} className="text-teal-400" />
-          <span>后台监控</span>
-          <Switch
-            size="small"
-            checked={bgMonitor}
-            onChange={onToggleBgMonitor}
-          />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        <div className="flex items-center gap-1.5">
+          <Activity size={14} aria-hidden />
+          <span>概览自动刷新</span>
+          <Switch aria-label="概览自动刷新" size="small" checked={autoRefresh} onChange={onToggleAutoRefresh} />
         </div>
-
-        <button
-          type="button"
-          onClick={() => message.info("已打开告警规则配置中心")}
-          className="flex items-center space-x-1 transition cursor-pointer hover:underline"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          <Bell size={13} />
-          <span>去配置告警规则</span>
-        </button>
+        <Link to={modulePath("alerts")} className="flex items-center gap-1.5 hover:text-[var(--text-primary)] hover:underline">
+          <Bell size={14} aria-hidden />
+          <span>告警中心</span>
+        </Link>
       </div>
     </div>
   );
-};
+}

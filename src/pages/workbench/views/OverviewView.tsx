@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Empty, Progress, Spin, message } from "antd";
+import { Alert, Button, Progress, Spin } from "antd";
 import {
   Activity,
-  AlertCircle,
   Clock3,
   Database,
   Globe,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/client";
 import type { Server } from "@/types";
-import { useWorkbenchRuntime } from "../context";
+import { useWorkbenchRuntime } from "@/pages/workbench/context";
 
 type TrendMetric = "cpu" | "memory" | "network" | "disk" | "load";
 type TrendLayout = "single" | "grid4";
@@ -298,9 +297,12 @@ function TrendChart({ samples, metric, compact = false, onHover, hoveredIndex }:
   );
 }
 
-interface OverviewViewProps { server: Server | null; }
+interface OverviewViewProps {
+  server: Server;
+  autoRefresh: boolean;
+}
 
-export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
+export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh }) => {
   const { runCommand } = useWorkbenchRuntime();
   const [metrics, setMetrics] = useState(EMPTY_METRICS);
   const [samples, setSamples] = useState<Sample[]>([]);
@@ -313,18 +315,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
   const previousMetrics = useRef<Metrics | null>(null);
   const previousSampleAt = useRef<number | null>(null);
   const refreshing = useRef(false);
-  const sampledServerId = useRef<number | null>(null);
+  const unsupported = server.os_type === "windows";
 
   const refresh = useCallback(async (silent = false) => {
-    if (refreshing.current) return;
-    if (!server) {
-      setMetrics(EMPTY_METRICS);
-      setSamples([]);
-      setLastError(null);
-      previousMetrics.current = null;
-      previousSampleAt.current = null;
-      return;
-    }
+    if (refreshing.current || unsupported) return;
     refreshing.current = true;
     setLoading(!silent);
     try {
@@ -351,25 +345,21 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
     } catch (error) {
       const text = getErrorMessage(error);
       setLastError(text);
-      if (!silent) message.error(text);
     } finally {
       refreshing.current = false;
       setLoading(false);
     }
-  }, [runCommand, server]);
+  }, [runCommand, unsupported]);
 
   useEffect(() => {
-    if (sampledServerId.current !== server?.id) {
-      sampledServerId.current = server?.id ?? null;
-      previousMetrics.current = null;
-      previousSampleAt.current = null;
-      setSamples([]);
-      setHoveredIndex(null);
-    }
     void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!autoRefresh || unsupported) return;
     const timer = window.setInterval(() => void refresh(true), 5000);
     return () => window.clearInterval(timer);
-  }, [refresh]);
+  }, [autoRefresh, refresh, unsupported]);
 
   const visibleSamples = useMemo(() => {
     const limits: Record<TrendRange, number> = { "1h": 60, "6h": 120, "1d": 240, "7d": 300 };
@@ -377,6 +367,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
   }, [samples, trendRange]);
   const selectedSample = hoveredIndex === null ? null : visibleSamples[hoveredIndex] ?? null;
   const latestSample = visibleSamples[visibleSamples.length - 1];
+  const showRate = (value: number) => latestSample ? formatBytes(value) : "—";
   const memoryPercent = percent(metrics.memoryUsed, metrics.memoryTotal);
   const diskPercent = percent(metrics.diskUsed, metrics.diskTotal);
   const displayPartitions = metrics.partitions.length > 0
@@ -386,10 +377,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
       : [];
 
   const overviewCards = [
-    { label: "运行容器", value: metrics.appCount, icon: <PackageCheck size={17} />, color: "#2dd4bf" },
-    { label: "数据库服务", value: metrics.dbCount, icon: <Database size={17} />, color: "#38bdf8" },
-    { label: "用户计划任务", value: metrics.cronCount, icon: <Clock3 size={17} />, color: "#fbbf24" },
-    { label: "Web 服务", value: metrics.websiteCount, icon: <Globe size={17} />, color: "#a78bfa" },
+    { label: "运行容器", value: metrics.appCount, icon: <PackageCheck size={15} /> },
+    { label: "数据库服务", value: metrics.dbCount, icon: <Database size={15} /> },
+    { label: "用户计划任务", value: metrics.cronCount, icon: <Clock3 size={15} /> },
+    { label: "Web 服务", value: metrics.websiteCount, icon: <Globe size={15} /> },
   ];
   const resources = [
     { label: "CPU", value: metrics.cpuPercent, detail: `${metrics.cpuCores || "-"} 核 · 负载 ${metrics.loadText}`, color: "#2dd4bf" },
@@ -398,24 +389,22 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
     { label: "磁盘", value: diskPercent, detail: `${formatMegabytes(metrics.diskUsed)} / ${formatMegabytes(metrics.diskTotal)}`, color: "#fbbf24" },
   ];
 
-  if (!server) {
-    return <div className="flex h-full min-h-[420px] items-center justify-center"><Empty description="请选择一台服务器查看概述" /></div>;
-  }
-
   return (
     <div className="ops-workbench-overview pb-12 select-none">
       <Spin spinning={loading}>
         <div className="ops-workbench-overview-sections">
-        <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
+        {lastError && <Alert type="warning" showIcon message="概览采样失败" description={lastError} />}
+        {unsupported && <Alert type="info" showIcon message="资源概览目前支持 Linux 主机。" />}
+        <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-900)" }}>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2"><span className="h-3.5 w-1 rounded bg-teal-400" /><span className="font-bold text-sm">概览</span></div>
-            <Button size="small" type="text" loading={loading} icon={<RefreshCw size={13} />} onClick={() => void refresh()}>刷新状态</Button>
+            <h2 className="flex items-center gap-2 text-sm font-bold"><span className="h-3.5 w-1 rounded bg-[var(--nav-active-icon)]" />概览</h2>
+            <Button size="small" type="text" disabled={unsupported} loading={loading} icon={<RefreshCw size={13} />} onClick={() => void refresh()}>刷新状态</Button>
           </div>
-          <div className="ops-overview-metric-grid grid grid-cols-2 sm:grid-cols-4">
+          <div className="ops-overview-metric-grid grid grid-cols-[repeat(auto-fit,minmax(min(118px,100%),1fr))]">
             {overviewCards.map((card) => (
-              <div key={card.label} className="ops-overview-stat flex items-center gap-3 rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-900)" }}>
-                <div className="rounded-lg p-2" style={{ color: card.color, background: `${card.color}18` }}>{card.icon}</div>
-                <div className="min-w-0"><div className="text-xs" style={{ color: "var(--text-muted)" }}>{card.label}</div><div className="font-mono text-2xl font-bold leading-none" style={{ color: card.color }}>{card.value}</div></div>
+              <div key={card.label} className="space-y-1 px-2">
+                <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">{card.icon}{card.label}</div>
+                <div className="font-mono text-2xl font-bold text-[var(--nav-active-text)]">{latestSample ? card.value : "—"}</div>
               </div>
             ))}
           </div>
@@ -423,12 +412,12 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
 
         <section className="space-y-4 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
           <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="h-3.5 w-1 rounded bg-teal-400" /><span className="font-bold text-sm">状态</span></div><span className="text-xs" style={{ color: "var(--text-muted)" }}>{server.hostname} · {metrics.uptime}</span></div>
-          <div className="ops-overview-resource-grid grid grid-cols-2 md:grid-cols-4">
+          <div className="ops-overview-resource-grid grid grid-cols-[repeat(auto-fit,minmax(min(124px,100%),1fr))]">
             {resources.map((resource) => (
               <div key={resource.label} className="flex flex-col items-center justify-center gap-2 rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-900)" }}>
-                <Progress type="circle" percent={resource.raw ? Math.min(100, Math.round(resource.value * 100 / Math.max(metrics.cpuCores, 1))) : resource.value} size={92} strokeColor={resource.color} format={() => <span className="font-mono text-sm font-bold">{resource.raw ? resource.value.toFixed(2) : `${resource.value}%`}</span>} />
+                <Progress type="circle" percent={resource.raw ? Math.min(100, Math.round(resource.value * 100 / Math.max(metrics.cpuCores, 1))) : resource.value} size={92} strokeColor={resource.color} format={() => <span className="font-mono text-sm font-bold">{latestSample ? (resource.raw ? resource.value.toFixed(2) : `${resource.value}%`) : "—"}</span>} />
                 <span className="flex items-center gap-1 text-xs font-medium"><Activity size={13} style={{ color: resource.color }} />{resource.label}</span>
-                <span className="text-center font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{resource.detail}</span>
+                <span className="text-center font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{latestSample ? resource.detail : "—"}</span>
               </div>
             ))}
           </div>
@@ -456,8 +445,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
         </section>
 
         <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
-          <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="h-3.5 w-1 rounded bg-teal-400" /><span className="font-bold text-sm">监控</span></div><div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}><span className="flex items-center gap-1.5"><Network size={13} className="text-sky-400" />上行 {formatBytes(metrics.networkTxRate)}</span><span className="flex items-center gap-1.5"><Wifi size={13} className="text-teal-400" />下行 {formatBytes(metrics.networkRxRate)}</span><span className="flex items-center gap-1.5"><HardDrive size={13} className="text-amber-400" />读 {formatBytes(metrics.diskReadRate)} · 写 {formatBytes(metrics.diskWriteRate)}</span></div></div>
-          <div className="ops-overview-monitor-grid grid grid-cols-1 md:grid-cols-2">
+          <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="h-3.5 w-1 rounded bg-teal-400" /><span className="font-bold text-sm">监控</span></div><div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}><span className="flex items-center gap-1.5"><Network size={13} className="text-sky-400" />上行 {showRate(metrics.networkTxRate)}</span><span className="flex items-center gap-1.5"><Wifi size={13} className="text-teal-400" />下行 {showRate(metrics.networkRxRate)}</span><span className="flex items-center gap-1.5"><HardDrive size={13} className="text-amber-400" />读 {showRate(metrics.diskReadRate)} · 写 {showRate(metrics.diskWriteRate)}</span></div></div>
+          <div className="ops-overview-monitor-grid grid grid-cols-[repeat(auto-fit,minmax(min(250px,100%),1fr))]">
             <MiniMetricChart title="网络流量" icon={<Network size={14} />} color="#38bdf8" samples={visibleSamples} metric="network" />
             <MiniMetricChart title="磁盘 IO" icon={<HardDrive size={14} />} color="#fbbf24" samples={visibleSamples} metric="disk" />
           </div>
@@ -468,7 +457,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
             <div className="flex flex-wrap items-center gap-2"><div className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400"><TrendingUp size={15} /></span><span className="font-bold text-sm">历史趋势</span></div><div className="flex items-center gap-1 rounded-lg border p-0.5 text-xs" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}>{(Object.keys(TREND_META) as TrendMetric[]).map((key) => <button key={key} type="button" onClick={() => { setTrendMetric(key); setHoveredIndex(null); }} className={`rounded-md px-2.5 py-1 transition ${trendMetric === key ? "bg-teal-500/15 text-teal-300" : "text-slate-400 hover:text-white"}`}>{TREND_META[key].label}</button>)}</div></div>
             <div className="flex flex-wrap items-center gap-2 text-xs"><div className="flex items-center gap-0.5 rounded-lg border p-0.5" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}>{(["single", "grid4"] as TrendLayout[]).map((layout) => <button key={layout} type="button" onClick={() => setTrendLayout(layout)} className={`rounded px-2 py-1 ${trendLayout === layout ? "bg-surface-800 text-teal-300" : "text-slate-400 hover:text-white"}`}>{layout === "single" ? "单图" : "四分图"}</button>)}</div><div className="flex items-center gap-0.5 rounded-lg border p-0.5" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}>{(["1h", "6h", "1d", "7d"] as TrendRange[]).map((range) => <button key={range} type="button" onClick={() => setTrendRange(range)} className={`rounded px-2 py-1 ${trendRange === range ? "bg-surface-800 text-teal-300" : "text-slate-400 hover:text-white"}`}>{range}</button>)}</div><Button size="small" type="text" icon={<RefreshCw size={13} />} onClick={() => void refresh()} aria-label="刷新趋势" /></div>
           </div>
-          {lastError && <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "color-mix(in srgb, var(--warning) 35%, var(--border))", background: "color-mix(in srgb, var(--warning) 10%, transparent)", color: "var(--warning)" }}><AlertCircle size={14} />{lastError}</div>}
           {trendLayout === "single" ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{[
@@ -482,7 +470,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server }) => {
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{(Object.keys(TREND_META) as TrendMetric[]).filter((metric) => metric !== "load").map((metric) => <div key={metric} className="space-y-2 rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}><div className="flex items-center justify-between"><span className="flex items-center gap-2 text-xs font-semibold"><span className="h-2 w-2 rounded-full" style={{ background: TREND_META[metric].color }} />{TREND_META[metric].label}</span><span className="font-mono text-xs" style={{ color: TREND_META[metric].color }}>{latestSample ? formatTrendValue(sampleValue(latestSample, metric), metric) : "-"}</span></div><div className="h-24"><TrendChart samples={visibleSamples} metric={metric} compact /></div><div className="flex justify-between font-mono text-[11px]" style={{ color: "var(--text-muted)" }}><span>峰值 {visibleSamples.length ? formatTrendValue(Math.max(...visibleSamples.map((item) => sampleValue(item, metric))), metric) : "-"}</span><span>样本 {visibleSamples.length}</span></div></div>)}</div>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-1 font-mono text-[11px]" style={{ color: "var(--text-muted)" }}><span>每 5 秒刷新 · 当前样本 {visibleSamples.length} · 范围 {trendRange}</span><span>网络为全网卡合计，磁盘 IO 为物理磁盘合计</span></div>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 font-mono text-[11px]" style={{ color: "var(--text-muted)" }}><span>{autoRefresh && !unsupported ? "每 5 秒刷新" : "自动刷新已关闭"} · 当前样本 {visibleSamples.length} · 范围 {trendRange}</span><span>网络为全网卡合计，磁盘 IO 为物理磁盘合计</span></div>
         </section>
 
         <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>

@@ -180,7 +180,7 @@ function databaseDisplayName(connection: Pick<DbConnectionItem, "type" | "host">
   return fileName ? `${databaseName} (${fileName})` : databaseName;
 }
 
-export const DatabaseView: React.FC = () => {
+export const DatabaseView: React.FC<{ hostScoped?: boolean }> = ({ hostScoped = false }) => {
   const { server } = useWorkbenchRuntime();
 
   // 子标签状态
@@ -191,7 +191,8 @@ export const DatabaseView: React.FC = () => {
   const [redisConnections, setRedisConnections] = useState<RedisConnectionItem[]>([]);
   const [mongoConnections, setMongoConnections] = useState<DbConnectionItem[]>([]);
   const [filterText, setFilterText] = useState("");
-  const [serverFilter, setServerFilter] = useState("all");
+  // 主机工作台以当前服务器打开，独立数据库页仍默认显示全部连接。
+  const [serverFilter, setServerFilter] = useState(hostScoped && server ? String(server.id) : "all");
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [expandedConnectionIds, setExpandedConnectionIds] = useState<Record<string, boolean>>({});
   const [expandedSqlEngineGroups, setExpandedSqlEngineGroups] = useState<Record<string, boolean>>({ MySQL: true });

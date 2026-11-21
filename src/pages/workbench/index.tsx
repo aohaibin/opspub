@@ -1,30 +1,52 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Spin, message } from "antd";
-import { useLocation } from "react-router-dom";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Alert, Button, Empty, Spin } from "antd";
+import { useLocation, useNavigate } from "react-router-dom";
+import { create } from "zustand";
+import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
+import { SshConnectModal } from "@/components/server/SshConnectModal";
 import { getErrorMessage } from "@/lib/api/client";
 import { serverApi } from "@/lib/api/server";
-import { workbenchApi } from "@/lib/api/workbench";
-import { SshConnectModal } from "@/components/server/SshConnectModal";
+import { workbenchApi, type WorkbenchCommandResult } from "@/lib/api/workbench";
 import { useAppStore } from "@/store/app";
 import { useSshSessionStore } from "@/store/ssh";
-import type { Server, SshCredentials, SshProbeResult } from "@/types";
-import type { WorkbenchViewKey } from "./types";
-import { WorkbenchHeader } from "./components/WorkbenchHeader";
-import { WorkbenchSidebar } from "./components/WorkbenchSidebar";
-import { OverviewView } from "./views/OverviewView";
-import { AppStorePrototypeView as AppStoreView } from "./views/AppStorePrototypeView";
-import { WebsiteView } from "./views/WebsiteView";
-import { DatabaseView } from "./views/DatabaseView";
-import { ContainersView } from "./views/ContainersView";
-import { FileView } from "./views/FileView";
-import { BackupView } from "./views/BackupView";
-import { CronView } from "./views/CronView";
-import { SystemView } from "./views/SystemView";
-import { TerminalView } from "./views/TerminalView";
-import { LogsView } from "./views/LogsView";
-import { WorkspaceView } from "./views/WorkspaceView";
-import { SettingsView } from "./views/SettingsView";
-import { WorkbenchRuntimeContext } from "./context";
+import type { Server, SshCredentials } from "@/types";
+import type { WorkbenchViewKey } from "@/pages/workbench/types";
+import { WorkbenchHeader } from "@/pages/workbench/components/WorkbenchHeader";
+import { WorkbenchSidebar, WorkbenchWorkspaceNavigation } from "@/pages/workbench/components/WorkbenchSidebar";
+import { OverviewView } from "@/pages/workbench/views/OverviewView";
+import { AppStorePrototypeView as AppStoreView } from "@/pages/workbench/views/AppStorePrototypeView";
+import { WebsiteView } from "@/pages/workbench/views/WebsiteView";
+import { DatabaseView } from "@/pages/workbench/views/DatabaseView";
+import { ContainersView } from "@/pages/workbench/views/ContainersView";
+import { FileView } from "@/pages/workbench/views/FileView";
+import { BackupView } from "@/pages/workbench/views/BackupView";
+import { CronView } from "@/pages/workbench/views/CronView";
+import { SystemView } from "@/pages/workbench/views/SystemView";
+import { TerminalView } from "@/pages/workbench/views/TerminalView";
+import { LogsView } from "@/pages/workbench/views/LogsView";
+import { WorkspaceView } from "@/pages/workbench/views/WorkspaceView";
+import { SettingsView } from "@/pages/workbench/views/SettingsView";
+import { WorkbenchRuntimeContext } from "@/pages/workbench/context";
+
+const useWorkbenchSelection = create<{ serverId: number | null; autoRefresh: boolean }>()(() => ({
+  serverId: null,
+  autoRefresh: true,
+}));
+
+interface WorkbenchScope {
+  serverId: number | null;
+  view: WorkbenchViewKey;
+}
+
+interface ConnectionRequest {
+  scope: WorkbenchScope;
+  server: Server;
+  pending?: {
+    command: string;
+    resolve: (result: WorkbenchCommandResult) => void;
+    reject: (error: unknown) => void;
+  };
+}
 
 /** 仅在 Rust 确认是 SSH 凭据问题时弹出验证窗口。 */
 function needsSshCredentials(error: unknown): boolean {
@@ -46,262 +68,241 @@ function needsSshCredentials(error: unknown): boolean {
   ].some((hint) => errorMessage.includes(hint));
 }
 
+function connectionStatus(server: Server | null, latency: number | undefined) {
+  switch (server?.last_connection_status) {
+    case "verified": return latency === undefined ? "SSH 已验证" : `SSH 已验证 · ${latency} ms`;
+    case "failed": return "上次 SSH 验证失败";
+    case "host_key_changed": return "SSH 主机指纹已变更";
+    default: return "SSH 未验证";
+  }
+}
+
+function executeCommand(serverId: number, command: string, credentials: SshCredentials = {}) {
+  const { password, privateKeyPath, passphrase } = credentials;
+  return workbenchApi.execute({ serverId, command, password, privateKeyPath, passphrase });
+}
+
 export default function WorkbenchPage() {
   const location = useLocation();
-  const routeServerId =
-    (location.state as { serverId?: number } | null)?.serverId ?? null;
+  const navigate = useNavigate();
+  const routeState = location.state as { serverId?: number } | null;
+  const routeServerId = routeState?.serverId;
+  const [entrySelection] = useState(() => ({
+    rememberedId: useWorkbenchSelection.getState().serverId,
+    sharedId: useAppStore.getState().activeServerId,
+  }));
   const [servers, setServers] = useState<Server[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const requestNumber = useRef(0);
 
-  // 导航历史状态管理
-  const [history, setHistory] = useState<WorkbenchViewKey[]>(["overview"]);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const currentView = history[historyIndex] ?? "overview";
-
-  // 侧边栏折叠与后台监控开关
+  const [history, setHistory] = useState<{ views: WorkbenchViewKey[]; index: number }>({ views: ["overview"], index: 0 });
+  const currentView = history.views[history.index];
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [bgMonitor, setBgMonitor] = useState(true);
-  const [sshServer, setSshServer] = useState<Server | null>(null);
+  const autoRefresh = useWorkbenchSelection((state) => state.autoRefresh);
+
+  const [connection, setConnection] = useState<ConnectionRequest | null>(null);
+  const pendingConnection = useRef<ConnectionRequest | null>(null);
+  const [probeLatency, setProbeLatency] = useState<Record<number, number>>({});
   const credentialsByServer = useSshSessionStore((state) => state.credentialsByServer);
   const setCredentials = useSshSessionStore((state) => state.setCredentials);
-  const [pendingCommand, setPendingCommand] = useState<{
-    command: string;
-    resolve: (result: Awaited<ReturnType<typeof workbenchApi.execute>>) => void;
-    reject: (error: unknown) => void;
-  } | null>(null);
-
-  const setActiveServerId = useAppStore((s) => s.setActiveServerId);
 
   const loadServers = useCallback(async () => {
+    const request = ++requestNumber.current;
     setLoading(true);
+    setListError(null);
     try {
       const data = await serverApi.list();
-      setServers(data);
-      setSelectedId((current) => {
-        if (routeServerId !== null && data.some((server) => server.id === routeServerId)) {
-          return routeServerId;
-        }
-        if (current !== null && data.some((server) => server.id === current)) {
-          return current;
-        }
-        const fromSession = useAppStore.getState().activeServerId;
-        if (fromSession !== null && data.some((server) => server.id === fromSession)) {
-          return fromSession;
-        }
-        return data[0]?.id ?? null;
-      });
+      if (request === requestNumber.current) setServers(data.filter((server) => server.protocol !== "rdp"));
     } catch (error) {
-      message.error(getErrorMessage(error));
+      if (request === requestNumber.current) setListError(getErrorMessage(error));
     } finally {
-      setLoading(false);
+      if (request === requestNumber.current) setLoading(false);
     }
-  }, [routeServerId]);
-
-  const selectServer = useCallback(
-    (id: number) => {
-      setSelectedId(id);
-      setActiveServerId(id);
-    },
-    [setActiveServerId]
-  );
+  }, []);
 
   useEffect(() => {
     void loadServers();
+    return () => { requestNumber.current += 1; };
   }, [loadServers]);
 
-  const selectedServer = useMemo(
-    () => servers.find((server) => server.id === selectedId) ?? null,
-    [servers, selectedId]
-  );
+  // 显式直达和工作台上次选择优先。目标已失效时留空，避免对第一台主机发出操作。
+  const requestedId = routeServerId ?? entrySelection.rememberedId;
+  const selectedServer = requestedId != null
+    ? servers.find(({ id }) => id === requestedId) ?? null
+    : servers.find(({ id }) => id === entrySelection.sharedId) ?? servers[0] ?? null;
+  const selectedId = selectedServer?.id ?? null;
+  const status = connectionStatus(selectedServer, selectedId === null ? undefined : probeLatency[selectedId]);
+
+  useLayoutEffect(() => {
+    if (selectedId === null) return;
+    useWorkbenchSelection.setState({ serverId: selectedId });
+    useAppStore.getState().setActiveServerId(selectedId);
+  }, [selectedId]);
+
+  const selectServer = useCallback((id: number) => {
+    // 替换当前历史项的目标，使浏览器前进/后退也能恢复这一项最终选中的主机。
+    void navigate(location.pathname + location.search + location.hash, {
+      replace: true,
+      state: { ...routeState, serverId: id },
+    });
+  }, [location.hash, location.pathname, location.search, navigate, routeState]);
+
+  useEffect(() => {
+    if (routeServerId == null && selectedId !== null) selectServer(selectedId);
+  }, [routeServerId, selectServer, selectedId]);
+
+  const scope = useMemo<WorkbenchScope>(() => ({ serverId: selectedId, view: currentView }), [selectedId, currentView]);
+  const activeScope = useRef<WorkbenchScope | null>(null);
+  useLayoutEffect(() => {
+    activeScope.current = scope;
+    return () => {
+      activeScope.current = null;
+      const request = pendingConnection.current;
+      pendingConnection.current = null;
+      request?.pending?.reject(new Error("已退出当前工作台工具，SSH 验证已取消"));
+    };
+  }, [scope]);
 
   const openConnection = useCallback(() => {
-    if (!selectedServer) {
-      message.warning("请先选择服务器");
-      return;
-    }
-    if (credentialsByServer[selectedServer.id]) {
-      message.success("已使用服务器凭证连接");
-      return;
-    }
-    setSshServer(selectedServer);
-  }, [credentialsByServer, selectedServer]);
+    if (!selectedServer || activeScope.current !== scope || pendingConnection.current) return;
+    const request = { scope, server: selectedServer };
+    pendingConnection.current = request;
+    setConnection(request);
+  }, [scope, selectedServer]);
 
-  // 服务器资产页明确点击工作台时，进入后立即使用目标服务器；没有凭证才弹验证框。
-  const autoConnectedServerRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (
-      routeServerId === null ||
-      loading ||
-      !selectedServer ||
-      selectedServer.id !== routeServerId ||
-      sshServer !== null ||
-      autoConnectedServerRef.current === routeServerId
-    ) {
-      return;
-    }
-
-    autoConnectedServerRef.current = routeServerId;
-  }, [loading, routeServerId, selectedServer, sshServer]);
-
-  const executeCommand = useCallback(
-    async (server: Server, credentials: SshCredentials, command: string) => {
-      return workbenchApi.execute({
-        serverId: server.id,
-        command,
-        password: credentials.password,
-        privateKeyPath: credentials.privateKeyPath,
-        passphrase: credentials.passphrase,
+  const runCommand = useCallback(async (command: string) => {
+    if (!selectedServer || activeScope.current !== scope) throw new Error("当前工作台工具没有可用的服务器目标");
+    // 从会话 Store 读取托管标记。真实 SSH 凭据由 Rust 从系统凭据管理器读取。
+    try {
+      return await executeCommand(selectedServer.id, command, useSshSessionStore.getState().getCredentials(selectedServer.id));
+    } catch (error) {
+      if (activeScope.current !== scope || !needsSshCredentials(error) || pendingConnection.current) throw error;
+      return new Promise<WorkbenchCommandResult>((resolve, reject) => {
+        const request = { scope, server: selectedServer, pending: { command, resolve, reject } };
+        pendingConnection.current = request;
+        setConnection(request);
       });
-    },
-    [],
-  );
-
-  const runCommand = useCallback(
-    async (command: string) => {
-      if (!selectedServer) {
-        return Promise.reject(new Error("请先选择服务器"));
-      }
-      // 前端状态只保存“已托管”标记，不包含密码明文。传入空凭据后由 Rust
-      // 从系统凭据管理器读取真实凭据，应用重启后也能复用。
-      const credentials = credentialsByServer[selectedServer.id] ?? {};
-      try {
-        return await executeCommand(selectedServer, credentials, command);
-      } catch (error) {
-        if (!needsSshCredentials(error)) {
-          throw error;
-        }
-
-        setSshServer(selectedServer);
-        return new Promise<Awaited<ReturnType<typeof workbenchApi.execute>>>((resolve, reject) => {
-          setPendingCommand({ command, resolve, reject });
-        });
-      }
-    },
-    [credentialsByServer, executeCommand, selectedServer],
-  );
-
-  const runtime = useMemo(
-    () => ({
-      server: selectedServer,
-      connected: Boolean(selectedServer && credentialsByServer[selectedServer.id]),
-      openConnection,
-      runCommand,
-    }),
-    [credentialsByServer, openConnection, runCommand, selectedServer],
-  );
-
-  // 导航跳转动作
-  const navigateTo = useCallback(
-    (view: WorkbenchViewKey) => {
-      if (view === currentView) return;
-      const nextHistory = history.slice(0, historyIndex + 1);
-      nextHistory.push(view);
-      setHistory(nextHistory);
-      setHistoryIndex(nextHistory.length - 1);
-    },
-    [currentView, history, historyIndex]
-  );
-
-  const canGoBack = historyIndex > 0;
-  const canGoForward = historyIndex < history.length - 1;
-
-  const handleHistoryBack = useCallback(() => {
-    if (canGoBack) {
-      setHistoryIndex((idx) => idx - 1);
     }
-  }, [canGoBack]);
+  }, [scope, selectedServer]);
 
-  const handleHistoryForward = useCallback(() => {
-    if (canGoForward) {
-      setHistoryIndex((idx) => idx + 1);
-    }
-  }, [canGoForward]);
+  const connected = selectedId !== null && Boolean(credentialsByServer[selectedId]);
+  const runtime = useMemo(() => ({
+    server: selectedServer,
+    connected,
+    openConnection,
+    runCommand,
+  }), [connected, openConnection, runCommand, selectedServer]);
+
+  const navigateTo = (view: WorkbenchViewKey) => {
+    setHistory((current) => current.views[current.index] === view ? current : {
+      views: [...current.views.slice(0, current.index + 1), view],
+      index: current.index + 1,
+    });
+  };
+  const go = (delta: number) => setHistory((current) => ({
+    ...current,
+    index: Math.min(current.views.length - 1, Math.max(0, current.index + delta)),
+  }));
+
+  const activeConnection = connection?.scope === scope ? connection : null;
 
   return (
-    <div className="ops-workbench-page flex flex-col h-full w-full overflow-hidden">
-      {/* 1. 顶栏控制器 */}
-        <WorkbenchHeader
+    <div className="ops-workbench-page flex h-full w-full flex-col overflow-hidden">
+      <WorkspaceSidebarSlot>
+        <WorkbenchWorkspaceNavigation server={selectedServer} status={status} currentView={currentView} onSelectView={navigateTo} />
+      </WorkspaceSidebarSlot>
+
+      <WorkbenchHeader
         currentView={currentView}
         servers={servers}
-        selectedServerId={selectedId}
+        server={selectedServer}
+        loading={loading}
         onSelectServer={selectServer}
-        canGoBack={canGoBack}
-        canGoForward={canGoForward}
-        onHistoryBack={handleHistoryBack}
-        onHistoryForward={handleHistoryForward}
-        bgMonitor={bgMonitor}
-        onToggleBgMonitor={setBgMonitor}
-        connected={runtime.connected}
+        canGoBack={history.index > 0}
+        canGoForward={history.index < history.views.length - 1}
+        onHistoryBack={() => go(-1)}
+        onHistoryForward={() => go(1)}
+        autoRefresh={autoRefresh}
+        onToggleAutoRefresh={(checked) => useWorkbenchSelection.setState({ autoRefresh: checked })}
         onConnect={openConnection}
       />
 
-      {/* 2. 工作台主体结构：左侧二级侧边栏 + 右侧主内容视口 */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* 左侧机器面板 */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <WorkbenchSidebar
           currentView={currentView}
           onSelectView={navigateTo}
+          disabled={!selectedServer}
           collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onToggleCollapse={() => setSidebarCollapsed((value) => !value)}
         />
-
-        {/* 右侧主内容视口 (可独立纵向滚动) */}
-        <main
-          className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-4"
-          style={{
-            background: "var(--bg-primary)",
-          }}
+        {/* 换机或换工具时重建内容，防止上一台机器的列表、趋势和输入显示在新目标下。 */}
+        <section
+          key={`${selectedId ?? "none"}:${currentView}`}
+          aria-label="工作台内容"
+          className="custom-scrollbar min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-[var(--surface-950)] p-4"
         >
-          <WorkbenchRuntimeContext.Provider value={runtime}>
-          <Spin spinning={loading && servers.length === 0}>
-            {currentView === "overview" && <OverviewView server={selectedServer} />}
-            {currentView === "appstore" && <AppStoreView />}
-            {currentView === "website" && <WebsiteView />}
-            {currentView === "database" && <DatabaseView />}
-            {currentView === "containers" && <ContainersView />}
-            {currentView === "file" && <FileView />}
-            {currentView === "backup" && <BackupView />}
-            {currentView === "cron" && <CronView />}
-            {currentView === "system" && <SystemView />}
-            {currentView === "terminal" && <TerminalView server={selectedServer} />}
-            {currentView === "logs" && <LogsView />}
-            {currentView === "workspace" && <WorkspaceView />}
-            {currentView === "settings" && <SettingsView server={selectedServer} />}
-          </Spin>
-          </WorkbenchRuntimeContext.Provider>
-        </main>
+          {listError && <Alert className="mb-3" type="error" showIcon message="服务器列表加载失败" description={listError} action={<Button size="small" onClick={() => void loadServers()}>重试</Button>} />}
+          {selectedServer ? (
+            <WorkbenchRuntimeContext.Provider value={runtime}>
+              {currentView === "overview" && <OverviewView server={selectedServer} autoRefresh={autoRefresh} />}
+              {currentView === "appstore" && <AppStoreView />}
+              {currentView === "website" && <WebsiteView />}
+              {currentView === "database" && <DatabaseView hostScoped />}
+              {currentView === "containers" && <ContainersView />}
+              {currentView === "file" && <FileView />}
+              {currentView === "backup" && <BackupView />}
+              {currentView === "cron" && <CronView />}
+              {(currentView === "system" || currentView === "processes" || currentView === "ports" || currentView === "firewall") && (
+                <SystemView tab={currentView} onSelectTab={navigateTo} />
+              )}
+              {currentView === "terminal" && <TerminalView server={selectedServer} />}
+              {currentView === "logs" && <LogsView />}
+              {currentView === "workspace" && <WorkspaceView />}
+              {currentView === "settings" && <SettingsView server={selectedServer} />}
+            </WorkbenchRuntimeContext.Provider>
+          ) : loading ? (
+            <div className="grid min-h-64 place-items-center"><Spin /></div>
+          ) : !listError && (
+            <Empty
+              className="py-16"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={requestedId != null ? "目标服务器已移除或不支持 SSH，请选择其他服务器" : "暂无可用的 SSH 服务器"}
+            />
+          )}
+        </section>
       </div>
 
       <SshConnectModal
-        open={sshServer !== null}
-        server={sshServer}
-        initialCredentials={sshServer ? credentialsByServer[sshServer.id] : undefined}
+        open={activeConnection !== null}
+        server={activeConnection?.server ?? null}
+        initialCredentials={activeConnection ? credentialsByServer[activeConnection.server.id] : undefined}
         onCancel={() => {
-          setSshServer(null);
-          if (pendingCommand) {
-            pendingCommand.reject(new Error("已取消 SSH 验证"));
-            setPendingCommand(null);
-          }
+          if (pendingConnection.current !== activeConnection) return;
+          pendingConnection.current = null;
+          activeConnection?.pending?.reject(new Error("已取消 SSH 验证"));
+          setConnection(null);
         }}
-        onVerified={async (_result: SshProbeResult, credentials: SshCredentials) => {
-          if (!sshServer) return;
-          const server = sshServer;
+        onVerified={async (result, credentials) => {
+          if (!activeConnection || pendingConnection.current !== activeConnection) return;
+          const { server, pending } = activeConnection;
           await setCredentials(server.id, credentials);
-          setSshServer(null);
-          if (pendingCommand) {
+          if (pendingConnection.current !== activeConnection) return;
+          pendingConnection.current = null;
+          setConnection(null);
+          setProbeLatency((current) => ({ ...current, [server.id]: result.latency_ms }));
+          if (pending) {
             try {
-              const result = await executeCommand(server, credentials, pendingCommand.command);
-              pendingCommand.resolve(result);
+              pending.resolve(await executeCommand(server.id, pending.command, credentials));
             } catch (error) {
-              pendingCommand.reject(error);
-            } finally {
-              setPendingCommand(null);
+              pending.reject(error);
             }
           }
-          await loadServers();
+          if (activeScope.current === activeConnection.scope) await loadServers();
         }}
-        onStatusChanged={loadServers}
+        onStatusChanged={() => {
+          if (activeScope.current === activeConnection?.scope) return loadServers();
+        }}
       />
     </div>
   );

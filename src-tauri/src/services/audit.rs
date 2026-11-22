@@ -1,7 +1,7 @@
 use crate::database::Database;
 use crate::error::AppError;
 use crate::models::{AuditLog, AuditLogPage};
-use crate::services::sensitive::SensitiveService;
+use crate::services::sensitive::{project_fields, SensitiveService};
 
 const MAX_AUDIT_FIELD_BYTES: usize = 12_000;
 const AUDIT_RETENTION_DAYS: i64 = 180;
@@ -34,7 +34,7 @@ impl AuditService {
             return Err(AppError::InvalidInput("审计日志条数必须是正整数".into()));
         }
         db.purge_audit_logs(AUDIT_RETENTION_DAYS)?;
-        db.get_audit_logs(limit.min(500))
+        project_logs(db.get_audit_logs(limit.min(500))?)
     }
 
     /// 获取有界审计日志页，避免前端一次性加载完整日志库。
@@ -46,6 +46,7 @@ impl AuditService {
         let limit = limit.min(MAX_AUDIT_PAGE_SIZE);
         let (records, total) = db.get_audit_logs_page(limit, offset)?;
         let has_more = i64::from(offset) + (records.len() as i64) < total;
+        let records = project_logs(records)?;
         Ok(AuditLogPage {
             records,
             total,
@@ -54,6 +55,18 @@ impl AuditService {
             has_more,
         })
     }
+}
+
+fn project_logs(records: Vec<AuditLog>) -> Result<Vec<AuditLog>, AppError> {
+    // 旧记录可能来自脱敏规则不完整的版本。读取时投影，保留原始日志存证和分页信息。
+    records
+        .into_iter()
+        .map(|mut log| {
+            [log.server_alias, log.command, log.user, log.result] =
+                project_fields([&log.server_alias, &log.command, &log.user, &log.result])?;
+            Ok(log)
+        })
+        .collect()
 }
 
 fn sanitize_audit_field(db: &Database, value: &str, source: &str) -> Result<String, AppError> {
@@ -85,10 +98,55 @@ mod tests {
             "password=hunter2",
         )
         .expect("audit log");
-        let logs = AuditService::get_logs(&db, 10).expect("logs");
+        let logs = db
+            .get_audit_logs(10)
+            .expect("read stored fields before the display projection");
         assert_eq!(logs.len(), 1);
         assert!(!logs[0].command.contains("secret-value-123456"));
         assert!(!logs[0].result.contains("hunter2"));
+    }
+
+    #[test]
+    fn reads_project_mixed_legacy_fields_without_writing_to_the_vault() {
+        let db = Database::init(":memory:").expect("database");
+        let command = "MYSQL_ROOT_PASSWORD='fixture env value' mysql -pFIXTURE_CLI -p'fixture; quoted' --execute=fixture-query";
+        let result =
+            r#"success {"access_token":"fixture match","text":"fixture-receipt FIXTURE_CLI"}"#;
+        let id = db
+            .add_audit_log(
+                "fixture-target fixture match",
+                command,
+                "fixture-actor FIXTURE ENV VALUE",
+                result,
+            )
+            .expect("seed legacy row directly");
+        let page = AuditService::get_logs_page(&db, 20, 0).expect("page");
+        assert_eq!(
+            (page.total, page.limit, page.offset, page.has_more),
+            (1, 20, 0, false)
+        );
+        let row = &page.records[0];
+        assert_eq!(row.id, id);
+        assert_eq!(
+            row.command,
+            "MYSQL_ROOT_PASSWORD=[REDACTED] mysql -p[REDACTED] -p[REDACTED] --execute=fixture-query"
+        );
+        assert_eq!(
+            row.result,
+            r#"success {"access_token":[REDACTED],"text":"fixture-receipt [REDACTED]"}"#
+        );
+        assert_eq!(row.server_alias, "fixture-target [REDACTED]");
+        assert_eq!(row.user, "fixture-actor [REDACTED]");
+        let unpaged = AuditService::get_logs(&db, 20).expect("list");
+        assert_eq!(unpaged[0].command, row.command);
+        assert_eq!(unpaged[0].result, row.result);
+        let stored = db.get_audit_logs(20).expect("read stored fields");
+        assert_eq!(stored[0].command, command);
+        assert_eq!(stored[0].result, result);
+        assert!(db
+            .get_sensitive_entries(None, None, None)
+            .expect("read vault")
+            .is_empty());
     }
 
     #[test]

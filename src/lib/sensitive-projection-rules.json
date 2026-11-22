@@ -1,0 +1,45 @@
+{
+  "keyBlock": "-----BEGIN [A-Z0-9 ]+-----[\\s\\S]*?(?:-----END [A-Z0-9 ]+-----|$)",
+  "value": "\\[REDACTED(?::[^\\]\\r\\n]*)?\\](?:\\\\[^\\r\\n]|[^\\s,;{}\\[\\]\"'\\\\])*|\\\\\"(?:\\\\\\\\.|[^\\\\\\r\\n])*?(?:\\\\\"|$)|\"(?:\\\\.|[^\"\\\\\\r\\n])*(?:\"|$)|'(?:\\\\.|[^'\\\\\\r\\n])*(?:'|$)|(?:\\\\[^\\r\\n]|[^\\s,;{}\"'\\\\])+",
+  "argumentPrefix": "\\b[A-Za-z0-9_-]*(?:password|passwd|passphrase|secret|credential|token|api[_-]?key|access[_-]?key|private[_-]?key)(?:\\\\?[\"'])?[ \\t]*[:=][ \\t]*|(?:^|[ \\t])(?:-p|--password|--passphrase|--token|--secret|--api-key)(?:[ \\t]+|=)",
+  "commandRules": [
+    {
+      "command": "\\bredis-cli(?:\\.exe)?\\b(?:\"(?:\\\\.|[^\"\\\\\\r\\n])*(?:\"|$)|'(?:\\\\.|[^'\\\\\\r\\n])*(?:'|$)|\\\\[^\\r\\n]|[^;|&\"'\\\\\\r\\n])*",
+      "prefix": "[ \\t]-a(?:[ \\t]+|=)"
+    },
+    {
+      "command": "\\b(?:mysql(?:admin|dump|pump|show|import|check|slap)?|mariadb(?:-dump|-admin)?)(?:\\.exe)?\\b(?:\"(?:\\\\.|[^\"\\\\\\r\\n])*(?:\"|$)|'(?:\\\\.|[^'\\\\\\r\\n])*(?:'|$)|\\\\[^\\r\\n]|[^;|&\"'\\\\\\r\\n])*",
+      "prefix": "[ \\t]-p=?"
+    }
+  ],
+  "literalRules": [
+    {
+      "secretType": "token",
+      "label": "JWT Token",
+      "pattern": "\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b",
+      "replacement": "[REDACTED: token]"
+    },
+    {
+      "secretType": "token",
+      "label": "GitHub Token",
+      "pattern": "\\bgh[pousr]_[A-Za-z0-9_]{20,}\\b",
+      "replacement": "[REDACTED: token]"
+    },
+    {
+      "secretType": "credential",
+      "label": "AWS Access Key",
+      "pattern": "\\bAKIA[0-9A-Z]{16}\\b",
+      "replacement": "[REDACTED: credential]"
+    },
+    {
+      "secretType": "ip",
+      "label": "公网 IP 地址",
+      "pattern": "\\b(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)){3}\\b",
+      "replacement": "[REDACTED: public IP]"
+    }
+  ],
+  "auth": "(\\b(?:Bearer|Basic)[ \\t]+)([A-Za-z0-9._~+/=-]+)",
+  "numericMcpActor": "^(mcp:[^\\r\\n]*:token:)\\d+$",
+  "uri": "(:\\/\\/[^\\s:/@]+:)([^\\s@/]+)(@)",
+  "placeholder": "\\[REDACTED(?::[^\\]\\r\\n]*)?\\]"
+}

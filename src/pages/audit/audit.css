@@ -1,0 +1,135 @@
+.audit-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 430px;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.audit-header,
+.audit-actions,
+.audit-filters,
+.audit-pagination,
+.audit-drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.audit-header {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.audit-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.audit-header h1 svg, .audit-server { color: var(--info); }
+.audit-header p { margin: 4px 0 0; color: var(--text-secondary); }
+.audit-link { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); }
+.audit-link:hover { text-decoration: underline; }
+
+.audit-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.audit-stats > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-inline-start-width: 3px;
+  border-radius: 9px;
+  background: var(--glass-card-bg);
+}
+
+.audit-stats dt, .audit-detail dt { color: var(--text-secondary); font-size: 11px; }
+.audit-stats dd { margin: 4px 0 0; font: 700 22px var(--font-mono); overflow-wrap: anywhere; }
+
+.audit-filters .ant-select { min-width: 98px; max-width: 160px; }
+.audit-filters .audit-search { min-width: 210px; max-width: 290px; flex: 1 1 210px; }
+.audit-filters .ant-select-placeholder,
+.audit-filters .audit-search input::placeholder,
+.audit-filters .audit-search svg { color: var(--text-secondary); }
+.audit-dates { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); }
+.audit-dates input {
+  height: 24px;
+  padding-inline: 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-900);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+:root[data-theme="dark"] .audit-dates input { color-scheme: dark; }
+.audit-dates input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.audit-results {
+  display: flex;
+  min-height: 150px;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-900);
+}
+
+.audit-results-meta, .audit-pagination { padding: 7px 10px; color: var(--text-secondary); }
+.audit-results-meta { border-bottom: 1px solid var(--border); }
+.audit-pagination { justify-content: space-between; border-top: 1px solid var(--border); }
+.audit-table { min-height: 0; flex: 1; overflow: auto; }
+.audit-time { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.audit-table .ant-table { font-size: 12px; }
+.audit-table .audit-command {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  padding-inline: 0;
+  text-align: start;
+  text-overflow: ellipsis;
+  font: 11px var(--font-mono);
+}
+
+.audit-row-actions { display: flex; justify-content: flex-end; gap: 2px; }
+.audit-row-actions .ant-btn { padding-inline: 3px; gap: 3px; }
+.audit-verdict.ant-tag { margin-inline-end: 0; }
+
+.audit-detail { display: grid; gap: 14px; margin-top: 4px; overflow-wrap: anywhere; }
+.audit-detail dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.audit-detail dd { margin: 3px 0 0; }
+.audit-detail h3 { margin: 0; font-size: 13px; font-weight: 650; }
+.audit-detail pre {
+  max-height: 15em;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-950);
+  font: 12px/1.6 var(--font-mono);
+  white-space: pre-wrap;
+}
+
+.audit-approval-ref { display: grid; justify-items: start; gap: 7px; }
+.audit-approval-ref p { margin: 0; color: var(--text-secondary); }
+.audit-approval-ref pre { width: 100%; }
+.audit-drawer-actions { justify-content: flex-end; }
+
+@media (max-width: 780px) {
+  .audit-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

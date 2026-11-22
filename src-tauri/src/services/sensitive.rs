@@ -9,6 +9,9 @@ use crate::models::{
     SensitiveEntry, SensitiveListFilter, SensitiveScanRequest, SensitiveScanResult,
 };
 
+mod projection;
+pub(super) use projection::project_fields;
+
 const MAX_SCAN_BYTES: usize = 5 * 1024 * 1024;
 const MAX_SOURCE_BYTES: usize = 200;
 const REDACTED_SOURCE: &str = "[REDACTED]";
@@ -366,20 +369,8 @@ fn build_rules() -> Result<Vec<ScanRule>, AppError> {
             "Token 字段",
             r#"(?im)(?:token|api[_-]?key|access[_-]?key)\s*[:=]\s*(?P<value>[^\s"'\x60,;]+)"#,
         ),
-        (
-            "token",
-            "JWT Token",
-            r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b",
-        ),
-        ("token", "GitHub Token", r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
-        ("credential", "AWS Access Key", r"\bAKIA[0-9A-Z]{16}\b"),
-        (
-            "ip",
-            "公网 IP 地址",
-            r"\b(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}\b",
-        ),
     ];
-    specs
+    let mut rules = specs
         .into_iter()
         .map(|(secret_type, default_label, pattern)| {
             Regex::new(pattern)
@@ -390,7 +381,13 @@ fn build_rules() -> Result<Vec<ScanRule>, AppError> {
                 })
                 .map_err(|error| AppError::Custom(format!("敏感规则初始化失败: {error}")))
         })
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    rules.extend(projection::literal_rules()?.iter().map(|rule| ScanRule {
+        secret_type: rule.secret_type.as_str(),
+        default_label: rule.label.as_str(),
+        regex: rule.regex.clone(),
+    }));
+    Ok(rules)
 }
 
 fn label_for(rule: &ScanRule, raw: &str) -> String {

@@ -23,8 +23,13 @@ export const deploymentApi = {
   listGroups: () => invoke<DeploymentGroup[]>("list_deployment_groups"),
   saveGroup: (input: DeploymentGroupInput) => invoke<DeploymentGroup>("save_deployment_group", { input }),
   deleteGroup: (id: string) => invoke<boolean>("delete_deployment_group", { id }),
-  deployGroup: (groupId: string, canaryFirst = false) => invoke<DeploymentGroupRunResult>("deploy_group", { request: { groupId, canaryFirst } }),
+  deployGroup: (groupId: string, canaryFirst = false, runId = crypto.randomUUID()) =>
+    invoke<DeploymentGroupRunResult>("deploy_group", { request: { groupId, canaryFirst, runId } }),
   listHistory: (targetId?: string) => invoke<DeploymentHistory[]>("list_deployment_history", { targetId: targetId ?? null }),
-  deployTarget: (request: DeployRunRequest) => invoke<DeployRunResult>("deploy_target", { request }),
-  rollbackTarget: (request: DeployRunRequest) => invoke<DeployRunResult>("rollback_deploy_target", { request }),
+  deployTarget: (request: DeployRunRequest) => invoke<DeployRunResult>("deploy_target", {
+    request: { ...request, runId: request.runId ?? crypto.randomUUID() },
+  }),
+  rollbackTarget: (request: DeployRunRequest) => invoke<DeployRunResult>("rollback_deploy_target", {
+    request: { ...request, runId: request.runId ?? crypto.randomUUID() },
+  }),
 };

@@ -3730,7 +3730,9 @@ fn execute_queued_mcp_approval(
                     "MCP command step was already processed".into(),
                 ));
             }
-            let output = if DeploymentService::is_mcp_deployment_command(&execution_step.command) {
+            let deployment_run_id = DeploymentService::is_mcp_deployment_command(&execution_step.command)
+                .then(uuid::Uuid::new_v4);
+            let output = if let Some(run_id) = deployment_run_id {
                 let verification = execution_step
                     .verification_command
                     .as_deref()
@@ -3746,6 +3748,7 @@ fn execute_queued_mcp_approval(
                     &execution_step.command,
                     verification,
                     600,
+                    run_id,
                 )
             } else {
                 run_service_preflight(db, approval.server_id, &execution_step.command).and_then(
@@ -3901,15 +3904,14 @@ fn execute_queued_mcp_approval(
                             None,
                         ),
                     };
-                if DeploymentService::is_mcp_deployment_command(&execution_step.command) {
-                    if let Some((target_id, action, version, _)) =
+                if let Some(run_id) = deployment_run_id {
+                    if let Some((target_id, _, _, _)) =
                         DeploymentService::mcp_deployment_marker(&execution_step.command)
                     {
                         DeploymentService::record_mcp_verification(
                             db,
+                            run_id,
                             &target_id,
-                            &action,
-                            &version,
                             verification_ok,
                             &verification_result,
                         )?;

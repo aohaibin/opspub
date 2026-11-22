@@ -577,6 +577,7 @@ pub struct DeploymentGroupInput {
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentGroupRunRequest {
     pub group_id: String,
+    pub run_id: Option<uuid::Uuid>,
     pub timeout_secs: Option<u32>,
     #[serde(default)]
     pub canary_first: bool,
@@ -586,6 +587,7 @@ pub struct DeploymentGroupRunRequest {
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentGroupRunResult {
     pub group_id: String,
+    pub run_id: uuid::Uuid,
     pub results: Vec<DeployRunResult>,
     pub success: bool,
     pub canary_target_id: Option<String>,
@@ -596,6 +598,7 @@ pub struct DeploymentGroupRunResult {
 #[serde(rename_all = "camelCase")]
 pub struct DeployRunRequest {
     pub target_id: String,
+    pub run_id: Option<uuid::Uuid>,
     pub version: Option<String>,
     pub timeout_secs: Option<u32>,
 }
@@ -604,6 +607,8 @@ pub struct DeployRunRequest {
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentHistory {
     pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<uuid::Uuid>,
     pub target_id: String,
     pub target_name: String,
     pub version: String,
@@ -639,6 +644,7 @@ pub struct DeployRunResult {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentProgress {
+    pub run_id: uuid::Uuid,
     pub target_id: String,
     pub stage: String,
     pub message: String,

@@ -52,6 +52,7 @@ export interface DeploymentGroupInput {
 
 export interface DeploymentGroupRunResult {
   groupId: string;
+  runId: string;
   results: DeployRunResult[];
   success: boolean;
   canaryTargetId?: string;
@@ -60,12 +61,14 @@ export interface DeploymentGroupRunResult {
 
 export interface DeployRunRequest {
   targetId: string;
+  runId?: string;
   version?: string;
   timeoutSecs?: number;
 }
 
 export interface DeploymentHistory {
   id: string;
+  runId?: string;
   targetId: string;
   targetName: string;
   version: string;
@@ -79,7 +82,7 @@ export interface DeploymentHistory {
 }
 
 export interface DeployRunResult {
-  history: DeploymentHistory;
+  history: DeploymentHistory & { runId: string };
   stdout: string;
   stderr: string;
   exitCode: number;
@@ -87,6 +90,7 @@ export interface DeployRunResult {
 }
 
 export interface DeploymentProgress {
+  runId: string;
   targetId: string;
   stage: string;
   message: string;

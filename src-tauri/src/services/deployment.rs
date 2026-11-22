@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::Instant;
 
 use chrono::Local;
@@ -33,6 +34,9 @@ const RECIPES: [&str; 7] = [
     "static-openresty",
     "systemd-binary",
 ];
+
+// 历史条目存于同一个配置键，串行化读改写以保留并发执行的结果。
+static HISTORY_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 pub struct DeploymentService;
 
@@ -313,6 +317,7 @@ impl DeploymentService {
         command: &str,
         verification_command: &str,
         timeout_secs: u32,
+        run_id: Uuid,
     ) -> Result<WorkbenchCommandResult, AppError> {
         let state = app.state::<crate::state::AppState>();
         let db = &state.db;
@@ -325,6 +330,7 @@ impl DeploymentService {
         let timeout = timeout_secs.clamp(10, 1800);
         emit_progress(
             &app,
+            run_id,
             &target.id,
             "deploy",
             "已通过部署快照校验，开始远端执行",
@@ -400,6 +406,7 @@ impl DeploymentService {
             db,
             DeploymentHistory {
                 id: Uuid::new_v4().to_string(),
+                run_id: Some(run_id),
                 target_id: target.id.clone(),
                 target_name: target.name.clone(),
                 version,
@@ -434,6 +441,7 @@ impl DeploymentService {
         )?;
         emit_progress(
             &app,
+            run_id,
             &target.id,
             if status == "success" {
                 "done"
@@ -452,19 +460,20 @@ impl DeploymentService {
 
     pub fn record_mcp_verification(
         db: &Database,
+        run_id: Uuid,
         target_id: &str,
-        action: &str,
-        version: &str,
         passed: bool,
         output: &str,
     ) -> Result<(), AppError> {
+        let _history_guard = HISTORY_WRITE_LOCK
+            .lock()
+            .map_err(|error| AppError::Custom(error.to_string()))?;
         let mut history = Self::list_history(db, None)?;
         let item = history
             .iter_mut()
             .find(|item| {
-                item.target_id == target_id
-                    && item.action == action
-                    && item.version == version
+                item.run_id == Some(run_id)
+                    && item.target_id == target_id
                     && item.verification_status == "pending"
             })
             .ok_or_else(|| AppError::NotFound("待更新的部署验证记录不存在".into()))?;
@@ -613,6 +622,7 @@ impl DeploymentService {
         app: tauri::AppHandle,
         request: DeploymentGroupRunRequest,
     ) -> Result<DeploymentGroupRunResult, AppError> {
+        let run_id = request.run_id.unwrap_or_else(Uuid::new_v4);
         let state = app.state::<crate::state::AppState>();
         let group = Self::list_groups(&state.db)?
             .into_iter()
@@ -630,6 +640,7 @@ impl DeploymentService {
                 app.clone(),
                 DeployRunRequest {
                     target_id,
+                    run_id: Some(run_id),
                     version: None,
                     timeout_secs: timeout,
                 },
@@ -648,6 +659,7 @@ impl DeploymentService {
         }
         Ok(DeploymentGroupRunResult {
             group_id: group.id,
+            run_id,
             success: results.iter().all(|result| result.exit_code == 0),
             results,
             canary_target_id,
@@ -672,6 +684,7 @@ impl DeploymentService {
         request: DeployRunRequest,
         action: &str,
     ) -> Result<DeployRunResult, AppError> {
+        let run_id = request.run_id.unwrap_or_else(Uuid::new_v4);
         let state = app.state::<crate::state::AppState>();
         let target = Self::list_targets(&state.db)?
             .into_iter()
@@ -691,6 +704,7 @@ impl DeploymentService {
         let timeout = request.timeout_secs.unwrap_or(600).clamp(10, 1800);
         emit_progress(
             &app,
+            run_id,
             &target.id,
             "preflight",
             "正在检查部署目标和远端环境",
@@ -710,6 +724,7 @@ impl DeploymentService {
         )?;
         emit_progress(
             &app,
+            run_id,
             &target.id,
             "deploy",
             "已通过本地校验，开始远端部署",
@@ -755,6 +770,7 @@ impl DeploymentService {
         if status == "success" && !target.health_command.trim().is_empty() {
             emit_progress(
                 &app,
+                run_id,
                 &target.id,
                 "verification",
                 "部署命令已完成，正在单独执行健康检查",
@@ -818,6 +834,7 @@ impl DeploymentService {
         };
         let history = DeploymentHistory {
             id: Uuid::new_v4().to_string(),
+            run_id: Some(run_id),
             target_id: target.id.clone(),
             target_name: target.name.clone(),
             version: version.clone(),
@@ -839,6 +856,7 @@ impl DeploymentService {
         )?;
         emit_progress(
             &app,
+            run_id,
             &target.id,
             if status == "success" {
                 "done"
@@ -862,6 +880,9 @@ impl DeploymentService {
     }
 
     fn append_history(db: &Database, item: DeploymentHistory) -> Result<(), AppError> {
+        let _history_guard = HISTORY_WRITE_LOCK
+            .lock()
+            .map_err(|error| AppError::Custom(error.to_string()))?;
         let mut history = Self::list_history(db, None)?;
         history.insert(0, item);
         history.truncate(100);
@@ -1173,10 +1194,18 @@ fn build_rollback_command(target: &DeployTarget) -> Result<String, AppError> {
     Ok(script)
 }
 
-fn emit_progress(app: &AppHandle, target_id: &str, stage: &str, message: &str, completed: bool) {
+fn emit_progress(
+    app: &AppHandle,
+    run_id: Uuid,
+    target_id: &str,
+    stage: &str,
+    message: &str,
+    completed: bool,
+) {
     let _ = app.emit(
         "deployment-progress",
         DeploymentProgress {
+            run_id,
             target_id: target_id.to_string(),
             stage: stage.to_string(),
             message: message.to_string(),
@@ -1226,10 +1255,12 @@ mod tests {
     #[test]
     fn mcp_health_verification_failure_is_persisted_separately_from_execution() {
         let db = Database::init(":memory:").expect("db");
-        DeploymentService::append_history(
-            &db,
-            crate::models::DeploymentHistory {
-                id: "history-1".into(),
+        let first_run = uuid::Uuid::new_v4();
+        let later_run = uuid::Uuid::new_v4();
+        for run_id in [first_run, later_run] {
+            let item = crate::models::DeploymentHistory {
+                id: run_id.to_string(),
+                run_id: Some(run_id),
                 target_id: "target-1".into(),
                 target_name: "api".into(),
                 version: "v1.2.3".into(),
@@ -1240,24 +1271,26 @@ mod tests {
                 output: "DEPLOYMENT_OK".into(),
                 error: String::new(),
                 created_at: "now".into(),
-            },
-        )
-        .expect("append history");
+            };
+            DeploymentService::append_history(&db, item).expect("append history");
+        }
         DeploymentService::record_mcp_verification(
             &db,
+            first_run,
             "target-1",
-            "deploy",
-            "v1.2.3",
             false,
             "HTTP probe returned 503",
         )
         .expect("record failed probe");
 
         let history = DeploymentService::list_history(&db, Some("target-1")).expect("load history");
-        assert_eq!(history[0].status, "failed");
-        assert_eq!(history[0].verification_status, "failed");
-        assert!(history[0].error.contains("HTTP probe returned 503"));
-        assert_eq!(history[0].rollback_status, "not_attempted");
+        assert_eq!(history[0].run_id, Some(later_run));
+        assert_eq!(history[0].verification_status, "pending");
+        assert_eq!(history[1].run_id, Some(first_run));
+        assert_eq!(history[1].status, "failed");
+        assert_eq!(history[1].verification_status, "failed");
+        assert!(history[1].error.contains("HTTP probe returned 503"));
+        assert_eq!(history[1].rollback_status, "not_attempted");
     }
 
     #[test]
@@ -1265,6 +1298,7 @@ mod tests {
         let old = r#"{"id":"h","targetId":"t","targetName":"api","version":"v1","action":"deploy","status":"success","output":"ok","error":"","createdAt":"now"}"#;
         let history: crate::models::DeploymentHistory =
             serde_json::from_str(old).expect("deserialize old history");
+        assert_eq!(history.run_id, None);
         assert_eq!(history.verification_status, "not_configured");
         assert_eq!(history.rollback_status, "not_attempted");
     }

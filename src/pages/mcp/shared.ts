@@ -66,6 +66,28 @@ export async function copyText(text: string) {
   message.success("已复制到剪贴板");
 }
 
+/**
+ * 下载 MCP 客户端配置。配置由 Rust 端生成，只含凭据索引，不包含真实令牌。
+ * 通过一次性 object URL 触发下载，避免把配置写入应用日志或持久化状态。
+ */
+export function exportConfigFile(
+  content: string,
+  filename: string,
+  format: string,
+) {
+  const blob = new Blob([content], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  message.success(`${format} 配置已导出`);
+}
+
 export const modalStyles = {
   body: { maxHeight: "calc(85dvh - 150px)", overflowY: "auto" as const },
 };

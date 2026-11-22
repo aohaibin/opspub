@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Modal, Select } from "antd";
-import { Copy, FileCheck2 } from "lucide-react";
+import { Copy, Download, FileCheck2 } from "lucide-react";
 import type { McpClientConfig, McpStatus, McpToken } from "@/types/mcp";
 import { mcpApi } from "@/lib/api/mcp";
 import { getErrorMessage } from "@/lib/api/client";
 import {
   clientName,
   copyText,
+  exportConfigFile,
   modalStyles,
   tokenState,
   toolScopeLabel,
@@ -103,6 +104,20 @@ export function ClientConfigModal({
       setInjecting(false);
     }
   };
+  const exportConfig = () => {
+    if (!config) return;
+    try {
+      const extension = config.format === "TOML" ? "toml" : "json";
+      exportConfigFile(
+        config.content,
+        `opspub-mcp-${client ?? "client"}.${extension}`,
+        config.format,
+      );
+      setError("");
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  };
   return (
     <Modal
       title={`${clientName(client ?? "")} · 接入配置`}
@@ -132,6 +147,13 @@ export function ClientConfigModal({
             }
           >
             复制配置
+          </Button>
+          <Button
+            icon={<Download size={15} />}
+            disabled={!config || busy || injecting}
+            onClick={exportConfig}
+          >
+            导出配置
           </Button>
           <Button
             type="primary"
@@ -224,7 +246,7 @@ export function ClientConfigModal({
               </details>
             )}
             <p className="mcp-caption">
-              配置使用系统凭据索引，无需将真实令牌写入文件或启动参数。
+              配置使用系统凭据索引，无需将真实令牌写入文件、启动参数或导出文件。
             </p>
             {config.backupPath && (
               <Alert

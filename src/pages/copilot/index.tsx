@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { listen } from "@tauri-apps/api/event";
+import { useStore } from "zustand";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Spin, Tag, Tooltip, message } from "antd";
 import ReactMarkdown from "react-markdown";
@@ -42,32 +43,9 @@ import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import { chatSkillContext, matchChatSkills, parseBuiltinSkills, parseUserSkills, resolveChatSkills, SKILLS_STORAGE_KEY, skillDocument, type ChatSkill } from "@/lib/copilot-skills";
 import { UNLOCK_DURATIONS, useAppStore, type UnlockDuration } from "@/store/app";
 import type { AiApproval, AiApprovalDetail, CopilotProgress, CopilotToolCall, ModelProfile, Server } from "@/types";
+import { createApprovalPreviewStore, visibleApprovalPreview, type ApprovalPreview, type ApprovalRequestOwner } from "./approval-preview";
+import { createCopilotChatStore, sessionTitle, type ChatMessage, type ChatSession } from "./chat-state";
 import skillsIndex from "../../../docs/skills-index-20261006.md?raw";
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  toolCalls?: CopilotToolCall[];
-  warnings?: string[];
-  modelName?: string | null;
-  skillNames?: string[];
-  triggeredSkillNames?: string[];
-  manualSkillNames?: string[];
-  historyCount?: number;
-  historyTrimmed?: number;
-  streaming?: boolean;
-  progressEvents?: CopilotProgress[];
-}
-
-interface ChatSession {
-  id: string;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
-  messages: ChatMessage[];
-  skillIds?: string[];
-}
 
 interface CopilotExperience {
   id: string;
@@ -98,15 +76,6 @@ const INITIAL_MESSAGE: ChatMessage = {
   content: "你好，我是 OpsPub 运维助手。你可以直接用自然语言查询服务器信息，不需要逐条创建模板。查询命令会先由后端校验为安全只读操作；改动操作仍受风险策略和人工审批约束。",
 };
 
-let initialChatState: { sessions: ChatSession[]; activeSessionId: string } | null = null;
-
-function sessionTitle(messages: ChatMessage[]) {
-  const firstUser = messages.find((item) => item.role === "user" && item.content.trim());
-  if (!firstUser) return "新建对话";
-  const title = firstUser.content.replace(/\s+/g, " ").trim();
-  return title.length > 32 ? `${title.slice(0, 32)}…` : title;
-}
-
 function hasConversationContent(messages: ChatMessage[]) {
   return messages.some((item) => item.role === "user" && item.content.trim().length > 0);
 }
@@ -117,8 +86,6 @@ function newChatSession(messages: ChatMessage[] = [INITIAL_MESSAGE]): ChatSessio
 }
 
 function loadChatState(): { sessions: ChatSession[]; activeSessionId: string } {
-  if (initialChatState) return initialChatState;
-
   try {
     const stored = localStorage.getItem(CHAT_SESSIONS_KEY);
     const parsed = stored ? JSON.parse(stored) as ChatSession[] : [];
@@ -148,14 +115,39 @@ function loadChatState(): { sessions: ChatSession[]; activeSessionId: string } {
       sessions = [activeSession, ...sessions];
       sessionStorage.setItem(RUNTIME_CHAT_SESSION_KEY, activeSession.id);
     }
-    initialChatState = { sessions, activeSessionId: activeSession.id };
-    return initialChatState;
+    return { sessions, activeSessionId: activeSession.id };
   } catch {
     const session = newChatSession();
     sessionStorage.setItem(RUNTIME_CHAT_SESSION_KEY, session.id);
-    initialChatState = { sessions: [session], activeSessionId: session.id };
-    return initialChatState;
+    return { sessions: [session], activeSessionId: session.id };
   }
+}
+
+let chatStore: ReturnType<typeof createCopilotChatStore> | undefined;
+
+function getChatStore() {
+  if (chatStore) return chatStore;
+
+  // 聊天记录的写入随请求存活，路由卸载后收到的最终答复也要保存。
+  const store = createCopilotChatStore(loadChatState());
+  store.subscribe((state, previous) => {
+    try {
+      if (state.sessions !== previous.sessions) {
+        const persisted = state.sessions.filter((session) => hasConversationContent(session.messages));
+        if (persisted.length > 0) localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(persisted));
+        else localStorage.removeItem(CHAT_SESSIONS_KEY);
+        localStorage.removeItem(LEGACY_HISTORY_KEY);
+      }
+      if (state.activeSessionId !== previous.activeSessionId) {
+        localStorage.setItem(ACTIVE_CHAT_SESSION_KEY, state.activeSessionId);
+        sessionStorage.setItem(RUNTIME_CHAT_SESSION_KEY, state.activeSessionId);
+      }
+    } catch {
+      message.warning("本机历史记录空间不足，较早对话可能无法继续保存");
+    }
+  });
+  chatStore = store;
+  return store;
 }
 
 function loadExperiences(): CopilotExperience[] {
@@ -212,7 +204,7 @@ export default function CopilotPage() {
   const [modelProfiles, setModelProfiles] = useState<ModelProfile[]>([]);
   const [modelProfileId, setModelProfileId] = useState<string | null>(() => localStorage.getItem("ops_copilot_model_profile"));
   const [input, setInput] = useState("");
-  const [chatState] = useState(loadChatState);
+  const [store] = useState(getChatStore);
   const [historyOpen, setHistoryOpen] = useState(false);
   // 安全提示的关闭选择跨软件重启保留；未关闭时每次进入 AI 助手都显示。
   const [showPolicyNotice, setShowPolicyNotice] = useState(() => localStorage.getItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY) !== "true");
@@ -232,8 +224,10 @@ export default function CopilotPage() {
   const [explainResult, setExplainResult] = useState("");
   const [explainLoading, setExplainLoading] = useState(false);
   const [experiences, setExperiences] = useState<CopilotExperience[]>(loadExperiences);
-  const [sessions, setSessions] = useState<ChatSession[]>(chatState.sessions);
-  const [activeSessionId, setActiveSessionId] = useState(chatState.activeSessionId);
+  const sessions = useStore(store, (state) => state.sessions);
+  const activeSessionId = useStore(store, (state) => state.activeSessionId);
+  const request = useStore(store, (state) => state.requests.get(state.activeSessionId));
+  const { setSessions, setActiveSessionId } = store;
   const selectedSkillIds = sessions.find((session) => session.id === activeSessionId)?.skillIds ?? [];
   const setSelectedSkillIds = (ids: string[]) => {
     setSessions((current) => current.map((session) => session.id === activeSessionId ? { ...session, skillIds: ids, updatedAt: Date.now() } : session));
@@ -247,11 +241,12 @@ export default function CopilotPage() {
     ...selectedSkillIds.filter((id) => chatSkills.some((skill) => skill.id === id)),
     ...matchedSkills.filter((skill) => !suppressedAutoSkillIds.includes(skill.id)).map((skill) => skill.id),
   ])), [selectedSkillIds, chatSkills, matchedSkills, suppressedAutoSkillIds]);
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<CopilotProgress | null>(null);
+  const loading = request !== undefined;
+  const progress = request?.progress;
   const [approvals, setApprovals] = useState<AiApproval[]>([]);
   const [approvalDetails, setApprovalDetails] = useState<AiApprovalDetail[]>([]);
-  const [approvalPreview, setApprovalPreview] = useState<AiApprovalDetail | null>(null);
+  const [approvalPreviewStore] = useState(createApprovalPreviewStore);
+  const approvalPreview = useStore(approvalPreviewStore, (preview) => visibleApprovalPreview(preview, activeSessionId));
   const [approvalProgress, setApprovalProgress] = useState<CopilotProgress[]>([]);
   const [approvalBusy, setApprovalBusy] = useState<number | null>(null);
   const [lockSaving, setLockSaving] = useState(false);
@@ -265,8 +260,6 @@ export default function CopilotPage() {
   const chatScrollRef = useRef<HTMLElement>(null);
   const shouldFollowChatRef = useRef(true);
   const lockWrapperRef = useRef<HTMLDivElement>(null);
-  // Tauri listen() 是异步注册；发送请求前必须等待它完成，避免首轮过程事件丢失。
-  const progressListenerReadyRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -335,51 +328,13 @@ export default function CopilotPage() {
   useEffect(() => {
     let disposed = false;
     let stop: (() => void) | undefined;
-    const listenerReady = listen<CopilotProgress>("copilot-progress", (event) => {
-      if (disposed) return;
-      const update = event.payload;
-      if (!update.requestId) {
-        if (update.stage.startsWith("plan_step")) {
-          setApprovalProgress((current) => [...current, update].slice(-20));
-        }
-        setProgress(update);
-        return;
+    void listen<CopilotProgress>("copilot-progress", ({ payload }) => {
+      if (!disposed && !payload.requestId && payload.stage.startsWith("plan_step")) {
+        setApprovalProgress((current) => [...current, payload].slice(-20));
       }
-      // Tauri 事件属于 React 外部事件源；逐条 flush，避免同一批事件被自动批处理到任务结束才一次渲染。
-      flushSync(() => {
-        setSessions((currentSessions) => currentSessions.map((session) => ({
-          ...session,
-          messages: session.messages.map((item) => {
-            if (item.id !== update.requestId) return item;
-            const progressEvents = update.kind === "text_delta"
-              ? item.progressEvents
-            // 20 轮 Agent 可能产生较多工具事件，保留完整可核验轨迹，避免前几轮被截掉。
-            : [...(item.progressEvents ?? []), update].slice(-500);
-            const content = update.kind === "text_delta" ? `${item.content}${update.delta ?? ""}` : item.content;
-            let toolCalls = item.toolCalls ?? [];
-            if (update.kind === "tool" && update.tool) {
-              const existing = update.status === "running"
-                ? -1
-                : toolCalls.map((call) => call.tool === update.tool && call.serverAlias === update.serverAlias && call.status === "running").lastIndexOf(true);
-              const nextCall: CopilotToolCall = {
-                tool: update.tool,
-                serverAlias: update.serverAlias ?? null,
-                status: (update.status ?? "pending") as CopilotToolCall["status"],
-                output: update.delta ?? "",
-              };
-              toolCalls = existing >= 0
-                ? toolCalls.map((call, index) => index === existing ? { ...call, ...nextCall } : call)
-                : [...toolCalls, nextCall];
-            }
-            return { ...item, content, toolCalls, progressEvents, streaming: update.kind === "done" || update.kind === "error" ? false : true };
-          }),
-        })));
-        setProgress(update);
-      });
     }).then((unlisten) => {
       if (disposed) unlisten(); else stop = unlisten;
     }).catch(() => undefined);
-    progressListenerReadyRef.current = listenerReady.then(() => undefined);
     return () => { disposed = true; stop?.(); };
   }, []);
 
@@ -588,25 +543,41 @@ export default function CopilotPage() {
     finally { setApprovalBusy(null); }
   };
 
-  const approveApproval = async (item: AiApproval) => {
+  const openApprovalPreview = (id: number, owner: ApprovalRequestOwner | null = null) => {
+    const detail = approvalDetailById.get(id);
+    if (detail) {
+      setApprovalProgress([]);
+      approvalPreviewStore.open(detail, owner);
+    }
+  };
+
+  const reviewApproval = async (item: AiApproval, owner: ApprovalRequestOwner | null = null) => {
     if (approvalSecondsRemaining(item.expiresAt, Date.now()) === 0) {
       await refreshApprovals();
       message.warning("审批已超时，本次命令和后续步骤均未执行");
       return;
     }
-    if (approvalPreview?.approval.id !== item.id) {
-      openApprovalPreview(item.id);
+    openApprovalPreview(item.id, owner);
+  };
+
+  const approveApproval = async (preview: ApprovalPreview) => {
+    const id = approvalPreviewStore.reviewedApprovalId(preview, store.getState().activeSessionId);
+    if (id === null) return;
+    const item = approvalDetailById.get(id)?.approval ?? preview.detail.approval;
+    if (approvalSecondsRemaining(item.expiresAt, Date.now()) === 0) {
+      await refreshApprovals();
+      message.warning("审批已超时，本次命令和后续步骤均未执行");
       return;
     }
-    setApprovalBusy(item.id);
+    setApprovalBusy(id);
     setApprovalProgress([]);
-    setApprovalDetails((current) => current.map((detail) => detail.approval.id === item.id
+    setApprovalDetails((current) => current.map((detail) => detail.approval.id === id
       ? { ...detail, approval: { ...detail.approval, status: "executing" } }
       : detail));
     try {
-      const result = await copilotApi.approveApproval(item.id);
+      const result = await copilotApi.approveApproval(id);
       updateApprovalToolCall(
-        item.id,
+        id,
         result.status === "completed" ? "success" : "failed",
         result.result || (result.status === "completed" ? "操作执行并验证完成" : "操作执行失败"),
       );
@@ -617,32 +588,10 @@ export default function CopilotPage() {
     finally { setApprovalBusy(null); }
   };
 
-  const openApprovalPreview = (id: number) => {
-    const detail = approvalDetailById.get(id);
-    if (detail) {
-      setApprovalProgress([]);
-      setApprovalPreview(detail);
-    }
-  };
-
   useEffect(() => {
     if (modelProfileId) localStorage.setItem("ops_copilot_model_profile", modelProfileId);
     else localStorage.removeItem("ops_copilot_model_profile");
   }, [modelProfileId]);
-
-  useEffect(() => {
-    try {
-      // 只有真正发送过问题的会话才进入历史；新建但未提问的窗口仅保留在当前内存中。
-      const persistedSessions = sessions.filter((session) => hasConversationContent(session.messages));
-      if (persistedSessions.length > 0) localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(persistedSessions));
-      else localStorage.removeItem(CHAT_SESSIONS_KEY);
-      localStorage.setItem(ACTIVE_CHAT_SESSION_KEY, activeSessionId);
-      localStorage.removeItem(LEGACY_HISTORY_KEY);
-      initialChatState = { sessions, activeSessionId };
-    } catch {
-      message.warning("本机历史记录空间不足，较早对话可能无法继续保存");
-    }
-  }, [sessions]);
 
   useEffect(() => {
     try {
@@ -678,7 +627,6 @@ export default function CopilotPage() {
     setActiveSessionId(sessionId);
     setHistoryOpen(false);
     setInput("");
-    setProgress(null);
     setSuppressedAutoSkillIds([]);
   };
 
@@ -695,11 +643,6 @@ export default function CopilotPage() {
     if (sessionId === activeSessionId) setActiveSessionId(remaining[0].id);
   };
 
-  useEffect(() => {
-    localStorage.setItem(ACTIVE_CHAT_SESSION_KEY, activeSessionId);
-    sessionStorage.setItem(RUNTIME_CHAT_SESSION_KEY, activeSessionId);
-  }, [activeSessionId]);
-
   const serverOptions = useMemo(() => [
     { value: null, label: "自动选择（问题中指定或单台服务器）" },
     ...servers.map((server) => ({ value: server.id, label: `${server.alias} · ${server.hostname}` })),
@@ -708,7 +651,8 @@ export default function CopilotPage() {
 
   const send = async (prompt = input, bypassLockPrompt = false, regenerateMessageId: string | null = null) => {
     const text = prompt.trim();
-    if (!text || loading) return;
+    const requestSessionId = activeSessionId;
+    if (!text || store.getState().requests.has(requestSessionId)) return;
     shouldFollowChatRef.current = true;
     if (!bypassLockPrompt && !sessionReadOnlyMode) {
       try {
@@ -725,8 +669,8 @@ export default function CopilotPage() {
         return;
       }
     }
-    const requestSessionId = activeSessionId;
-    const currentMessages = sessions.find((session) => session.id === requestSessionId)?.messages ?? messages;
+    const currentMessages = store.getState().sessions.find((session) => session.id === requestSessionId)?.messages;
+    if (!currentMessages) return;
     const regenerateIndex = regenerateMessageId ? currentMessages.findIndex((item) => item.id === regenerateMessageId) : -1;
     const requestMessages = regenerateIndex >= 0 ? currentMessages.slice(0, regenerateIndex) : currentMessages;
     const regenerateUserIndex = regenerateIndex >= 0
@@ -740,43 +684,45 @@ export default function CopilotPage() {
     const activeSkillIds = new Set(activeSkills.map((skill) => skill.id));
     const triggeredSkillNames = matchedThisTurn.filter((skill) => activeSkillIds.has(skill.id)).map((skill) => skill.name);
     const manualSkillNames = activeSkills.filter((skill) => selectedSkillIds.includes(skill.id)).map((skill) => skill.name);
-    setInput("");
-    updateSessionMessages(requestSessionId, (current) => regenerateIndex >= 0
+    const history = historyMessages.filter((item) => item.id !== "welcome").slice(-12).map((item) => ({ role: item.role, content: item.content }));
+    const requestId = crypto.randomUUID();
+    const started = store.beginRequest(requestSessionId, {
+      id: requestId,
+      role: "assistant",
+      content: "",
+      progressEvents: [{
+        kind: "phase",
+        stage: "skill_match",
+        message: activeSkills.length > 0
+          ? `已匹配 ${activeSkills.length} 个技能，正在探测可用工具`
+          : "正在探测可用受控工具",
+        serverAlias: null,
+        completed: false,
+      }],
+      skillNames: activeSkills.map((skill) => skill.name),
+      triggeredSkillNames,
+      manualSkillNames,
+      historyCount: history.length,
+    }, (current) => regenerateIndex >= 0
       ? current.slice(0, regenerateIndex)
       : [...current, { id: crypto.randomUUID(), role: "user", content: text }]);
-    setLoading(true);
-    setProgress({ kind: "phase", stage: "queued", message: "正在分析问题并选择受控工具", serverAlias: null, completed: false });
+    if (!started) return;
+    if (store.getState().activeSessionId === requestSessionId) {
+      setInput("");
+      setSuppressedAutoSkillIds([]);
+    }
+    let stopProgress: (() => void) | undefined;
     try {
-      const history = historyMessages.filter((item) => item.id !== "welcome").slice(-12).map((item) => ({ role: item.role, content: item.content }));
       const skillContext = chatSkillContext(activeSkills);
-      const requestId = crypto.randomUUID();
-      updateSessionMessages(requestSessionId, (current) => [...current, {
-        id: requestId,
-        role: "assistant",
-        content: "",
-        streaming: true,
-        progressEvents: [{
-          kind: "phase",
-          stage: "skill_match",
-          message: activeSkills.length > 0
-            ? `已匹配 ${activeSkills.length} 个技能，正在探测可用工具`
-            : "正在探测可用受控工具",
-          serverAlias: null,
-          completed: false,
-        }],
-        skillNames: activeSkills.map((skill) => skill.name),
-        triggeredSkillNames,
-        manualSkillNames,
-        historyCount: history.length,
-      }]);
-      // 保证后端发出的 analyzing/skill_match/planning 事件从第一帧开始可见。
-      await progressListenerReadyRef.current;
-      // 让包含空 assistant 气泡的这一帧先提交，再启动后台 Command，避免首个事件先到而没有可更新的消息节点。
+      // 先注册监听再启动请求。监听随请求结束释放，页面卸载期间也能接收事件。
+      stopProgress = await listen<CopilotProgress>("copilot-progress", ({ payload }) => {
+        if (payload.requestId !== requestId) return;
+        // 逐条提交，避免同一批事件等到任务结束后才渲染。
+        flushSync(() => store.receiveProgress(requestSessionId, payload));
+      }).catch(() => undefined);
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       const result = await copilotApi.chat({ requestId, message: text, serverId: serverId ?? null, provider: modelProfileId ? "model" : "local-safe-tools", modelProfileId, history, skillIds: activeSkills.map((skill) => skill.id), skillContext });
-      updateSessionMessages(requestSessionId, (current) => current.map((item) => item.id === requestId
-        ? { ...item, content: result.reply, modelName: result.modelName, toolCalls: result.toolCalls, warnings: result.warnings, historyTrimmed: result.historyTrimmed, streaming: false }
-        : item));
+      store.finishRequest(requestSessionId, requestId, { result });
       if (result.toolCalls.some((tool) => tool.approvalId)) {
         const details = await copilotApi.listApprovalDetails();
         setApprovalDetails(details);
@@ -784,24 +730,17 @@ export default function CopilotPage() {
         const approvalId = result.toolCalls.find((tool) => typeof tool.approvalId === "number")?.approvalId;
         if (typeof approvalId === "number") {
           const detail = details.find((item) => item.approval.id === approvalId);
-          if (detail) {
+          if (detail && approvalPreviewStore.openFromRequest(detail, { sessionId: requestSessionId, requestId }, store.getState().activeSessionId)) {
             setApprovalProgress([]);
-            setApprovalPreview(detail);
           }
         }
       }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
-      updateSessionMessages(requestSessionId, (current) => {
-        const pending = [...current].reverse().find((item) => item.role === "assistant" && item.streaming);
-        if (!pending) return [...current, { id: crypto.randomUUID(), role: "assistant", content: `请求失败：${errorMessage}` }];
-        return current.map((item) => item.id === pending.id ? { ...item, content: item.content || `请求失败：${errorMessage}`, streaming: false, warnings: [...(item.warnings ?? []), errorMessage] } : item);
-      });
+      store.finishRequest(requestSessionId, requestId, { error: errorMessage });
       message.error(errorMessage);
     } finally {
-      setLoading(false);
-      setProgress(null);
-      setSuppressedAutoSkillIds([]);
+      stopProgress?.();
     }
   };
 
@@ -849,7 +788,6 @@ export default function CopilotPage() {
 
   const clearHistory = () => {
     updateSessionMessages(activeSessionId, () => [INITIAL_MESSAGE]);
-    setProgress(null);
     setSuppressedAutoSkillIds([]);
   };
 
@@ -957,14 +895,18 @@ export default function CopilotPage() {
         open={approvalPreview !== null}
         centered
         width={760}
-        onCancel={() => setApprovalPreview(null)}
+        onCancel={approvalPreviewStore.close}
         footer={null}
         maskClosable={false}
         title={<span className="flex items-center gap-2"><ShieldAlert size={17} className="text-amber-500" />变更计划审批</span>}
       >
         {approvalPreview && (() => {
-          const detail = approvalDetailById.get(approvalPreview.approval.id) ?? approvalPreview;
+          const detail = approvalDetailById.get(approvalPreview.detail.approval.id) ?? approvalPreview.detail;
           const approval = detail.approval;
+          const rejectReviewedApproval = () => {
+            const id = approvalPreviewStore.reviewedApprovalId(approvalPreview, store.getState().activeSessionId);
+            if (id !== null) void rejectApproval(id);
+          };
           const expired = approval.status === "pending" && approvalSecondsRemaining(approval.expiresAt, now) === 0;
           const pending = approval.status === "pending" && !expired;
           return <div className="space-y-4 text-sm">
@@ -978,7 +920,7 @@ export default function CopilotPage() {
             <CopilotApprovalPlanSummary detail={detail} />
             {approvalProgress.length > 0 && <section className="rounded-lg border border-[var(--border)] bg-surface-950 p-3"><h3 className="mb-2 mt-0 text-sm font-semibold">实时执行过程</h3><ol className="m-0 space-y-2">{approvalProgress.map((entry, index) => <li key={`${entry.stage}-${index}`} className="flex items-start gap-2"><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${entry.status === "success" ? "bg-emerald-500" : entry.status === "failed" ? "bg-rose-500" : "animate-pulse bg-cyan-400"}`} /><span>{entry.message}{entry.delta ? <code className="ml-2 text-xs text-[var(--text-secondary)]">{entry.delta}</code> : null}</span></li>)}</ol></section>}
             {approval.result && !pending && <Alert type={approval.status === "completed" ? "success" : "error"} showIcon message={approval.status === "completed" ? "执行与验证已完成" : "计划执行未完成"} description={approval.result} />}
-            <div className="flex justify-end gap-2"><Button onClick={() => setApprovalPreview(null)}>关闭</Button>{pending && <><Button disabled={approvalBusy !== null} onClick={() => void rejectApproval(approval.id)}>拒绝并暂停</Button><Button danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => approveApproval(approval)}>批准并执行</Button></>}</div>
+            <div className="flex justify-end gap-2"><Button onClick={approvalPreviewStore.close}>关闭</Button>{pending && <><Button disabled={approvalBusy !== null} onClick={rejectReviewedApproval}>拒绝并暂停</Button><Button danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => approveApproval(approvalPreview)}>批准并执行</Button></>}</div>
           </div>;
         })()}
       </Modal>
@@ -1130,7 +1072,7 @@ export default function CopilotPage() {
           return <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`mb-2 rounded border px-2 py-2 transition ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/15 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]" : "border-[var(--border)]"}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <button type="button" className="text-left underline decoration-amber-500/40 underline-offset-2" onClick={() => openApprovalPreview(item.id)}>#{item.id} · {item.serverAlias} · {item.command}</button>
-              {expired ? <span className="text-xs font-semibold text-[var(--danger)]">审批已超时 · 后续步骤已暂停</span> : <span className="flex items-center gap-2"><span className="text-xs tabular-nums text-[var(--warning)]">剩余 {formatApprovalCountdown(item.expiresAt, now)}</span><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span>}
+              {expired ? <span className="text-xs font-semibold text-[var(--danger)]">审批已超时 · 后续步骤已暂停</span> : <span className="flex items-center gap-2"><span className="text-xs tabular-nums text-[var(--warning)]">剩余 {formatApprovalCountdown(item.expiresAt, now)}</span><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => reviewApproval(item)}>批准并执行</Button></span>}
             </div>
             <CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} />
             <p className="mb-0 mt-1 text-[11px] text-[var(--text-secondary)]">当前命令尚未执行，审批通过前所有后续步骤保持暂停。</p>
@@ -1288,7 +1230,7 @@ export default function CopilotPage() {
                   <p className="mb-0 mt-2 text-xs text-[var(--warning)]/80">{pending ? "危险命令尚未执行；等待审批期间，计划中的后续操作全部暂停。" : expired || approval?.status === "expired" ? "审批超时，命令未执行，后续步骤已暂停。" : approval?.status === "rejected" ? "审批已拒绝，命令未执行，后续步骤已暂停。" : null}</p>
                   <CopilotApprovalPlanSummary detail={detail} />
                   {approval?.result && !pending && <p className="mb-0 mt-2 whitespace-pre-wrap break-words text-[11px] text-[var(--text-secondary)]">结果：{approval.result}</p>}
-                  {pending && approval && <div className="mt-3 flex justify-end gap-2"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(approval.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => approveApproval(approval)}>批准并执行</Button></div>}
+                  {pending && approval && <div className="mt-3 flex justify-end gap-2"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(approval.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => reviewApproval(approval, { sessionId: activeSessionId, requestId: item.id })}>批准并执行</Button></div>}
                 </section>;
               })}
               {blockedCall && <Alert

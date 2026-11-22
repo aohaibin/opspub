@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Alert, Button, Checkbox, Drawer, Input, InputNumber, Modal, Progress, Select, Segmented, Switch, Table, Tag, message } from "antd";
-import { Activity, Archive, BellRing, CheckCircle2, Clipboard, Clock3, Download, FileText, History, Info, Loader2, Play, Plus, Radar, RefreshCw, Search, ShieldAlert, ShieldCheck, SlidersHorizontal, Terminal, Trash2 } from "lucide-react";
+import { Activity, Archive, BellRing, CheckCircle2, Clipboard, Clock3, Download, FileText, History, Info, Loader2, Plus, Radar, RefreshCw, Search, Server as ServerIcon, ShieldAlert, ShieldCheck, SlidersHorizontal, Terminal, Trash2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { save } from "@tauri-apps/plugin-dialog";
+import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import { fileApi } from "@/lib/api/file";
 import { configApi } from "@/lib/api/config";
 import { getErrorMessage } from "@/lib/api/client";
 import { serverApi } from "@/lib/api/server";
 import { inspectionApi } from "@/lib/api/inspection";
-import type { WorkbenchCommandResult } from "@/lib/api/workbench";
 import type { Server } from "@/types";
+import { parseProbeOutput } from "./probeOutput";
 import "./inspector.css";
 
 const RULES_KEY = "inspection.rules";
@@ -17,10 +19,23 @@ const REPORTS_KEY = "inspection.reports";
 type Severity = "critical" | "warning" | "info";
 type SubTab = "diagnose" | "rules" | "schedule" | "history";
 interface Finding { id: string; rule: string; title: string; severity: Severity; evidence: string; recommendation: string; serverAlias?: string; }
-interface InspectionReport { id: string; createdAt: string; serverIds: number[]; targetLabel: string; score: number; findings: Finding[]; output: string; trigger: "manual" | "schedule"; }
+interface InspectionReport { id: string; createdAt: string; serverIds: number[]; targetLabel: string; score: number | null; findings: Finding[]; output: string; trigger: "manual" | "schedule"; hosts?: HostResult[]; }
 interface InspectionRule { id: string; name: string; category: string; severity: Severity; probe: string; threshold: string; enabled: boolean; builtin?: boolean; }
 interface ScheduleConfig { enabled: boolean; cron: string; scope: "all" | "linux" | "favorites"; scoreThreshold: number; criticalAlert: boolean; summaryAlert: boolean; }
-interface HostResult { server: Server; result?: WorkbenchCommandResult; error?: string; }
+type HostResult = { serverId: number; alias: string } & (
+  { score: number; findingCount: number; error?: never } |
+  { error: string; score?: never; findingCount?: never }
+);
+
+const views = [
+  { key: "diagnose", label: "健康诊断", Icon: Activity },
+  { key: "rules", label: "巡检规则库", Icon: SlidersHorizontal },
+  { key: "schedule", label: "定时调度与通知", Icon: Clock3 },
+  { key: "history", label: "历史走势与报告", Icon: History },
+] as const;
+
+// 路由离开后探针仍可能在 Rust 中运行，返回时要等报告写入再读取。
+let pendingScan: Promise<void> | undefined;
 
 const DEFAULT_RULES: InspectionRule[] = [
   { id: "disk-root", name: "根分区使用率", category: "资源", severity: "warning", probe: "df -P /", threshold: "使用率 < 80%", enabled: true, builtin: true },
@@ -44,6 +59,16 @@ function readJson<T>(configs: Array<{ key: string; value: string }>, key: string
 
 function formatTime(value: string) { return new Date(value).toLocaleString("zh-CN", { hour12: false }); }
 
+function sameTargets(left: number[], right: number[]) {
+  return left.length === right.length && left.every((id) => right.includes(id));
+}
+
+function runSummary(report: InspectionReport) {
+  if (!report.hosts) return "历史报告";
+  const failures = report.hosts.filter((host) => host.error !== undefined).length;
+  return failures === report.hosts.length ? "巡检失败" : failures ? "部分完成" : "巡检完成";
+}
+
 function cronMatches(expression: string, date: Date) {
   const fields = expression.trim().split(/\s+/);
   if (fields.length !== 5) return false;
@@ -66,40 +91,34 @@ function isSupportedCron(expression: string) {
   });
 }
 
-function scoreFromOutput(output: string, activeRules: InspectionRule[] = DEFAULT_RULES) {
+function scoreFromProbe(
+  { disk, memory, ports, sshRoot, sshPassword, dockerOom }: ReturnType<typeof parseProbeOutput>,
+  activeRules: InspectionRule[],
+) {
   const rulesById = new Map(activeRules.filter((item) => item.enabled).map((item) => [item.id, item]));
   const enabled = new Set(rulesById.keys());
   const threshold = (id: string, fallback: number) => {
     const matched = rulesById.get(id)?.threshold.match(/[0-9]+(?:\.[0-9]+)?/);
     return matched ? Number(matched[0]) : fallback;
   };
-  const disk = Number(output.match(/DISK\s+([0-9]+)%/)?.[1] ?? 0);
-  const memory = Number(output.match(/MEM\s+([0-9]+)%/)?.[1] ?? 0);
   const findings: Finding[] = [];
   const diskLimit = threshold("disk-root", 80);
   if (enabled.has("disk-root") && disk >= Math.max(90, diskLimit + 10)) findings.push({ id: "disk-critical", rule: "disk-root", title: "根分区空间严重不足", severity: "critical", evidence: `根分区已使用 ${disk}%`, recommendation: "清理无用日志、扩容磁盘，并为根分区设置告警阈值。" });
   else if (enabled.has("disk-root") && disk >= diskLimit) findings.push({ id: "disk-warning", rule: "disk-root", title: "根分区使用率偏高", severity: "warning", evidence: `根分区已使用 ${disk}%`, recommendation: `检查大文件和日志轮转，建议将使用率控制在 ${diskLimit}% 以下。` });
   if (enabled.has("memory") && memory >= threshold("memory", 85)) findings.push({ id: "memory-warning", rule: "memory", title: "内存使用率偏高", severity: "warning", evidence: `内存使用率 ${memory}%`, recommendation: "检查内存占用进程，确认是否存在持续增长或缓存异常。" });
-  const ports = output.match(/PORTS\s+(.+)/)?.[1] ?? "";
   if (enabled.has("public-mysql") && /(?:0\.0\.0\.0|\*):3306/.test(ports)) findings.push({ id: "mysql-public", rule: "public-mysql", title: "MySQL 端口可能对公网开放", severity: "critical", evidence: ports.trim(), recommendation: "限制 bind-address 或防火墙来源，仅允许业务网段访问。" });
   if (enabled.has("public-redis") && /(?:0\.0\.0\.0|\*):6379/.test(ports)) findings.push({ id: "redis-public", rule: "public-redis", title: "Redis 端口可能对公网开放", severity: "critical", evidence: ports.trim(), recommendation: "关闭公网监听并设置网络访问白名单。" });
-  if (enabled.has("ssh-root") && /SSHROOT\s+yes\b/i.test(output)) findings.push({ id: "ssh-root-risk", rule: "ssh-root", title: "SSH 允许 root 直接登录", severity: "critical", evidence: "PermitRootLogin yes", recommendation: "评估业务依赖后，将 root 远程登录限制为密钥或禁用，并先通过审批验证变更。" });
-  if (enabled.has("ssh-password") && /SSHPASS\s+yes\b/i.test(output)) findings.push({ id: "ssh-password-risk", rule: "ssh-password", title: "SSH 密码认证仍开启", severity: "warning", evidence: "PasswordAuthentication yes", recommendation: "优先改用密钥认证，并保留可用的应急登录方式。" });
-  if (enabled.has("docker") && /DOCKER137\s+[1-9]/.test(output)) findings.push({ id: "docker-oom", rule: "docker", title: "发现容器 OOM 退出记录", severity: "warning", evidence: `最近退出码 137 的容器数 ${output.match(/DOCKER137\s+(\d+)/)?.[1]}`, recommendation: "检查容器内存限制、宿主机压力和近期容器事件。" });
+  if (enabled.has("ssh-root") && sshRoot) findings.push({ id: "ssh-root-risk", rule: "ssh-root", title: "SSH 允许 root 直接登录", severity: "critical", evidence: "PermitRootLogin yes", recommendation: "评估业务依赖后，将 root 远程登录限制为密钥或禁用，并先通过审批验证变更。" });
+  if (enabled.has("ssh-password") && sshPassword) findings.push({ id: "ssh-password-risk", rule: "ssh-password", title: "SSH 密码认证仍开启", severity: "warning", evidence: "PasswordAuthentication yes", recommendation: "优先改用密钥认证，并保留可用的应急登录方式。" });
+  if (enabled.has("docker") && dockerOom > 0) findings.push({ id: "docker-oom", rule: "docker", title: "发现容器 OOM 退出记录", severity: "warning", evidence: `最近退出码 137 的容器数 ${dockerOom}`, recommendation: "检查容器内存限制、宿主机压力和近期容器事件。" });
   const score = Math.max(0, 100 - findings.reduce((sum, item) => sum + (item.severity === "critical" ? 18 : item.severity === "warning" ? 8 : 2), 0));
   return { score, findings };
 }
 
-function probeOutputProblem(result: WorkbenchCommandResult) {
-  if (result.exitCode !== 0) return "探针退出码为 " + result.exitCode + (result.stderr ? "：" + result.stderr.trim() : "");
-  if (!/^DISK\s+\d+%?\s*$/m.test(result.stdout)) return "未采集到有效的根分区使用率";
-  if (!/^MEM\s+\d+%?\s*$/m.test(result.stdout)) return "未采集到有效的内存使用率";
-  return undefined;
-}
-
 function reportMarkdown(report: InspectionReport) {
-  const findings = report.findings.length ? report.findings.map((item, index) => `${index + 1}. [${severityLabel[item.severity]}] ${item.title}\n   - 依据：${item.evidence}\n   - 建议：${item.recommendation}`).join("\n") : "未发现风险，启用的规则全部通过。";
-  return `# 服务器健康巡检报告\n- 报告编号：${report.id}\n- 巡检范围：${report.targetLabel}\n- 巡检时间：${formatTime(report.createdAt)}\n- 综合健康分：${report.score}/100\n\n## 风险与建议\n${findings}\n\n## 探针输出\n${report.output}\n`;
+  const findings = report.findings.length ? report.findings.map((item, index) => `${index + 1}. [${severityLabel[item.severity]}] ${item.serverAlias ? `${item.serverAlias} · ` : ""}${item.title}\n   - 依据：${item.evidence}\n   - 建议：${item.recommendation}`).join("\n") : "暂无风险记录。";
+  const score = report.score === null ? "未生成" : `${report.score}/100`;
+  return `# 服务器健康巡检报告\n- 报告编号：${report.id}\n- 巡检范围：${report.targetLabel}\n- 巡检时间：${formatTime(report.createdAt)}\n- 执行状态：${runSummary(report)}\n- 综合健康分：${score}\n\n## 风险与建议\n${findings}\n\n## 探针输出\n${report.output}\n`;
 }
 
 export default function InspectorPage() {
@@ -108,15 +127,27 @@ export default function InspectorPage() {
   const [schedule, setSchedule] = useState<ScheduleConfig>(DEFAULT_SCHEDULE);
   const [activeSchedule, setActiveSchedule] = useState<ScheduleConfig>(DEFAULT_SCHEDULE);
   const [reports, setReports] = useState<InspectionReport[]>([]);
-  const [activeTab, setActiveTab] = useState<SubTab>("diagnose");
-  const [target, setTarget] = useState<string>("all");
+  const [params, setParams] = useSearchParams();
+  const activeTab = views.find(({ key }) => key === params.get("view"))?.key ?? "diagnose";
+  const target = params.get("target") ?? "all";
+  const changeParam = (key: "view" | "target", value: string) => {
+    const next = new URLSearchParams(params);
+    if (value === "diagnose" || value === "all") next.delete(key);
+    else next.set(key, value);
+    setParams(next, { replace: true });
+  };
+  const setActiveTab = (tab: SubTab) => changeParam("view", tab);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [scanMessage, setScanMessage] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
   const [hostResults, setHostResults] = useState<HostResult[]>([]);
+  const [runningTargets, setRunningTargets] = useState<number[]>([]);
+  const [runningHost, setRunningHost] = useState<number>();
   const [reportOpen, setReportOpen] = useState<InspectionReport | null>(null);
   const [diffReport, setDiffReport] = useState<InspectionReport | null>(null);
   const [ruleSearch, setRuleSearch] = useState("");
@@ -128,23 +159,35 @@ export default function InspectorPage() {
 
   const linuxServers = useMemo(() => servers.filter((item) => item.os_type === "linux"), [servers]);
   const selectedServers = useMemo(() => target === "all" ? linuxServers : linuxServers.filter((item) => String(item.id) === target), [linuxServers, target]);
-  const latest = reports[0];
+  const selectedIds = selectedServers.map(({ id }) => id);
+  const scopeReports = reports.filter((item) => sameTargets(item.serverIds, selectedIds));
+  const latest = scopeReports[0];
+  const historyReports = target === "all" ? reports : scopeReports;
+  const diffIndex = diffReport ? reports.findIndex(({ id }) => id === diffReport.id) : -1;
+  const previous = diffReport && diffIndex >= 0 && reports.slice(diffIndex + 1).find(
+    (item) => sameTargets(item.serverIds, diffReport.serverIds),
+  );
+  const canRun = !loading && !loadError && !scanning && selectedServers.length > 0;
   const filteredRules = useMemo(() => rules.filter((item) => (!ruleCategory || ruleCategory === "全部" || item.category === ruleCategory) && `${item.name} ${item.probe} ${item.id}`.toLowerCase().includes(ruleSearch.trim().toLowerCase())), [ruleCategory, ruleSearch, rules]);
   const categories = ["全部", ...new Set(rules.map((item) => item.category))];
-  const scanLock = useRef(false);
   const lastScheduledSlot = useRef(localStorage.getItem("inspection.lastScheduledSlot") ?? "");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      await pendingScan;
       const [serverList, configs] = await Promise.all([serverApi.list(), configApi.getAll()]);
       setServers(serverList);
       const storedRules = readJson<InspectionRule[]>(configs, RULES_KEY, DEFAULT_RULES);
       setRules(storedRules.length ? storedRules : DEFAULT_RULES);
-      setSchedule(readJson(configs, SCHEDULE_KEY, DEFAULT_SCHEDULE));
-      setActiveSchedule(readJson(configs, SCHEDULE_KEY, DEFAULT_SCHEDULE));
+      const storedSchedule = { ...DEFAULT_SCHEDULE, ...readJson(configs, SCHEDULE_KEY, DEFAULT_SCHEDULE) };
+      setSchedule(storedSchedule);
+      setActiveSchedule(storedSchedule);
       setReports(readJson<InspectionReport[]>(configs, REPORTS_KEY, []));
-    } catch (error) { message.error(getErrorMessage(error)); }
+      setHostResults([]);
+      setSaveError("");
+      setLoadError("");
+    } catch (error) { setLoadError(getErrorMessage(error)); }
     finally { setLoading(false); }
   }, []);
 
@@ -155,62 +198,93 @@ export default function InspectorPage() {
     catch (error) { message.error(getErrorMessage(error)); throw error; }
   };
 
-  const runScan = async (scheduled = false, explicitTargets?: Server[]) => {
-    if (scanLock.current) return;
+  const runScan = useCallback((scheduled = false, explicitTargets?: Server[]) => {
+    if (pendingScan || loading || loadError) return;
     const targets = explicitTargets ?? selectedServers;
-    if (!targets.length) { if (!scheduled) message.warning("没有可巡检的 Linux 服务器"); return; }
-    scanLock.current = true;
-    setScanning(true); setProgress(4); setConsoleOpen(true); setHostResults([]); setScanMessage("正在初始化只读探针...");
-    setConsoleLines([`[${new Date().toLocaleTimeString()}] 初始化 ${targets.length} 台 Linux 主机的只读巡检`]);
-    const results: HostResult[] = [];
-    for (let index = 0; index < targets.length; index += 1) {
-      const server = targets[index];
-      setProgress(Math.round(8 + (index / targets.length) * 82)); setScanMessage(`正在检查 ${server.alias} (${index + 1}/${targets.length})`);
-      setConsoleLines((current) => [...current, `[Probe] ${server.alias} · 固定只读探针`]);
-      try {
-        const result = await inspectionApi.runProbe(server.id);
-        const problem = probeOutputProblem(result);
-        results.push({ server, result, error: problem });
-        setConsoleLines((current) => [...current, problem ? "[Warning] " + server.alias + " · " + problem : "[Result] " + server.alias + " · exit=" + result.exitCode + " · " + (result.stderr || "探针完成")]);
-      } catch (error) {
-        const detail = getErrorMessage(error); results.push({ server, error: detail });
-        setConsoleLines((current) => [...current, `[Error] ${server.alias} · ${detail}`]);
+    if (!targets.length) return;
+    const serverIds = targets.map(({ id }) => id);
+    const collect = async () => {
+      setScanning(true);
+      setProgress(0);
+      setRunningTargets(serverIds);
+      setHostResults([]);
+      setSaveError("");
+      setConsoleLines([]);
+      const hosts: HostResult[] = [];
+      const findings: Finding[] = [];
+      const outputs: string[] = [];
+      const scores: number[] = [];
+      for (const [index, { id: serverId, alias }] of targets.entries()) {
+        setRunningHost(serverId);
+        setScanMessage(`正在检查 ${alias}（${index + 1}/${targets.length}）`);
+        setConsoleLines((current) => [...current, `[Probe] ${alias}`]);
+        let stdout = "";
+        try {
+          const result = await inspectionApi.runProbe(serverId);
+          stdout = result.stdout;
+          const analysis = scoreFromProbe(parseProbeOutput(result), rules);
+          scores.push(analysis.score);
+          findings.push(...analysis.findings.map((finding) => ({
+            ...finding, id: `${serverId}-${finding.id}`, serverAlias: alias,
+          })));
+          hosts.push({ serverId, alias, score: analysis.score, findingCount: analysis.findings.length });
+          outputs.push(`HOST ${alias}\n${stdout}`);
+          setConsoleLines((current) => [...current, `[Result] ${alias} · ${analysis.score} 分`]);
+        } catch (error) {
+          const detail = getErrorMessage(error);
+          hosts.push({ serverId, alias, error: detail });
+          outputs.push(`HOST ${alias}\nERROR ${detail}\n${stdout}`);
+          setConsoleLines((current) => [...current, `[Error] ${alias} · ${detail}`]);
+        }
+        setHostResults([...hosts]);
+        setProgress(Math.round(((index + 1) / targets.length) * 100));
       }
-      setHostResults([...results]);
-    }
-    const combined = results.map((item) => "HOST " + item.server.alias + "\n" + (item.error ? "ERROR " + item.error + "\n" : "") + (item.result?.stdout ?? "")).join("\n");
-    const perHost = results.flatMap((item) => {
-      if (!item.result || item.error) return [];
-      const analysis = scoreFromOutput(item.result.stdout, rules);
-      return analysis.findings.map((finding) => ({ ...finding, id: `${item.server.id}-${finding.id}`, serverAlias: item.server.alias }));
-    });
-    const scores = results.filter((item) => item.result && !item.error).map((item) => scoreFromOutput(item.result!.stdout, rules).score);
-    const report: InspectionReport = { id: `INSP-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 12)}-${Math.floor(100 + Math.random() * 900)}`, createdAt: new Date().toISOString(), serverIds: targets.map((item) => item.id), targetLabel: targets.length === 1 ? targets[0].alias : `Linux 集群 (${targets.length} 台)`, score: scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : 0, findings: perHost, output: combined, trigger: scheduled ? "schedule" : "manual" };
-    const nextReports = [report, ...reports].slice(0, 50);
-    setReports(nextReports); setProgress(100); setScanMessage("巡检完成，风险分析已生成"); setHostResults(results);
-    try { await persist(REPORTS_KEY, nextReports); message.success(`巡检完成，健康分 ${report.score} 分`); } catch { /* persist 已提示 */ }
-    if (scheduled && ((activeSchedule.criticalAlert && report.findings.some((item) => item.severity === "critical")) || (activeSchedule.scoreThreshold > 0 && report.score < activeSchedule.scoreThreshold))) {
-      message.warning(`定时巡检发现风险：健康分 ${report.score}，严重风险 ${report.findings.filter((item) => item.severity === "critical").length} 项`);
-    } else if (scheduled && activeSchedule.summaryAlert) {
-      message.info(`定时巡检完成：健康分 ${report.score}，风险 ${report.findings.length} 项`);
-    }
-    setScanning(false); scanLock.current = false;
-  };
+      setRunningHost(undefined);
+      setScanMessage("正在保存巡检报告");
+      const score = scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : null;
+      const report: InspectionReport = {
+        id: `INSP-${crypto.randomUUID()}`,
+        createdAt: new Date().toISOString(), serverIds, hosts, findings, score,
+        targetLabel: targets.length === 1 ? targets[0].alias : `Linux 集群（${targets.length} 台）`,
+        output: outputs.join("\n"), trigger: scheduled ? "schedule" : "manual",
+      };
+      const nextReports = [report, ...reports].slice(0, 50);
+      await configApi.set(REPORTS_KEY, JSON.stringify(nextReports));
+      setReports(nextReports);
+      const status = runSummary(report);
+      if (scores.length !== targets.length) message.warning(`${status}，成功 ${scores.length}/${targets.length} 台`);
+      else if (!scheduled) message.success(`巡检完成，健康分 ${score} 分`);
+      else if ((activeSchedule.criticalAlert && findings.some((item) => item.severity === "critical")) ||
+        (activeSchedule.scoreThreshold > 0 && score !== null && score < activeSchedule.scoreThreshold)) {
+        message.warning(`定时巡检发现风险：健康分 ${score}，风险 ${findings.length} 项`);
+      } else if (activeSchedule.summaryAlert) {
+        message.info(`定时巡检完成：健康分 ${score}，风险 ${findings.length} 项`);
+      }
+    };
+    pendingScan = collect()
+      .catch((error) => setSaveError(getErrorMessage(error)))
+      .finally(() => {
+        pendingScan = undefined;
+        setScanning(false);
+        setRunningHost(undefined);
+      });
+  }, [activeSchedule, loadError, loading, reports, rules, selectedServers]);
 
   useEffect(() => {
-    if (!activeSchedule.enabled || !servers.length) return;
-    const targets = servers.filter((item) => item.os_type === "linux" && (activeSchedule.scope !== "favorites" || item.favorite));
+    if (loading || loadError || !activeSchedule.enabled) return;
+    const targets = linuxServers.filter((item) => activeSchedule.scope !== "favorites" || item.favorite);
+    if (!targets.length) return;
     const timer = window.setInterval(() => {
       const now = new Date();
       const slot = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
-      if (cronMatches(activeSchedule.cron, now) && lastScheduledSlot.current !== slot && !scanLock.current) {
+      if (cronMatches(activeSchedule.cron, now) && lastScheduledSlot.current !== slot && !pendingScan) {
         lastScheduledSlot.current = slot;
         localStorage.setItem("inspection.lastScheduledSlot", slot);
         void runScan(true, targets);
       }
     }, 15_000);
     return () => window.clearInterval(timer);
-  }, [activeSchedule, servers]);
+  }, [activeSchedule, linuxServers, loadError, loading, runScan]);
 
   const saveRules = async (next: InspectionRule[]) => { setRules(next); await persist(RULES_KEY, next); message.success("巡检规则已保存"); };
   const saveSchedule = async () => { if (!isSupportedCron(schedule.cron)) { message.warning("Cron 仅支持 5 段格式、数字、*、*/步长和逗号列表"); return; } await persist(SCHEDULE_KEY, schedule); setActiveSchedule(schedule); message.success("定时巡检配置已保存"); };
@@ -230,25 +304,188 @@ export default function InspectorPage() {
   };
   const sendTestAlert = () => message.info("测试仅在本机展示；外部通知渠道尚未配置。手动发送不会连接服务器。");
 
-  return <div className="ops-page inspector-page">
-    <header className="inspector-header"><div className="inspector-title"><span className="inspector-title-icon"><ShieldCheck size={21} /></span><div><h1>AI 全域自动化巡检与漏洞雷达</h1><p>多主机只读探针、风险分级与健康趋势；执行结果保存在本机，修复动作仍需人工审批。</p></div></div><div className="inspector-actions"><Select value={target} onChange={setTarget} disabled={scanning} options={[{ value: "all", label: `全体 Linux 主机 (${linuxServers.length})` }, ...linuxServers.map((item) => ({ value: String(item.id), label: `${item.alias} · ${item.hostname}` }))]} /><Button icon={<Terminal size={14} />} onClick={() => setConsoleOpen((value) => !value)}>{consoleOpen ? "收起终端" : "探针终端"}</Button><Button icon={<Download size={14} />} disabled={!latest} onClick={() => latest && void exportReport(latest)}>导出报告</Button><Button type="primary" icon={scanning ? <Loader2 size={14} className="animate-spin" /> : <Radar size={14} />} disabled={scanning || !selectedServers.length} onClick={() => void runScan()}>{scanning ? "巡检执行中" : "启动全机 AI 巡检"}</Button></div></header>
-    <section className="inspector-status"><div className="inspector-subtabs"><button className={activeTab === "diagnose" ? "active" : ""} onClick={() => setActiveTab("diagnose")}><Activity size={14} />健康诊断{latest && <b>{latest.findings.length}</b>}</button><button className={activeTab === "rules" ? "active" : ""} onClick={() => setActiveTab("rules")}><SlidersHorizontal size={14} />巡检规则库 ({rules.length})</button><button className={activeTab === "schedule" ? "active" : ""} onClick={() => setActiveTab("schedule")}><Clock3 size={14} />定时调度与通知</button><button className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")}><History size={14} />历史走势与报告</button></div><span className="inspector-engine"><i />巡检引擎：只读 SSH 探针 · {latest ? `上次 ${formatTime(latest.createdAt)}` : "尚未执行"}<Button type="text" size="small" icon={<RefreshCw size={13} />} loading={loading} onClick={() => void load()} /></span></section>
-    {scanning && <div className="inspector-progress"><div><span><Loader2 size={14} className="animate-spin" />{scanMessage}</span><b>{progress}%</b></div><Progress percent={progress} showInfo={false} size="small" /></div>}
-    {activeTab === "diagnose" && <DiagnoseView servers={selectedServers} results={hostResults} latest={latest} reports={reports} schedule={activeSchedule} onSchedule={() => setActiveTab("schedule")} onReport={setReportOpen} onScan={runScan} rules={rules} />}
-    {activeTab === "rules" && <RulesView rules={filteredRules} categories={categories} category={ruleCategory} search={ruleSearch} onCategory={setRuleCategory} onSearch={setRuleSearch} onToggle={async (rule) => saveRules(rules.map((item) => item.id === rule.id ? { ...item, enabled: !item.enabled } : item))} onAdd={openNewRule} onEdit={openEditRule} onDelete={deleteRule} onReset={resetRules} />}
-    {activeTab === "schedule" && <ScheduleView value={schedule} onChange={setSchedule} onSave={() => void saveSchedule()} onTest={sendTestAlert} />}
-    {activeTab === "history" && <HistoryView reports={reports} onReport={setReportOpen} onDiff={setDiffReport} />}
-    {consoleOpen && <section className="inspector-console"><div><span><Terminal size={14} />OpsPub Probe Engine 实时探针流水</span><Button type="text" size="small" icon={<Trash2 size={13} />} onClick={() => setConsoleLines([])}>清空</Button></div><pre>{consoleLines.length ? consoleLines.join("\n") : "等待下一轮巡检..."}</pre></section>}
-    <Modal title={`巡检报告 · ${reportOpen?.id ?? ""}`} open={Boolean(reportOpen)} onCancel={() => setReportOpen(null)} footer={<><Button icon={<Clipboard size={13} />} onClick={() => reportOpen && navigator.clipboard.writeText(reportMarkdown(reportOpen)).then(() => message.success("报告 Markdown 已复制"))}>复制 Markdown</Button><Button type="primary" icon={<Download size={13} />} onClick={() => reportOpen && void exportReport(reportOpen)}>导出文件</Button></>} width={760}><ReportContent report={reportOpen} /></Modal>
-    <Modal title="巡检 Diff 对比" open={Boolean(diffReport)} onCancel={() => setDiffReport(null)} footer={null}><DiffContent current={diffReport} previous={reports[reports.findIndex((item) => item.id === diffReport?.id) + 1]} /></Modal>
-    <Drawer title={editingRule ? "编辑巡检规则" : "新建自定义巡检规则"} open={ruleDrawer} onClose={() => setRuleDrawer(false)} width={460} maskClosable={false} extra={<Button type="primary" loading={saving} onClick={() => void submitRule()}>保存</Button>}><div className="inspector-rule-form"><label>规则名称<Input value={ruleDraft.name} onChange={(event) => setRuleDraft((v) => ({ ...v, name: event.target.value }))} maxLength={80} /></label><label>分类<Select value={ruleDraft.category} onChange={(value) => setRuleDraft((v) => ({ ...v, category: value }))} options={["资源", "网络", "服务", "安全", "灾备", "自定义"].map((value) => ({ value, label: value }))} /></label><label>危害等级<Select value={ruleDraft.severity} onChange={(value) => setRuleDraft((v) => ({ ...v, severity: value }))} options={Object.entries(severityLabel).map(([value, label]) => ({ value, label }))} /></label><label>探针命令<Input.TextArea value={ruleDraft.probe} onChange={(event) => setRuleDraft((v) => ({ ...v, probe: event.target.value }))} rows={3} placeholder="填写拟纳入基线的只读命令" /></label><label>通过阈值<Input value={ruleDraft.threshold} onChange={(event) => setRuleDraft((v) => ({ ...v, threshold: event.target.value }))} placeholder="例如：使用率 < 80%" /></label><Alert type="warning" showIcon message="自定义规则当前仅保存为检查清单，不会执行其中的命令；需扩展受控探针后才能纳入自动检测。" /></div></Drawer>
-  </div>;
+  const viewButtons = views.map(({ key, label, Icon }) => (
+    <button key={key} type="button" aria-pressed={activeTab === key} onClick={() => setActiveTab(key)}>
+      <Icon size={14} aria-hidden />{label}{key === "rules" ? ` (${rules.length})` : ""}
+    </button>
+  ));
+  const storedHosts = new Map<number, HostResult>();
+  for (const report of reports) {
+    const [serverId] = report.serverIds;
+    const hosts = report.hosts ?? (report.serverIds.length === 1 && report.score !== null && report.score > 0
+      ? [{ serverId, alias: report.targetLabel, score: report.score, findingCount: report.findings.length }]
+      : []);
+    for (const host of hosts) {
+      if (!storedHosts.has(host.serverId)) storedHosts.set(host.serverId, host);
+    }
+  }
+  const liveHosts = new Map(hostResults.map((host) => [host.serverId, host]));
+  const currentRows = selectedServers.map((server) => ({
+    server,
+    result: (scanning && runningTargets.includes(server.id)) || liveHosts.has(server.id)
+      ? liveHosts.get(server.id) : storedHosts.get(server.id),
+    running: scanning && runningHost === server.id,
+    queued: scanning && runningTargets.includes(server.id),
+  }));
+
+  const copyReport = async (report: InspectionReport) => {
+    try {
+      await navigator.clipboard.writeText(reportMarkdown(report));
+      message.success("报告 Markdown 已复制");
+    } catch (error) { message.error(getErrorMessage(error)); }
+  };
+
+  return (
+    <div className="ops-page inspector-page">
+      <WorkspaceSidebarSlot>
+        <nav className="inspector-sidebar" aria-label="巡检视图">{viewButtons}</nav>
+      </WorkspaceSidebarSlot>
+      <header className="inspector-header">
+        <div className="inspector-title">
+          <span className="inspector-title-icon"><ShieldCheck size={19} aria-hidden /></span>
+          <div><h1>深度巡检诊断</h1><p>Linux 主机只读巡检与风险报告</p></div>
+        </div>
+        <div className="inspector-actions">
+          <label className="inspector-target">
+            <ServerIcon size={15} aria-hidden />巡检目标
+            <Select
+              aria-label="巡检目标"
+              value={target}
+              onChange={(value) => changeParam("target", value)}
+              disabled={loading || scanning}
+              options={[
+                { value: "all", label: `全部 Linux 主机（${linuxServers.length} 台）` },
+                ...linuxServers.map(({ id, alias, hostname }) => ({ value: String(id), label: `${alias} · ${hostname}` })),
+                ...(target !== "all" && !selectedServers.length ? [{ value: target, label: "所选服务器不可用", disabled: true }] : []),
+              ]}
+            />
+          </label>
+          <Button type="primary" icon={<Radar size={15} />} loading={scanning} disabled={!canRun} onClick={() => runScan()}>
+            {scanning ? "巡检执行中" : "启动巡检"}
+          </Button>
+        </div>
+      </header>
+      <div className="inspector-status">
+        <nav className="inspector-subtabs" aria-label="巡检工作区视图">{viewButtons}</nav>
+        <div className="inspector-actions">
+          <Button size="small" icon={<Terminal size={14} />} aria-expanded={consoleOpen} onClick={() => setConsoleOpen(!consoleOpen)}>探针输出</Button>
+          <Button size="small" icon={<FileText size={14} />} disabled={!latest} onClick={() => setReportOpen(latest)}>查看报告</Button>
+          <Button size="small" icon={<RefreshCw size={14} />} aria-label="刷新巡检数据" title="刷新巡检数据" loading={loading} disabled={scanning} onClick={() => void load()} />
+        </div>
+      </div>
+      {loadError && <Alert type="error" showIcon title="巡检数据加载失败" description={loadError} />}
+      {saveError && <Alert type="error" showIcon title="巡检报告保存失败" description={saveError} />}
+      {scanning && (
+        <div className="inspector-progress" role="status">
+          <div><span><Loader2 size={14} className="animate-spin" aria-hidden />{scanMessage}</span><b>{progress}%</b></div>
+          <Progress percent={progress} showInfo={false} size="small" />
+        </div>
+      )}
+      {consoleOpen && (
+        <section className="inspector-console">
+          <div><span><Terminal size={14} aria-hidden />本次探针流水</span><Button type="text" size="small" icon={<Trash2 size={13} />} onClick={() => setConsoleLines([])}>清空</Button></div>
+          <pre>{consoleLines.length ? consoleLines.join("\n") : "等待巡检输出"}</pre>
+        </section>
+      )}
+      {activeTab === "diagnose" && (
+        <DiagnoseView rows={currentRows} latest={latest} loading={loading} schedule={activeSchedule}
+          onSchedule={() => setActiveTab("schedule")} onReport={setReportOpen} rules={rules} />
+      )}
+      {activeTab === "rules" && <RulesView rules={filteredRules} categories={categories} category={ruleCategory} search={ruleSearch} onCategory={setRuleCategory} onSearch={setRuleSearch} onToggle={async (rule) => saveRules(rules.map((item) => item.id === rule.id ? { ...item, enabled: !item.enabled } : item))} onAdd={openNewRule} onEdit={openEditRule} onDelete={deleteRule} onReset={resetRules} />}
+      {activeTab === "schedule" && <ScheduleView value={schedule} onChange={setSchedule} onSave={() => void saveSchedule()} onTest={sendTestAlert} />}
+      {activeTab === "history" && <HistoryView reports={historyReports} onReport={setReportOpen} onDiff={setDiffReport} />}
+      <Modal
+        title={`巡检报告 · ${reportOpen?.targetLabel ?? ""}`}
+        open={Boolean(reportOpen)}
+        onCancel={() => setReportOpen(null)}
+        footer={reportOpen && <>
+          <Button icon={<Clipboard size={13} />} onClick={() => void copyReport(reportOpen)}>复制 Markdown</Button>
+          <Button type="primary" icon={<Download size={13} />} onClick={() => void exportReport(reportOpen)}>导出文件</Button>
+        </>}
+        width={760}
+        styles={dialogStyles}
+      >
+        <ReportContent report={reportOpen} />
+      </Modal>
+      <Modal title="巡检 Diff 对比" open={Boolean(diffReport)} onCancel={() => setDiffReport(null)} onOk={() => setDiffReport(null)} cancelButtonProps={{ style: { display: "none" } }} okText="关闭" styles={dialogStyles}>
+        <DiffContent current={diffReport} previous={previous || undefined} />
+      </Modal>
+    <Drawer title={editingRule ? "编辑巡检规则" : "新建自定义巡检规则"} open={ruleDrawer} onClose={() => setRuleDrawer(false)} width={460} maskClosable={false} footer={<div className="inspector-drawer-footer"><Button onClick={() => setRuleDrawer(false)}>取消</Button><Button type="primary" loading={saving} onClick={() => void submitRule()}>保存</Button></div>}><div className="inspector-rule-form"><label>规则名称<Input value={ruleDraft.name} onChange={(event) => setRuleDraft((v) => ({ ...v, name: event.target.value }))} maxLength={80} /></label><label>分类<Select value={ruleDraft.category} onChange={(value) => setRuleDraft((v) => ({ ...v, category: value }))} options={["资源", "网络", "服务", "安全", "灾备", "自定义"].map((value) => ({ value, label: value }))} /></label><label>危害等级<Select value={ruleDraft.severity} onChange={(value) => setRuleDraft((v) => ({ ...v, severity: value }))} options={Object.entries(severityLabel).map(([value, label]) => ({ value, label }))} /></label><label>探针命令<Input.TextArea value={ruleDraft.probe} onChange={(event) => setRuleDraft((v) => ({ ...v, probe: event.target.value }))} rows={3} placeholder="填写拟纳入基线的只读命令" /></label><label>通过阈值<Input value={ruleDraft.threshold} onChange={(event) => setRuleDraft((v) => ({ ...v, threshold: event.target.value }))} placeholder="例如：使用率 < 80%" /></label><Alert type="warning" showIcon message="自定义规则当前仅保存为检查清单，不会执行其中的命令；需扩展受控探针后才能纳入自动检测。" /></div></Drawer>
+    </div>
+  );
 }
 
-function DiagnoseView({ servers, results, latest, reports, schedule, onSchedule, onReport, onScan, rules }: { servers: Server[]; results: HostResult[]; latest?: InspectionReport; reports: InspectionReport[]; schedule: ScheduleConfig; onSchedule: () => void; onReport: (report: InspectionReport) => void; onScan: () => void; rules: InspectionRule[] }) {
-  const findingCount = latest?.findings.length ?? 0;
-  const critical = latest?.findings.filter((item) => item.severity === "critical").length ?? 0;
-  return <div className="inspector-content"><div className="inspector-kpis"><Kpi label="全网健康均分" value={latest ? `${latest.score}` : "--"} suffix="/100" tone={latest && latest.score < 80 ? "danger" : "success"} icon={<Activity size={17} />} /><Kpi label="待处置严重风险" value={String(critical)} suffix="项" tone="danger" icon={<ShieldAlert size={17} />} /><Kpi label="巡检发现风险" value={String(findingCount)} suffix="项" tone="warning" icon={<BellRing size={17} />} /><Kpi label="启用规则" value={String(rules.filter((item) => item.enabled).length)} suffix={`${schedule.enabled ? "· 已定时" : "· 手动"}`} tone="info" icon={<CheckCircle2 size={17} />} /></div><section className="inspector-panel"><div className="inspector-section-title"><span><ShieldCheck size={15} />纳管主机体检分布</span><small>{servers.length} 台目标 · 点击启动后查看实时结果</small></div><div className="inspector-host-grid">{servers.map((server) => { const item = results.find((entry) => entry.server.id === server.id); const parsed = item?.result ? scoreFromOutput(item.result.stdout, rules) : null; return <article key={server.id} className={`inspector-host-card ${item?.error ? "failed" : parsed && parsed.score < 80 ? "risk" : ""}`}><header><div><strong>{server.alias}</strong><span>{server.username}@{server.hostname}:{server.port}</span></div><Tag color={item?.error ? "error" : parsed ? parsed.score >= 90 ? "success" : parsed.score >= 80 ? "warning" : "error" : "default"}>{item?.error ? "失败" : parsed ? `${parsed.score} 分` : "待巡检"}</Tag></header><div className="inspector-host-body">{item?.error ? item.error : item?.result ? <><div className="inspector-mini-stat"><span>退出码</span><b>{item.result.exitCode}</b></div><pre>{item.result.stdout || "无探针输出"}</pre></> : <span className="inspector-muted">尚未执行探针</span>}</div></article>; })}</div>{!servers.length && <Alert type="warning" showIcon message="没有可巡检的 Linux 服务器，请先在服务器菜单添加并完成 SSH 验证。" />}</section><div className="inspector-overview-grid"><section className="inspector-panel inspector-schedule-card"><div className="inspector-section-title"><span><Clock3 size={15} />无人值守定时体检计划</span><Tag color={schedule.enabled ? "success" : "default"}>{schedule.enabled ? "已启用" : "未启用"}</Tag></div><div className="inspector-detail-list"><span>周期：<b>{schedule.cron}</b></span><span>范围：<b>{schedule.scope === "all" ? "全部服务器" : schedule.scope === "linux" ? "Linux 主机" : "收藏服务器"}</b></span><span>阈值：低于 <b>{schedule.scoreThreshold}</b> 分或严重风险触发</span></div><div className="inspector-card-actions"><Button onClick={onSchedule}>调度与告警设置</Button><Button onClick={() => message.info("测试消息仅在本机展示；尚未配置外部通知渠道。")}>模拟推送</Button></div></section><section className="inspector-panel"><div className="inspector-section-title"><span><History size={15} />最近风险漂移</span><Button type="link" size="small" onClick={() => reports[0] && onReport(reports[0])} disabled={!reports[0]}>查看最新报告</Button></div>{latest?.findings.length ? <div className="inspector-risk-feed">{latest.findings.slice(0, 4).map((item) => <div key={item.id}><i className={`dot-${item.severity}`} /><span>{item.serverAlias ? `${item.serverAlias} · ` : ""}{item.title}<small>{item.evidence}</small></span><Tag color={severityColor[item.severity]}>{severityLabel[item.severity]}</Tag></div>)}</div> : <div className="inspector-empty-inline">暂无风险漂移，执行一次巡检后显示。</div>}</section></div><section className="inspector-panel inspector-ai-card"><div><div className="inspector-section-title"><span><Radar size={15} />巡检风险建议</span><Tag color="purple">基于规则的只读分析</Tag></div><p>{latest ? `本轮检查发现 ${latest.findings.length} 项风险。请先查看报告证据，再通过审批菜单创建受控整改工单。` : "执行巡检后将根据探针证据生成风险清单和整改建议。"}</p></div><div className="inspector-card-actions"><Button type="primary" icon={<Play size={14} />} onClick={onScan} disabled={!servers.length}>重新巡检</Button><Button icon={<FileText size={14} />} onClick={() => latest && onReport(latest)} disabled={!latest}>查看报告</Button></div></section></div>;
+const dialogStyles = { body: { maxHeight: "calc(100dvh - 210px)", overflowY: "auto" as const } };
+
+function DiagnoseView({ rows, latest, loading, schedule, onSchedule, onReport, rules }: {
+  rows: { server: Server; result?: HostResult; running: boolean; queued: boolean }[];
+  latest?: InspectionReport;
+  loading: boolean;
+  schedule: ScheduleConfig;
+  onSchedule: () => void;
+  onReport: (report: InspectionReport) => void;
+  rules: InspectionRule[];
+}) {
+  const hasScore = latest?.score != null;
+  const critical = hasScore ? latest.findings.filter((item) => item.severity === "critical").length : undefined;
+  const enabledRules = rules.filter((item) => item.enabled);
+  return (
+    <div className="inspector-content">
+      <div className="inspector-kpis">
+        <Kpi label="最近同范围健康分" value={String(latest?.score ?? "—")} suffix={latest?.score != null ? "/100" : ""} tone="info" icon={<Activity size={16} />} />
+        <Kpi label="严重风险" value={String(critical ?? "—")} suffix={hasScore ? "项" : ""} tone="danger" icon={<ShieldAlert size={16} />} />
+        <Kpi label="检测风险" value={hasScore ? String(latest.findings.length) : "—"} suffix={hasScore ? "项" : ""} tone="warning" icon={<BellRing size={16} />} />
+        <Kpi label="启用检查项" value={String(enabledRules.length)} suffix="项" tone="success" icon={<CheckCircle2 size={16} />} />
+      </div>
+      <section className="inspector-panel">
+        <div className="inspector-section-title">
+          <span><ServerIcon size={15} aria-hidden />主机巡检结果</span>
+          <small>{rows.length} 台 · 每台主机最近一次探针结果</small>
+        </div>
+        {rows.length ? <ul className="inspector-results" aria-label="主机巡检结果">
+          {rows.map(({ server, result, running, queued }) => (
+            <li key={server.id} className="inspector-result-row">
+              <div className="inspector-host-name">
+                <strong>{server.alias}</strong>
+                <small>{server.hostname}:{server.port}</small>
+              </div>
+              <Tag color={result?.error !== undefined ? "error" : result ? "success" : running ? "processing" : "default"}>
+                {result?.error !== undefined ? "失败" : result ? "完成" : running ? "执行中" : queued ? "等待执行" : "待巡检"}
+              </Tag>
+              <span className={result?.error !== undefined ? "inspector-result-error" : "inspector-muted"}>
+                {result?.error ?? (result ? `${result.score} 分 · ${result.findingCount} 项风险` : "—")}
+              </span>
+            </li>
+          ))}
+        </ul> : <p className="inspector-empty-inline">{loading ? "正在读取服务器与巡检配置…" : "当前范围没有可巡检的 Linux 服务器"}</p>}
+      </section>
+      <section className="inspector-panel">
+        <div className="inspector-section-title">
+          <span><SlidersHorizontal size={15} aria-hidden />检查项</span>
+          <small>{enabledRules.length} / {rules.length} 项已启用</small>
+        </div>
+        <ul className="inspector-check-items">
+          {rules.map((rule) => <li key={rule.id}>{rule.name}<Tag color={!rule.enabled || !rule.builtin ? "default" : "success"}>{!rule.enabled ? "停用" : rule.builtin ? "启用" : "清单"}</Tag></li>)}
+        </ul>
+      </section>
+      <div className="inspector-overview-grid">
+        <section className="inspector-panel">
+          <div className="inspector-section-title"><span><Clock3 size={15} />定时巡检计划</span><Tag color={schedule.enabled ? "success" : "default"}>{schedule.enabled ? "已启用" : "未启用"}</Tag></div>
+          <div className="inspector-detail-list"><span>Cron · <b>{schedule.cron}</b></span><span>范围 · <b>{schedule.scope === "favorites" ? "收藏的 Linux 主机" : "Linux 主机"}</b></span></div>
+          <div className="inspector-card-actions"><Button onClick={onSchedule}>打开巡检计划</Button></div>
+        </section>
+        <section className="inspector-panel">
+          <div className="inspector-section-title"><span><History size={15} />本范围最近报告</span><Button type="link" size="small" disabled={!latest} onClick={() => latest && onReport(latest)}>查看报告</Button></div>
+          {latest && <div className="inspector-detail-list">{runSummary(latest)} · {formatTime(latest.createdAt)}</div>}
+          {latest?.findings.length ? (
+            <div className="inspector-risk-feed">
+              {latest.findings.slice(0, 4).map((item) => <div key={item.id}><i className={`dot-${item.severity}`} /><span>{item.serverAlias ? `${item.serverAlias} · ` : ""}{item.title}</span><Tag color={severityColor[item.severity]}>{severityLabel[item.severity]}</Tag></div>)}
+            </div>
+          ) : !latest && <div className="inspector-empty-inline">暂无巡检报告</div>}
+        </section>
+      </div>
+    </div>
+  );
 }
 
 function Kpi({ label, value, suffix, tone, icon }: { label: string; value: string; suffix: string; tone: "success" | "danger" | "warning" | "info"; icon: ReactNode }) { return <div className={`inspector-kpi ${tone}`}><div><span>{icon}{label}</span><strong>{value}<small>{suffix}</small></strong></div></div>; }
@@ -257,8 +494,97 @@ function RulesView({ rules, categories, category, search, onCategory, onSearch, 
 
 function ScheduleView({ value, onChange, onSave, onTest }: { value: ScheduleConfig; onChange: (value: ScheduleConfig) => void; onSave: () => void; onTest: () => void }) { return <div className="inspector-content"><div className="inspector-schedule-grid"><section className="inspector-panel inspector-form-panel"><div className="inspector-section-title"><span><Clock3 size={15} />无人值守定时自动化体检引擎</span><Switch checked={value.enabled} onChange={(enabled) => onChange({ ...value, enabled })} /></div>{value.enabled && <Alert type="warning" showIcon message="计划仅在 OpsPub 保持运行期间生效，应用关闭后不会在服务器后台执行。" />}<div className="inspector-form-grid"><label>执行频率模板<Select value={["0 4 * * *", "0 */6 * * *", "0 8 * * 1"].includes(value.cron) ? value.cron : "custom"} onChange={(cron) => onChange({ ...value, cron: cron === "custom" ? value.cron : cron })} options={[{ label: "每日凌晨 04:00（推荐）", value: "0 4 * * *" }, { label: "每 6 小时", value: "0 */6 * * *" }, { label: "每周一 08:00", value: "0 8 * * 1" }, { label: "自定义 Cron", value: "custom" }]} /></label><label>Cron 调度表达式<Input value={value.cron} onChange={(event) => onChange({ ...value, cron: event.target.value })} /></label><label>定时巡检资产范围<Select value={value.scope} onChange={(scope) => onChange({ ...value, scope })} options={[{ label: "全部服务器", value: "all" }, { label: "Linux 主机", value: "linux" }, { label: "收藏服务器", value: "favorites" }]} /></label><label>健康分告警阈值<InputNumber min={0} max={100} value={value.scoreThreshold} onChange={(scoreThreshold) => onChange({ ...value, scoreThreshold: scoreThreshold ?? 80 })} /></label></div><div className="inspector-protection"><Info size={14} /><span>只读探针通过已认证 SSH 会话执行；不修改远端配置，不上传原始凭据，输出保留在本机报告库。</span></div></section><section className="inspector-panel inspector-form-panel"><div className="inspector-section-title"><span><BellRing size={15} />告警策略与通知联动</span><Button size="small" onClick={onTest}>发送测试告警卡片</Button></div><div className="inspector-checks"><Checkbox checked={value.scoreThreshold > 0} onChange={(event) => onChange({ ...value, scoreThreshold: event.target.checked ? 80 : 0 })}>综合健康分低于阈值时提醒</Checkbox><Checkbox checked={value.criticalAlert} onChange={(event) => onChange({ ...value, criticalAlert: event.target.checked })}>发现严重风险立即提醒</Checkbox><Checkbox checked={value.summaryAlert} onChange={(event) => onChange({ ...value, summaryAlert: event.target.checked })}>巡检结束发送总结简报</Checkbox></div><div className="inspector-notice-card"><BellRing size={16} /><div><strong>通知渠道</strong><p>当前使用应用内通知和审计记录；钉钉、企业微信、邮件通道可在后续通知设置中绑定。</p></div></div><Button type="primary" onClick={onSave}>保存调度配置</Button></section></div></div>; }
 
-function HistoryView({ reports, onReport, onDiff }: { reports: InspectionReport[]; onReport: (report: InspectionReport) => void; onDiff: (report: InspectionReport) => void }) { const latestScore = reports[0]?.score; return <div className="inspector-content"><div className="inspector-kpis"><Kpi label="累计执行体检" value={String(reports.length)} suffix="次" tone="info" icon={<History size={17} />} /><Kpi label="累计闭环风险" value="--" suffix="项" tone="success" icon={<CheckCircle2 size={17} />} /><Kpi label="最近 Diff 漂移" value={reports[1] && latestScore ? `${latestScore - reports[1].score}` : "--"} suffix="分" tone="danger" icon={<Activity size={17} />} /><Kpi label="报告保留" value="50" suffix="份" tone="warning" icon={<Archive size={17} />} /></div><section className="inspector-panel"><div className="inspector-section-title"><span><Activity size={15} />健康得分走势</span><small>分数越高表示启用的基线越稳定</small></div><div className="inspector-score-history">{reports.slice(0, 8).map((report) => <div key={report.id}><span>{formatTime(report.createdAt)}</span><div><i style={{ width: `${report.score}%` }} className={report.score < 80 ? "danger" : report.score < 90 ? "warning" : "success"} /></div><b>{report.score}</b></div>)}</div>{!reports.length && <div className="inspector-empty-inline">暂无历史报告，完成第一次巡检后会在这里形成趋势。</div>}</section><section className="inspector-panel inspector-table-wrap"><div className="inspector-section-title"><span><Archive size={15} />历史巡检报告归档台账</span></div><Table<InspectionReport> size="small" rowKey="id" dataSource={reports} pagination={{ pageSize: 8 }} columns={[{ title: "报告编号", dataIndex: "id", render: (value: string) => <code>{value}</code> }, { title: "巡检时间", dataIndex: "createdAt", render: (value: string) => formatTime(value) }, { title: "巡检范围", dataIndex: "targetLabel" }, { title: "健康得分", dataIndex: "score", render: (value: number) => <strong className={value < 80 ? "text-danger" : value < 90 ? "text-warning" : "text-success"}>{value} 分</strong> }, { title: "风险数", key: "findings", render: (_: unknown, row) => `${row.findings.length} 项` }, { title: "操作", key: "actions", align: "right", render: (_: unknown, row) => <span className="table-actions"><Button size="small" onClick={() => onReport(row)}>查看报告</Button><Button size="small" onClick={() => onDiff(row)}>Diff 对比</Button></span> }]} /></section></div>; }
+function HistoryView({ reports, onReport, onDiff }: {
+  reports: InspectionReport[];
+  onReport: (report: InspectionReport) => void;
+  onDiff: (report: InspectionReport) => void;
+}) {
+  const latest = reports[0];
+  const trend = latest ? reports.filter((item) => sameTargets(item.serverIds, latest.serverIds)).slice(0, 8) : [];
+  return (
+    <div className="inspector-content">
+      <section className="inspector-panel">
+        <div className="inspector-section-title"><span><Activity size={15} />健康得分走势</span><small>{latest?.targetLabel}</small></div>
+        {trend.length ? <div className="inspector-score-history">
+          {trend.map((report) => (
+            <div key={report.id}>
+              <span>{formatTime(report.createdAt)}</span>
+              <div><i style={{ width: `${report.score ?? 0}%` }} className={report.score === null || report.score < 80 ? "danger" : report.score < 90 ? "warning" : "success"} /></div>
+              <b>{report.score ?? "—"}</b>
+            </div>
+          ))}
+        </div> : <p className="inspector-empty-inline">暂无历史报告</p>}
+      </section>
+      <section className="inspector-panel inspector-table-wrap">
+        <div className="inspector-section-title"><span><Archive size={15} />巡检报告归档</span><small>{reports.length} 份</small></div>
+        <Table<InspectionReport> size="small" rowKey="id" dataSource={reports} pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          columns={[
+            { title: "巡检时间", dataIndex: "createdAt", render: formatTime },
+            { title: "巡检范围", dataIndex: "targetLabel" },
+            { title: "状态", key: "status", render: (_, report) => runSummary(report) },
+            { title: "健康分", dataIndex: "score", render: (score: number | null) => score ?? "—" },
+            { title: "风险数", key: "findings", render: (_, report) => report.score === null ? "—" : report.findings.length },
+            { title: "操作", key: "actions", align: "right", render: (_, report) => (
+              <span className="inspector-table-actions">
+                <Button size="small" onClick={() => onReport(report)}>查看报告</Button>
+                <Button size="small" onClick={() => onDiff(report)}>Diff 对比</Button>
+              </span>
+            ) },
+          ]}
+        />
+      </section>
+    </div>
+  );
+}
 
-function ReportContent({ report }: { report: InspectionReport | null }) { if (!report) return null; return <div className="inspector-report"><div className="inspector-report-summary"><span>健康得分<strong>{report.score}</strong>/100</span><span>风险<strong>{report.findings.length}</strong>项</span><span>主机<strong>{report.serverIds.length}</strong>台</span><span>时间<strong>{formatTime(report.createdAt)}</strong></span></div><div className="inspector-findings">{report.findings.length ? report.findings.map((item) => <article key={item.id}><header><Tag color={severityColor[item.severity]}>{severityLabel[item.severity]}</Tag><strong>{item.title}</strong></header><p>依据：{item.evidence}</p><p>建议：{item.recommendation}</p></article>) : <Alert type="success" showIcon message="本轮未发现风险" />}</div><pre className="inspector-report-output">{report.output || "无探针输出"}</pre></div>; }
+function ReportContent({ report }: { report: InspectionReport | null }) {
+  if (!report) return null;
+  return (
+    <div className="inspector-report">
+      <div className="inspector-report-summary">
+        <span>状态<strong>{runSummary(report)}</strong></span>
+        <span>健康分<strong>{report.score === null ? "—" : `${report.score}/100`}</strong></span>
+        <span>主机<strong>{report.serverIds.length} 台</strong></span>
+        <span>时间<strong>{formatTime(report.createdAt)}</strong></span>
+      </div>
+      {report.hosts?.some((host) => host.error !== undefined) && (
+        <Alert type={report.score === null ? "error" : "warning"} showIcon title={runSummary(report)}
+          description={<ul>{report.hosts.filter((host) => host.error !== undefined).map((host) => (
+            <li key={host.serverId}>{host.alias} · {host.error}</li>
+          ))}</ul>}
+        />
+      )}
+      <div className="inspector-findings">
+        {report.findings.map((item) => <article key={item.id}>
+          <header><Tag color={severityColor[item.severity]}>{severityLabel[item.severity]}</Tag><strong>{item.serverAlias ? `${item.serverAlias} · ` : ""}{item.title}</strong></header>
+          <p>依据：{item.evidence}</p><p>建议：{item.recommendation}</p>
+        </article>)}
+        {!report.findings.length && report.score !== null && (
+          <Alert type="info" showIcon title={report.hosts ? "已完成的探针未发现风险" : "历史报告未记录风险"} />
+        )}
+      </div>
+      <pre className="inspector-report-output">{report.output || "无探针输出"}</pre>
+    </div>
+  );
+}
 
-function DiffContent({ current, previous }: { current: InspectionReport | null; previous?: InspectionReport }) { if (!current) return null; const delta = previous ? current.score - previous.score : 0; return <div className="inspector-diff"><Alert type={delta < 0 ? "warning" : "success"} showIcon message={previous ? `相比 ${formatTime(previous.createdAt)}，健康分 ${delta >= 0 ? "提升" : "下降"} ${Math.abs(delta)} 分` : "没有上一份报告可供对比"} /><div className="inspector-diff-columns"><div><strong>本轮风险 ({current.findings.length})</strong>{current.findings.map((item) => <p key={item.id}><Tag color={severityColor[item.severity]}>{severityLabel[item.severity]}</Tag>{item.title}</p>)}</div><div><strong>上一轮风险 ({previous?.findings.length ?? 0})</strong>{previous?.findings.map((item) => <p key={item.id}><Tag color={severityColor[item.severity]}>{severityLabel[item.severity]}</Tag>{item.title}</p>) ?? <p className="inspector-muted">无数据</p>}</div></div></div>; }
+function DiffContent({ current, previous }: { current: InspectionReport | null; previous?: InspectionReport }) {
+  if (!current) return null;
+  const delta = previous?.score != null && current.score != null ? current.score - previous.score : null;
+  return (
+    <div className="inspector-diff">
+      <Alert type={delta !== null && delta < 0 ? "warning" : "info"} showIcon title={
+        delta !== null && previous
+          ? `相比 ${formatTime(previous.createdAt)}，健康分变化 ${delta > 0 ? "+" : ""}${delta} 分`
+          : previous ? "有报告未生成健康分" : "暂无同范围的上一份报告"
+      } />
+      <div className="inspector-diff-columns">
+        {[current, previous].map((report, index) => <div key={index}>
+          <strong>{index === 0 ? "本轮风险" : "上一轮风险"}</strong>
+          {report?.findings.map((item) => <p key={item.id}><Tag color={severityColor[item.severity]}>{severityLabel[item.severity]}</Tag>{item.title}</p>)}
+          {!report?.findings.length && <p className="inspector-muted">暂无风险记录</p>}
+        </div>)}
+      </div>
+    </div>
+  );
+}

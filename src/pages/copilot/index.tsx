@@ -38,6 +38,7 @@ import { getErrorMessage } from "@/lib/api/client";
 import { modelServiceApi } from "@/lib/api/model-service";
 import { serverApi } from "@/lib/api/server";
 import { skillsApi } from "@/lib/api/skills";
+import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import { chatSkillContext, matchChatSkills, parseBuiltinSkills, parseUserSkills, resolveChatSkills, SKILLS_STORAGE_KEY, skillDocument, type ChatSkill } from "@/lib/copilot-skills";
 import { UNLOCK_DURATIONS, useAppStore, type UnlockDuration } from "@/store/app";
 import type { AiApproval, AiApprovalDetail, CopilotProgress, CopilotToolCall, ModelProfile, Server } from "@/types";
@@ -85,10 +86,10 @@ const EXPERIENCES_KEY = "ops_copilot_experiences";
 const BUILTIN_CHAT_SKILLS = parseBuiltinSkills(skillsIndex);
 
 const QUICK_PROMPTS = [
-  { icon: Activity, color: "text-emerald-400", iconBg: "bg-emerald-500/10 border-emerald-500/20", title: "检查一台机器的健康度", description: "磁盘 / 内存 / 关键服务，只使用只读工具", prompt: "帮我检查当前机器的健康度" },
-  { icon: ShieldAlert, color: "text-amber-400", iconBg: "bg-amber-500/10 border-amber-500/20", title: "最近有哪些 AI 操作被拦截", description: "查看审计记录和策略拦截原因", prompt: "查看最近被拦截的高危操作审计" },
-  { icon: GitMerge, color: "text-indigo-400", iconBg: "bg-indigo-500/10 border-indigo-500/20", title: "部署前检查一台机器", description: "先检查环境与部署目标，不会直接执行变更", prompt: "帮我检查当前服务器的部署环境" },
-  { icon: Database, color: "text-cyan-400", iconBg: "bg-cyan-500/10 border-cyan-500/20", title: "给我一份 Nginx 排障思路", description: "分析常见原因并给出验证步骤", prompt: "给我一份针对当前服务器的 nginx 排障思路" },
+  { icon: Activity, color: "text-[var(--success)]", iconBg: "bg-emerald-500/10 border-emerald-500/20", title: "检查一台机器的健康度", description: "磁盘 / 内存 / 关键服务，只使用只读工具", prompt: "帮我检查当前机器的健康度" },
+  { icon: ShieldAlert, color: "text-[var(--warning)]", iconBg: "bg-amber-500/10 border-amber-500/20", title: "最近有哪些 AI 操作被拦截", description: "查看审计记录和策略拦截原因", prompt: "查看最近被拦截的高危操作审计" },
+  { icon: GitMerge, color: "text-[var(--accent)]", iconBg: "bg-indigo-500/10 border-indigo-500/20", title: "部署前检查一台机器", description: "先检查环境与部署目标，不会直接执行变更", prompt: "帮我检查当前服务器的部署环境" },
+  { icon: Database, color: "text-[var(--info)]", iconBg: "bg-cyan-500/10 border-cyan-500/20", title: "给我一份 Nginx 排障思路", description: "分析常见原因并给出验证步骤", prompt: "给我一份针对当前服务器的 nginx 排障思路" },
 ];
 
 const INITIAL_MESSAGE: ChatMessage = {
@@ -703,6 +704,7 @@ export default function CopilotPage() {
     { value: null, label: "自动选择（问题中指定或单台服务器）" },
     ...servers.map((server) => ({ value: server.id, label: `${server.alias} · ${server.hostname}` })),
   ], [servers]);
+  const selectedServer = servers.find((server) => server.id === serverId) ?? null;
 
   const send = async (prompt = input, bypassLockPrompt = false, regenerateMessageId: string | null = null) => {
     const text = prompt.trim();
@@ -930,27 +932,27 @@ export default function CopilotPage() {
 
   const lockControl = (
     <div className="w-72 space-y-3.5 p-1 text-xs">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-        <span className="flex items-center gap-2 font-semibold text-slate-100"><Power size={14} className="text-slate-400" />{aiLocked ? "AI 操作已锁定" : "AI 操作已放行"}</span>
-        <button type="button" disabled={lockSaving} onClick={() => void changeLock(aiLocked ? aiUnlockDuration : "locked")} title="点击解锁或锁定" aria-label={aiLocked ? "解锁 AI 操作" : "锁定 AI 操作"} aria-pressed={!aiLocked} className={`relative h-5 w-10 shrink-0 rounded-full border-2 border-transparent transition-colors disabled:cursor-wait disabled:opacity-60 ${aiLocked ? "bg-slate-700" : "bg-emerald-600"}`}>
+      <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+        <span className="flex items-center gap-2 font-semibold text-[var(--text-primary)]"><Power size={14} className="text-[var(--text-secondary)]" />{aiLocked ? "AI 操作已锁定" : "AI 操作已放行"}</span>
+        <button type="button" disabled={lockSaving} onClick={() => void changeLock(aiLocked ? aiUnlockDuration : "locked")} title="点击解锁或锁定" aria-label={aiLocked ? "解锁 AI 操作" : "锁定 AI 操作"} aria-pressed={!aiLocked} className={`relative h-5 w-10 shrink-0 rounded-full border-2 border-transparent transition-colors disabled:cursor-wait disabled:opacity-60 ${aiLocked ? "bg-surface-700" : "bg-emerald-600"}`}>
           <span className={`pointer-events-none absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-[left] duration-200 ${aiLocked ? "left-0.5" : "left-[22px]"}`} />
         </button>
       </div>
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-[11px]"><span className="font-medium text-slate-400">限时放行</span>{!aiLocked && <span className="font-mono text-[10px] text-emerald-400">{isForever ? "永久不过期" : `倒计时 ${formatRemaining(remainingSeconds)}`}</span>}</div>
-        <div className="grid grid-cols-4 gap-1 rounded-xl border border-slate-800 bg-surface-950 p-1 text-center font-mono text-xs">
+        <div className="flex items-center justify-between text-[11px]"><span className="font-medium text-[var(--text-secondary)]">限时放行</span>{!aiLocked && <span className="font-mono text-[10px] text-[var(--success)]">{isForever ? "永久不过期" : `倒计时 ${formatRemaining(remainingSeconds)}`}</span>}</div>
+        <div className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--border)] bg-surface-950 p-1 text-center font-mono text-xs">
           {UNLOCK_DURATIONS.map((duration) => {
             const selected = aiUnlockDuration === duration.id;
-            return <button key={duration.id} type="button" disabled={lockSaving} onClick={() => void changeLock(duration.id as UnlockDuration)} className={`rounded-lg border py-1 transition disabled:cursor-wait disabled:opacity-50 ${selected ? "border-slate-700 bg-surface-800 font-bold text-white" : "border-transparent text-slate-400 hover:text-white"}`}>{duration.label}</button>;
+            return <button key={duration.id} type="button" disabled={lockSaving} onClick={() => void changeLock(duration.id as UnlockDuration)} className={`rounded-lg border py-1 transition disabled:cursor-wait disabled:opacity-50 ${selected ? "border-[var(--border)] bg-surface-800 font-bold text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>{duration.label}</button>;
           })}
         </div>
       </div>
-      <p className="m-0 border-t border-slate-800/80 pt-2 text-[11px] leading-relaxed text-slate-400">关闭总开关后，AI 的改动型操作会被拒绝，只读工具仍可使用；限时放行到期后自动锁定。</p>
+      <p className="m-0 border-t border-[var(--border)]/80 pt-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">关闭总开关后，AI 的改动型操作会被拒绝，只读工具仍可使用；限时放行到期后自动锁定。</p>
     </div>
   );
 
   return (
-    <div className="ops-page ops-copilot-page flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0d14] p-0 font-sans" style={{ color: "var(--text-secondary)" }}>
+    <div className="ops-page ops-copilot-page flex h-full min-h-0 flex-col overflow-hidden bg-[var(--surface-950)] p-0 font-sans" style={{ color: "var(--text-secondary)" }}>
       <Modal
         open={approvalPreview !== null}
         centered
@@ -967,14 +969,14 @@ export default function CopilotPage() {
           const pending = approval.status === "pending" && !expired;
           return <div className="space-y-4 text-sm">
             <Alert type={pending ? "warning" : "info"} showIcon message={pending ? "命令和后续步骤已暂停。批准后才会按顺序执行计划并运行只读验证；拒绝或超时后不会继续。" : expired || approval.status === "expired" ? "审批已超时，命令未执行，本次计划及后续步骤已暂停。" : approval.status === "rejected" ? "审批已拒绝，命令未执行，本次计划及后续步骤已暂停。" : "批准后将按顺序执行计划，并在每一步后运行只读验证；任一步失败都会停止后续步骤。"} />
-            <div className="grid gap-2 rounded-lg border border-slate-700 bg-surface-950 p-3 sm:grid-cols-2">
+            <div className="grid gap-2 rounded-lg border border-[var(--border)] bg-surface-950 p-3 sm:grid-cols-2">
               <span>目标服务器：<strong>{approval.serverAlias}</strong></span>
               <span>审批状态：<Tag color={pending || approval.status === "executing" ? "processing" : approval.status === "completed" ? "success" : "error"}>{expired ? "已超时" : approval.status === "rejected" ? "已拒绝" : approval.status}</Tag></span>
               <span className="sm:col-span-2">原始请求：{detail.plan?.originalRequest ?? approval.command}</span>
               <span className="sm:col-span-2">{pending ? `剩余审批时间：${formatApprovalCountdown(approval.expiresAt, now)}（300 秒内有效）` : `失效时间：${new Date(approval.expiresAt * 1000).toLocaleString()}`}</span>
             </div>
             <CopilotApprovalPlanSummary detail={detail} />
-            {approvalProgress.length > 0 && <section className="rounded-lg border border-slate-700 bg-surface-950 p-3"><h3 className="mb-2 mt-0 text-sm font-semibold">实时执行过程</h3><ol className="m-0 space-y-2">{approvalProgress.map((entry, index) => <li key={`${entry.stage}-${index}`} className="flex items-start gap-2"><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${entry.status === "success" ? "bg-emerald-500" : entry.status === "failed" ? "bg-rose-500" : "animate-pulse bg-cyan-400"}`} /><span>{entry.message}{entry.delta ? <code className="ml-2 text-xs text-slate-400">{entry.delta}</code> : null}</span></li>)}</ol></section>}
+            {approvalProgress.length > 0 && <section className="rounded-lg border border-[var(--border)] bg-surface-950 p-3"><h3 className="mb-2 mt-0 text-sm font-semibold">实时执行过程</h3><ol className="m-0 space-y-2">{approvalProgress.map((entry, index) => <li key={`${entry.stage}-${index}`} className="flex items-start gap-2"><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${entry.status === "success" ? "bg-emerald-500" : entry.status === "failed" ? "bg-rose-500" : "animate-pulse bg-cyan-400"}`} /><span>{entry.message}{entry.delta ? <code className="ml-2 text-xs text-[var(--text-secondary)]">{entry.delta}</code> : null}</span></li>)}</ol></section>}
             {approval.result && !pending && <Alert type={approval.status === "completed" ? "success" : "error"} showIcon message={approval.status === "completed" ? "执行与验证已完成" : "计划执行未完成"} description={approval.result} />}
             <div className="flex justify-end gap-2"><Button onClick={() => setApprovalPreview(null)}>关闭</Button>{pending && <><Button disabled={approvalBusy !== null} onClick={() => void rejectApproval(approval.id)}>拒绝并暂停</Button><Button danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => approveApproval(approval)}>批准并执行</Button></>}</div>
           </div>;
@@ -990,7 +992,7 @@ export default function CopilotPage() {
         onCancel={() => { setLockedPromptOpen(false); setPendingPrompt(null); setPendingRegenerateMessageId(null); }}
         title={
           <span className="flex items-center gap-2.5" style={{ color: "var(--text-primary)" }}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/20 text-amber-400">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/20 text-[var(--warning)]">
               <ShieldAlert size={18} />
             </span>
             <span className="text-base font-bold">AI 操作当前已锁定</span>
@@ -1030,25 +1032,25 @@ export default function CopilotPage() {
       >
         <div className="space-y-3">
           <Alert type="warning" showIcon message="此功能只分析文本，不会连接服务器、执行命令或批准操作。命令仍需人工同意，并继续受白名单和审批策略限制。" />
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">待分析命令或请求
+          <label className="block text-sm font-medium text-[var(--text-secondary)] ">待分析命令或请求
             <Input.TextArea className="mt-2 font-mono" value={explainText} onChange={(event) => setExplainText(event.target.value)} maxLength={4000} showCount rows={5} placeholder="粘贴被拦截的命令或命令请求" />
           </label>
-          {explainResult && <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-            <h3 className="mb-2 mt-0 text-base font-semibold text-slate-900 dark:text-slate-100">分析结果</h3>
-            <div className="whitespace-pre-wrap break-words text-sm leading-7 text-slate-700 dark:text-slate-300">{explainResult}</div>
+          {explainResult && <section className="rounded-lg border border-[var(--border)] bg-surface-850 p-4 ">
+            <h3 className="mb-2 mt-0 text-base font-semibold text-[var(--text-primary)] ">分析结果</h3>
+            <div className="whitespace-pre-wrap break-words text-sm leading-7 text-[var(--text-secondary)] ">{explainResult}</div>
           </section>}
         </div>
       </Modal>
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-surface-900/95 px-5 py-3.5">
-        <div className="flex min-w-0 items-center gap-2"><Bot size={18} className="text-indigo-400" /><div><h1 className="m-0 text-sm font-bold text-white">AI 助手</h1><p className="m-0 mt-0.5 text-[11px] text-slate-400">让 AI 帮你查看和操作服务器；每一步都受 AI 操作策略约束，并记入审计</p></div></div>
-        <div className="flex items-center gap-2">
+      <header className="flex shrink-0 flex-nowrap items-center justify-between gap-3 border-b border-[var(--border)] bg-surface-900/95 px-5 py-3.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2"><Bot size={18} className="shrink-0 text-[var(--accent)]" /><div className="min-w-0"><h1 className="m-0 text-sm font-bold text-[var(--text-primary)]">AI 助手</h1><p className="m-0 mt-0.5 truncate text-[11px] text-[var(--text-secondary)]">让 AI 帮你查看和操作服务器；每一步都受 AI 操作策略约束，并记入审计</p></div></div>
+        <div className="flex shrink-0 items-center gap-2">
           <div ref={lockWrapperRef} className="relative">
-            <button type="button" aria-expanded={lockPopoverOpen} onClick={() => setLockPopoverOpen((open) => !open)} className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium shadow-sm transition ${aiLocked ? "border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"}`}>
+            <button type="button" aria-expanded={lockPopoverOpen} onClick={() => setLockPopoverOpen((open) => !open)} className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium shadow-sm transition ${aiLocked ? "border-rose-500/30 bg-rose-500/10 text-[var(--danger)] hover:bg-rose-500/20" : "border-emerald-500/30 bg-emerald-500/10 text-[var(--success)] hover:bg-emerald-500/20"}`}>
               {aiLocked ? <Lock size={13} /> : <Unlock size={13} />}
               <span>{aiLocked ? "AI 操作已锁定" : isForever ? "AI 操作放行中 · 永久" : `放行中 · ${formatRemaining(remainingSeconds)}`}</span>
               <ChevronDown size={12} />
             </button>
-            {lockPopoverOpen && <div onPointerDown={(event) => event.stopPropagation()} className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-slate-700 bg-[#0f141c] p-4 text-xs shadow-2xl">
+            {lockPopoverOpen && <div onPointerDown={(event) => event.stopPropagation()} className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-[var(--border)] bg-[var(--surface-900)] p-4 text-xs shadow-2xl">
               {lockControl}
             </div>}
           </div>
@@ -1056,16 +1058,16 @@ export default function CopilotPage() {
         </div>
       </header>
 
-      <div className="flex shrink-0 flex-col gap-2 border-b border-slate-800/80 bg-surface-950/60 px-5 py-2 text-xs">
+      <div className="flex shrink-0 flex-col gap-2 border-b border-[var(--border)]/80 bg-surface-950/60 px-5 py-2 text-xs">
         <div className="flex items-center justify-between gap-2.5 flex-wrap">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <div className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Bot size={14} className="text-indigo-400" /><span className="text-[11px]">内置对话</span><Select size="small" variant="borderless" className="min-w-44" value={modelProfileId ?? "local-safe-tools"} onChange={(value) => setModelProfileId(value === "local-safe-tools" ? null : value)} options={[{ value: "local-safe-tools", label: "本地受控工具" }, ...modelProfiles.map((profile) => ({ value: profile.id, label: `${profile.name} · ${profile.model || "未指定模型"}` }))]} /><Button type="text" size="small" aria-label="配置模型服务" title="配置模型服务" icon={<Settings2 size={14} />} onClick={() => navigate("/settings", { state: { from: "copilot" } })} className="!h-6 !w-6 !p-0 !text-slate-400 hover:!text-white" /></div>
-            <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400"><Database size={14} className="text-teal-400" /><span className="sr-only">目标服务器</span><Select size="small" variant="borderless" className="min-w-52 max-w-72" value={serverId} onChange={(value) => setActiveServerId(value === null || value === undefined ? null : Number(value))} options={serverOptions} /></label>
+            <div className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-900)] px-2.5 text-[var(--text-secondary)]"><Bot size={14} className="text-[var(--accent)]" /><span className="text-[11px]">内置对话</span><Select size="small" variant="borderless" className="min-w-44" value={modelProfileId ?? "local-safe-tools"} onChange={(value) => setModelProfileId(value === "local-safe-tools" ? null : value)} options={[{ value: "local-safe-tools", label: "本地受控工具" }, ...modelProfiles.map((profile) => ({ value: profile.id, label: `${profile.name} · ${profile.model || "未指定模型"}` }))]} /><Button type="text" size="small" aria-label="配置模型服务" title="配置模型服务" icon={<Settings2 size={14} />} onClick={() => navigate("/settings", { state: { from: "copilot" } })} className="!h-6 !w-6 !p-0 !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]" /></div>
+            <label className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-900)] px-2.5 text-[var(--text-secondary)]"><Database size={14} className="text-[var(--success)]" /><span className="sr-only">目标服务器</span><Select size="small" variant="borderless" className="min-w-52 max-w-72" value={serverId} onChange={(value) => setActiveServerId(value === null || value === undefined ? null : Number(value))} options={serverOptions} /></label>
           </div>
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-            <Button size="small" className="!h-8 !border-slate-800 !bg-[#0e131b] !text-slate-300" icon={<Puzzle size={14} className="text-amber-400" />} onClick={() => message.info("AI 工具由当前服务器策略和 MCP 接入配置共同控制")}>外部工具</Button>
-            <div className="flex min-h-8 min-w-[240px] max-w-[32rem] flex-1 items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0e131b] px-2.5 text-slate-400">
-              <Puzzle size={14} className="shrink-0 text-amber-400" /><span className="shrink-0 text-xs">本轮技能</span>
+            <Button size="small" className="!h-8 !border-[var(--border)] !bg-[var(--surface-900)] !text-[var(--text-secondary)]" icon={<Puzzle size={14} className="text-[var(--warning)]" />} onClick={() => message.info("AI 工具由当前服务器策略和 MCP 接入配置共同控制")}>外部工具</Button>
+            <div className="flex min-h-8 min-w-[240px] max-w-[32rem] flex-1 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-900)] px-2.5 text-[var(--text-secondary)]">
+              <Puzzle size={14} className="shrink-0 text-[var(--warning)]" /><span className="shrink-0 text-xs">本轮技能</span>
               <Select aria-label="本轮技能" mode="multiple" size="small" variant="borderless" allowClear showSearch maxTagCount="responsive" className="min-w-0 flex-1" placeholder="输入问题后自动匹配，也可手动补充" value={visibleSkillIds} disabled={loading} optionFilterProp="label" onChange={(ids: string[]) => {
               // 删除某个自动技能时，不要把其余自动匹配项变成会话固定项。
               setSelectedSkillIds(ids.filter((id) => selectedSkillIds.includes(id) || suppressedAutoSkillIds.includes(id) || !matchedSkills.some((skill) => skill.id === id)));
@@ -1075,19 +1077,67 @@ export default function CopilotPage() {
             </div>
           </div>
         <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
-          <div className="flex min-w-0 items-center gap-2 text-[11px] text-slate-500"><span>技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定</span><span className="shrink-0">{historySessions.length} 个会话</span></div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <button type="button" onClick={() => void navigate("/credentials")} className="flex items-center gap-1 transition hover:text-white"><ShieldCheck size={14} />查看凭据状态</button>
-            <button type="button" onClick={() => setHistoryOpen(true)} className="flex items-center gap-1 transition hover:text-white"><History size={14} />历史</button>
-            <button type="button" onClick={openExperienceSave} className="flex items-center gap-1 transition hover:text-white"><Bookmark size={14} />存为经验</button>
-            <button type="button" onClick={() => setExperienceLibraryOpen(true)} className="flex items-center gap-1 transition hover:text-white">经验库{experiences.length > 0 ? ` (${experiences.length})` : ""}</button>
-            <button type="button" onClick={createSession} className="flex items-center gap-1 font-medium text-slate-300 transition hover:text-white"><Plus size={14} />新对话</button>
-            <Popconfirm title="清空当前对话内容？" okText="清空" cancelText="取消" onConfirm={clearHistory}><button type="button" className="flex items-center gap-1 text-slate-400 transition hover:text-rose-300"><X size={13} />清空</button></Popconfirm>
+          <div className="flex min-w-0 items-center gap-2 text-[11px] text-[var(--text-muted)]"><span>技能按问题关键词自动匹配（最多 3 项），手动选择可额外补充；无需预先指定</span><span className="shrink-0">{historySessions.length} 个会话</span></div>
+          <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+            <button type="button" onClick={() => void navigate("/credentials")} className="flex items-center gap-1 transition hover:text-[var(--text-primary)]"><ShieldCheck size={14} />查看凭据状态</button>
+            <button type="button" onClick={() => setHistoryOpen(true)} className="flex items-center gap-1 transition hover:text-[var(--text-primary)]"><History size={14} />历史</button>
+            <button type="button" onClick={openExperienceSave} className="flex items-center gap-1 transition hover:text-[var(--text-primary)]"><Bookmark size={14} />存为经验</button>
+            <button type="button" onClick={() => setExperienceLibraryOpen(true)} className="flex items-center gap-1 transition hover:text-[var(--text-primary)]">经验库{experiences.length > 0 ? ` (${experiences.length})` : ""}</button>
+            <button type="button" onClick={createSession} className="flex items-center gap-1 font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"><Plus size={14} />新对话</button>
+            <Popconfirm title="清空当前对话内容？" okText="清空" cancelText="取消" onConfirm={clearHistory}><button type="button" className="flex items-center gap-1 text-[var(--text-secondary)] transition hover:text-[var(--danger)]"><X size={13} />清空</button></Popconfirm>
           </div>
         </div>
       </div>
 
-      {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto border-b border-amber-500/30 bg-amber-950/10 p-3"><div className="mb-2 font-semibold text-amber-300">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending" && approvalSecondsRemaining(item.expiresAt, now) > 0).length}</div>{approvals.filter((item) => item.status === "pending").map((item) => { const expired = approvalSecondsRemaining(item.expiresAt, now) === 0; return <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`mb-2 rounded border px-2 py-2 transition ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/15 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]" : "border-slate-700"}`}><div className="flex flex-wrap items-center justify-between gap-2"><button type="button" className="text-left underline decoration-amber-500/40 underline-offset-2" onClick={() => openApprovalPreview(item.id)}>#{item.id} · {item.serverAlias} · {item.command}</button>{expired ? <span className="text-xs font-semibold text-rose-300">审批已超时 · 后续步骤已暂停</span> : <span className="flex items-center gap-2"><span className="text-xs tabular-nums text-amber-200">剩余 {formatApprovalCountdown(item.expiresAt, now)}</span><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span>}</div><CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} /><p className="mb-0 mt-1 text-[11px] text-slate-400">当前命令尚未执行，审批通过前所有后续步骤保持暂停。</p></div>; })}<details className="mt-1 text-slate-400"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`border-b py-1 ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/10" : "border-slate-800"}`}>#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details></section>}
+      <WorkspaceSidebarSlot>
+        <div className="space-y-2 px-2 pb-3">
+          <Button block type="primary" icon={<Plus size={14} />} onClick={createSession}>新对话</Button>
+          <Input.Search allowClear value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索历史对话" />
+          <div className="flex items-center justify-between px-2 pb-1 pt-2 text-[11px] text-[var(--text-muted)]">
+            <span>历史对话</span><span>{matchingSessions.length}</span>
+          </div>
+          {matchingSessions.length === 0 ? <div className="px-3 py-4 text-center text-xs text-[var(--text-muted)]">{historyQuery ? "没有匹配的对话" : "暂无历史对话"}</div> : matchingSessions.map((session) => {
+            const active = session.id === activeSessionId;
+            const firstQuestion = session.messages.find((item) => item.role === "user")?.content ?? "暂无提问";
+            return <div key={session.id} className={`group flex min-w-0 items-start gap-1 rounded-md border px-2 py-2 transition ${active ? "border-[var(--accent)]/35 bg-[var(--bg-active)]" : "border-transparent hover:bg-[var(--bg-hover)]"}`}>
+              <button type="button" onClick={() => switchSession(session.id)} aria-current={active ? "page" : undefined} className="min-w-0 flex-1 text-left">
+                <span className="block truncate text-xs font-medium text-[var(--text-primary)]">{session.title}</span>
+                <span className="mt-1 block truncate text-[10px] text-[var(--text-secondary)]">{firstQuestion}</span>
+                <span className="mt-1 block text-[10px] text-[var(--text-muted)]">{new Date(session.updatedAt).toLocaleString()}</span>
+              </button>
+              <Popconfirm title="删除这段历史对话？" okText="删除" cancelText="取消" onConfirm={() => deleteSession(session.id)}>
+                <Button type="text" danger size="small" icon={<X size={13} />} aria-label={`删除对话 ${session.title}`} title="删除对话" className="!h-6 !w-6 !shrink-0 !p-0 opacity-0 transition group-hover:opacity-100 focus:opacity-100" />
+              </Popconfirm>
+            </div>;
+          })}
+          <button type="button" onClick={() => setHistoryOpen(true)} className="w-full px-2 py-2 text-left text-[11px] text-[var(--accent)] hover:bg-[var(--bg-hover)]">查看全部历史与管理</button>
+          <div className="mt-2 border-t border-[var(--border)] px-2 pt-3">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)]"><Database size={13} className="text-[var(--success)]" />当前服务器上下文</div>
+            {selectedServer ? <div className="min-w-0 space-y-1">
+              <div className="truncate text-xs font-semibold text-[var(--text-primary)]">{selectedServer.alias}</div>
+              <div className="truncate font-mono text-[10px] text-[var(--text-secondary)]">{selectedServer.hostname}:{selectedServer.port}</div>
+              <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]"><span>策略</span><span className="truncate">{selectedServer.ai_policy || "未设置"}</span></div>
+              <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]"><span>连接状态</span><span className="truncate">{selectedServer.last_connection_status || "未知"}</span></div>
+            </div> : <p className="m-0 text-[11px] leading-relaxed text-[var(--text-muted)]">自动选择。问题中指定目标，或使用唯一可用服务器。</p>}
+          </div>
+        </div>
+      </WorkspaceSidebarSlot>
+
+      {approvals.length > 0 && <section className="custom-scrollbar max-h-52 shrink-0 overflow-y-auto overscroll-contain border-b border-amber-500/30 bg-amber-950/10 p-3">
+        <div className="mb-2 font-semibold text-[var(--warning)]">人工审批 · 待处理 {approvals.filter((item) => item.status === "pending" && approvalSecondsRemaining(item.expiresAt, now) > 0).length}</div>
+        {approvals.filter((item) => item.status === "pending").map((item) => {
+          const expired = approvalSecondsRemaining(item.expiresAt, now) === 0;
+          return <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`mb-2 rounded border px-2 py-2 transition ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/15 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]" : "border-[var(--border)]"}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <button type="button" className="text-left underline decoration-amber-500/40 underline-offset-2" onClick={() => openApprovalPreview(item.id)}>#{item.id} · {item.serverAlias} · {item.command}</button>
+              {expired ? <span className="text-xs font-semibold text-[var(--danger)]">审批已超时 · 后续步骤已暂停</span> : <span className="flex items-center gap-2"><span className="text-xs tabular-nums text-[var(--warning)]">剩余 {formatApprovalCountdown(item.expiresAt, now)}</span><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(item.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === item.id} disabled={approvalBusy !== null && approvalBusy !== item.id} onClick={() => approveApproval(item)}>批准并执行</Button></span>}
+            </div>
+            <CopilotApprovalPlanSummary detail={approvalDetailById.get(item.id)} />
+            <p className="mb-0 mt-1 text-[11px] text-[var(--text-secondary)]">当前命令尚未执行，审批通过前所有后续步骤保持暂停。</p>
+          </div>;
+        })}
+        <details className="mt-1 text-[var(--text-secondary)]"><summary className="cursor-pointer">最近审批记录</summary>{approvals.filter((item) => item.status !== "pending").slice(0, 10).map((item) => <div id={`copilot-approval-${item.id}`} data-approval-id={item.id} key={item.id} className={`border-b py-1 ${highlightedApprovalId === item.id ? "border-amber-300 bg-amber-500/10" : "border-[var(--border)]"}`}>#{item.id} · {item.serverAlias} · {item.command} · {item.status}{item.result ? ` · ${item.result}` : ""}</div>)}</details>
+      </section>}
 
       <Modal
         rootClassName="copilot-history-modal"
@@ -1129,8 +1179,8 @@ export default function CopilotPage() {
 
       <Modal title="存为经验" open={experienceSaveOpen} onCancel={() => setExperienceSaveOpen(false)} onOk={saveExperience} okText="保存到本机" cancelText="取消" width={640} destroyOnClose maskClosable={false}>
         <div className="space-y-3">
-          <label className="block text-xs text-slate-400">经验标题<Input className="mt-1" maxLength={80} value={experienceTitle} onChange={(event) => setExperienceTitle(event.target.value)} placeholder="例如：Nginx 502 排查流程" /></label>
-          <label className="block text-xs text-slate-400">排障过程与结论<Input.TextArea className="mt-1" rows={9} maxLength={12000} showCount value={experienceContent} onChange={(event) => setExperienceContent(event.target.value)} placeholder="整理可复用的问题、检查步骤和结论" /></label>
+          <label className="block text-xs text-[var(--text-secondary)]">经验标题<Input className="mt-1" maxLength={80} value={experienceTitle} onChange={(event) => setExperienceTitle(event.target.value)} placeholder="例如：Nginx 502 排查流程" /></label>
+          <label className="block text-xs text-[var(--text-secondary)]">排障过程与结论<Input.TextArea className="mt-1" rows={9} maxLength={12000} showCount value={experienceContent} onChange={(event) => setExperienceContent(event.target.value)} placeholder="整理可复用的问题、检查步骤和结论" /></label>
           <Alert type="warning" showIcon message="内容仅保存在本机，不会同步给团队。保存前请检查并移除主机地址、账号、密钥等敏感信息；工具原始输出不会自动写入经验。" />
         </div>
       </Modal>
@@ -1139,9 +1189,9 @@ export default function CopilotPage() {
         <div className="mb-3 flex items-center justify-between gap-2"><Input.Search allowClear value={experienceQuery} onChange={(event) => setExperienceQuery(event.target.value)} placeholder="搜索经验标题或内容" className="max-w-sm" /><Button icon={<Bookmark size={13} />} onClick={() => { setExperienceLibraryOpen(false); openExperienceSave(); }}>从当前对话保存</Button></div>
         <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
           {matchingExperiences.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={experienceQuery ? "没有匹配的经验" : "还没有保存的经验"} /> : matchingExperiences.map((item) => (
-            <article key={item.id} className="rounded-lg border border-slate-800 bg-surface-950 p-3">
-              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="m-0 truncate text-sm font-semibold text-slate-100">{item.title}</h3><p className="mb-0 mt-1 text-[10px] text-slate-500">保存于 {new Date(item.createdAt).toLocaleString()}</p></div><div className="flex shrink-0 items-center gap-1"><Button size="small" type="dashed" onClick={() => openSkillDraft(item)}>提炼为技能</Button><Button size="small" onClick={() => { setInput((current) => current ? `${current}\n\n参考本机经验「${item.title}」：\n${item.content}` : `参考本机经验「${item.title}」：\n${item.content}`); setExperienceLibraryOpen(false); }}>放入对话</Button><Popconfirm title="删除这条本机经验？" okText="删除" cancelText="取消" onConfirm={() => setExperiences((current) => current.filter((experience) => experience.id !== item.id))}><Button size="small" danger type="text">删除</Button></Popconfirm></div></div>
-              <details className="mt-2"><summary className="cursor-pointer text-[11px] text-indigo-300">查看内容</summary><pre className="mb-0 mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 text-xs leading-relaxed text-slate-300">{item.content}</pre></details>
+            <article key={item.id} className="rounded-lg border border-[var(--border)] bg-surface-950 p-3">
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="m-0 truncate text-sm font-semibold text-[var(--text-primary)]">{item.title}</h3><p className="mb-0 mt-1 text-[10px] text-[var(--text-muted)]">保存于 {new Date(item.createdAt).toLocaleString()}</p></div><div className="flex shrink-0 items-center gap-1"><Button size="small" type="dashed" onClick={() => openSkillDraft(item)}>提炼为技能</Button><Button size="small" onClick={() => { setInput((current) => current ? `${current}\n\n参考本机经验「${item.title}」：\n${item.content}` : `参考本机经验「${item.title}」：\n${item.content}`); setExperienceLibraryOpen(false); }}>放入对话</Button><Popconfirm title="删除这条本机经验？" okText="删除" cancelText="取消" onConfirm={() => setExperiences((current) => current.filter((experience) => experience.id !== item.id))}><Button size="small" danger type="text">删除</Button></Popconfirm></div></div>
+              <details className="mt-2"><summary className="cursor-pointer text-[11px] text-[var(--accent)]">查看内容</summary><pre className="mb-0 mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 text-xs leading-relaxed text-[var(--text-secondary)]">{item.content}</pre></details>
             </article>
           ))}
         </div>
@@ -1174,13 +1224,13 @@ export default function CopilotPage() {
             shouldFollowChatRef.current = container.scrollHeight - container.scrollTop - container.clientHeight < 96;
           }
         }}
-        className="custom-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto p-6"
+        className="custom-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-6"
       >
         <div className="flex w-full flex-col gap-5">
           {messages.length === 1 && messages[0]?.id === "welcome" ? <div className="space-y-6 py-8 text-center">
-            <div className="mx-auto max-w-3xl space-y-2"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-500/25 bg-indigo-500/10 text-indigo-400 shadow-inner"><Bot size={24} /></div><h2 className="m-0 text-base font-bold text-white">有什么可以帮你？</h2><p className="mx-auto max-w-md text-xs leading-relaxed text-slate-400">AI 会调用你授权的工具查看、操作服务器，每一步都受 AI 操作策略约束并记入审计。</p></div>
-            <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 text-left md:grid-cols-2">{QUICK_PROMPTS.map((item) => { const Icon = item.icon; return <button key={item.title} type="button" disabled={loading} onClick={() => void send(item.prompt)} className="group space-y-1.5 rounded-xl border border-slate-800/80 bg-[#0f141c] p-4 text-left transition hover:border-slate-700 hover:bg-surface-900/60 disabled:opacity-60"><div className="flex items-center gap-2 text-xs font-bold text-white transition group-hover:text-indigo-400"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${item.iconBg}`}><Icon size={14} className={item.color} /></span><span>{item.title}</span></div><p className="m-0 pl-9 text-[11px] leading-relaxed text-slate-400">{item.description}</p></button>; })}</div>
-            <div className="mx-auto flex max-w-3xl items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-500"><History size={14} className="text-slate-600" /><span>对话会自动保存，可在上方“历史”中继续。</span></div>
+            <div className="mx-auto max-w-3xl space-y-2"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-500/25 bg-indigo-500/10 text-[var(--accent)] shadow-inner"><Bot size={24} /></div><h2 className="m-0 text-base font-bold text-[var(--text-primary)]">有什么可以帮你？</h2><p className="mx-auto max-w-md text-xs leading-relaxed text-[var(--text-secondary)]">AI 会调用你授权的工具查看、操作服务器，每一步都受 AI 操作策略约束并记入审计。</p></div>
+            <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 text-left md:grid-cols-2">{QUICK_PROMPTS.map((item) => { const Icon = item.icon; return <button key={item.title} type="button" disabled={loading} onClick={() => void send(item.prompt)} className="group space-y-1.5 rounded-xl border border-[var(--border)]/80 bg-[var(--surface-900)] p-4 text-left transition hover:border-[var(--border)] hover:bg-surface-900/60 disabled:opacity-60"><div className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] transition group-hover:text-[var(--accent)]"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${item.iconBg}`}><Icon size={14} className={item.color} /></span><span>{item.title}</span></div><p className="m-0 pl-9 text-[11px] leading-relaxed text-[var(--text-secondary)]">{item.description}</p></button>; })}</div>
+            <div className="mx-auto flex max-w-3xl items-center justify-center gap-1.5 pt-2 text-[11px] text-[var(--text-muted)]"><History size={14} className="text-[var(--text-muted)]" /><span>对话会自动保存，可在上方“历史”中继续。</span></div>
           </div> : messages.map((item, messageIndex) => item.id === "welcome" ? null : item.role === "user" ? (
             <div key={item.id} className="group flex w-full justify-end pr-1 sm:pr-2">
               <div className="flex max-w-2xl items-end gap-1.5">
@@ -1192,7 +1242,7 @@ export default function CopilotPage() {
                     <span className="inline-flex"><Button size="small" type="text" aria-label="编辑这条消息" icon={<Pencil size={14} />} onClick={() => editUserMessage(item.id)} disabled={loading} /></span>
                   </Tooltip>
                 </div>
-                <article className="inline-flex items-center rounded-2xl rounded-tr-md border border-slate-700/80 bg-[#1e2330] px-5 py-2.5 text-xs leading-normal text-slate-100 shadow-sm transition hover:bg-[#242a3a]"><div className="whitespace-pre-wrap break-words">{item.content}</div></article>
+                <article className="inline-flex items-center rounded-2xl rounded-tr-md border border-[var(--border)]/80 bg-[var(--bg-active)] px-5 py-2.5 text-xs leading-normal text-[var(--text-primary)] shadow-sm transition hover:bg-[var(--bg-hover)]"><div className="whitespace-pre-wrap break-words">{item.content}</div></article>
               </div>
             </div>
           ) : (
@@ -1209,22 +1259,22 @@ export default function CopilotPage() {
               const latestProgress = [...(item.progressEvents ?? [])].reverse().find((entry) => entry.message.trim() && entry.kind !== "text_delta");
               const contextCount = item.historyCount ?? 0;
               return (
-            <article key={item.id} className="w-full space-y-3.5 rounded-2xl border border-slate-800/90 bg-[#0f141c] p-5 text-xs shadow-xl">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
-                <div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-1.5 font-bold text-white"><Bot size={15} className="text-indigo-400" />OpsPub AI 助手</span><Tag bordered={false} color={item.streaming ? "processing" : item.content.startsWith("请求失败：") ? "error" : "success"} className="m-0">{item.streaming ? "正在生成" : item.content.startsWith("请求失败：") ? "未完成" : "已完成"}</Tag>{triggeredSkillNames.length > 0 && <Tag bordered={false} color="gold" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />关键词触发：{triggeredSkillNames.join("、")}</span></Tag>}{manualSkillNames.length > 0 && <Tag bordered={false} color="blue" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />手动补充：{manualSkillNames.join("、")}</span></Tag>}</div>
-                <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400"><span>本轮 {agentRoundCount} 轮</span><span className="text-slate-700">·</span><span>{completedToolCount}/{toolCount} 次工具完成</span><span className="text-slate-700">·</span><span>{usedSkillCount} 个技能</span><span className="text-slate-700">·</span><span>上下文 {contextCount} 条{item.historyTrimmed ? `（裁剪 ${item.historyTrimmed}）` : ""}</span><span className="text-slate-600">·</span><span>{item.modelName ? `模型 · ${item.modelName}` : "本地受控模式"}</span></div>
+            <article key={item.id} className="w-full space-y-3.5 rounded-2xl border border-[var(--border)]/90 bg-[var(--surface-900)] p-5 text-xs shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)]/80 pb-2.5">
+                <div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]"><Bot size={15} className="text-[var(--accent)]" />OpsPub AI 助手</span><Tag bordered={false} color={item.streaming ? "processing" : item.content.startsWith("请求失败：") ? "error" : "success"} className="m-0">{item.streaming ? "正在生成" : item.content.startsWith("请求失败：") ? "未完成" : "已完成"}</Tag>{triggeredSkillNames.length > 0 && <Tag bordered={false} color="gold" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />关键词触发：{triggeredSkillNames.join("、")}</span></Tag>}{manualSkillNames.length > 0 && <Tag bordered={false} color="blue" className="m-0"><span className="inline-flex items-center gap-1"><Puzzle size={12} />手动补充：{manualSkillNames.join("、")}</span></Tag>}</div>
+                <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)]"><span>本轮 {agentRoundCount} 轮</span><span className="text-[var(--text-secondary)]">·</span><span>{completedToolCount}/{toolCount} 次工具完成</span><span className="text-[var(--text-secondary)]">·</span><span>{usedSkillCount} 个技能</span><span className="text-[var(--text-secondary)]">·</span><span>上下文 {contextCount} 条{item.historyTrimmed ? `（裁剪 ${item.historyTrimmed}）` : ""}</span><span className="text-[var(--text-muted)]">·</span><span>{item.modelName ? `模型 · ${item.modelName}` : "本地受控模式"}</span></div>
               </div>
-              {agentRoundCount > 1 && <div className="text-[11px] text-cyan-300">已完成 {agentRoundCount} 轮受控工具规划</div>}
+              {agentRoundCount > 1 && <div className="text-[11px] text-[var(--info)]">已完成 {agentRoundCount} 轮受控工具规划</div>}
               {item.progressEvents?.length ? (
-                <section className="overflow-hidden rounded-xl border border-slate-800/80 bg-[#0b0f16]">
+                <section className="overflow-hidden rounded-xl border border-[var(--border)]/80 bg-[var(--surface-950)]">
                   <CopilotExecutionTimeline events={item.progressEvents} streaming={item.streaming} statusMessage={item.streaming ? `${latestProgress?.round ? `第 ${latestProgress.round} 轮 · ` : "处理中 · "}${latestProgress?.message ?? "等待下一步"}` : "执行记录已完成"} />
                 </section>
               ) : item.toolCalls?.length ? (
-                <div className="space-y-2">{item.toolCalls.map((tool, index) => <div key={`${tool.tool}-${tool.serverAlias}-${index}`} className="rounded-lg border border-slate-800/80 bg-[#0d121a] p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-cyan-300"><TerminalSquare size={13} />{tool.tool}{tool.serverAlias ? <span className="font-sans font-normal text-slate-500">@{tool.serverAlias}</span> : null}</span><Tag color={tool.status === "success" ? "success" : tool.status === "blocked" ? "warning" : tool.status === "skipped" ? "default" : tool.status === "pending" || tool.status === "running" ? "processing" : "error"}>{toolStatusLabel(tool.status)}</Tag></div><pre className="m-0 mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-slate-400">{tool.output || "无输出"}</pre></div>)}</div>
+                <div className="space-y-2">{item.toolCalls.map((tool, index) => <div key={`${tool.tool}-${tool.serverAlias}-${index}`} className="rounded-lg border border-[var(--border)]/80 bg-[var(--surface-950)] p-2.5"><div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-[var(--info)]"><TerminalSquare size={13} />{tool.tool}{tool.serverAlias ? <span className="font-sans font-normal text-[var(--text-muted)]">@{tool.serverAlias}</span> : null}</span><Tag color={tool.status === "success" ? "success" : tool.status === "blocked" ? "warning" : tool.status === "skipped" ? "default" : tool.status === "pending" || tool.status === "running" ? "processing" : "error"}>{toolStatusLabel(tool.status)}</Tag></div><pre className="m-0 mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[11px] leading-relaxed text-[var(--text-secondary)]">{tool.output || "无输出"}</pre></div>)}</div>
               ) : item.streaming ? (
-                <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-[#0d121a] px-3 py-2 text-[11px] text-slate-400"><Spin size="small" />正在等待第一条执行事件…</div>
-              ) : <p className="m-0 text-[11px] text-slate-500">没有调用服务器工具；以上内容由模型根据对话上下文生成。</p>}
-              {item.content ? <CopilotMarkdown content={item.content} /> : item.streaming ? <div className="flex items-center gap-2 py-1 text-xs text-slate-400"><Spin size="small" />正在汇总检查结果…</div> : null}
+                <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-950)] px-3 py-2 text-[11px] text-[var(--text-secondary)]"><Spin size="small" />正在等待第一条执行事件…</div>
+              ) : <p className="m-0 text-[11px] text-[var(--text-muted)]">没有调用服务器工具；以上内容由模型根据对话上下文生成。</p>}
+              {item.content ? <CopilotMarkdown content={item.content} /> : item.streaming ? <div className="flex items-center gap-2 py-1 text-xs text-[var(--text-secondary)]"><Spin size="small" />正在汇总检查结果…</div> : null}
               {item.toolCalls?.map((tool) => {
                 if (typeof tool.approvalId !== "number") return null;
                 const detail = approvalDetailById.get(tool.approvalId);
@@ -1233,11 +1283,11 @@ export default function CopilotPage() {
                 const pending = approval?.status === "pending" && !expired;
                 const statusLabel = expired || approval?.status === "expired" ? "已超时，后续暂停" : approval?.status === "pending" ? "等待审批" : approval?.status === "completed" ? "执行完成" : approval?.status === "rejected" ? "已拒绝，后续暂停" : approval?.status === "failed" ? "执行失败" : approval?.status ?? "状态同步中";
                 return <section key={`approval-${tool.approvalId}`} className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-3.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2 font-semibold text-amber-200"><ShieldAlert size={15} />人工审批 #{tool.approvalId}<Tag color={pending ? "processing" : approval?.status === "completed" ? "success" : expired || approval?.status === "expired" || approval?.status === "rejected" ? "error" : "default"}>{statusLabel}</Tag></div>{approval && <span className="text-[11px] text-slate-500">{pending ? `剩余 ${formatApprovalCountdown(approval.expiresAt, now)}` : approval.decidedAt ? `处理于 ${new Date(approval.decidedAt * 1000).toLocaleString()}` : ""}</span>}</div>
-                  <div className="mt-2 grid gap-1 text-[11px] text-slate-400"><span>目标：{approval?.serverAlias ?? tool.serverAlias ?? "待同步"}</span><span>操作：{approval?.action ?? tool.tool}</span><code className="break-all rounded bg-black/20 p-2 text-amber-100">{approval?.command ?? tool.output}</code></div>
-                  <p className="mb-0 mt-2 text-xs text-amber-100/80">{pending ? "危险命令尚未执行；等待审批期间，计划中的后续操作全部暂停。" : expired || approval?.status === "expired" ? "审批超时，命令未执行，后续步骤已暂停。" : approval?.status === "rejected" ? "审批已拒绝，命令未执行，后续步骤已暂停。" : null}</p>
+                  <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2 font-semibold text-[var(--warning)]"><ShieldAlert size={15} />人工审批 #{tool.approvalId}<Tag color={pending ? "processing" : approval?.status === "completed" ? "success" : expired || approval?.status === "expired" || approval?.status === "rejected" ? "error" : "default"}>{statusLabel}</Tag></div>{approval && <span className="text-[11px] text-[var(--text-muted)]">{pending ? `剩余 ${formatApprovalCountdown(approval.expiresAt, now)}` : approval.decidedAt ? `处理于 ${new Date(approval.decidedAt * 1000).toLocaleString()}` : ""}</span>}</div>
+                  <div className="mt-2 grid gap-1 text-[11px] text-[var(--text-secondary)]"><span>目标：{approval?.serverAlias ?? tool.serverAlias ?? "待同步"}</span><span>操作：{approval?.action ?? tool.tool}</span><code className="break-all rounded bg-black/20 p-2 text-[var(--warning)]">{approval?.command ?? tool.output}</code></div>
+                  <p className="mb-0 mt-2 text-xs text-[var(--warning)]/80">{pending ? "危险命令尚未执行；等待审批期间，计划中的后续操作全部暂停。" : expired || approval?.status === "expired" ? "审批超时，命令未执行，后续步骤已暂停。" : approval?.status === "rejected" ? "审批已拒绝，命令未执行，后续步骤已暂停。" : null}</p>
                   <CopilotApprovalPlanSummary detail={detail} />
-                  {approval?.result && !pending && <p className="mb-0 mt-2 whitespace-pre-wrap break-words text-[11px] text-slate-400">结果：{approval.result}</p>}
+                  {approval?.result && !pending && <p className="mb-0 mt-2 whitespace-pre-wrap break-words text-[11px] text-[var(--text-secondary)]">结果：{approval.result}</p>}
                   {pending && approval && <div className="mt-3 flex justify-end gap-2"><Button size="small" disabled={approvalBusy !== null} onClick={() => void rejectApproval(approval.id)}>拒绝并暂停</Button><Button size="small" danger loading={approvalBusy === approval.id} disabled={approvalBusy !== null && approvalBusy !== approval.id} onClick={() => approveApproval(approval)}>批准并执行</Button></div>}
                 </section>;
               })}
@@ -1249,8 +1299,8 @@ export default function CopilotPage() {
                 description={<div className="space-y-2"><p className="m-0">命令没有发送到服务器。你可以先让 AI 解释它的用途、参数和风险；解析结果不会代替人工同意，也不会执行命令。</p><Button size="middle" icon={<BadgeInfo size={15} />} disabled={!modelProfileId} onClick={() => openCommandExplanation(sourceRequest)}>AI 解析命令</Button>{!modelProfileId && <span className="ml-2">请先选择已配置的模型。</span>}</div>}
               />}
               {item.warnings?.map((warning) => <Alert key={warning} className="mt-2" type="warning" showIcon message={warning} />)}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 pt-2">
-                <span className="text-[10px] text-slate-600">{item.modelName ? `由 ${item.modelName} 生成` : "OpsPub 受控助手"}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)]/80 pt-2">
+                <span className="text-[10px] text-[var(--text-muted)]">{item.modelName ? `由 ${item.modelName} 生成` : "OpsPub 受控助手"}</span>
                 <div className="flex items-center gap-1">
                   <Tooltip title="复制纯文本回答" placement="top" mouseEnterDelay={0.15}><span className="inline-flex"><Button size="small" type="text" aria-label="复制回答" icon={<Copy size={14} />} onClick={() => void copyAssistantMessage(item)}>复制</Button></span></Tooltip>
                   <Tooltip title="复制包含问题和工具执行过程的 Markdown 报告" placement="top" mouseEnterDelay={0.15}><span className="inline-flex"><Button size="small" type="text" aria-label="复制回答和过程摘要" icon={<FileText size={14} />} onClick={() => void copyAssistantMessage(item, true)}>连过程复制</Button></span></Tooltip>
@@ -1262,15 +1312,15 @@ export default function CopilotPage() {
               );
             })()
           ))}
-          {loading && <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-surface-900 p-3 text-slate-400"><Spin size="small" />{progress?.message ?? "正在处理..."}{progress?.serverAlias ? ` · ${progress.serverAlias}` : ""}</div>}
+          {loading && <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-surface-900 p-3 text-[var(--text-secondary)]"><Spin size="small" />{progress?.message ?? "正在处理..."}{progress?.serverAlias ? ` · ${progress.serverAlias}` : ""}</div>}
         </div>
       </main>
 
-      {showPolicyNotice && <div className="mx-5 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs text-amber-300"><div className="flex min-w-0 items-center gap-2"><ShieldAlert size={15} className="shrink-0 text-amber-400" /><span className="leading-relaxed">改动型操作受 AI 总开关、服务器策略和人工审批共同约束；模型服务仅接收当前对话及脱敏结果，不会收到 SSH 凭据。</span></div><div className="flex shrink-0 items-center gap-3"><button type="button" onClick={() => void navigate("/settings")} className="font-medium underline decoration-amber-500/50 underline-offset-2 hover:text-white">查看策略</button><button type="button" aria-label="关闭安全提示" title="关闭提示" onClick={() => { localStorage.setItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY, "true"); setShowPolicyNotice(false); }} className="rounded p-1 text-amber-300/70 transition hover:bg-amber-500/15 hover:text-white"><X size={15} /></button></div></div>}
+      {showPolicyNotice && <div className="mx-5 mb-2 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs text-[var(--warning)]"><div className="flex min-w-0 items-center gap-2"><ShieldAlert size={15} className="shrink-0 text-[var(--warning)]" /><span className="leading-relaxed">改动型操作受 AI 总开关、服务器策略和人工审批共同约束；模型服务仅接收当前对话及脱敏结果，不会收到 SSH 凭据。</span></div><div className="flex shrink-0 items-center gap-3"><button type="button" onClick={() => void navigate("/settings")} className="font-medium underline decoration-amber-500/50 underline-offset-2 hover:text-[var(--text-primary)]">查看策略</button><button type="button" aria-label="关闭安全提示" title="关闭提示" onClick={() => { localStorage.setItem(RUNTIME_POLICY_NOTICE_DISMISSED_KEY, "true"); setShowPolicyNotice(false); }} className="rounded p-1 text-[var(--warning)]/70 transition hover:bg-amber-500/15 hover:text-[var(--text-primary)]"><X size={15} /></button></div></div>}
 
       <footer className="shrink-0 bg-surface-900 px-5 pb-4 pt-1"><div className="w-full space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500"><div className="flex items-center gap-2"><span className="text-slate-400">{serverId === null ? `可见 ${servers.length} 台` : "已选定服务器"}</span><span>·</span><span className="text-slate-400">{modelProfiles.find((profile) => profile.id === modelProfileId)?.model ?? (modelProfileId ? "已配置模型" : "本地受控工具")}</span></div><div className="flex flex-wrap items-center gap-1.5">{["继续", "建议", "验证", "重试", "说明", "总结"].map((chip) => <button key={chip} type="button" disabled={loading} onClick={() => setInput((current) => current ? `${current} ${chip}` : chip)} className="rounded border border-slate-800 bg-[#131924] px-2 py-0.5 text-[11px] text-slate-400 transition hover:bg-[#1a2332] hover:text-slate-200 disabled:opacity-50">{chip}</button>)}</div></div>
-        <div className="flex items-end gap-2 rounded-2xl border border-slate-800 bg-[#0e131b] p-1.5 pl-4 shadow-lg transition hover:border-slate-700 focus-within:border-indigo-500/80"><Input.TextArea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} autoSize={{ minRows: 1, maxRows: 5 }} disabled={loading} bordered={false} className="!resize-none !bg-transparent" style={{ fontSize: 12, lineHeight: 1.5, fontFamily: "inherit" }} placeholder="问点什么…（AI 只看到服务器别名，看不到任何凭据）" /><Button size="small" type="text" aria-label="清空输入" title="清空输入" disabled={!input} onClick={() => setInput("")} className="!text-slate-500 hover:!text-slate-200"><X size={15} /></Button><Button size="small" type="primary" icon={<Send size={14} />} loading={loading} disabled={!input.trim()} onClick={() => void send()}>发送</Button></div>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]"><div className="flex items-center gap-2"><span className="text-[var(--text-secondary)]">{serverId === null ? `可见 ${servers.length} 台` : "已选定服务器"}</span><span>·</span><span className="text-[var(--text-secondary)]">{modelProfiles.find((profile) => profile.id === modelProfileId)?.model ?? (modelProfileId ? "已配置模型" : "本地受控工具")}</span></div><div className="flex flex-wrap items-center gap-1.5">{["继续", "建议", "验证", "重试", "说明", "总结"].map((chip) => <button key={chip} type="button" disabled={loading} onClick={() => setInput((current) => current ? `${current} ${chip}` : chip)} className="rounded border border-[var(--border)] bg-[var(--surface-850)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:opacity-50">{chip}</button>)}</div></div>
+        <div className="flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-900)] p-1.5 pl-4 shadow-lg transition hover:border-[var(--border)] focus-within:border-indigo-500/80"><Input.TextArea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} autoSize={{ minRows: 1, maxRows: 5 }} disabled={loading} bordered={false} className="!resize-none !bg-transparent" style={{ fontSize: 12, lineHeight: 1.5, fontFamily: "inherit" }} placeholder="问点什么…（AI 只看到服务器别名，看不到任何凭据）" /><Button size="small" type="text" aria-label="清空输入" title="清空输入" disabled={!input} onClick={() => setInput("")} className="!text-[var(--text-muted)] hover:!text-[var(--text-primary)]"><X size={15} /></Button><Button size="small" type="primary" icon={<Send size={14} />} loading={loading} disabled={!input.trim()} onClick={() => void send()}>发送</Button></div>
       </div></footer>
     </div>
   );
@@ -1314,42 +1364,42 @@ function CopilotExecutionTimeline({ events, streaming, statusMessage }: { events
 
   return <div>
     <button type="button" aria-expanded={expanded} onClick={() => setExpanded((current) => !current)} className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition hover:bg-white/[0.025]">
-      <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-200"><ChevronDown size={13} className={`shrink-0 text-slate-400 transition-transform ${expanded ? "" : "-rotate-90"}`} /><span className="truncate">执行过程</span><span role="status" className="hidden truncate font-normal text-slate-400 sm:inline">{statusMessage}</span></span>
-      <span className="flex shrink-0 items-center gap-2 text-[11px] text-slate-400"><span>{rounds.length} 轮 · {toolCount} 次工具调用 · {completedCount} 成功{runningCount > 0 ? ` · ${runningCount} 执行中` : ""}{failedCount > 0 ? ` · ${failedCount} 异常` : ""}</span><span className="text-slate-500">{expanded ? "点击收起" : "点击展开"}</span></span>
+      <span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[var(--text-primary)]"><ChevronDown size={13} className={`shrink-0 text-[var(--text-secondary)] transition-transform ${expanded ? "" : "-rotate-90"}`} /><span className="truncate">执行过程</span><span role="status" className="hidden truncate font-normal text-[var(--text-secondary)] sm:inline">{statusMessage}</span></span>
+      <span className="flex shrink-0 items-center gap-2 text-[11px] text-[var(--text-secondary)]"><span>{rounds.length} 轮 · {toolCount} 次工具调用 · {completedCount} 成功{runningCount > 0 ? ` · ${runningCount} 执行中` : ""}{failedCount > 0 ? ` · ${failedCount} 异常` : ""}</span><span className="text-[var(--text-muted)]">{expanded ? "点击收起" : "点击展开"}</span></span>
     </button>
-    {expanded && <div className="border-t border-slate-800/80 p-3">
-    <div className="flex items-center gap-2 border-b border-slate-800/70 pb-2 text-[11px] text-slate-400"><Activity size={13} className="text-indigo-400" /><span>已完成 {completedCount} / {toolCount} 次工具调用</span>{runningCount > 0 && <span className="text-cyan-300">· {runningCount} 项执行中</span>}{failedCount > 0 && <span className="text-rose-300">· {failedCount} 项异常</span>}</div>
+    {expanded && <div className="border-t border-[var(--border)]/80 p-3">
+    <div className="flex items-center gap-2 border-b border-[var(--border)]/70 pb-2 text-[11px] text-[var(--text-secondary)]"><Activity size={13} className="text-[var(--accent)]" /><span>已完成 {completedCount} / {toolCount} 次工具调用</span>{runningCount > 0 && <span className="text-[var(--info)]">· {runningCount} 项执行中</span>}{failedCount > 0 && <span className="text-[var(--danger)]">· {failedCount} 项异常</span>}</div>
     <div className="space-y-3 pt-2">
-      {rounds.map((round) => <section key={round.number} className="relative border-l border-dashed border-slate-700 pl-4">
-        <span className="absolute -left-[4px] top-1.5 h-1.5 w-1.5 rounded-full bg-slate-500" />
-        <h4 className="m-0 mb-1.5 text-[11px] font-medium text-slate-400">第 {round.number} 轮</h4>
-        {round.notes.map((note, index) => <p key={`${round.number}-note-${index}`} className="mb-1 mt-0 text-[11px] leading-relaxed text-slate-400">{note.message}</p>)}
+      {rounds.map((round) => <section key={round.number} className="relative border-l border-dashed border-[var(--border)] pl-4">
+        <span className="absolute -left-[4px] top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />
+        <h4 className="m-0 mb-1.5 text-[11px] font-medium text-[var(--text-secondary)]">第 {round.number} 轮</h4>
+        {round.notes.map((note, index) => <p key={`${round.number}-note-${index}`} className="mb-1 mt-0 text-[11px] leading-relaxed text-[var(--text-secondary)]">{note.message}</p>)}
         {round.tools.length > 0 && <div className="space-y-0.5">
-          <div className="mb-1 flex items-center gap-1.5 text-[10px] text-indigo-300"><Layers size={12} />本轮 {round.tools.length} 个工具调用{round.tools.length > 1 ? "（依次执行）" : ""}</div>
+          <div className="mb-1 flex items-center gap-1.5 text-[10px] text-[var(--accent)]"><Layers size={12} />本轮 {round.tools.length} 个工具调用{round.tools.length > 1 ? "（依次执行）" : ""}</div>
           {round.tools.map((tool, index) => {
             const failed = tool.latest.status === "failed" || tool.latest.status === "blocked";
             const done = tool.latest.status === "success";
             const running = tool.latest.status === "running";
             const description = tool.latest.message || tool.command || tool.output || "等待工具返回";
-            return <details key={tool.key} data-copilot-active-event={round.number === activeRound && index === round.tools.length - 1 && running ? "true" : undefined} open={running} className="group border-b border-slate-800/60 last:border-b-0">
+            return <details key={tool.key} data-copilot-active-event={round.number === activeRound && index === round.tools.length - 1 && running ? "true" : undefined} open={running} className="group border-b border-[var(--border)]/60 last:border-b-0">
               <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 py-1.5 text-[11px] hover:bg-white/[0.025]">
-                <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[9px] ${done ? "border-emerald-500 text-emerald-400" : failed ? "border-rose-500 text-rose-400" : running ? "border-cyan-500 text-cyan-300" : "border-slate-600 text-slate-500"}`}>{done ? "✓" : failed ? "!" : running ? "·" : ""}</span>
-                <span className="shrink-0 font-mono font-medium text-slate-200">{tool.latest.tool ?? "受控工具"}</span>
-                {tool.latest.serverAlias && <span className="max-w-36 shrink-0 truncate rounded bg-slate-800/80 px-1.5 py-0.5 text-[10px] text-slate-400">@{tool.latest.serverAlias}</span>}
-                <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-slate-400">{description}</span>
-                {tool.latest.durationMs != null && <span className="shrink-0 text-[10px] text-slate-500">{tool.latest.durationMs}ms</span>}
-                <ChevronRight size={13} className="shrink-0 text-slate-500 transition-transform group-open:rotate-90" />
+                <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[9px] ${done ? "border-emerald-500 text-[var(--success)]" : failed ? "border-rose-500 text-[var(--danger)]" : running ? "border-cyan-500 text-[var(--info)]" : "border-[var(--border)] text-[var(--text-muted)]"}`}>{done ? "✓" : failed ? "!" : running ? "·" : ""}</span>
+                <span className="shrink-0 font-mono font-medium text-[var(--text-primary)]">{tool.latest.tool ?? "受控工具"}</span>
+                {tool.latest.serverAlias && <span className="max-w-36 shrink-0 truncate rounded bg-surface-800/80 px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)]">@{tool.latest.serverAlias}</span>}
+                <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--text-secondary)]">{description}</span>
+                {tool.latest.durationMs != null && <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{tool.latest.durationMs}ms</span>}
+                <ChevronRight size={13} className="shrink-0 text-[var(--text-muted)] transition-transform group-open:rotate-90" />
               </summary>
               <div className="space-y-1.5 pb-2 pl-6 pr-2 text-[10px]">
-                {tool.command && <div><div className="mb-1 text-slate-500">执行内容</div><pre className="m-0 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-slate-300">{tool.command}</pre></div>}
-                {tool.output && <div><div className="mb-1 text-slate-500">执行结果</div><pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-slate-400">{tool.output}</pre></div>}
-                {!tool.command && !tool.output && <p className="m-0 text-slate-500">{tool.latest.message || "暂无额外返回内容"}</p>}
+                {tool.command && <div><div className="mb-1 text-[var(--text-muted)]">执行内容</div><pre className="m-0 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[var(--text-secondary)]">{tool.command}</pre></div>}
+                {tool.output && <div><div className="mb-1 text-[var(--text-muted)]">执行结果</div><pre className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[var(--text-secondary)]">{tool.output}</pre></div>}
+                {!tool.command && !tool.output && <p className="m-0 text-[var(--text-muted)]">{tool.latest.message || "暂无额外返回内容"}</p>}
               </div>
             </details>;
           })}
         </div>}
       </section>)}
-      {streaming && <div className="flex items-center gap-2 pl-4 text-[11px] text-slate-500"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />正在继续分析和执行下一步</div>}
+      {streaming && <div className="flex items-center gap-2 pl-4 text-[11px] text-[var(--text-muted)]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />正在继续分析和执行下一步</div>}
     </div>
   </div>}
   </div>;
@@ -1365,12 +1415,12 @@ function CopilotApprovalPlanSummary({ detail }: { detail?: AiApprovalDetail }) {
   const plan = detail?.plan;
   if (!plan) return null;
   const risk = plan.risk.level === "high" ? "高危" : plan.risk.level === "medium" ? "中危" : plan.risk.level === "extreme" ? "极高危" : "需复核";
-  return <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-[10px] text-slate-500 sm:grid-cols-2">
+  return <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-[10px] text-[var(--text-muted)] sm:grid-cols-2">
     {detail?.mcp && <span className="sm:col-span-2">来源：MCP 客户端 {detail.mcp.sourceClient} · Token #{detail.mcp.tokenId} · 任务 {detail.mcp.taskId}</span>}
     <span>影响范围：{plan.targets.length} 台 · {plan.targets.map((target) => target.serverAlias).join("、") || "目标缺失"}</span>
     <span>风险：{risk}</span>
     <span className="sm:col-span-2">风险说明：{plan.risk.reason}</span>
-    {plan.executionSteps.length > 0 && <div className="sm:col-span-2"><div className="mb-1 font-medium text-slate-300">已审批的执行步骤（{plan.executionSteps.length}）</div><ol className="space-y-1">{plan.executionSteps.map((step, index) => <li key={step.id} className="rounded border border-slate-800 bg-black/20 px-2 py-1"><span>{index + 1}. {step.label}</span><code className="mt-1 block break-all whitespace-pre-wrap text-slate-300">{step.command}</code>{step.verificationCommand && <span className="mt-1 block break-all">验证：{step.verificationCommand}</span>}</li>)}</ol></div>}
+    {plan.executionSteps.length > 0 && <div className="sm:col-span-2"><div className="mb-1 font-medium text-[var(--text-secondary)]">已审批的执行步骤（{plan.executionSteps.length}）</div><ol className="space-y-1">{plan.executionSteps.map((step, index) => <li key={step.id} className="rounded border border-[var(--border)] bg-black/20 px-2 py-1"><span>{index + 1}. {step.label}</span><code className="mt-1 block break-all whitespace-pre-wrap text-[var(--text-secondary)]">{step.command}</code>{step.verificationCommand && <span className="mt-1 block break-all">验证：{step.verificationCommand}</span>}</li>)}</ol></div>}
     <span>计划：{plan.status}</span>
     <span className="truncate" title={plan.commandSha256}>哈希：{plan.commandSha256.slice(0, 16)}…</span>
     <span className="truncate" title={plan.ruleVersion}>策略：{plan.ruleVersion || "--"}</span>

@@ -1,214 +1,327 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Empty, Popconfirm, Spin, Tag, message } from "antd";
-import {
-  CheckCircle2,
-  KeyRound,
-  LockKeyhole,
-  RefreshCw,
-  Server,
-  ShieldCheck,
-  Trash2,
-  UserRound,
-  Wifi,
-} from "lucide-react";
-import { getErrorMessage } from "@/lib/api/client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Button, Descriptions, Empty, Input, Modal, Select, Spin, Tag, message } from "antd";
+import { KeyRound, Plus, RefreshCw, Search, Server, Trash2, Wifi } from "lucide-react";
+import { SshConnectModal } from "@/components/server/SshConnectModal";
 import { serverApi } from "@/lib/api/server";
 import { serverImportApi } from "@/lib/api/server-import";
-import { SshConnectModal } from "@/components/server/SshConnectModal";
 import { useSshSessionStore } from "@/store/ssh";
-import type { Server as ServerRecord, SshCredentials, SshProbeResult } from "@/types";
+import type { Server as ServerRecord } from "@/types";
 
-const statusMeta: Record<string, { label: string; color: "success" | "warning" | "error" | "default" }> = {
+const verificationStatus: Record<string, { label: string; color?: string }> = {
   verified: { label: "服务器已验证", color: "success" },
   failed: { label: "上次验证失败", color: "error" },
   host_key_changed: { label: "主机指纹变化", color: "warning" },
-  unknown: { label: "尚未验证", color: "default" },
+  unknown: { label: "尚未验证" },
 };
 
+function usesKeyring(server: ServerRecord) {
+  return server.protocol !== "rdp" && server.auth_type !== "agent";
+}
+
 function authLabel(server: ServerRecord) {
-  if (server.protocol === "rdp") return "远程桌面（系统登录）";
+  if (server.protocol === "rdp") return "远程桌面";
   if (server.auth_type === "agent") return "SSH Agent";
   return server.auth_type === "key" ? "SSH 私钥" : "SSH 密码";
 }
 
-export default function ServerCredentialsPage() {
-  const [servers, setServers] = useState<ServerRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeServer, setActiveServer] = useState<ServerRecord | null>(null);
-  const credentialsByServer = useSshSessionStore((state) => state.credentialsByServer);
-  const setCredentials = useSshSessionStore((state) => state.setCredentials);
-  const clearCredentials = useSshSessionStore((state) => state.clearCredentials);
+function CredentialStatus({ server, saved, unavailable }: { server: ServerRecord; saved: boolean; unavailable: boolean }) {
+  if (server.protocol === "rdp") return <Tag>由系统客户端登录</Tag>;
+  if (!usesKeyring(server)) return <Tag>由 SSH Agent 提供</Tag>;
+  if (unavailable) return <Tag color="warning">状态不可用</Tag>;
+  return saved ? <Tag color="success">已托管</Tag> : <Tag>未托管</Tag>;
+}
 
-  const loadServers = useCallback(async (showSpinner = true) => {
-    if (showSpinner) setLoading(true);
-    try {
-      setServers(await serverApi.list());
-    } catch (error) {
-      message.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
+function VerificationStatus({ server }: { server: ServerRecord }) {
+  if (server.protocol === "rdp") return <span>不适用</span>;
+  const status = Object.prototype.hasOwnProperty.call(verificationStatus, server.last_connection_status)
+    ? verificationStatus[server.last_connection_status]
+    : verificationStatus.unknown;
+  return <Tag color={status.color}>{status.label}</Tag>;
+}
+
+const endpoint = (server: ServerRecord) => `${server.hostname}:${server.port}`;
+const groupOf = (server: ServerRecord) => server.group || "默认分组";
+
+export default function ServerCredentialsPage() {
+  const [servers, setServers] = useState<ServerRecord[] | null>(null);
+  const [refreshing, setRefreshing] = useState(true);
+  const [serverReadFailed, setServerReadFailed] = useState(false);
+  const [credentialReadFailed, setCredentialReadFailed] = useState(false);
+  const [query, setQuery] = useState("");
+  const [group, setGroup] = useState<string>();
+  const [detailId, setDetailId] = useState<number>();
+  const [adding, setAdding] = useState(false);
+  const [addId, setAddId] = useState<number>();
+  const [verifying, setVerifying] = useState<ServerRecord | null>(null);
+  const [forgetOpen, setForgetOpen] = useState(false);
+  const [forgetting, setForgetting] = useState(false);
+  const [forgetFailed, setForgetFailed] = useState(false);
+  const [feedback, feedbackHolder] = message.useMessage();
+  const credentialsByServer = useSshSessionStore((state) => state.credentialsByServer);
+  const loadInFlight = useRef<Promise<boolean> | null>(null);
+
+  const reload = useCallback(() => {
+    if (loadInFlight.current) return loadInFlight.current;
+    setRefreshing(true);
+    const request = Promise.allSettled([
+      serverApi.list(),
+      useSshSessionStore.getState().refreshCredentials(),
+    ]).then(([assets, credentials]) => {
+      if (assets.status === "fulfilled") setServers(assets.value);
+      setServerReadFailed(assets.status === "rejected");
+      setCredentialReadFailed(credentials.status === "rejected");
+      return assets.status === "fulfilled" && credentials.status === "fulfilled";
+    }).finally(() => {
+      loadInFlight.current = null;
+      setRefreshing(false);
+    });
+    loadInFlight.current = request;
+    return request;
   }, []);
 
-  useEffect(() => {
-    void loadServers();
-  }, [loadServers]);
+  useEffect(() => { void reload(); }, [reload]);
 
-  const connectedCount = useMemo(
-    () => servers.filter((server) => Boolean(credentialsByServer[server.id])).length,
-    [credentialsByServer, servers],
-  );
+  const knownServers = servers ?? [];
+  const groups = [...new Set(knownServers.map(groupOf))];
+  const activeGroup = group && groups.includes(group) ? group : undefined;
+  const term = query.trim().toLowerCase();
+  const visibleServers = knownServers.filter((server) => (
+    (!activeGroup || groupOf(server) === activeGroup)
+    && [server.alias, endpoint(server), groupOf(server)].some((value) => value.toLowerCase().includes(term))
+  ));
+  const saved = (server: ServerRecord) => usesKeyring(server) && Boolean(credentialsByServer[server.id]);
+  const candidates = knownServers.filter((server) => usesKeyring(server) && !saved(server));
+  const addTarget = candidates.find(({ id }) => id === addId);
+  const detail = knownServers.find(({ id }) => id === detailId);
+  const mutationReady = !refreshing && !serverReadFailed && !credentialReadFailed;
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
+  async function handleVerified() {
+    if (!verifying) return;
+    // 验证 IPC 已完成托管。保存标记即可，避免二次写入凭据和覆盖 Rust 补齐的字段。
+    await useSshSessionStore.getState().setCredentials(verifying.id, {});
+    setVerifying(null);
+    feedback.success(usesKeyring(verifying) ? "SSH 验证通过，凭据已托管" : "SSH 验证通过");
+    await reload();
+  }
+
+  async function handleForget() {
+    if (!detail || !saved(detail) || !mutationReady || forgetting) return;
+    setForgetting(true);
+    setForgetFailed(false);
     try {
-      await loadServers(false);
-      message.success("服务器凭证状态已刷新");
+      await useSshSessionStore.getState().forgetCredentials(detail.id);
+      setForgetOpen(false);
+      feedback.success("已忘记本机托管的 SSH 凭据");
+    } catch {
+      setForgetFailed(true);
     } finally {
-      setRefreshing(false);
+      // 系统凭据管理器的返回值为准，包括部分删除失败后的实际状态。
+      await reload();
+      setForgetting(false);
     }
-  };
+  }
 
-  const handleVerified = async (result: SshProbeResult, credentials: SshCredentials) => {
-    if (!activeServer) return;
-    await setCredentials(activeServer.id, credentials);
-    setActiveServer(null);
-    await loadServers(false);
-    message.success(`${activeServer.alias} 已验证，终端和 SFTP 将复用本次会话`);
-    void result;
-  };
-
-  const handleForget = (server: ServerRecord) => {
-    clearCredentials(server.id);
-    message.success(`${server.alias} 的本机会话凭证已清除`);
-  };
+  function startConnection(server: ServerRecord) {
+    if (server.protocol === "rdp") {
+      void serverImportApi.openRemoteDesktop(server.id).catch(() => feedback.error("无法打开远程桌面"));
+    } else {
+      setVerifying(server);
+    }
+  }
 
   return (
-    <div className="ops-page flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-5">
-      <div className="ops-page-head">
-        <div className="min-w-0">
-          <h1 className="ops-page-title">
-            <KeyRound size={18} style={{ color: "var(--nav-active-icon)" }} />
-            <span>服务凭证</span>
-            <span className="ops-page-subtitle">（服务器 SSH 凭证金库）</span>
-          </h1>
-          <p className="ops-page-desc">
-            凭证由当前用户的系统凭据管理器持久化托管，页面和 AI 只看到状态与引用，不显示真实密码；重启应用后仍可复用。
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="rounded-md border px-2 py-1 text-xs" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
-            {connectedCount}/{servers.length} 台已托管
-          </span>
-          <Button icon={<RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />} loading={refreshing} onClick={() => void handleRefresh()}>
+    <div className="ops-page space-y-4">
+      {feedbackHolder}
+      <header className="ops-page-head">
+        <h1 className="ops-page-title">
+          <KeyRound aria-hidden size={18} className="text-[var(--nav-active-icon)]" />
+          服务凭据
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="primary"
+            icon={<Plus size={15} />}
+            disabled={!mutationReady || candidates.length === 0}
+            onClick={() => { setAddId(undefined); setAdding(true); }}
+          >
+            添加凭据
+          </Button>
+          <Button
+            icon={<RefreshCw size={14} />}
+            loading={refreshing}
+            onClick={async () => { if (await reload()) feedback.success("凭据状态已刷新"); }}
+          >
             刷新
           </Button>
         </div>
+      </header>
+
+      {(serverReadFailed || credentialReadFailed) && (
+        <Alert type="error" showIcon message={[
+          serverReadFailed && "服务器列表读取失败",
+          credentialReadFailed && "系统凭据状态读取失败",
+        ].filter(Boolean).join("，")} description="请刷新后重试。" />
+      )}
+
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Input
+          allowClear
+          aria-label="搜索服务器凭据"
+          placeholder="搜索服务器、地址或分组"
+          prefix={<Search size={14} aria-hidden className="text-[var(--text-muted)]" />}
+          className="max-w-85 flex-[1_1_14rem]"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <Select
+          allowClear
+          aria-label="按服务器分组筛选"
+          className="w-40"
+          placeholder="全部分组"
+          value={activeGroup}
+          onChange={setGroup}
+          options={groups.map((value) => ({ value, label: value }))}
+        />
       </div>
 
-      <Alert
-        showIcon
-        icon={<ShieldCheck size={16} />}
-        type="info"
-        message="端侧凭证隔离已启用"
-        description="SSH 密码、私钥口令只在验证时传给本地 Rust 驱动，并按服务器保存在当前用户的系统凭据管理器中。AI 操作使用服务器引用，不会读取或回传凭证内容。"
-      />
-
-      <div className="ops-panel min-h-0 overflow-hidden rounded-xl">
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border)" }}>
-          <div>
-            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>服务器凭证</h2>
-            <p className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>验证一次后，终端、SFTP、工作台会话从系统凭据管理器复用，无需每次重启重新输入。</p>
+      <section className="ops-panel overflow-hidden" aria-label="服务器凭据列表" aria-busy={refreshing}>
+        {servers === null ? (
+          <div className="flex min-h-44 items-center justify-center">
+            {refreshing ? <Spin aria-label="正在载入凭据" /> : <Empty description="服务器列表不可用" />}
           </div>
-          <LockKeyhole size={17} style={{ color: "var(--text-muted)" }} />
-        </div>
-
-        {loading ? (
-          <div className="flex min-h-[260px] items-center justify-center"><Spin /></div>
-        ) : servers.length === 0 ? (
-          <div className="py-16"><Empty description="暂无服务器，请先到服务器菜单添加" /></div>
+        ) : visibleServers.length === 0 ? (
+          <Empty className="py-10" description={knownServers.length ? "没有匹配的服务器" : "暂无服务器，请先到服务器资产添加"} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left text-xs">
-              <thead style={{ background: "var(--surface-950)", color: "var(--text-secondary)" }}>
+          <div className="max-h-[calc(100dvh-16rem)] overflow-auto">
+            <table className="w-full min-w-[660px] text-left text-xs">
+              <thead className="sticky top-0 z-10 bg-[var(--surface-950)] text-[var(--text-secondary)]">
                 <tr>
-                  <th className="px-4 py-3 font-medium">服务器</th>
-                  <th className="px-4 py-3 font-medium">连接地址</th>
-                  <th className="px-4 py-3 font-medium">认证方式</th>
-                  <th className="px-4 py-3 font-medium">凭证状态</th>
-                  <th className="px-4 py-3 font-medium">最近验证</th>
-                  <th className="px-4 py-3 text-right font-medium">操作</th>
+                  {["服务器", "认证方式", "凭据状态", "验证状态", "最近验证成功"].map((label) => (
+                    <th key={label} scope="col" className="whitespace-nowrap px-3 py-3 font-medium">{label}</th>
+                  ))}
+                  <th scope="col" className="px-3 py-3 text-right font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
-                {servers.map((server) => {
-                  const cached = Boolean(credentialsByServer[server.id]);
-                  const meta = statusMeta[server.last_connection_status] ?? statusMeta.unknown;
-                  return (
-                    <tr key={server.id} className="border-t transition hover:bg-[var(--bg-hover)]" style={{ borderColor: "var(--border-secondary)" }}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg border" style={{ borderColor: "var(--border)", background: "var(--surface-950)", color: "var(--nav-active-icon)" }}>
-                            <Server size={15} />
-                          </span>
-                          <div className="min-w-0">
-                            <div className="truncate font-medium" style={{ color: "var(--text-primary)" }}>{server.alias}</div>
-                            <div className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{server.group || "默认分组"}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-[11px]" style={{ color: "var(--text-secondary)" }}>{server.hostname}:{server.port}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                          {server.auth_type === "key" ? <KeyRound size={13} /> : <UserRound size={13} />}
-                          {authLabel(server)}
+                {visibleServers.map((server) => (
+                  <tr key={server.id} className="border-t border-[var(--border-secondary)] hover:bg-[var(--bg-hover)]">
+                    <th scope="row" className="px-3 py-2.5 font-normal">
+                      <div className="flex items-center gap-2.5">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface-950)] text-[var(--nav-active-icon)]">
+                          <Server size={15} aria-hidden />
                         </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {server.protocol === "rdp" ? (
-                          <Tag>由系统远程桌面客户端登录</Tag>
-                        ) : server.auth_type === "agent" ? (
-                          <Tag>使用系统 ssh-agent</Tag>
-                        ) : cached ? (
-                          <Tag icon={<CheckCircle2 size={12} />} color="success">已托管到系统凭据管理器</Tag>
-                        ) : (
-                          <Tag color={meta.color}>{meta.label}</Tag>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-[11px]" style={{ color: "var(--text-muted)" }}>{server.last_connected_at || "尚未验证"}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button size="small" type={cached ? "default" : "primary"} icon={<Wifi size={13} />} onClick={() => {
-                            if (server.protocol === "rdp") void serverImportApi.openRemoteDesktop(server.id).catch(error => message.error(getErrorMessage(error)));
-                            else setActiveServer(server);
-                          }}>
-                            {server.protocol === "rdp" ? "远程桌面" : server.auth_type === "agent" ? "验证连接" : cached ? "重新验证" : "连接并托管"}
-                          </Button>
-                          {cached && server.auth_type !== "agent" && (
-                            <Popconfirm title="清除本机会话凭证？" description="清除后下次进入终端或 SFTP 需要重新验证，不会删除服务器配置。" okText="清除" cancelText="取消" onConfirm={() => handleForget(server)}>
-                              <Button size="small" danger type="text" icon={<Trash2 size={14} />} aria-label={`清除 ${server.alias} 凭证`} />
-                            </Popconfirm>
-                          )}
+                        <div className="min-w-0 [overflow-wrap:anywhere]">
+                          <div className="font-semibold">{server.alias}</div>
+                          <div className="mt-0.5 font-mono text-[var(--text-secondary)]">{endpoint(server)}</div>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </div>
+                    </th>
+                    <td className="whitespace-nowrap px-3 py-2.5">{authLabel(server)}</td>
+                    <td className="px-3 py-2.5"><CredentialStatus server={server} saved={saved(server)} unavailable={credentialReadFailed} /></td>
+                    <td className="px-3 py-2.5"><VerificationStatus server={server} /></td>
+                    <td className="px-3 py-2.5 text-[var(--text-secondary)]">{server.last_connected_at || "—"}</td>
+                    <td className="px-3 py-2.5 text-right">
+                      <Button size="small" aria-label={`查看 ${server.alias} 的凭据详情`} onClick={() => setDetailId(server.id)}>详情</Button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+        {servers !== null && (
+          <div className="flex flex-wrap justify-between gap-2 border-t border-[var(--border)] px-3 py-2.5 text-xs text-[var(--text-secondary)]">
+            <span>显示 {visibleServers.length} / {knownServers.length} 台服务器</span>
+            {!credentialReadFailed && <span>{knownServers.filter(saved).length} 台已托管 · 系统凭据管理器</span>}
+          </div>
+        )}
+      </section>
+
+      <Modal
+        open={adding}
+        title="添加 SSH 凭据"
+        okText="继续验证"
+        cancelText="取消"
+        destroyOnHidden
+        maskClosable={false}
+        okButtonProps={{ disabled: !addTarget || !mutationReady }}
+        onCancel={() => setAdding(false)}
+        onOk={() => {
+          if (!addTarget || !mutationReady) return;
+          setAdding(false);
+          setVerifying(addTarget);
+        }}
+      >
+        <label htmlFor="credential-server">服务器</label>
+        <Select
+          id="credential-server"
+          showSearch
+          placeholder="选择需要托管凭据的服务器"
+          className="mt-2 w-full"
+          value={addId}
+          onChange={setAddId}
+          optionFilterProp="label"
+          options={candidates.map((server) => ({ value: server.id, label: `${server.alias} · ${endpoint(server)}` }))}
+        />
+      </Modal>
+
+      {detail && (
+        <Modal
+          open={!verifying && !forgetOpen}
+          title={`${detail.alias} · 凭据详情`}
+          onCancel={() => setDetailId(undefined)}
+          footer={(
+            <div className="flex flex-wrap justify-end gap-2">
+              {saved(detail) && !credentialReadFailed && (
+                <Button danger disabled={!mutationReady} icon={<Trash2 size={14} />} onClick={() => { setForgetFailed(false); setForgetOpen(true); }}>
+                  忘记凭据
+                </Button>
+              )}
+              <Button type="primary" disabled={detail.protocol === "rdp" ? serverReadFailed || refreshing : !mutationReady} icon={<Wifi size={14} />} onClick={() => startConnection(detail)}>
+                {detail.protocol === "rdp" ? "打开远程桌面" : saved(detail) ? "重新验证" : usesKeyring(detail) ? "连接并托管" : "验证连接"}
+              </Button>
+            </div>
+          )}
+        >
+          <Descriptions bordered size="small" column={1} className="my-3 [overflow-wrap:anywhere]">
+            <Descriptions.Item label="连接地址"><span className="font-mono">{endpoint(detail)}</span></Descriptions.Item>
+            <Descriptions.Item label="分组">{groupOf(detail)}</Descriptions.Item>
+            <Descriptions.Item label="认证方式">{authLabel(detail)}</Descriptions.Item>
+            <Descriptions.Item label="凭据状态"><CredentialStatus server={detail} saved={saved(detail)} unavailable={credentialReadFailed} /></Descriptions.Item>
+            <Descriptions.Item label="验证状态"><VerificationStatus server={detail} /></Descriptions.Item>
+            <Descriptions.Item label="最近验证成功">{detail.last_connected_at || "—"}</Descriptions.Item>
+          </Descriptions>
+        </Modal>
+      )}
 
       <SshConnectModal
-        open={activeServer !== null}
-        server={activeServer}
-        initialCredentials={activeServer ? credentialsByServer[activeServer.id] : undefined}
-        onCancel={() => setActiveServer(null)}
+        open={verifying !== null}
+        server={verifying}
+        manageCredentials
+        onCancel={() => setVerifying(null)}
         onVerified={handleVerified}
-        onStatusChanged={() => loadServers(false)}
+        onStatusChanged={async () => { await reload(); }}
       />
+
+      <Modal
+        open={forgetOpen}
+        title="忘记 SSH 凭据？"
+        okText="忘记凭据"
+        cancelText="取消"
+        okButtonProps={{ danger: true, disabled: !detail || !saved(detail) || !mutationReady }}
+        cancelButtonProps={{ disabled: forgetting }}
+        confirmLoading={forgetting}
+        maskClosable={false}
+        keyboard={!forgetting}
+        closable={!forgetting}
+        onCancel={() => setForgetOpen(false)}
+        onOk={() => void handleForget()}
+      >
+        <p>将从系统凭据管理器删除「{detail?.alias}」的 SSH 凭据。下次登录时需要重新输入，服务器资产会保留。</p>
+        {forgetFailed && (
+          <Alert className="mt-3" type="error" showIcon message="系统凭据删除失败" description="请核对凭据状态后重试。" />
+        )}
+      </Modal>
     </div>
   );
 }

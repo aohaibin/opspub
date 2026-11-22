@@ -19,6 +19,7 @@ interface SshConnectModalProps {
   open: boolean;
   server: Server | null;
   initialCredentials?: SshCredentials;
+  manageCredentials?: boolean;
   onCancel: () => void;
   onVerified: (
     result: SshProbeResult,
@@ -31,6 +32,7 @@ export function SshConnectModal({
   open,
   server,
   initialCredentials,
+  manageCredentials = false,
   onCancel,
   onVerified,
   onStatusChanged,
@@ -38,6 +40,7 @@ export function SshConnectModal({
   const [form] = Form.useForm<SshCredentials>();
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SshProbeResult | null>(null);
+  const [verificationFailed, setVerificationFailed] = useState(false);
 
   useEffect(() => {
     form.resetFields();
@@ -45,10 +48,12 @@ export function SshConnectModal({
       form.setFieldsValue(initialCredentials);
     }
     setResult(null);
+    setVerificationFailed(false);
     setSubmitting(false);
   }, [form, initialCredentials, open, server?.id]);
 
   const clearAndClose = () => {
+    if (manageCredentials && submitting) return;
     form.resetFields();
     setResult(null);
     onCancel();
@@ -94,9 +99,10 @@ export function SshConnectModal({
     });
 
   const runProbe = async (values: SshCredentials) => {
-    if (!server) return;
+    if (!server || submitting) return;
 
     setSubmitting(true);
+    setVerificationFailed(false);
     try {
       const request = {
         serverId: server.id,
@@ -108,7 +114,7 @@ export function SshConnectModal({
       let probe = await serverApi.testSsh(request);
 
       if (probe.requires_host_key_trust) {
-        setSubmitting(false);
+        if (!manageCredentials) setSubmitting(false);
         const trusted = await confirmHostKey(probe);
         if (!trusted) return;
         setSubmitting(true);
@@ -119,12 +125,21 @@ export function SshConnectModal({
         throw new Error(probe.message || "SSH 认证未完成");
       }
 
+      if (manageCredentials) form.resetFields();
       await onVerified(probe, values);
-      form.resetFields();
-      setResult(probe);
-      message.success(`「${server.alias}」SSH 认证成功`);
+      if (!manageCredentials) {
+        form.resetFields();
+        setResult(probe);
+        message.success(`「${server.alias}」SSH 认证成功`);
+      }
     } catch (error) {
-      message.error(getErrorMessage(error));
+      if (manageCredentials) {
+        // 凭据管理页只呈现固定提示，避免把驱动错误原文带入界面。
+        form.resetFields();
+        setVerificationFailed(true);
+      } else {
+        message.error(getErrorMessage(error));
+      }
       await onStatusChanged?.();
     } finally {
       setSubmitting(false);
@@ -137,10 +152,14 @@ export function SshConnectModal({
       title={server ? `SSH 验证 · ${server.alias}` : "SSH 验证"}
       width={600}
       onCancel={clearAndClose}
+      maskClosable={manageCredentials ? false : undefined}
+      closable={!manageCredentials || !submitting}
+      keyboard={!manageCredentials || !submitting}
+      className={manageCredentials ? "[&_input::-ms-reveal]:hidden" : undefined}
       destroyOnHidden
       footer={
         <Space>
-          <Button onClick={clearAndClose}>{result ? "关闭" : "取消"}</Button>
+          <Button disabled={manageCredentials && submitting} onClick={clearAndClose}>{result ? "关闭" : "取消"}</Button>
           {result ? (
             <Button icon={<RotateCcw size={14} />} onClick={() => setResult(null)}>
               重新验证
@@ -185,6 +204,7 @@ export function SshConnectModal({
           layout="vertical"
           requiredMark={false}
           onFinish={runProbe}
+          disabled={manageCredentials && submitting}
         >
           <Alert
             type="info"
@@ -193,6 +213,15 @@ export function SshConnectModal({
             message={`${server?.username ?? ""}@${server?.hostname ?? ""}:${server?.port ?? ""}`}
             description="留空将尝试使用系统凭据管理器中已保存的凭据；输入新凭据则在验证成功后更新托管凭据。凭据不会写入资产库或审计日志。"
           />
+          {verificationFailed && (
+            <Alert
+              type="error"
+              showIcon
+              className="mb-4"
+              message="SSH 验证或托管失败"
+              description="请核对主机指纹、连接信息和凭据后重试，并确认系统凭据管理器可用。"
+            />
+          )}
 
           {server?.auth_type === "agent" ? <Alert type="info" showIcon description="使用系统 ssh-agent 中已加载的密钥。请确保 OpenSSH Authentication Agent 已启动，并已执行 ssh-add。" /> : server?.auth_type === "key" ? (
             <>
@@ -202,12 +231,13 @@ export function SshConnectModal({
               >
                 <Input
                   prefix={<KeyRound size={14} />}
+                  type={manageCredentials ? "password" : "text"}
                   placeholder="留空使用已保存凭据，或输入 ~/.ssh/id_ed25519"
                   autoComplete="off"
                 />
               </Form.Item>
               <Form.Item name="passphrase" label="私钥口令（可选）">
-                <Input.Password autoComplete="new-password" placeholder="未加密私钥可留空" />
+                <Input.Password visibilityToggle={!manageCredentials} autoComplete="new-password" placeholder="未加密私钥可留空" />
               </Form.Item>
             </>
           ) : (
@@ -215,7 +245,7 @@ export function SshConnectModal({
               name="password"
               label="SSH 登录密码"
             >
-              <Input.Password autoComplete="new-password" placeholder="留空使用已保存密码，或输入新密码" />
+              <Input.Password visibilityToggle={!manageCredentials} autoComplete="new-password" placeholder="留空使用已保存密码，或输入新密码" />
             </Form.Item>
           )}
         </Form>

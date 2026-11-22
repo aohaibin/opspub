@@ -12,7 +12,8 @@ interface SshSessionStore {
   credentialsByServer: Record<number, SshCredentials>;
   setCredentials: (serverId: number, credentials: SshCredentials) => Promise<void>;
   getCredentials: (serverId: number) => SshCredentials | undefined;
-  clearCredentials: (serverId?: number) => void;
+  forgetCredentials: (serverId: number) => Promise<void>;
+  refreshCredentials: () => Promise<void>;
   hydrateCredentials: () => Promise<void>;
 }
 
@@ -45,37 +46,31 @@ export const useSshSessionStore = create<SshSessionStore>((set, get) => ({
     }));
   },
   getCredentials: (serverId) => get().credentialsByServer[serverId],
-  clearCredentials: (serverId) => {
-    const existingIds = Object.keys(get().credentialsByServer).map(Number);
+  forgetCredentials: async (serverId) => {
+    // Rust 可能返回删除失败，此时保留标记，待调用方重新读取系统凭据状态。
+    await serverApi.deleteSshCredentials(serverId);
     set((state) => {
-      if (serverId === undefined) return { credentialsByServer: {} };
       const next = { ...state.credentialsByServer };
       delete next[serverId];
       return { credentialsByServer: next };
     });
-    if (serverId === undefined) {
-      existingIds.forEach((id) => void serverApi.deleteSshCredentials(id).catch(() => {}));
-    } else {
-      void serverApi.deleteSshCredentials(serverId).catch(() => {});
-    }
+  },
+  refreshCredentials: async () => {
+    const savedIds = await serverApi.listSavedSshCredentials();
+    set({ credentialsByServer: Object.fromEntries(savedIds.map((id) => [id, {}])) });
   },
   hydrateCredentials: async () => {
-    let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        const savedIds = await serverApi.listSavedSshCredentials();
-        set({
-          credentialsByServer: Object.fromEntries(savedIds.map((id) => [id, {}])),
-        });
+        await get().refreshCredentials();
         return;
-      } catch (error) {
-        lastError = error;
+      } catch {
         if (attempt < 2) {
           await new Promise((resolve) => window.setTimeout(resolve, 150 * (attempt + 1)));
         }
       }
     }
-    // 浏览器预览模式或系统凭据库不可用时，保持空缓存并允许手动验证；保留日志便于定位安装版恢复失败。
-    console.warn("SSH 凭据恢复失败，将在本次会话中允许重新验证", lastError);
+    // 系统凭据库不可用时，保留现有标记并允许稍后重试。
+    console.warn("SSH 凭据恢复失败");
   },
 }));

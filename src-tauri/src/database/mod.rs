@@ -13,7 +13,7 @@ use rusqlite::{backup::Backup, Connection, OptionalExtension};
 
 use crate::error::AppError;
 use crate::models::{
-    AppConfig, AuditLog, DatabaseConnection, McpToken, SensitiveEntry, SensitiveListFilter, Server,
+    AppConfig, AuditLog, DatabaseConnection, McpToken, SensitiveEntry, Server,
 };
 
 /// 数据库封装，线程安全
@@ -893,39 +893,34 @@ impl Database {
 
     // ─── 敏感库 DAO ─────────────────────────────────────────────────────────
 
-    pub fn get_sensitive_entries(
+    pub(crate) fn get_sensitive_entries(
         &self,
-        filter: &SensitiveListFilter,
-    ) -> Result<Vec<SensitiveEntry>, AppError> {
+        server_id: Option<i64>,
+        status: Option<&str>,
+        secret_type: Option<&str>,
+    ) -> Result<Vec<(SensitiveEntry, bool)>, AppError> {
         let conn = self
             .conn
             .lock()
             .map_err(|e| AppError::Custom(e.to_string()))?;
         let mut stmt = conn.prepare(&format!(
-            "SELECT {} FROM sensitive_entries
+            "SELECT {}, source_projected FROM sensitive_entries
              WHERE (?1 IS NULL OR server_id = ?1)
                AND (?2 IS NULL OR status = ?2)
                AND (?3 IS NULL OR secret_type = ?3)
-               AND (?4 IS NULL OR server_alias LIKE '%' || ?4 || '%'
-                    OR label LIKE '%' || ?4 || '%' OR source LIKE '%' || ?4 || '%')
              ORDER BY detected_at DESC, id DESC",
             SENSITIVE_ENTRY_COLUMNS
         ))?;
-        let search = filter
-            .search
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty());
         let rows = stmt
             .query_map(
-                rusqlite::params![filter.server_id, filter.status, filter.secret_type, search],
-                map_sensitive_entry_row,
+                rusqlite::params![server_id, status, secret_type],
+                |row| Ok((map_sensitive_entry_row(row)?, row.get("source_projected")?)),
             )?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }
 
-    pub fn add_sensitive_entry(
+    pub(crate) fn add_sensitive_entry(
         &self,
         server_id: Option<i64>,
         server_alias: &str,
@@ -933,7 +928,7 @@ impl Database {
         secret_type: &str,
         label: &str,
         masked_value: &str,
-        source: &str,
+        projected_source: &str,
         value_hash: &str,
         match_count: i64,
     ) -> Result<SensitiveEntry, AppError> {
@@ -943,11 +938,12 @@ impl Database {
             .map_err(|e| AppError::Custom(e.to_string()))?;
         conn.execute(
             "INSERT INTO sensitive_entries
-             (server_id, server_alias, detected_at, secret_type, label, masked_value, source, status, value_hash, match_count)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'pending', ?8, ?9)
+             (server_id, server_alias, detected_at, secret_type, label, masked_value, source, status, value_hash, match_count, source_projected)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'pending', ?8, ?9, 1)
              ON CONFLICT(server_id, source, value_hash, status) DO UPDATE SET
                match_count = sensitive_entries.match_count + excluded.match_count,
                detected_at = excluded.detected_at,
+               source_projected = excluded.source_projected,
                updated_at = datetime('now', 'localtime')",
             rusqlite::params![
                 server_id,
@@ -956,18 +952,19 @@ impl Database {
                 secret_type,
                 label,
                 masked_value,
-                source,
+                projected_source,
                 value_hash,
                 match_count
             ],
         )?;
         let mut stmt = conn.prepare(&format!(
             "SELECT {} FROM sensitive_entries
-             WHERE server_id IS ?1 AND source = ?2 AND value_hash = ?3 AND status = 'pending'",
+             WHERE server_id IS ?1 AND source = ?2 AND value_hash = ?3 AND status = 'pending'
+               AND source_projected = 1 ORDER BY id DESC LIMIT 1",
             SENSITIVE_ENTRY_COLUMNS
         ))?;
         stmt.query_row(
-            rusqlite::params![server_id, source, value_hash],
+            rusqlite::params![server_id, projected_source, value_hash],
             map_sensitive_entry_row,
         )
         .map_err(AppError::from)

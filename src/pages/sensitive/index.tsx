@@ -1,175 +1,124 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Empty, Input, Modal, Select, Tag, message } from "antd";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Button, Input, Modal, Select, Tag } from "antd";
 import { save } from "@tauri-apps/plugin-dialog";
-import { Download, Eye, FileWarning, Filter, FlaskConical, Info, RefreshCw, Search, ShieldAlert, ThumbsDown, Trash2 } from "lucide-react";
+import { Download, FlaskConical, RefreshCw, Search, ShieldAlert } from "lucide-react";
 import { fileApi } from "@/lib/api/file";
-import { getErrorMessage } from "@/lib/api/client";
 import { sensitiveApi } from "@/lib/api/sensitive";
 import { serverApi } from "@/lib/api/server";
 import type { SensitiveEntry, SensitiveStatus, Server } from "@/types";
+import { SensitiveDetail, STATUS_LABELS, TYPE_LABELS } from "./SensitiveDetail";
+import { SensitiveTable } from "./SensitiveTable";
+import { ScanDialog } from "./ScanDialog";
 
-const STATUS_LABELS: Record<SensitiveStatus, string> = {
-  pending: "待处理",
-  retained: "已保留",
-  false_positive: "误判",
-  discarded: "已丢弃",
-};
-
-const STATUS_COLORS: Record<SensitiveStatus, string> = {
-  pending: "gold",
-  retained: "green",
-  false_positive: "default",
-  discarded: "red",
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  credential: "凭据",
-  private_key: "私钥",
-  token: "Token",
-  ip: "公网 IP",
-};
-
-function displayTime(value: string) {
-  const parsed = new Date(value.replace(" ", "T"));
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString("zh-CN", { hour12: false });
-}
-
-function typeLabel(value: string) {
-  return TYPE_LABELS[value] ?? value;
-}
-
-function statusLabel(value: string) {
-  return STATUS_LABELS[value as SensitiveStatus] ?? value;
-}
-
-function sourceLabel(value: string) {
-  return value.length > 42 ? `${value.slice(0, 42)}...` : value;
-}
+const EMPTY_ENTRIES: SensitiveEntry[] = [];
+type Activity = "refresh" | "status" | "export";
+type Feedback = { type: "error" | "success"; message: string };
 
 export default function SensitivePage() {
-  const [entries, setEntries] = useState<SensitiveEntry[]>([]);
+  const [entries, setEntries] = useState<SensitiveEntry[] | null>(null);
   const [servers, setServers] = useState<Server[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [serverFilter, setServerFilter] = useState<number>();
-  const [statusFilter, setStatusFilter] = useState<SensitiveStatus>();
-  const [typeFilter, setTypeFilter] = useState<string>();
+  const [listFailed, setListFailed] = useState(false);
+  const [serversFailed, setServersFailed] = useState(false);
+  const [activity, setActivity] = useState<Activity | null>("refresh");
+  const active = useRef<Activity | null>(null);
+  const [feedback, setFeedback] = useState<Feedback>();
+  const [serverId, setServerId] = useState<number>();
+  const [status, setStatus] = useState<SensitiveStatus>();
+  const [secretType, setSecretType] = useState<string>();
   const [search, setSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [detailEntry, setDetailEntry] = useState<SensitiveEntry | null>(null);
-  const [testOpen, setTestOpen] = useState(false);
-  const [scanServerId, setScanServerId] = useState<number>();
-  const [scanSource, setScanSource] = useState("手动测试");
-  const [scanContent, setScanContent] = useState("");
-  const [scanPreview, setScanPreview] = useState("");
-  const [scanMatchCount, setScanMatchCount] = useState(0);
-  const [scanLoading, setScanLoading] = useState(false);
+  const [match, setMatch] = useState<{ query: string; snapshot: SensitiveEntry[]; rows: SensitiveEntry[] | null }>();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [detailId, setDetailId] = useState<number>();
+  const [discardIds, setDiscardIds] = useState<number[]>([]);
+  const [scanOpen, setScanOpen] = useState(false);
+  const query = search.trim();
+  const snapshot = entries ?? EMPTY_ENTRIES;
+  const searchResult = match?.query === query && match.snapshot === entries ? match : undefined;
+  const searching = Boolean(query && entries && !searchResult && !listFailed);
+  const searchFailed = searchResult?.rows === null;
+  const matchingRows = query ? searchResult?.rows ?? EMPTY_ENTRIES : snapshot;
+  const visible = matchingRows.filter((entry) =>
+    (serverId === undefined || entry.serverId === serverId)
+    && (!status || entry.status === status)
+    && (!secretType || entry.secretType === secretType),
+  );
+  const detail = matchingRows.find((entry) => entry.id === detailId) ?? snapshot.find((entry) => entry.id === detailId);
+  const visibleIds = new Set(visible.map((entry) => entry.id));
+  const selected = selectedIds.filter((id) => visibleIds.has(id));
+  const ready = entries !== null && !activity && !listFailed && !searching && !searchFailed;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const reloadEntries = useCallback(async () => {
     try {
-      const [entryList, serverList] = await Promise.all([sensitiveApi.list(), serverApi.list()]);
-      setEntries(entryList);
-      setServers(serverList);
-      setSelectedIds(new Set());
-    } catch (error) {
-      message.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
+      const rows = await sensitiveApi.list();
+      setEntries(rows);
+      const ids = new Set(rows.map((entry) => entry.id));
+      setSelectedIds((current) => current.filter((id) => ids.has(id)));
+      setDetailId((id) => id !== undefined && ids.has(id) ? id : undefined);
+      setListFailed(false);
+    } catch {
+      setListFailed(true);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  const refresh = useCallback(async () => {
+    if (active.current) return;
+    active.current = "refresh";
+    setActivity("refresh");
+    await Promise.all([
+      reloadEntries(),
+      serverApi.list().then((rows) => {
+        setServers(rows);
+        setServersFailed(false);
+      }, () => setServersFailed(true)),
+    ]);
+    active.current = null;
+    setActivity(null);
+  }, [reloadEntries]);
 
-  const visibleEntries = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return entries.filter((entry) => {
-      const haystack = `${entry.serverAlias} ${entry.label} ${entry.source} ${entry.maskedValue} ${typeLabel(entry.secretType)}`.toLowerCase();
-      return (!serverFilter || entry.serverId === serverFilter)
-        && (!statusFilter || entry.status === statusFilter)
-        && (!typeFilter || entry.secretType === typeFilter)
-        && (!needle || haystack.includes(needle));
-    });
-  }, [entries, search, serverFilter, statusFilter, typeFilter]);
+  useEffect(() => { void refresh(); }, [refresh]);
 
-  const pendingCount = useMemo(() => entries.filter((entry) => entry.status === "pending").length, [entries]);
+  useEffect(() => {
+    if (!query || !entries || listFailed) return;
+    let current = true;
+    // 搜索与 CSV 使用同一个后端查询，避免页面和导出的匹配范围不同。
+    const timer = window.setTimeout(() => {
+      void sensitiveApi.list({ search: query }).then(
+        (rows) => { if (current) setMatch({ query, snapshot: entries, rows }); },
+        () => { if (current) setMatch({ query, snapshot: entries, rows: null }); },
+      );
+    }, 220);
+    return () => { current = false; window.clearTimeout(timer); };
+  }, [query, entries, listFailed]);
 
-  const allVisibleSelected = visibleEntries.length > 0 && visibleEntries.every((entry) => selectedIds.has(entry.id));
-
-  const toggleSelected = (id: number) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAllVisible = () => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (allVisibleSelected) visibleEntries.forEach((entry) => next.delete(entry.id));
-      else visibleEntries.forEach((entry) => next.add(entry.id));
-      return next;
-    });
-  };
-
-  const updateStatus = async (entry: SensitiveEntry, status: SensitiveStatus) => {
-    try {
-      await sensitiveApi.updateStatus(entry.id, status);
-      setEntries((current) => current.map((item) => item.id === entry.id ? { ...item, status } : item));
-      setSelectedIds((current) => { const next = new Set(current); next.delete(entry.id); return next; });
-      message.success(`已标记为${STATUS_LABELS[status]}`);
-    } catch (error) {
-      message.error(getErrorMessage(error));
+  const applyStatus = async (ids: number[], nextStatus: SensitiveStatus) => {
+    if (!ready || active.current || ids.length === 0) return;
+    active.current = "status";
+    setActivity("status");
+    setFeedback(undefined);
+    // 逐条确认后端结果。批量请求可能部分成功，也可能返回记录已不存在。
+    const completed = new Set<number>();
+    for (const id of ids) {
+      try {
+        if (await sensitiveApi.updateStatus(id, nextStatus)) completed.add(id);
+      } catch {
+        // 继续处理本次选择中的其他记录，最后以重新读取的状态为准。
+      }
     }
-  };
-
-  const bulkUpdate = async (status: SensitiveStatus) => {
-    const ids = [...selectedIds];
-    if (!ids.length) return;
-    if (status === "discarded") {
-      Modal.confirm({
-        title: `确认丢弃选中的 ${ids.length} 条记录？`,
-        content: "丢弃只会更新本地记录状态，不会恢复或暴露原始敏感内容。",
-        okText: "确认丢弃",
-        cancelText: "取消",
-        okButtonProps: { danger: true },
-        onOk: () => applyBulkStatus(ids, status),
-      });
-      return;
-    }
-    await applyBulkStatus(ids, status);
-  };
-
-  const applyBulkStatus = async (ids: number[], status: SensitiveStatus) => {
-    try {
-      await Promise.all(ids.map((id) => sensitiveApi.updateStatus(id, status)));
-      setEntries((current) => current.map((item) => ids.includes(item.id) ? { ...item, status } : item));
-      setSelectedIds(new Set());
-      message.success(`已批量标记 ${ids.length} 条为${STATUS_LABELS[status]}`);
-    } catch (error) {
-      message.error(getErrorMessage(error));
-    }
-  };
-
-  const closeTestModal = () => {
-    setTestOpen(false);
-    setScanContent("");
-    setScanPreview("");
-    setScanMatchCount(0);
-  };
-
-  const discardEntry = (entry: SensitiveEntry) => {
-    Modal.confirm({
-      title: "丢弃这条敏感记录？",
-      content: "丢弃只会更新本地记录状态，不会恢复或暴露原始敏感内容。",
-      okText: "确认丢弃",
-      cancelText: "取消",
-      okButtonProps: { danger: true },
-      onOk: () => updateStatus(entry, "discarded"),
-    });
+    const failed = ids.length - completed.size;
+    setSelectedIds((current) => current.filter((id) => !completed.has(id)));
+    await reloadEntries();
+    setFeedback(failed
+      ? { type: "error", message: `状态更新完成：成功 ${completed.size} 条，失败 ${failed} 条。请核对刷新后的记录再重试。` }
+      : { type: "success", message: `已更新 ${completed.size} 条记录为「${STATUS_LABELS[nextStatus]}」` });
+    active.current = null;
+    setActivity(null);
   };
 
   const exportCsv = async () => {
+    if (!ready || !visible.length || active.current) return;
+    active.current = "export";
+    setActivity("export");
+    setFeedback(undefined);
     try {
       const path = await save({
         title: "导出敏感库脱敏记录",
@@ -177,89 +126,99 @@ export default function SensitivePage() {
         filters: [{ name: "CSV 文件", extensions: ["csv"] }],
       });
       if (!path) return;
-      const csv = await sensitiveApi.exportCsv({ serverId: serverFilter ?? null, status: statusFilter ?? null, secretType: typeFilter ?? null, search: search.trim() || null });
+      const csv = await sensitiveApi.exportCsv({ serverId, status, secretType, search: query || null });
       await fileApi.writeText(path, csv);
-      message.success(`已导出脱敏记录：${path}`);
-    } catch (error) {
-      message.error(getErrorMessage(error));
+      setFeedback({ type: "success", message: "已导出当前筛选的脱敏记录" });
+    } catch {
+      setFeedback({ type: "error", message: "脱敏 CSV 导出失败。请检查保存位置后重试。" });
+    } finally {
+      active.current = null;
+      setActivity(null);
     }
   };
 
-  const testMasking = async () => {
-    const content = scanContent.trim();
-    const source = scanSource.trim();
-    if (!content || !source) {
-      message.warning("请填写待扫描内容和来源");
-      return;
-    }
-    const server = servers.find((item) => item.id === scanServerId);
-    setScanLoading(true);
-    try {
-      const result = await sensitiveApi.scan({ serverId: scanServerId ?? null, serverAlias: server?.alias ?? null, source, content });
-      if (result.entries.length) {
-        setEntries((current) => {
-          const byId = new Map(current.map((entry) => [entry.id, entry]));
-          result.entries.forEach((entry) => byId.set(entry.id, entry));
-          return [...byId.values()].sort((a, b) => b.detectedAt.localeCompare(a.detectedAt) || b.id - a.id);
-        });
-      }
-      setScanPreview(result.sanitizedContent);
-      setScanMatchCount(result.matchCount);
-      message.success(result.matchCount ? `检测到 ${result.matchCount} 条敏感信息，已保存脱敏记录` : "未检测到敏感信息");
-    } catch (error) {
-      message.error(getErrorMessage(error));
-    } finally {
-      setScanLoading(false);
-    }
-  };
+  const serverLabels = new Map(servers.map((server) => [server.id, server.alias]));
+  const types = new Map(TYPE_LABELS);
+  for (const entry of snapshot) {
+    if (entry.serverId !== null && !serverLabels.has(entry.serverId)) serverLabels.set(entry.serverId, entry.serverAlias);
+    if (!types.has(entry.secretType)) types.set(entry.secretType, entry.secretType);
+  }
+  const alerts = (
+    <>
+      {listFailed && <Alert showIcon type="error" message="敏感记录读取失败。请刷新后重试。" />}
+      {searchFailed && <Alert showIcon type="error" message="敏感记录搜索失败。请刷新或修改搜索条件。" />}
+      {feedback && <Alert showIcon closable type={feedback.type} message={feedback.message} onClose={() => setFeedback(undefined)} />}
+    </>
+  );
 
   return (
-    <div className="ops-page ops-sensitive-page flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4 text-xs sm:p-5">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2"><ShieldAlert size={17} className="text-amber-400" /><h1 className="m-0 text-base font-bold text-white">敏感库</h1><Tag color="gold" className="m-0">{pendingCount} 待处理拦截</Tag></div>
-          <p className="mb-0 mt-1 text-[11px] text-slate-400">AI 出口脱敏：识别密码、Token、私钥和 IP 地址，只保存脱敏预览，防止生产机密上云。</p>
+    <div className="ops-page ops-sensitive-page flex min-w-0 flex-col gap-3 p-4 text-xs">
+      <header className="ops-page-head">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="ops-page-title m-0"><ShieldAlert size={17} className="text-[var(--warning)]" />敏感库</h1>
+            {entries && !listFailed && <Tag color="gold">{snapshot.filter((entry) => entry.status === "pending").length} 待处理拦截</Tag>}
+          </div>
+          <p className="ops-page-desc mb-0">AI 出口脱敏记录</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button size="small" icon={<Download size={14} />} onClick={() => void exportCsv()} disabled={loading}>导出 CSV</Button>
-          <Button size="small" type="primary" icon={<FlaskConical size={14} />} onClick={() => setTestOpen(true)}>测试脱敏规则</Button>
-          <Button size="small" aria-label="刷新敏感库" title="刷新" icon={<RefreshCw size={14} />} loading={loading} onClick={() => void load()} />
+        <div className="flex flex-wrap gap-2">
+          <Button size="small" icon={<Download size={14} />} disabled={!ready || !visible.length} loading={activity === "export"} onClick={() => void exportCsv()}>导出 CSV</Button>
+          <Button size="small" type="primary" icon={<FlaskConical size={14} />} disabled={Boolean(activity)} onClick={() => setScanOpen(true)}>测试脱敏规则</Button>
+          <Button size="small" aria-label="刷新敏感库" title="刷新敏感库" icon={<RefreshCw size={14} />} disabled={Boolean(activity)} loading={activity === "refresh"} onClick={() => void refresh()} />
         </div>
       </header>
 
-      <section className="flex shrink-0 items-start gap-3 rounded-xl border border-slate-800 bg-surface-900/90 p-3.5">
-        <div className="mt-0.5 shrink-0 rounded-lg border border-amber-500/20 bg-amber-500/10 p-1.5 text-amber-400"><Info size={16} /></div>
-        <div className="min-w-0 space-y-1"><div className="font-semibold text-slate-200">这里不是日常入口，为什么会有条目？</div><p className="m-0 leading-relaxed text-slate-400">AI 读取 .env、进程参数或错误堆栈时，如果回显包含未经遮蔽的密码串或 PEM 私钥，安全网关会在发送给外部模型前替换为掩码，并把脱敏元数据记录在这里。原始命中内容不会写入本地数据库。</p></div>
-      </section>
+      {serversFailed && <Alert showIcon type="warning" message="服务器列表读取失败，暂时无法为扫描关联服务器。" />}
+      {!detail && alerts}
 
-      <section className="flex shrink-0 flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1 text-slate-400"><Filter size={14} />筛选：</span>
-        <Select allowClear showSearch optionFilterProp="label" value={serverFilter} onChange={setServerFilter} placeholder="全部服务器" className="w-40" options={servers.map((server) => ({ value: server.id, label: server.alias }))} />
-        <Select allowClear value={statusFilter} onChange={setStatusFilter} placeholder="全部状态" className="w-32" options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))} />
-        <Select allowClear value={typeFilter} onChange={setTypeFilter} placeholder="全部类型" className="w-28" options={Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }))} />
-        <Input allowClear value={search} onChange={(event) => setSearch(event.target.value)} prefix={<Search size={14} className="text-slate-500" />} placeholder="搜索 label / 命令 / 提示..." className="min-w-52 flex-1 sm:max-w-80" />
-        {selectedIds.size > 0 && <div className="ml-auto flex items-center gap-1"><span className="text-slate-400">已选 {selectedIds.size}</span><Button size="small" onClick={() => void bulkUpdate("retained")}>批量保留</Button><Button size="small" onClick={() => void bulkUpdate("false_positive")}>批量误判</Button><Button size="small" danger onClick={() => void bulkUpdate("discarded")}>批量丢弃</Button></div>}
-      </section>
+      <div className="flex flex-wrap items-center gap-2" aria-label="敏感库筛选">
+        <Select allowClear showSearch optionFilterProp="label" aria-label="按服务器筛选" value={serverId} onChange={(value) => { setServerId(value); setSelectedIds([]); }} placeholder="全部服务器" className="w-36" options={[...serverLabels].map(([value, label]) => ({ value, label }))} />
+        <Select allowClear aria-label="按状态筛选" value={status} onChange={(value) => { setStatus(value); setSelectedIds([]); }} placeholder="全部状态" className="w-29" options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))} />
+        <Select allowClear aria-label="按类型筛选" value={secretType} onChange={(value) => { setSecretType(value); setSelectedIds([]); }} placeholder="全部类型" className="w-28" options={[...types].map(([value, label]) => ({ value, label }))} />
+        <Input allowClear aria-label="搜索敏感记录" value={search} onChange={(event) => { setSearch(event.target.value); setSelectedIds([]); }} prefix={<Search size={14} />} placeholder="搜索标签、服务器或来源" className="min-w-48 flex-1" />
+      </div>
 
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-800 bg-surface-900/75">
-        <div className="custom-scrollbar min-h-0 flex-1 overflow-auto">
-          <table className="w-full min-w-[1120px] text-left text-xs">
-            <thead className="sticky top-0 z-10 border-b border-slate-800 bg-surface-900/95 text-[11px] text-slate-400"><tr><th className="w-10 p-3"><input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="全选当前筛选结果" className="accent-amber-500" /></th><th className="w-44 p-3 font-medium">时间</th><th className="w-36 p-3 font-medium">服务器</th><th className="w-24 p-3 font-medium">类型</th><th className="w-44 p-3 font-medium">标签</th><th className="w-40 p-3 font-medium">脱敏预览</th><th className="min-w-56 p-3 font-medium">来源</th><th className="w-24 p-3 font-medium">状态</th><th className="w-64 p-3 text-right font-medium">操作</th></tr></thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-[11px] text-slate-300">
-              {visibleEntries.map((entry) => <tr key={entry.id} className="transition hover:bg-surface-850/40"><td className="p-3"><input type="checkbox" checked={selectedIds.has(entry.id)} onChange={() => toggleSelected(entry.id)} aria-label={`选择敏感记录 ${entry.id}`} className="accent-amber-500" /></td><td className="p-3 whitespace-nowrap text-slate-400">{displayTime(entry.detectedAt)}</td><td className="p-3 font-sans font-medium text-sky-300">{entry.serverAlias || "未关联服务器"}</td><td className="p-3"><Tag color={entry.secretType === "private_key" ? "purple" : "red"}>{typeLabel(entry.secretType)}</Tag></td><td className="p-3 font-sans text-slate-300">{entry.label}</td><td className="p-3"><span className="rounded bg-surface-950 px-2 py-1 font-mono font-bold text-emerald-300">{entry.maskedValue}</span></td><td className="p-3 text-slate-400" title={entry.source}>{sourceLabel(entry.source)}</td><td className="p-3"><Tag color={STATUS_COLORS[entry.status as SensitiveStatus] ?? "default"}>{statusLabel(entry.status)}</Tag></td><td className="p-3"><div className="flex justify-end gap-1 font-sans"><Button size="small" type="text" icon={<Eye size={13} />} onClick={() => setDetailEntry(entry)}>查看</Button><Button size="small" type="text" icon={<FileWarning size={13} />} onClick={() => void updateStatus(entry, "retained")}>保留</Button><Button size="small" type="text" icon={<ThumbsDown size={13} />} onClick={() => void updateStatus(entry, "false_positive")}>误判</Button><Button size="small" danger type="text" icon={<Trash2 size={13} />} onClick={() => discardEntry(entry)}>丢弃</Button></div></td></tr>)}
-            </tbody>
-          </table>
-          {!loading && visibleEntries.length === 0 && <div className="p-12"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="没有匹配的敏感记录" /></div>}
+      {selected.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span>已选 {selected.length} 条</span>
+          <Button size="small" disabled={!ready} onClick={() => void applyStatus(selected, "retained")}>批量保留</Button>
+          <Button size="small" disabled={!ready} onClick={() => void applyStatus(selected, "false_positive")}>批量误判</Button>
+          <Button size="small" danger disabled={!ready} onClick={() => setDiscardIds(selected)}>批量丢弃</Button>
+          <Button size="small" type="text" disabled={Boolean(activity)} onClick={() => setSelectedIds([])}>取消选择</Button>
         </div>
-        <div className="flex shrink-0 items-center justify-between border-t border-slate-800 bg-surface-900/60 px-3 py-2 text-[11px] text-slate-400"><span>显示 {visibleEntries.length} / {entries.length} 条记录</span><span className="inline-flex items-center gap-1"><ShieldAlert size={12} className="text-amber-400" />仅展示脱敏元数据</span></div>
-      </section>
+      )}
 
-      <Modal className="ops-sensitive-modal" title="测试 AI 出口脱敏规则" open={testOpen} width={860} centered maskClosable={false} destroyOnClose onCancel={closeTestModal} onOk={() => void testMasking()} okText="开始扫描" cancelText="关闭" confirmLoading={scanLoading}>
-        <div className="space-y-3"><p className="m-0 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] leading-relaxed text-amber-200">输入任意包含密码、Token 或私钥的文本，后端只保存匹配类型、掩码、来源和哈希，不保存原文。右侧展示实际发往模型前的脱敏结果。</p><div className="grid gap-3 md:grid-cols-2"><div><label className="block text-xs font-semibold text-slate-400">原始输入文本</label><textarea value={scanContent} onChange={(event) => { setScanContent(event.target.value); setScanPreview(""); setScanMatchCount(0); }} rows={9} className="mt-1 w-full resize-y rounded-lg border border-slate-700 bg-surface-950 p-3 font-mono text-xs leading-relaxed text-slate-200 outline-none focus:border-amber-500" placeholder={'例如：DATABASE_PASSWORD=example-password\nAuthorization: Bearer example-token'} /></div><div><div className="flex items-center justify-between"><label className="block text-xs font-semibold text-emerald-400">出口脱敏预览</label><span className="text-[11px] text-slate-500">命中 {scanMatchCount} 条</span></div><pre className="mt-1 min-h-[216px] max-h-[300px] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-emerald-500/30 bg-surface-950 p-3 font-mono text-xs leading-relaxed text-emerald-300">{scanPreview || "点击开始扫描后显示脱敏结果"}</pre></div></div><div className="grid gap-3 md:grid-cols-2"><label className="block text-xs text-slate-400">关联服务器（可选）<Select allowClear showSearch optionFilterProp="label" value={scanServerId} onChange={setScanServerId} placeholder="未关联服务器" className="mt-1 w-full" options={servers.map((server) => ({ value: server.id, label: `${server.alias} · ${server.hostname}` }))} /></label><label className="block text-xs text-slate-400">来源<Input value={scanSource} onChange={(event) => setScanSource(event.target.value)} className="mt-1" placeholder="例如：ssh_exec · .env 检查" /></label></div></div>
-      </Modal>
+      <SensitiveTable
+        entries={visible}
+        total={entries?.length}
+        loading={activity === "refresh" || searching}
+        unavailable={searchFailed || (listFailed && (!entries || Boolean(query && !searchResult)))}
+        selectionDisabled={!ready}
+        selected={selected}
+        onSelect={setSelectedIds}
+        onDetail={(id) => { setFeedback(undefined); setDetailId(id); }}
+      />
 
-      <Modal title="敏感条目详情" open={Boolean(detailEntry)} width={560} footer={<Button onClick={() => setDetailEntry(null)}>关闭</Button>} onCancel={() => setDetailEntry(null)}>
-        {detailEntry && <div className="space-y-3 text-xs"><div className="grid grid-cols-2 gap-3"><div><div className="text-slate-500">服务器</div><div className="mt-1 text-sky-300">{detailEntry.serverAlias || "未关联服务器"}</div></div><div><div className="text-slate-500">检测时间</div><div className="mt-1 text-slate-300">{displayTime(detailEntry.detectedAt)}</div></div><div><div className="text-slate-500">类型</div><div className="mt-1 text-slate-300">{typeLabel(detailEntry.secretType)}</div></div><div><div className="text-slate-500">状态</div><div className="mt-1"><Tag color={STATUS_COLORS[detailEntry.status as SensitiveStatus] ?? "default"}>{statusLabel(detailEntry.status)}</Tag></div></div><div><div className="text-slate-500">命中次数</div><div className="mt-1 font-mono text-slate-300">{detailEntry.matchCount}</div></div><div><div className="text-slate-500">更新时间</div><div className="mt-1 text-slate-300">{displayTime(detailEntry.updatedAt)}</div></div></div><div><div className="text-slate-500">标签</div><div className="mt-1 text-slate-200">{detailEntry.label}</div></div><div><div className="text-slate-500">脱敏预览</div><code className="mt-1 block rounded-lg border border-slate-800 bg-surface-950 p-3 font-mono text-emerald-300">{detailEntry.maskedValue}</code></div><div><div className="text-slate-500">来源</div><div className="mt-1 break-all text-slate-300">{detailEntry.source}</div></div><div><div className="text-slate-500">匹配指纹（SHA-256）</div><code className="mt-1 block break-all font-mono text-[11px] text-slate-500">{detailEntry.valueHash}</code></div></div>}
+      {scanOpen && <ScanDialog servers={serversFailed ? [] : servers} onSettled={reloadEntries} onClose={() => setScanOpen(false)} />}
+      <SensitiveDetail
+        entry={detail}
+        busy={activity === "status"}
+        canUpdate={ready}
+        feedback={alerts}
+        onClose={() => setDetailId(undefined)}
+        onStatus={(id, nextStatus) => nextStatus === "discarded" ? setDiscardIds([id]) : void applyStatus([id], nextStatus)}
+      />
+      <Modal
+        title={`丢弃选中的 ${discardIds.length} 条敏感记录？`}
+        open={discardIds.length > 0}
+        maskClosable={false}
+        okText="确认丢弃"
+        cancelText="取消"
+        okButtonProps={{ danger: true, disabled: !ready }}
+        onCancel={() => setDiscardIds([])}
+        onOk={() => { void applyStatus(discardIds, "discarded"); setDiscardIds([]); }}
+      >
+        <p className="m-0">丢弃会将这些记录标记为「已丢弃」，脱敏元数据仍会保留。</p>
       </Modal>
     </div>
   );

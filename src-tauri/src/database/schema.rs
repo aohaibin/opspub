@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use crate::error::AppError;
 
 /// 当前 Schema 版本
-pub const SCHEMA_VERSION: i32 = 23;
+pub const SCHEMA_VERSION: i32 = 24;
 
 /// 获取数据库版本
 pub fn get_version(conn: &Connection) -> Result<i32, AppError> {
@@ -53,6 +53,7 @@ pub fn migrate(conn: &Connection) -> Result<(), AppError> {
             20 => migrate_v20_to_v21(conn)?,
             21 => migrate_v21_to_v22(conn)?,
             22 => migrate_v22_to_v23(conn)?,
+            23 => migrate_v23_to_v24(conn)?,
             _ => {
                 return Err(AppError::Custom(format!("未知的数据库版本: {}", version)));
             }
@@ -235,6 +236,18 @@ fn migrate_v22_to_v23(conn: &Connection) -> Result<(), AppError> {
         CREATE INDEX idx_action_plan_execution_steps_plan
             ON action_plan_execution_steps(plan_id, sequence_no);
         PRAGMA user_version=23;
+        COMMIT;",
+    )?;
+    Ok(())
+}
+
+/// v23 -> v24：记录来源是否在写入前经过安全投影，旧记录默认待遮蔽。
+fn migrate_v23_to_v24(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch(
+        "BEGIN;
+        ALTER TABLE sensitive_entries ADD COLUMN source_projected INTEGER NOT NULL DEFAULT 0
+            CHECK (source_projected IN (0, 1));
+        PRAGMA user_version=24;
         COMMIT;",
     )?;
     Ok(())
@@ -689,12 +702,13 @@ fn migrate_v14_to_v15(conn: &Connection) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_version, migrate, SCHEMA_VERSION};
+    use super::{get_version, migrate, migrate_v10_to_v11, SCHEMA_VERSION};
     use rusqlite::Connection;
 
     #[test]
     fn migration_v14_creates_plan_and_policy_tables() {
         let conn = Connection::open_in_memory().expect("open in-memory database");
+        migrate_v10_to_v11(&conn).expect("create the existing sensitive entries table");
         // v11 数据库已经有 servers 表；后续迁移会为该表添加连接选项。
         conn.execute_batch(
             "CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT);
@@ -704,9 +718,6 @@ mod tests {
              );",
         )
         .expect("v11 server and MCP token tables");
-        conn.pragma_update(None, "user_version", 11)
-            .expect("set starting schema version");
-
         migrate(&conn).expect("migrate schema");
 
         let version: i32 = conn
@@ -766,6 +777,7 @@ mod tests {
     #[test]
     fn migration_v17_freezes_legacy_mcp_wildcards() {
         let conn = Connection::open_in_memory().expect("open in-memory database");
+        migrate_v10_to_v11(&conn).expect("create the existing sensitive entries table");
         conn.execute_batch(
             "CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT NOT NULL, protocol TEXT NOT NULL);
              INSERT INTO servers (id, alias, protocol) VALUES
@@ -804,6 +816,7 @@ mod tests {
     #[test]
     fn migration_v17_wildcard_without_servers_fails_closed() {
         let conn = Connection::open_in_memory().expect("open in-memory database");
+        migrate_v10_to_v11(&conn).expect("create the existing sensitive entries table");
         conn.execute_batch(
             "CREATE TABLE servers (id INTEGER PRIMARY KEY, alias TEXT NOT NULL, protocol TEXT NOT NULL);
              CREATE TABLE mcp_tokens (id INTEGER PRIMARY KEY, server_scope TEXT NOT NULL, tool_scope TEXT NOT NULL);
@@ -828,6 +841,7 @@ mod tests {
     #[test]
     fn migration_v19_preserves_tasks_and_accepts_plan_drafts() {
         let conn = Connection::open_in_memory().expect("open database");
+        migrate_v10_to_v11(&conn).expect("create the existing sensitive entries table");
         conn.execute_batch(
             "CREATE TABLE mcp_tokens (id INTEGER PRIMARY KEY);
              CREATE TABLE action_plans (id TEXT PRIMARY KEY);

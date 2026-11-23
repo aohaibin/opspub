@@ -1,13 +1,12 @@
 /**
  * AI 策略档位徽章与下拉菜单。
  *
- * 视觉完全对齐用户截图 media_1790004662510.png：
- * 5 档彩色胶囊药丸：
+ * 保留原型的五档彩色胶囊，用主题语义色保证亮色/暗色下均可辨识：
  * 1. 禁用 (灰色)
  * 2. 只读 (翠绿色)
- * 3. 审批 (天青色)
+ * 3. 审批 (信息蓝色)
  * 4. 白名单 (金黄色)
- * 5. 信任 (珊瑚玫红色)
+ * 5. 信任 (警示红色)
  */
 
 import { useState } from "react";
@@ -64,7 +63,7 @@ export function AiPolicyBadge({ policy, onChange }: AiPolicyBadgeProps) {
       className="p-1.5 rounded-2xl flex flex-col gap-1.5 select-none"
       style={{
         minWidth: 104,
-        background: "#18181c",
+        background: "var(--surface-900)",
       }}
     >
       {AI_POLICY_ORDER.map((item) => {
@@ -107,9 +106,9 @@ export function AiPolicyBadge({ policy, onChange }: AiPolicyBadgeProps) {
       overlayInnerStyle={{
         padding: 0,
         borderRadius: 16,
-        background: "#18181c",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)",
+        background: "var(--surface-900)",
+        border: "1px solid var(--border)",
+        boxShadow: "var(--shadow-lg)",
       }}
     >
       {triggerBadge}

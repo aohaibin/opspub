@@ -50,6 +50,9 @@
   --surface-950: #090d16;
   --surface-900: #0f172a;
   --surface-850: #141e33;
+  --surface-800: #1e293b;
+  --surface-750: #273449;
+  --surface-700: #334155;
   --glass-card-bg: rgba(30, 41, 59, 0.65);
   --glass-nav-bg: rgba(15, 23, 42, 0.86);
 
@@ -108,6 +111,9 @@
   --surface-950: #f4f7fb;
   --surface-900: #ffffff;
   --surface-850: #edf2f8;
+  --surface-800: #e8eef6;
+  --surface-750: #e0e8f2;
+  --surface-700: #d7e0eb;
   --glass-card-bg: #ffffff;
   --glass-nav-bg: rgba(255, 255, 255, 0.96);
 

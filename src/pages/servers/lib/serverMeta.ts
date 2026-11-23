@@ -20,47 +20,24 @@ export interface PolicyStyle {
   hoverBg: string;
 }
 
+function createPolicyStyle(label: string, tone: string): PolicyStyle {
+  // 文字向主题正文色加深/提亮，浅色底与选中底保持同色系，避免暗色专用配色在亮色下失去对比。
+  return {
+    label,
+    dot: tone,
+    fg: `color-mix(in srgb, ${tone} 75%, var(--text-primary))`,
+    border: `color-mix(in srgb, ${tone} 30%, var(--surface-900))`,
+    bg: `color-mix(in srgb, ${tone} 8%, var(--surface-900))`,
+    hoverBg: `color-mix(in srgb, ${tone} 16%, var(--surface-900))`,
+  };
+}
+
 export const POLICY_STYLES: Record<string, PolicyStyle> = {
-  disabled: {
-    label: "禁用",
-    dot: "#94a3b8",
-    fg: "#cbd5e1",
-    border: "rgba(100, 116, 139, 0.6)",
-    bg: "rgba(30, 41, 59, 0.45)",
-    hoverBg: "rgba(51, 65, 85, 0.6)",
-  },
-  readonly: {
-    label: "只读",
-    dot: "#34d399",
-    fg: "#34d399",
-    border: "rgba(16, 185, 129, 0.5)",
-    bg: "rgba(6, 78, 59, 0.35)",
-    hoverBg: "rgba(6, 95, 70, 0.55)",
-  },
-  approval: {
-    label: "审批",
-    dot: "#22d3ee",
-    fg: "#67e8f9",
-    border: "rgba(6, 182, 212, 0.5)",
-    bg: "rgba(22, 78, 99, 0.35)",
-    hoverBg: "rgba(21, 94, 117, 0.55)",
-  },
-  allowlist: {
-    label: "白名单",
-    dot: "#fbbf24",
-    fg: "#fbbf24",
-    border: "rgba(245, 158, 11, 0.5)",
-    bg: "rgba(120, 53, 15, 0.35)",
-    hoverBg: "rgba(146, 64, 14, 0.55)",
-  },
-  trusted: {
-    label: "信任",
-    dot: "#fb7185",
-    fg: "#fda4af",
-    border: "rgba(244, 63, 94, 0.5)",
-    bg: "rgba(136, 19, 55, 0.35)",
-    hoverBg: "rgba(159, 18, 57, 0.55)",
-  },
+  disabled: createPolicyStyle("禁用", "var(--text-secondary)"),
+  readonly: createPolicyStyle("只读", "var(--success)"),
+  approval: createPolicyStyle("审批", "var(--info)"),
+  allowlist: createPolicyStyle("白名单", "var(--warning)"),
+  trusted: createPolicyStyle("信任", "var(--danger)"),
 };
 
 export const AI_POLICY_META: Record<AIPolicy, AIPolicyMeta> = {

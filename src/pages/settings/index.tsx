@@ -434,7 +434,7 @@ export default function SettingsPage() {
               <StaticButton key={value} disabled={preferenceBusy(SETTINGS_KEYS.closeBehavior)} active={settings.closeBehavior === value} onClick={() => void changeCloseBehavior(value)}>{label}</StaticButton>
             ))}
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-slate-500">{t("关闭后仍可保持后台服务与连接会话，双击托盘图标可以重新打开主窗口。")}</p>
+          <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">{t("关闭后仍可保持后台服务与连接会话，双击托盘图标可以重新打开主窗口。")}</p>
         </SettingCard>
 
         <SettingCard id="appearance" icon={<Palette size={15} />} title="外观主题" desc="选择应用皮肤和明暗模式，预览会同步到整个应用。">
@@ -488,13 +488,13 @@ export default function SettingsPage() {
           <Input value={proxyAddress} onChange={(event) => setProxyAddress(event.target.value)} onPressEnter={() => void saveProxyAddress()} placeholder={t("例如 127.0.0.1:7890 或 socks5://127.0.0.1:1080")} className="font-mono text-sm" aria-label={t("本机代理地址")} />
             <Button type="primary" loading={proxySaving} onClick={() => void saveProxyAddress()} className="sm:min-w-28">{t("保存代理地址")}</Button>
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">{t("仅接受 localhost 或回环 IP，防止把代理端口暴露给局域网。留空表示清除地址。")}</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{t("仅接受 localhost 或回环 IP，防止把代理端口暴露给局域网。留空表示清除地址。")}</p>
           <Alert className="mt-3" type="info" showIcon message={t("此地址目前会保存到本机配置；服务器“借用本机代理”隧道尚未读取该设置。")}/>
         </SettingCard>
 
         <SettingCard id="whitelist" icon={<ShieldCheck size={17} />} title="AI 出站地址白名单" desc="维护允许域名列表。策略启停和域名数据保存在本机配置中。">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0"><div className="text-sm font-semibold text-slate-200">{t("出站地址策略")}</div><p className="mt-1 text-sm leading-6 text-slate-500">{t("启用后，名单可供后续 AI 命令审批策略使用；当前命令执行引擎尚未读取此列表。")}</p></div>
+            <div className="min-w-0"><div className="text-sm font-semibold text-[var(--text-primary)]">{t("出站地址策略")}</div><p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{t("启用后，名单可供后续 AI 命令审批策略使用；当前命令执行引擎尚未读取此列表。")}</p></div>
             <Switch checked={outboundEnabled} disabled={settingsLoading || outboundSaving} onChange={(checked) => {
               const previous = outboundEnabled;
               setOutboundEnabled(checked);
@@ -505,40 +505,40 @@ export default function SettingsPage() {
               });
             }} aria-label={t("启用出站地址白名单")} />
           </div>
-          <div className="mt-4 border-t border-slate-800/70 pt-4">
-            <label className="mb-2 block text-sm font-medium text-slate-300">{t("自定义放行域名")}</label>
+          <div className="mt-4 border-t border-[var(--border)] pt-4">
+            <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">{t("自定义放行域名")}</label>
             <div className="flex max-w-2xl gap-2">
               <Input value={outboundHostDraft} onChange={(event) => setOutboundHostDraft(event.target.value)} onPressEnter={addOutboundHost} placeholder={t("例如 corp.example.com 或 https://repo.example.com")} className="font-mono text-sm" />
               <Button icon={<Plus size={15} />} onClick={addOutboundHost} aria-label={t("添加域名")} title={t("添加域名")} />
             </div>
-            <div className="mt-3 flex min-h-10 flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-surface-950/50 p-2.5">
+            <div className="mt-3 flex min-h-10 flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-surface-950/50 p-2.5">
               {outboundHosts.length ? outboundHosts.map((host) => <AntTag key={host} closable onClose={() => {
                 const next = outboundHosts.filter((item) => item !== host);
                 setOutboundHosts(next);
                 settings.setOutboundHosts(next);
-              }} className="!m-0 !px-2 !py-1 !font-mono !text-sm">{host}</AntTag>) : <span className="px-1 text-sm text-slate-500">{t("尚未添加自定义域名")}</span>}
+              }} className="!m-0 !px-2 !py-1 !font-mono !text-sm">{host}</AntTag>) : <span className="px-1 text-sm text-[var(--text-secondary)]">{t("尚未添加自定义域名")}</span>}
             </div>
-            <p className="mt-2 text-sm leading-6 text-slate-500">{t("输入完整 URL 时只保存主机名；支持子域名匹配的意图配置，但目前尚未进入命令执行判定。")}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{t("输入完整 URL 时只保存主机名；支持子域名匹配的意图配置，但目前尚未进入命令执行判定。")}</p>
           </div>
-          <div className="mt-4 flex justify-end border-t border-slate-800/70 pt-3">
+          <div className="mt-4 flex justify-end border-t border-[var(--border)] pt-3">
             <Button type="primary" disabled={settingsLoading} loading={outboundSaving} onClick={() => void saveOutboundSettings().catch(() => undefined)}>{t("保存白名单")}</Button>
           </div>
         </SettingCard>
 
         <SettingCard id="ssh-keys" icon={<KeyRound size={15} />} title="SSH 密钥" desc="系统凭据管理器中的 SSH 身份与默认认证方式。">
-          <div className="overflow-hidden rounded-lg border border-slate-800"><div className="grid grid-cols-[1fr_120px_90px] border-b border-slate-800 bg-surface-900/70 px-3 py-2 text-xs text-slate-500"><span>{t("身份")}</span><span>{t("类型")}</span><span>{t("状态")}</span></div><div className="grid grid-cols-[1fr_120px_90px] px-3 py-2.5 text-sm text-slate-300"><span className="font-mono">{t("系统凭据 · SSH")}</span><span>{t("密码 / 私钥")}</span><span className="text-emerald-300">{t("已托管")}</span></div></div>
+          <div className="overflow-hidden rounded-lg border border-[var(--border)]"><div className="grid grid-cols-[1fr_120px_90px] border-b border-[var(--border)] bg-surface-900/70 px-3 py-2 text-xs text-[var(--text-secondary)]"><span>{t("身份")}</span><span>{t("类型")}</span><span>{t("状态")}</span></div><div className="grid grid-cols-[1fr_120px_90px] px-3 py-2.5 text-sm text-[var(--text-primary)]"><span className="font-mono">{t("系统凭据 · SSH")}</span><span>{t("密码 / 私钥")}</span><span className="text-[var(--success)]">{t("已托管")}</span></div></div>
         </SettingCard>
 
         <SettingCard id="lock" icon={<Lock size={15} />} title="主密码 / 应用锁定" desc="保护敏感 SSH 私钥、数据库密码和模型密钥。">
-          <div className="grid gap-3 md:grid-cols-2"><div className="rounded-lg border border-slate-800 bg-surface-900/60 p-3"><div className="font-medium text-slate-200">{t("空闲超时自动锁定")}</div><p className="mt-1 text-xs text-slate-500">{t("鼠标键盘无操作后锁定操作台")}</p><div className="mt-3 rounded-md border border-slate-700 bg-[#0a0e14] px-2.5 py-1.5 text-sm text-slate-300">{t("15 分钟（推荐）")}</div></div><div className="flex flex-col justify-between rounded-lg border border-slate-800 bg-surface-900/60 p-3"><div><div className="font-medium text-slate-200">{t("应用主密码")}</div><p className="mt-1 text-xs text-slate-500">{t("修改后重新派生本地加密根密钥")}</p></div><StaticButton>重设主密码</StaticButton></div></div>
+          <div className="grid gap-3 md:grid-cols-2"><div className="rounded-lg border border-[var(--border)] bg-surface-900/60 p-3"><div className="font-medium text-[var(--text-primary)]">{t("空闲超时自动锁定")}</div><p className="mt-1 text-xs text-[var(--text-secondary)]">{t("鼠标键盘无操作后锁定操作台")}</p><div className="mt-3 rounded-md border border-[var(--border)] bg-surface-950 px-2.5 py-1.5 text-sm text-[var(--text-primary)]">{t("15 分钟（推荐）")}</div></div><div className="flex flex-col justify-between rounded-lg border border-[var(--border)] bg-surface-900/60 p-3"><div><div className="font-medium text-[var(--text-primary)]">{t("应用主密码")}</div><p className="mt-1 text-xs text-[var(--text-secondary)]">{t("修改后重新派生本地加密根密钥")}</p></div><StaticButton>重设主密码</StaticButton></div></div>
         </SettingCard>
 
         <SettingCard id="blacklist" icon={<AlertTriangle size={15} />} title="命令黑名单" desc="危险命令默认拦截，所有命中记录都会进入审计日志。">
-          <div className="overflow-hidden rounded-lg border border-slate-800"><div className="grid grid-cols-[1fr_1fr_80px] border-b border-slate-800 bg-surface-900/70 px-3 py-2 text-xs text-slate-500"><span>{t("规则")}</span><span>{t("说明")}</span><span>{t("来源")}</span></div>{[["rm -rf /", "删除根目录", "内置"], ["mkfs.*", "格式化磁盘", "内置"], ["DROP DATABASE", "删除数据库", "内置"]].map(([rule, desc, source]) => <div key={rule} className="grid grid-cols-[1fr_1fr_80px] border-b border-slate-800/60 px-3 py-2 text-sm last:border-0"><span className="font-mono text-rose-300">{rule}</span><span className="text-slate-400">{t(desc)}</span><span className="text-slate-500">{t(source)}</span></div>)}</div>
+          <div className="overflow-hidden rounded-lg border border-[var(--border)]"><div className="grid grid-cols-[1fr_1fr_80px] border-b border-[var(--border)] bg-surface-900/70 px-3 py-2 text-xs text-[var(--text-secondary)]"><span>{t("规则")}</span><span>{t("说明")}</span><span>{t("来源")}</span></div>{[["rm -rf /", "删除根目录", "内置"], ["mkfs.*", "格式化磁盘", "内置"], ["DROP DATABASE", "删除数据库", "内置"]].map(([rule, desc, source]) => <div key={rule} className="grid grid-cols-[1fr_1fr_80px] border-b border-[var(--border)] px-3 py-2 text-sm last:border-0"><span className="font-mono text-[var(--danger)]">{rule}</span><span className="text-[var(--text-secondary)]">{t(desc)}</span><span className="text-[var(--text-secondary)]">{t(source)}</span></div>)}</div>
         </SettingCard>
 
         <SettingCard id="audit-retention" icon={<ClipboardList size={15} />} title="审计保留" desc="定期清理过期审计行，避免长期运行后本地数据库膨胀。">
-          <div className="flex max-w-xs items-center gap-2"><div className="flex flex-1 items-center rounded-lg border border-slate-700 bg-[#0a0e14] px-3 py-2 font-mono text-xs text-slate-300">90 <span className="ml-auto font-sans text-slate-500">{t("天")}</span></div><StaticButton>保存</StaticButton></div>
+          <div className="flex max-w-xs items-center gap-2"><div className="flex flex-1 items-center rounded-lg border border-[var(--border)] bg-surface-950 px-3 py-2 font-mono text-xs text-[var(--text-primary)]">90 <span className="ml-auto font-sans text-[var(--text-secondary)]">{t("天")}</span></div><StaticButton>保存</StaticButton></div>
         </SettingCard>
 
         <SettingCard id="backup" icon={<Archive size={15} />} title="备份与还原" desc="将本地工作区导出为加密备份，便于迁移到新设备或灾难恢复。">
@@ -816,16 +816,16 @@ function ModelServiceSettings({ showReturnToCopilot, onReturnToCopilot }: { show
 
   return <div className="space-y-3">
     {showReturnToCopilot && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-3 py-2.5">
-      <div className="min-w-0"><div className="text-sm font-semibold text-indigo-200">{t("AI 助手模型配置")}</div><p className="m-0 mt-0.5 text-xs leading-relaxed text-slate-400">{t("配置完成后返回 AI 助手即可直接使用本次选择的模型。")}</p></div>
+      <div className="min-w-0"><div className="text-sm font-semibold text-[var(--accent)]">{t("AI 助手模型配置")}</div><p className="m-0 mt-0.5 text-xs leading-relaxed text-[var(--text-secondary)]">{t("配置完成后返回 AI 助手即可直接使用本次选择的模型。")}</p></div>
       <Button size="small" type="primary" ghost icon={<ArrowLeft size={13} />} onClick={onReturnToCopilot}>{t("返回 AI 助手")}</Button>
     </div>}
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="text-base text-slate-400">{language === "en-US" ? `${profiles.length} profiles · API keys are stored in the system credential manager` : `${profiles.length} 条配置 · API 密钥由系统凭据管理器托管`}</div>
+      <div className="text-base text-[var(--text-secondary)]">{language === "en-US" ? `${profiles.length} profiles · API keys are stored in the system credential manager` : `${profiles.length} 条配置 · API 密钥由系统凭据管理器托管`}</div>
       <div className="flex gap-2"><Button size="middle" onClick={() => setImportOpen(true)}>{t("粘贴导入")}</Button><Button size="middle" type="primary" onClick={openNew}>{t("新增模型服务")}</Button></div>
     </div>
-    {loading ? <div className="rounded-lg border border-slate-800 px-3 py-6 text-center text-sm text-slate-500">{t("正在读取模型服务配置...")}</div> : profiles.length === 0 ? <div className="rounded-lg border border-dashed border-slate-700 px-3 py-7 text-center"><div className="text-sm font-medium text-slate-300">{t("尚未配置模型服务")}</div><p className="mt-1 text-xs text-slate-500">{t("添加后可在此管理、验证和导出模型配置。")}</p></div> : <div className="divide-y divide-slate-800 overflow-hidden rounded-lg border border-slate-800">
+    {loading ? <div className="rounded-lg border border-[var(--border)] px-3 py-6 text-center text-sm text-[var(--text-secondary)]">{t("正在读取模型服务配置...")}</div> : profiles.length === 0 ? <div className="rounded-lg border border-dashed border-[var(--border)] px-3 py-7 text-center"><div className="text-sm font-medium text-[var(--text-primary)]">{t("尚未配置模型服务")}</div><p className="mt-1 text-xs text-[var(--text-secondary)]">{t("添加后可在此管理、验证和导出模型配置。")}</p></div> : <div className="divide-y divide-[var(--border)] overflow-hidden rounded-lg border border-[var(--border)]">
       {profiles.map((profile) => <div key={profile.id} className="flex flex-wrap items-center justify-between gap-3 bg-surface-950/50 px-4 py-3.5">
-        <div className="min-w-[220px] flex-1"><div className="flex flex-wrap items-center gap-2"><strong className="text-base font-semibold text-slate-200">{profile.name}</strong><span className="rounded border border-slate-700 px-2 py-1 text-sm text-slate-400">{profile.protocol === "anthropic" ? "Anthropic" : t("OpenAI 兼容")}</span>{profile.hasApiKey ? <span className="text-sm text-emerald-400">{t("密钥已托管")}</span> : <span className="text-sm text-amber-400">{t("未配置密钥")}</span>}{currentModelId === profile.id && <span className="rounded border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-sm text-teal-300">{t("AI 默认")}</span>}</div><div className="mt-1.5 truncate font-mono text-sm text-slate-500">{profile.model || t("未选择模型")} · {profile.baseUrl || t("使用预置端点")}</div></div>
+        <div className="min-w-[220px] flex-1"><div className="flex flex-wrap items-center gap-2"><strong className="text-base font-semibold text-[var(--text-primary)]">{profile.name}</strong><span className="rounded border border-[var(--border)] px-2 py-1 text-sm text-[var(--text-secondary)]">{profile.protocol === "anthropic" ? "Anthropic" : t("OpenAI 兼容")}</span>{profile.hasApiKey ? <span className="text-sm text-[var(--success)]">{t("密钥已托管")}</span> : <span className="text-sm text-[var(--warning)]">{t("未配置密钥")}</span>}{currentModelId === profile.id && <span className="rounded border border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] px-2 py-1 text-sm text-[var(--nav-active-text)]">{t("AI 默认")}</span>}</div><div className="mt-1.5 truncate font-mono text-sm text-[var(--text-secondary)]">{profile.model || t("未选择模型")} · {profile.baseUrl || t("使用预置端点")}</div></div>
         <div className="flex flex-wrap items-center gap-1"><Button type="text" size="middle" disabled={currentModelId === profile.id} onClick={() => setDefaultModel(profile)}>{currentModelId === profile.id ? t("当前默认") : t("设为默认")}</Button><Button type="text" size="middle" icon={<Copy size={15} />} onClick={() => void exportProfile(profile)}>{t("导出")}</Button><Button type="text" size="middle" onClick={() => openEdit(profile)}>{t("编辑")}</Button><Button type="text" size="middle" danger onClick={() => void remove(profile)}>{t("删除")}</Button></div>
       </div>)}
     </div>}
@@ -841,7 +841,7 @@ function ModelServiceSettings({ showReturnToCopilot, onReturnToCopilot }: { show
         </ModelField>
         {draft.presetKey && (() => {
           const selected = presets.find((preset) => preset.key === draft.presetKey);
-          return selected ? <div className="-mt-2 rounded-md border border-slate-800 bg-surface-950/60 px-3 py-2 text-sm text-slate-500">{selected.isLocal ? t("本地服务：请先启动模型服务。") : selected.applyUrl ? <a className="text-teal-400 hover:text-teal-300" href={selected.applyUrl} target="_blank" rel="noreferrer">{t("前往服务商申请密钥")}</a> : t("官方服务端点")}{selected.verifiedAt ? ` · ${t("预置核实于")}${selected.verifiedAt}` : t(" · 预置尚未实际核实")}</div> : null;
+          return selected ? <div className="-mt-2 rounded-md border border-[var(--border)] bg-surface-950/60 px-3 py-2 text-sm text-[var(--text-secondary)]">{selected.isLocal ? t("本地服务：请先启动模型服务。") : selected.applyUrl ? <a className="text-[var(--nav-active-text)] hover:text-[var(--nav-active-text)]" href={selected.applyUrl} target="_blank" rel="noreferrer">{t("前往服务商申请密钥")}</a> : t("官方服务端点")}{selected.verifiedAt ? ` · ${t("预置核实于")}${selected.verifiedAt}` : t(" · 预置尚未实际核实")}</div> : null;
         })()}
 
         <ModelField label="API 接口地址 (Base URL)">
@@ -857,7 +857,7 @@ function ModelServiceSettings({ showReturnToCopilot, onReturnToCopilot }: { show
             <AutoComplete allowClear className="min-w-0 flex-1 font-mono" value={draft.model} options={modelOptions.map((model) => ({ label: model, value: model }))} filterOption={(input, option) => String(option?.value ?? "").toLowerCase().includes(input.toLowerCase())} placeholder={t("例如 claude-opus-5-5 或 deepseek-reasoner")} onChange={changeModel} onSelect={(model: string) => changeModel(model)} />
             <Button className="shrink-0" loading={testing} disabled={requiredExtraMissing} onClick={() => void verify()} icon={<RefreshCw size={14} />}>{t("获取")}</Button>
           </div>
-          <p className="m-0 mt-1.5 text-sm leading-relaxed text-slate-500">{modelOptions.length > 0 ? t("模型已加载，可从建议列表选择，也可手动输入其他模型名。") : t("下拉列表是服务商返回的可用模型；也可以直接输入自定义模型名。")}</p>
+          <p className="m-0 mt-1.5 text-sm leading-relaxed text-[var(--text-secondary)]">{modelOptions.length > 0 ? t("模型已加载，可从建议列表选择，也可手动输入其他模型名。") : t("下拉列表是服务商返回的可用模型；也可以直接输入自定义模型名。")}</p>
         </ModelField>
 
         <ModelField label="上下文窗口 / 单次输出上限 (tokens)" hint="模型列表接口返回的能力信息；未知时不会主动限制上下文。">
@@ -873,23 +873,23 @@ function ModelServiceSettings({ showReturnToCopilot, onReturnToCopilot }: { show
           </ModelField>
         ))}
 
-        {modelOptions.length > 0 && <p className="m-0 text-sm text-slate-500">{t("已获取 ")}{modelOptions.length}{t(" 个可用模型。验证只请求模型列表，不会发起生成请求。")}</p>}
+        {modelOptions.length > 0 && <p className="m-0 text-sm text-[var(--text-secondary)]">{t("已获取 ")}{modelOptions.length}{t(" 个可用模型。验证只请求模型列表，不会发起生成请求。")}</p>}
       </div>
     </Modal>
 
     <Modal title={t("粘贴 ai.profile 配置")} open={importOpen} width={560} centered maskClosable={false} onCancel={() => setImportOpen(false)} onOk={() => void importProfiles()} confirmLoading={importing} okText={t("导入并托管密钥")} cancelText={t("取消")}>
-      <p className="mb-2 text-xs text-slate-500">{t("支持单条 `ai.profile` 和 `ai.profile.bundle`。导入密钥后只保存到系统凭据管理器，不会写入配置文本。")}</p>
+      <p className="mb-2 text-xs text-[var(--text-secondary)]">{t("支持单条 `ai.profile` 和 `ai.profile.bundle`。导入密钥后只保存到系统凭据管理器，不会写入配置文本。")}</p>
       <Input.TextArea rows={10} value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={t("粘贴模型服务 JSON 配置")} />
     </Modal>
   </div>;
 }
 
 function ModelField({ label, required = false, hint, children }: { label: string; required?: boolean; hint?: string; children: ReactNode }) {
-  return <label className="block space-y-1.5"><span className="flex items-center gap-1 text-sm text-slate-300"><span>{required && <span className="mr-1 text-rose-400">*</span>}{label}</span>{hint && <span title={hint} className="inline-flex cursor-help"><CircleHelp size={13} className="text-slate-500" /></span>}</span>{children}</label>;
+  return <label className="block space-y-1.5"><span className="flex items-center gap-1 text-sm text-[var(--text-primary)]"><span>{required && <span className="mr-1 text-[var(--danger)]">*</span>}{label}</span>{hint && <span title={hint} className="inline-flex cursor-help"><CircleHelp size={13} className="text-[var(--text-secondary)]" /></span>}</span>{children}</label>;
 }
 
 function LimitField({ label, value }: { label: string; value: number | null | undefined }) {
-  return <div className="flex items-center overflow-hidden rounded-lg border border-slate-700/80 bg-surface-950/70"><span className="shrink-0 border-r border-slate-700/80 bg-surface-900 px-2.5 py-2 text-sm text-slate-400">{label}</span><span className="min-w-0 flex-1 px-2.5 py-2 text-sm font-mono text-slate-300">{value == null ? "未知" : value.toLocaleString()}</span></div>;
+  return <div className="flex items-center overflow-hidden rounded-lg border border-[var(--border)] bg-surface-950/70"><span className="shrink-0 border-r border-[var(--border)] bg-surface-900 px-2.5 py-2 text-sm text-[var(--text-secondary)]">{label}</span><span className="min-w-0 flex-1 px-2.5 py-2 text-sm font-mono text-[var(--text-primary)]">{value == null ? "未知" : value.toLocaleString()}</span></div>;
 }
 
 function StaticButton({ active, children, disabled = false, onClick }: { active?: boolean; children: ReactNode; disabled?: boolean; onClick?: () => void }) {
@@ -905,10 +905,11 @@ function ToggleRow({ label, desc, checked, onChange, disabled = false, loading =
 }
 
 function TerminalSettingSelect<T extends string | number>({ label, value, options, translate, disabled, onChange }: { label: string; value: T; options: Array<{ value: T; label: string }>; translate: (text: string) => string; disabled: boolean; onChange: (value: T) => void }) {
-  return <label className="block min-w-0"><span className="mb-1.5 block text-xs font-medium text-slate-400">{label}</span><Select aria-label={label} className="w-full" value={value} options={options.map((option) => ({ ...option, label: translate(option.label) }))} disabled={disabled} onChange={onChange} /></label>;
+  return <label className="block min-w-0"><span className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">{label}</span><Select aria-label={label} className="w-full" value={value} options={options.map((option) => ({ ...option, label: translate(option.label) }))} disabled={disabled} onChange={onChange} /></label>;
 }
 
 function PreviewTerminal({ title, background, foreground, selected }: { title: string; background: string; foreground: string; selected?: boolean }) {
+  // 预览保留终端配色本身，不能被应用的亮色主题覆盖。
   return <div className="rounded-md p-2.5 font-mono text-xs leading-relaxed" style={{ background, color: foreground }}><div className="mb-1 font-semibold">{title}</div><div aria-hidden>$ <span className={selected ? "motion-safe:animate-pulse" : ""}>█</span></div></div>;
 }
 
@@ -946,23 +947,23 @@ function CommunitySettings() {
     { key: "download", icon: <Download size={16} />, label: copy("下载", "Downloads"), value: "https://www.opspub.com/download", url: "https://www.opspub.com/download" },
   ];
 
-  return <div className="space-y-2 rounded-xl border border-slate-800/80 bg-[#0f141c] p-4 shadow-lg sm:p-5">
-    <h3 className="border-b border-slate-800/70 pb-2 text-base font-bold text-white">{copy("作者 & 社区", "Author & Community")}</h3>
-    <div className="divide-y divide-slate-800/70">
+  return <div className="space-y-2 rounded-xl border border-[var(--border)] bg-surface-900 p-4 shadow-[var(--shadow-sm)] sm:p-5">
+    <h3 className="border-b border-[var(--border)] pb-2 text-base font-bold text-[var(--text-primary)]">{copy("作者 & 社区", "Author & Community")}</h3>
+    <div className="divide-y divide-[var(--border)]">
       {rows.map((row) => <div key={row.key} className="flex min-h-14 items-center justify-between gap-3 py-3">
         <div className="flex min-w-0 items-center gap-3.5">
-          <span className="shrink-0 text-slate-400">{row.icon}</span>
+          <span className="shrink-0 text-[var(--text-secondary)]">{row.icon}</span>
           <div className="min-w-0">
-            <div className="text-xs leading-tight text-slate-400">{row.label}</div>
-            {row.url ? <button type="button" onClick={() => void openExternal(row.url!)} className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-left text-sm font-medium text-blue-400 transition hover:text-blue-300 hover:underline">{row.value}</button> : <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-slate-200">
-              <span className={row.key === "author" ? "font-medium" : "font-mono font-bold tracking-wide text-white"}>{row.value}</span>
-              {row.note && <span className="text-xs text-slate-500">{row.note}</span>}
+            <div className="text-xs leading-tight text-[var(--text-secondary)]">{row.label}</div>
+            {row.url ? <button type="button" onClick={() => void openExternal(row.url!)} className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-left text-sm font-medium text-[var(--info)] transition hover:text-[var(--accent-hover)] hover:underline">{row.value}</button> : <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-[var(--text-primary)]">
+              <span className={row.key === "author" ? "font-medium" : "font-mono font-bold tracking-wide text-[var(--text-primary)]"}>{row.value}</span>
+              {row.note && <span className="text-xs text-[var(--text-secondary)]">{row.note}</span>}
             </div>}
           </div>
         </div>
-        {row.url ? <button type="button" onClick={() => void openExternal(row.url!)} aria-label={copy("在浏览器中打开", "Open in browser")} className="shrink-0 rounded-md p-1.5 text-slate-500 transition hover:bg-surface-800 hover:text-slate-200"><ExternalLink size={16} /></button> : row.copyLabel ? <div className="flex shrink-0 items-center gap-2">
-          {row.key === "group" && <button type="button" onClick={() => void copyValue(row.value, copy("群号", "Group ID"))} className="rounded-md px-2 py-1 text-xs font-medium text-blue-400 transition hover:bg-surface-800 hover:text-blue-300">{row.copyLabel}</button>}
-          <button type="button" onClick={() => void copyValue(row.value, row.label)} aria-label={row.copyLabel} className="rounded-md p-1.5 text-slate-500 transition hover:bg-surface-800 hover:text-slate-200"><Copy size={15} /></button>
+        {row.url ? <button type="button" onClick={() => void openExternal(row.url!)} aria-label={copy("在浏览器中打开", "Open in browser")} className="shrink-0 rounded-md p-1.5 text-[var(--text-secondary)] transition hover:bg-surface-800 hover:text-[var(--text-primary)]"><ExternalLink size={16} /></button> : row.copyLabel ? <div className="flex shrink-0 items-center gap-2">
+          {row.key === "group" && <button type="button" onClick={() => void copyValue(row.value, copy("群号", "Group ID"))} className="rounded-md px-2 py-1 text-xs font-medium text-[var(--info)] transition hover:bg-surface-800 hover:text-[var(--accent-hover)]">{row.copyLabel}</button>}
+          <button type="button" onClick={() => void copyValue(row.value, row.label)} aria-label={row.copyLabel} className="rounded-md p-1.5 text-[var(--text-secondary)] transition hover:bg-surface-800 hover:text-[var(--text-primary)]"><Copy size={15} /></button>
         </div> : null}
       </div>)}
     </div>
@@ -1157,43 +1158,43 @@ function BackupSettings() {
     { key: "sync", icon: <Repeat size={14} />, zh: "多设备同步", en: "Multi-device sync" },
     { key: "storage", icon: <DatabaseIcon size={14} />, zh: "存储端", en: "Storage" },
   ];
-  const tabButton = (key: BackupTab) => `flex items-center gap-1.5 border-b-2 pb-2.5 text-xs font-medium transition ${tab === key ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-400 hover:text-slate-200"}`;
+  const tabButton = (key: BackupTab) => `flex items-center gap-1.5 border-b-2 pb-2.5 text-xs font-medium transition ${tab === key ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`;
 
-  return <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#0f141c] p-4 shadow-lg sm:p-5">
-    <div><div className="flex items-center gap-2 text-sm font-medium text-white"><HardDrive size={16} className="text-indigo-400" />{copy("备份与还原", "Backup & Restore")}</div><p className="mt-1 text-xs leading-relaxed text-slate-400">{copy("把本地工作区导出为加密备份，便于迁移到新设备或灾难恢复。系统凭据管理器中的密码、私钥和 API Key 不会写入备份文件。", "Export the local workspace as an encrypted backup for migration or disaster recovery. Passwords, private keys, and API keys from the system credential manager are not written to the backup.")}</p></div>
-    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs"><AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-400" /><div className="space-y-1"><div className="font-bold text-amber-300">{copy("备份密码独立于应用主密码，请妥善保管", "The backup password is independent from the app master password")}</div><div className="text-[11px] leading-relaxed text-amber-200/80">{copy("忘记密码无法解密备份。备份包含本机 SQLite 工作区的全部数据（含审计与聊天历史）；系统凭据管理器中的密码、私钥和 API Key 不会导出。", "A forgotten password cannot decrypt the backup. It contains all local SQLite workspace data, including audit and chat history; passwords, private keys, and API keys in the system credential manager are excluded.")}</div></div></div>
-    <div className="flex gap-5 overflow-x-auto border-b border-slate-800/80">
+  return <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-surface-900 p-4 shadow-[var(--shadow-sm)] sm:p-5">
+    <div><div className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]"><HardDrive size={16} className="text-[var(--accent)]" />{copy("备份与还原", "Backup & Restore")}</div><p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">{copy("把本地工作区导出为加密备份，便于迁移到新设备或灾难恢复。系统凭据管理器中的密码、私钥和 API Key 不会写入备份文件。", "Export the local workspace as an encrypted backup for migration or disaster recovery. Passwords, private keys, and API keys from the system credential manager are not written to the backup.")}</p></div>
+    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs"><AlertCircle size={16} className="mt-0.5 shrink-0 text-[var(--warning)]" /><div className="space-y-1"><div className="font-bold text-[var(--warning)]">{copy("备份密码独立于应用主密码，请妥善保管", "The backup password is independent from the app master password")}</div><div className="text-[11px] leading-relaxed text-[var(--warning)]">{copy("忘记密码无法解密备份。备份包含本机 SQLite 工作区的全部数据（含审计与聊天历史）；系统凭据管理器中的密码、私钥和 API Key 不会导出。", "A forgotten password cannot decrypt the backup. It contains all local SQLite workspace data, including audit and chat history; passwords, private keys, and API keys in the system credential manager are excluded.")}</div></div></div>
+    <div className="flex gap-5 overflow-x-auto border-b border-[var(--border)]">
       {tabs.map((item) => <button key={item.key} type="button" onClick={() => setTab(item.key)} className={tabButton(item.key)}>{item.icon}<span>{copy(item.zh, item.en)}</span></button>)}
     </div>
 
     {tab === "local" && <div className="grid grid-cols-1 gap-4 pt-1 lg:grid-cols-2">
-      <div className="flex flex-col justify-between space-y-4 rounded-xl border border-slate-800/90 bg-[#111622] p-4">
-        <div className="space-y-4"><div className="flex items-center gap-2 text-xs font-medium text-slate-200"><Upload size={14} className="text-indigo-400" />{copy("完整工作区备份", "Full workspace backup")}</div><div className="rounded-lg border border-slate-800 bg-surface-950/50 p-3 text-xs leading-relaxed text-slate-400">{copy("导出当前本机 SQLite 数据库中的全部数据，包括服务器配置、应用设置、策略、审计日志和聊天历史。系统凭据管理器中的密码与密钥另行托管，不包含在此文件中。", "Exports all data in the local SQLite database, including server settings, app settings, policies, audit logs, and chat history. Passwords and keys in the system credential manager are stored separately and are not included.")}</div><div className="space-y-2 border-t border-slate-800 pt-3"><div className="text-xs font-medium text-slate-300">{copy("设置备份密码", "Set backup password")}</div><Input.Password value={password} onChange={(event) => setPassword(event.target.value)} placeholder={copy("至少 12 位，或至少 16 位", "12+ characters, or 16+")} autoComplete="new-password" /><Input.Password value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={copy("再次输入备份密码", "Repeat backup password")} autoComplete="new-password" /></div></div><Button type="primary" icon={<Upload size={14} />} loading={busy === "export"} onClick={() => void exportBackup()}>{copy("选择保存位置并导出", "Choose location and export")}</Button>
+      <div className="flex flex-col justify-between space-y-4 rounded-xl border border-[var(--border)] bg-surface-950/60 p-4">
+        <div className="space-y-4"><div className="flex items-center gap-2 text-xs font-medium text-[var(--text-primary)]"><Upload size={14} className="text-[var(--accent)]" />{copy("完整工作区备份", "Full workspace backup")}</div><div className="rounded-lg border border-[var(--border)] bg-surface-950/50 p-3 text-xs leading-relaxed text-[var(--text-secondary)]">{copy("导出当前本机 SQLite 数据库中的全部数据，包括服务器配置、应用设置、策略、审计日志和聊天历史。系统凭据管理器中的密码与密钥另行托管，不包含在此文件中。", "Exports all data in the local SQLite database, including server settings, app settings, policies, audit logs, and chat history. Passwords and keys in the system credential manager are stored separately and are not included.")}</div><div className="space-y-2 border-t border-[var(--border)] pt-3"><div className="text-xs font-medium text-[var(--text-primary)]">{copy("设置备份密码", "Set backup password")}</div><Input.Password value={password} onChange={(event) => setPassword(event.target.value)} placeholder={copy("至少 12 位，或至少 16 位", "12+ characters, or 16+")} autoComplete="new-password" /><Input.Password value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={copy("再次输入备份密码", "Repeat backup password")} autoComplete="new-password" /></div></div><Button type="primary" icon={<Upload size={14} />} loading={busy === "export"} onClick={() => void exportBackup()}>{copy("选择保存位置并导出", "Choose location and export")}</Button>
       </div>
-      <div className="space-y-4 rounded-xl border border-slate-800/90 bg-[#111622] p-4"><div className="flex items-center gap-2 text-xs font-medium text-slate-200"><Download size={14} className="text-indigo-400" />{copy("本地还原", "Restore local backup")}</div><button type="button" onClick={() => void chooseRestoreFile()} className="flex w-full items-center gap-2.5 rounded-xl border border-dashed border-slate-700/80 bg-[#141926]/60 px-4 py-4 text-left text-xs text-slate-300 transition hover:border-indigo-500/80 hover:bg-[#181f30]"><FolderOpen size={17} className="text-slate-400" /><span>{copy("选择备份文件 (.opspubbak)", "Choose backup file (.opspubbak)")}</span></button><Input.Password value={restorePassword} onChange={(event) => setRestorePassword(event.target.value)} placeholder={copy("输入备份密码后选择文件", "Enter backup password before choosing a file")} autoComplete="current-password" />{busy === "restore" && <div className="text-xs text-indigo-300">{copy("正在还原工作区...", "Restoring workspace...")}</div>}</div>
+      <div className="space-y-4 rounded-xl border border-[var(--border)] bg-surface-950/60 p-4"><div className="flex items-center gap-2 text-xs font-medium text-[var(--text-primary)]"><Download size={14} className="text-[var(--accent)]" />{copy("本地还原", "Restore local backup")}</div><button type="button" onClick={() => void chooseRestoreFile()} className="flex w-full items-center gap-2.5 rounded-xl border border-dashed border-[var(--border)] bg-surface-950/60 px-4 py-4 text-left text-xs text-[var(--text-primary)] transition hover:border-[var(--accent)] hover:bg-[var(--bg-hover)]"><FolderOpen size={17} className="text-[var(--text-secondary)]" /><span>{copy("选择备份文件 (.opspubbak)", "Choose backup file (.opspubbak)")}</span></button><Input.Password value={restorePassword} onChange={(event) => setRestorePassword(event.target.value)} placeholder={copy("输入备份密码后选择文件", "Enter backup password before choosing a file")} autoComplete="current-password" />{busy === "restore" && <div className="text-xs text-[var(--accent)]">{copy("正在还原工作区...", "Restoring workspace...")}</div>}</div>
     </div>}
 
-    {(tab === "cloud" || tab === "sync") && <div className="space-y-4 rounded-xl border border-slate-800/90 bg-[#111622] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs font-medium text-slate-200">{copy(tab === "cloud" ? "云端备份文件" : "多设备备份同步", tab === "cloud" ? "Cloud backup files" : "Multi-device backup sync")}</div><div className="mt-1 text-[11px] text-slate-500">{copy("仅上传已加密的 .opspubbak 文件；远端目录不会保存明文工作区数据。", "Only encrypted .opspubbak files are uploaded. No plaintext workspace data is stored remotely.")}</div></div><Button size="small" icon={<Plus size={13} />} onClick={() => { setTab("storage"); openStorageForm(); }}>{copy("新增存储端", "Add endpoint")}</Button></div>
+    {(tab === "cloud" || tab === "sync") && <div className="space-y-4 rounded-xl border border-[var(--border)] bg-surface-950/60 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs font-medium text-[var(--text-primary)]">{copy(tab === "cloud" ? "云端备份文件" : "多设备备份同步", tab === "cloud" ? "Cloud backup files" : "Multi-device backup sync")}</div><div className="mt-1 text-[11px] text-[var(--text-secondary)]">{copy("仅上传已加密的 .opspubbak 文件；远端目录不会保存明文工作区数据。", "Only encrypted .opspubbak files are uploaded. No plaintext workspace data is stored remotely.")}</div></div><Button size="small" icon={<Plus size={13} />} onClick={() => { setTab("storage"); openStorageForm(); }}>{copy("新增存储端", "Add endpoint")}</Button></div>
       <Select className="w-full max-w-lg" placeholder={copy("选择存储端", "Select storage endpoint")} value={selectedStorageId || undefined} onChange={setSelectedStorageId} options={storageEndpoints.filter((item) => item.enabled).map((item) => ({ value: item.id, label: `${item.name} · ${item.url}` }))} />
       <div className="flex flex-wrap gap-2"><Button icon={<Upload size={14} />} loading={busy === "export"} disabled={!selectedStorageId} onClick={() => void pushExistingBackup()}>{copy("上传加密备份", "Upload encrypted backup")}</Button><Input value={remoteFilename} onChange={(event) => setRemoteFilename(event.target.value)} placeholder={copy("远端文件名.opspubbak", "remote-file.opspubbak")} className="max-w-xs" /><Button icon={<Download size={14} />} loading={busy === "restore"} disabled={!selectedStorageId} onClick={() => void pullExistingBackup()}>{copy("下载备份", "Download backup")}</Button></div>
       {storageEndpoints.length === 0 && <BackupEmptyState icon={<Cloud size={24} />} title={copy("尚未配置备份存储端", "No backup storage configured")} description={copy("添加 WebDAV 存储端后即可在设备间传输加密备份文件。", "Add a WebDAV endpoint to transfer encrypted backups between devices.")} onClick={() => { setTab("storage"); openStorageForm(); }} />}
     </div>}
-    {tab === "storage" && <div className="space-y-3 rounded-xl border border-slate-800/90 bg-[#111622] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs leading-relaxed text-slate-400">{copy("存储端使用 WebDAV。账号密码通过系统凭据管理器保存；远端仅存放本地加密生成的备份文件。", "WebDAV credentials are stored in the system credential manager. The remote endpoint only receives locally encrypted backups.")}</p><Button type="primary" size="small" icon={<Plus size={14} />} onClick={() => openStorageForm()}>{copy("新增存储端", "Add endpoint")}</Button></div>
-      <div className="overflow-x-auto rounded-lg border border-slate-800"><table className="w-full min-w-[620px] text-left text-xs"><thead className="bg-surface-950/70 text-slate-400"><tr><th className="px-3 py-2">{copy("名称", "Name")}</th><th className="px-3 py-2">{copy("WebDAV 地址", "WebDAV URL")}</th><th className="px-3 py-2">{copy("远端目录", "Remote directory")}</th><th className="px-3 py-2">{copy("状态", "Status")}</th><th className="px-3 py-2 text-right">{copy("操作", "Actions")}</th></tr></thead><tbody>{storageEndpoints.length === 0 ? <tr><td colSpan={5} className="py-10 text-center text-slate-500">{copy("还没有存储端配置", "No storage endpoints configured")}</td></tr> : storageEndpoints.map((endpoint) => <tr key={endpoint.id} className="border-t border-slate-800/70"><td className="px-3 py-2.5 text-slate-200">{endpoint.name}</td><td className="max-w-[280px] truncate px-3 py-2.5 text-slate-400" title={endpoint.url}>{endpoint.url}</td><td className="px-3 py-2.5 font-mono text-slate-400">/{endpoint.remoteDir}</td><td className="px-3 py-2.5">{endpoint.enabled ? <AntTag color="green">{copy("启用", "Enabled")}</AntTag> : <AntTag>{copy("停用", "Disabled")}</AntTag>}</td><td className="px-3 py-2.5 text-right"><div className="flex justify-end gap-1"><Button size="small" onClick={() => void testStorage({ ...endpoint, password: "" })}>{copy("测试", "Test")}</Button><Button size="small" onClick={() => openStorageForm(endpoint)}>{copy("编辑", "Edit")}</Button><Button size="small" danger onClick={() => void deleteStorage(endpoint)}>{copy("删除", "Delete")}</Button></div></td></tr>)}</tbody></table></div>
+    {tab === "storage" && <div className="space-y-3 rounded-xl border border-[var(--border)] bg-surface-950/60 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs leading-relaxed text-[var(--text-secondary)]">{copy("存储端使用 WebDAV。账号密码通过系统凭据管理器保存；远端仅存放本地加密生成的备份文件。", "WebDAV credentials are stored in the system credential manager. The remote endpoint only receives locally encrypted backups.")}</p><Button type="primary" size="small" icon={<Plus size={14} />} onClick={() => openStorageForm()}>{copy("新增存储端", "Add endpoint")}</Button></div>
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)]"><table className="w-full min-w-[620px] text-left text-xs"><thead className="bg-surface-950/70 text-[var(--text-secondary)]"><tr><th className="px-3 py-2">{copy("名称", "Name")}</th><th className="px-3 py-2">{copy("WebDAV 地址", "WebDAV URL")}</th><th className="px-3 py-2">{copy("远端目录", "Remote directory")}</th><th className="px-3 py-2">{copy("状态", "Status")}</th><th className="px-3 py-2 text-right">{copy("操作", "Actions")}</th></tr></thead><tbody>{storageEndpoints.length === 0 ? <tr><td colSpan={5} className="py-10 text-center text-[var(--text-secondary)]">{copy("还没有存储端配置", "No storage endpoints configured")}</td></tr> : storageEndpoints.map((endpoint) => <tr key={endpoint.id} className="border-t border-[var(--border)]"><td className="px-3 py-2.5 text-[var(--text-primary)]">{endpoint.name}</td><td className="max-w-[280px] truncate px-3 py-2.5 text-[var(--text-secondary)]" title={endpoint.url}>{endpoint.url}</td><td className="px-3 py-2.5 font-mono text-[var(--text-secondary)]">/{endpoint.remoteDir}</td><td className="px-3 py-2.5">{endpoint.enabled ? <AntTag color="green">{copy("启用", "Enabled")}</AntTag> : <AntTag>{copy("停用", "Disabled")}</AntTag>}</td><td className="px-3 py-2.5 text-right"><div className="flex justify-end gap-1"><Button size="small" onClick={() => void testStorage({ ...endpoint, password: "" })}>{copy("测试", "Test")}</Button><Button size="small" onClick={() => openStorageForm(endpoint)}>{copy("编辑", "Edit")}</Button><Button size="small" danger onClick={() => void deleteStorage(endpoint)}>{copy("删除", "Delete")}</Button></div></td></tr>)}</tbody></table></div>
     </div>}
 
     <Modal open={storageModalOpen} title={copy(editingStorage ? "编辑存储端" : "新增存储端", editingStorage ? "Edit storage endpoint" : "Add storage endpoint")} onCancel={() => setStorageModalOpen(false)} onOk={() => void saveStorage()} confirmLoading={storageBusy} okText={copy("保存", "Save")} cancelText={copy("取消", "Cancel")} maskClosable={false}>
       <div className="space-y-3 py-2"><Input value={storageForm.name} onChange={(event) => setStorageForm({ ...storageForm, name: event.target.value })} placeholder={copy("名称，例如 坚果云-运维", "Name, e.g. WebDAV backup")} /><Input value={storageForm.url} onChange={(event) => setStorageForm({ ...storageForm, url: event.target.value })} placeholder="https://dav.example.com/remote.php/dav/files/user" />
-        <div className="flex flex-wrap gap-2 text-xs"><span className="text-slate-500">{copy("快速填充：", "Quick fill:")}</span><button type="button" className="text-indigo-400" onClick={() => setStorageForm({ ...storageForm, name: storageForm.name || "坚果云", url: "https://dav.jianguoyun.com/dav/", remoteDir: "opspub" })}>坚果云</button><button type="button" className="text-indigo-400" onClick={() => setStorageForm({ ...storageForm, name: storageForm.name || "Nextcloud", url: "https://cloud.example.com/remote.php/dav/files/user", remoteDir: "opspub" })}>Nextcloud</button></div>
-        <Input value={storageForm.username} onChange={(event) => setStorageForm({ ...storageForm, username: event.target.value })} placeholder={copy("WebDAV 账号", "WebDAV username")} /><Input.Password value={storageForm.password} onChange={(event) => setStorageForm({ ...storageForm, password: event.target.value })} placeholder={copy(editingStorage ? "留空则保留已保存的密码" : "WebDAV 应用密码", editingStorage ? "Leave empty to keep the saved password" : "WebDAV app password")} autoComplete="new-password" /><Input value={storageForm.remoteDir} onChange={(event) => setStorageForm({ ...storageForm, remoteDir: event.target.value })} placeholder={copy("远端目录", "Remote directory")} /><div className="flex items-center justify-between"><span className="text-xs text-slate-400">{copy("启用此存储端", "Enable this endpoint")}</span><Switch checked={storageForm.enabled} onChange={(enabled) => setStorageForm({ ...storageForm, enabled })} /></div><Button loading={storageBusy} onClick={() => void testStorage({ ...storageForm, ...(editingStorage && !storageForm.password ? { password: "" } : {}) })}>{copy("测试连接", "Test connection")}</Button></div>
+        <div className="flex flex-wrap gap-2 text-xs"><span className="text-[var(--text-secondary)]">{copy("快速填充：", "Quick fill:")}</span><button type="button" className="text-[var(--accent)]" onClick={() => setStorageForm({ ...storageForm, name: storageForm.name || "坚果云", url: "https://dav.jianguoyun.com/dav/", remoteDir: "opspub" })}>坚果云</button><button type="button" className="text-[var(--accent)]" onClick={() => setStorageForm({ ...storageForm, name: storageForm.name || "Nextcloud", url: "https://cloud.example.com/remote.php/dav/files/user", remoteDir: "opspub" })}>Nextcloud</button></div>
+        <Input value={storageForm.username} onChange={(event) => setStorageForm({ ...storageForm, username: event.target.value })} placeholder={copy("WebDAV 账号", "WebDAV username")} /><Input.Password value={storageForm.password} onChange={(event) => setStorageForm({ ...storageForm, password: event.target.value })} placeholder={copy(editingStorage ? "留空则保留已保存的密码" : "WebDAV 应用密码", editingStorage ? "Leave empty to keep the saved password" : "WebDAV app password")} autoComplete="new-password" /><Input value={storageForm.remoteDir} onChange={(event) => setStorageForm({ ...storageForm, remoteDir: event.target.value })} placeholder={copy("远端目录", "Remote directory")} /><div className="flex items-center justify-between"><span className="text-xs text-[var(--text-secondary)]">{copy("启用此存储端", "Enable this endpoint")}</span><Switch checked={storageForm.enabled} onChange={(enabled) => setStorageForm({ ...storageForm, enabled })} /></div><Button loading={storageBusy} onClick={() => void testStorage({ ...storageForm, ...(editingStorage && !storageForm.password ? { password: "" } : {}) })}>{copy("测试连接", "Test connection")}</Button></div>
     </Modal>
   </div>;
 }
 
 function BackupEmptyState({ icon, title, description, onClick }: { icon: ReactNode; title: string; description: string; onClick?: () => void }) {
-  return <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-slate-800/90 bg-[#111622] p-8 text-center"><div className="mb-4 flex h-12 w-16 items-center justify-center rounded-xl border-2 border-dashed border-slate-700/80 bg-slate-800/20 text-slate-500">{icon}</div><div className="text-xs font-medium text-slate-300">{title}</div><div className="mt-1 max-w-sm text-[11px] leading-relaxed text-slate-500">{description}</div>{onClick && <Button type="link" className="mt-3" onClick={onClick}>{"去配置存储端"}</Button>}</div>;
+  return <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-surface-950/60 p-8 text-center"><div className="mb-4 flex h-12 w-16 items-center justify-center rounded-xl border-2 border-dashed border-[var(--border)] bg-surface-850 text-[var(--text-secondary)]">{icon}</div><div className="text-xs font-medium text-[var(--text-primary)]">{title}</div><div className="mt-1 max-w-sm text-[11px] leading-relaxed text-[var(--text-secondary)]">{description}</div>{onClick && <Button type="link" className="mt-3" onClick={onClick}>{"去配置存储端"}</Button>}</div>;
 }
 
 function LegalNotice() {
@@ -1201,8 +1202,8 @@ function LegalNotice() {
   const [activeTab, setActiveTab] = useState<LegalTab>("eula");
   const copy = (zh: string, en: string) => language === "en-US" ? en : zh;
   const tabClass = (tab: LegalTab) => activeTab === tab
-    ? "border-teal-500/40 bg-teal-500/20 text-teal-300"
-    : "border-transparent bg-surface-850 text-slate-400 hover:text-slate-200";
+    ? "border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]"
+    : "border-transparent bg-surface-850 text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
 
   function downloadText(filename: string, content: string) {
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -1246,52 +1247,52 @@ function LegalNotice() {
     { key: "sbom", label: "第三方开源许可证清单 (SBOM)", en: "Third-party Open Source Licenses (SBOM)", icon: <Layers size={14} /> },
   ];
 
-  return <div className="space-y-5 rounded-xl border border-slate-800/80 bg-[#0f141c] p-4 shadow-xl sm:p-5">
-    <div className="flex flex-col justify-between gap-3 border-b border-slate-800/80 pb-3 sm:flex-row sm:items-center">
+  return <div className="space-y-5 rounded-xl border border-[var(--border)] bg-surface-900 p-4 shadow-[var(--shadow-sm)] sm:p-5">
+    <div className="flex flex-col justify-between gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center">
       <div className="space-y-1">
-        <div className="flex items-center gap-2 text-sm font-bold text-white"><span className="flex h-6 w-6 items-center justify-center rounded-lg border border-teal-500/40 bg-teal-500/20 text-teal-400"><Scale size={14} /></span><span>{copy("法律声明、隐私主权与合规保障", "Legal, Privacy & Compliance")}</span><span className="rounded-full border border-teal-500/30 bg-teal-500/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-teal-300">Legal & Compliance</span></div>
-        <p className="text-xs text-slate-400">{copy("OpsPub 遵循本地优先与数据主权原则。敏感凭据由本机安全存储托管，外部通信仅在用户配置并授权后发生。", "OpsPub follows local-first and data sovereignty principles. Sensitive credentials stay in local secure storage and external communication requires user configuration and authorization.")}</p>
+        <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]"><span className="flex h-6 w-6 items-center justify-center rounded-lg border border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]"><Scale size={14} /></span><span>{copy("法律声明、隐私主权与合规保障", "Legal, Privacy & Compliance")}</span><span className="rounded-full border border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] px-2 py-0.5 font-mono text-[10px] font-semibold text-[var(--nav-active-text)]">Legal & Compliance</span></div>
+        <p className="text-xs text-[var(--text-secondary)]">{copy("OpsPub 遵循本地优先与数据主权原则。敏感凭据由本机安全存储托管，外部通信仅在用户配置并授权后发生。", "OpsPub follows local-first and data sovereignty principles. Sensitive credentials stay in local secure storage and external communication requires user configuration and authorization.")}</p>
       </div>
       <div className="flex shrink-0 flex-wrap gap-1.5 text-[11px]">
-        <span className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-medium text-emerald-400"><ShieldCheck size={12} />{copy("本地优先", "Local first")}</span>
-        <span className="flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 font-medium text-blue-300"><Lock size={12} />{copy("系统托管凭据", "Managed credentials")}</span>
-        <span className="flex items-center gap-1 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 font-medium text-purple-300"><FileCheck size={12} />{copy("许可证可审计", "Auditable license")}</span>
+        <span className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-medium text-[var(--success)]"><ShieldCheck size={12} />{copy("本地优先", "Local first")}</span>
+        <span className="flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 font-medium text-[var(--info)]"><Lock size={12} />{copy("系统托管凭据", "Managed credentials")}</span>
+        <span className="flex items-center gap-1 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 font-medium text-[var(--accent)]"><FileCheck size={12} />{copy("许可证可审计", "Auditable license")}</span>
       </div>
     </div>
 
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
       {[
-        { icon: <Shield size={16} />, color: "text-teal-400", title: copy("数据主权 · 零遥测", "Data sovereignty · Zero telemetry"), body: copy("不内置广告追踪或行为画像。主机凭据只由本机安全存储托管。", "No advertising trackers or behavior profiling. Host credentials stay in local secure storage."), foot: copy("断网可用", "Works offline") },
-        { icon: <Bot size={16} />, color: "text-indigo-400", title: copy("AI 通信 · 严格脱敏", "AI communication · Sanitized"), body: copy("发送到模型前进行敏感信息过滤，AI 生成的操作仍需本地策略与用户确认。", "Sensitive data is filtered before model requests. Generated actions still require local policy and user approval."), foot: copy("支持私有模型", "Private models supported") },
-        { icon: <AlertTriangle size={16} />, color: "text-amber-400", title: copy("责任界定 · 免责声明", "Responsibility · Disclaimer"), body: copy("软件提供辅助连接与运维能力，用户对命令、审批和最终结果负责。", "The software assists with connectivity and operations; users remain responsible for commands, approvals, and outcomes."), foot: copy("终审权归属用户", "Final approval remains with the user") },
-        { icon: <FileCheck size={16} />, color: "text-purple-400", title: copy("许可与知识产权", "Licensing & IP"), body: copy("第三方依赖遵循各自许可证；本项目的完整授权边界以仓库 LICENSE 文件为准。", "Third-party dependencies follow their respective licenses. The repository LICENSE defines this project's authorization terms."), foot: copy("源码可审计", "Source is auditable") },
-      ].map((pillar) => <div key={pillar.title} className="space-y-1.5 rounded-xl border border-slate-800 bg-[#141a22] p-3.5 transition hover:border-teal-500/40"><div className={`flex items-center gap-2 text-xs font-bold ${pillar.color}`}>{pillar.icon}<span>{pillar.title}</span></div><p className="text-[11px] leading-relaxed text-slate-300/90">{pillar.body}</p><div className="border-t border-slate-800/80 pt-1 font-mono text-[10px] text-slate-500">{pillar.foot}</div></div>)}
+        { icon: <Shield size={16} />, color: "text-[var(--nav-active-text)]", title: copy("数据主权 · 零遥测", "Data sovereignty · Zero telemetry"), body: copy("不内置广告追踪或行为画像。主机凭据只由本机安全存储托管。", "No advertising trackers or behavior profiling. Host credentials stay in local secure storage."), foot: copy("断网可用", "Works offline") },
+        { icon: <Bot size={16} />, color: "text-[var(--accent)]", title: copy("AI 通信 · 严格脱敏", "AI communication · Sanitized"), body: copy("发送到模型前进行敏感信息过滤，AI 生成的操作仍需本地策略与用户确认。", "Sensitive data is filtered before model requests. Generated actions still require local policy and user approval."), foot: copy("支持私有模型", "Private models supported") },
+        { icon: <AlertTriangle size={16} />, color: "text-[var(--warning)]", title: copy("责任界定 · 免责声明", "Responsibility · Disclaimer"), body: copy("软件提供辅助连接与运维能力，用户对命令、审批和最终结果负责。", "The software assists with connectivity and operations; users remain responsible for commands, approvals, and outcomes."), foot: copy("终审权归属用户", "Final approval remains with the user") },
+        { icon: <FileCheck size={16} />, color: "text-[var(--accent)]", title: copy("许可与知识产权", "Licensing & IP"), body: copy("第三方依赖遵循各自许可证；本项目的完整授权边界以仓库 LICENSE 文件为准。", "Third-party dependencies follow their respective licenses. The repository LICENSE defines this project's authorization terms."), foot: copy("源码可审计", "Source is auditable") },
+      ].map((pillar) => <div key={pillar.title} className="space-y-1.5 rounded-xl border border-[var(--border)] bg-surface-850 p-3.5 transition hover:border-[var(--nav-active-border)]"><div className={`flex items-center gap-2 text-xs font-bold ${pillar.color}`}>{pillar.icon}<span>{pillar.title}</span></div><p className="text-[11px] leading-relaxed text-[var(--text-primary)]">{pillar.body}</p><div className="border-t border-[var(--border)] pt-1 font-mono text-[10px] text-[var(--text-secondary)]">{pillar.foot}</div></div>)}
     </div>
 
-    <div className="overflow-hidden rounded-xl border border-slate-800/90 bg-[#121720]">
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-800 bg-[#0c1017] p-2">
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-surface-950">
+      <div className="flex gap-1 overflow-x-auto border-b border-[var(--border)] bg-surface-850 p-2">
         {tabs.map((tab) => <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${tabClass(tab.key)}`}>{tab.icon}<span>{copy(tab.label, tab.en)}</span></button>)}
       </div>
-      <div className="max-h-72 overflow-y-auto p-4 text-xs leading-relaxed text-slate-300">
+      <div className="max-h-72 overflow-y-auto p-4 text-xs leading-relaxed text-[var(--text-primary)]">
         {activeTab === "eula" && <LegalPanel title={copy("OpsPub 桌面客户端最终用户许可协议", "OpsPub Desktop End User License Agreement")} meta={copy("以仓库 LICENSE 文件为准", "See the repository LICENSE file")}>{copy("本软件按现状提供，用于经授权的服务器连接、文件传输和运维管理。您应确保对目标系统拥有合法授权，不得利用本软件实施未授权访问、攻击或违反适用法律法规的行为。", "The software is provided as-is for authorized server connectivity, file transfer, and operations. You must have permission to access target systems and may not use the software for unauthorized access, attacks, or unlawful activity.")}</LegalPanel>}
         {activeTab === "privacy" && <LegalPanel title={copy("数据安全存储与隐私主权声明", "Data Security & Privacy Statement")} meta={copy("本地优先 · 用户可控", "Local first · User controlled")}>{copy("服务器连接、审计记录和应用配置默认保存在本机。密码、私钥等敏感凭据交由系统凭据管理器托管；模型请求只发送用户主动配置并授权的内容。用户可在备份与还原或系统重置中清理本地数据。", "Server connections, audit records, and application settings are stored locally by default. Passwords and private keys are managed by the system credential store. Model requests contain only content configured and authorized by the user. Local data can be removed from Backup & Restore or system reset.")}</LegalPanel>}
         {activeTab === "aiops" && <LegalPanel title={copy("AI 自动化运维安全边界", "AI Operations Safety Boundary")} meta={copy("策略引擎 + 用户审批", "Policy engine + user approval")}>{copy("AI 只生成辅助性的结构化计划。高风险、改动型或无法确认目标的操作会进入策略检查和审批流程；极高风险命令可能被直接拦截。执行前请核对服务器、命令、参数和影响范围。", "AI only generates assistive structured plans. High-risk, mutating, or ambiguous actions go through policy checks and approval; extremely dangerous commands may be blocked. Verify the server, command, arguments, and blast radius before execution.")}</LegalPanel>}
-        {activeTab === "sbom" && <LegalPanel title={copy("第三方开源软件与版权声明", "Third-party Open Source & Copyright") } meta={copy("透明审计 · 许可证合规", "Transparent audit · License compliance")}><div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{["Tauri 2.x · MIT / Apache-2.0", "React · MIT", "Rust / rusqlite · MIT", "Lucide React · ISC", "Tailwind CSS · MIT", "Model Context Protocol · MIT"].map((item) => <div key={item} className="rounded-lg border border-slate-800 bg-surface-900 p-2 font-mono text-[11px] text-slate-300">{item}</div>)}</div></LegalPanel>}
+        {activeTab === "sbom" && <LegalPanel title={copy("第三方开源软件与版权声明", "Third-party Open Source & Copyright") } meta={copy("透明审计 · 许可证合规", "Transparent audit · License compliance")}><div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{["Tauri 2.x · MIT / Apache-2.0", "React · MIT", "Rust / rusqlite · MIT", "Lucide React · ISC", "Tailwind CSS · MIT", "Model Context Protocol · MIT"].map((item) => <div key={item} className="rounded-lg border border-[var(--border)] bg-surface-900 p-2 font-mono text-[11px] text-[var(--text-primary)]">{item}</div>)}</div></LegalPanel>}
       </div>
     </div>
 
-    <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-slate-800 pt-2 text-[11px]">
-      <div className="flex items-center gap-2 text-slate-400"><Info size={14} className="text-slate-500" /><span>{copy("安全与合规问题咨询：", "Security & compliance questions: ")}<a className="text-teal-400 hover:underline" href="mailto:security@opspub.dev">security@opspub.dev</a></span></div>
-      <div className="flex items-center gap-2"><button type="button" onClick={downloadLegalSummary} className="flex items-center gap-1.5 rounded-lg border border-slate-700/80 bg-surface-850 px-3 py-1.5 text-slate-200 transition hover:bg-surface-750"><Download size={14} className="text-teal-400" />{copy("下载合规说明", "Download compliance summary")}</button><button type="button" onClick={exportComplianceReport} className="flex items-center gap-1.5 rounded-lg border border-teal-500/40 bg-teal-600/20 px-3 py-1.5 font-medium text-teal-300 transition hover:bg-teal-600/30"><ShieldCheck size={14} className="text-teal-400" />{copy("生成本地合规报告", "Generate local compliance report")}</button></div>
+    <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[var(--border)] pt-2 text-[11px]">
+      <div className="flex items-center gap-2 text-[var(--text-secondary)]"><Info size={14} className="text-[var(--text-secondary)]" /><span>{copy("安全与合规问题咨询：", "Security & compliance questions: ")}<a className="text-[var(--nav-active-text)] hover:underline" href="mailto:security@opspub.dev">security@opspub.dev</a></span></div>
+      <div className="flex items-center gap-2"><button type="button" onClick={downloadLegalSummary} className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-surface-850 px-3 py-1.5 text-[var(--text-primary)] transition hover:bg-surface-750"><Download size={14} className="text-[var(--nav-active-text)]" />{copy("下载合规说明", "Download compliance summary")}</button><button type="button" onClick={exportComplianceReport} className="flex items-center gap-1.5 rounded-lg border border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] px-3 py-1.5 font-medium text-[var(--nav-active-text)] transition hover:bg-[var(--bg-hover)]"><ShieldCheck size={14} className="text-[var(--nav-active-text)]" />{copy("生成本地合规报告", "Generate local compliance report")}</button></div>
     </div>
   </div>;
 }
 
 function LegalPanel({ title, meta, children }: { title: string; meta: string; children: ReactNode }) {
-  return <div className="space-y-3"><div className="flex flex-col justify-between gap-1 border-b border-slate-800 pb-1.5 font-bold text-white sm:flex-row"><span>{title}</span><span className="font-mono text-[10px] font-normal text-slate-500">{meta}</span></div><div className="border-l-2 border-teal-500/40 pl-2 text-slate-300">{children}</div></div>;
+  return <div className="space-y-3"><div className="flex flex-col justify-between gap-1 border-b border-[var(--border)] pb-1.5 font-bold text-[var(--text-primary)] sm:flex-row"><span>{title}</span><span className="font-mono text-[10px] font-normal text-[var(--text-secondary)]">{meta}</span></div><div className="border-l-2 border-[var(--nav-active-border)] pl-2 text-[var(--text-primary)]">{children}</div></div>;
 }
 
 function AppTile({ name, desc }: { name: string; desc: string }) {
   const language = useSettingsStore((state) => state.language);
-  return <div className="rounded-lg border border-slate-800 bg-surface-900/60 p-3"><div className="text-sm font-semibold text-slate-200">{translateSettings(name, language)}</div><div className="mt-1 text-xs text-slate-500">{translateSettings(desc, language)}</div></div>;
+  return <div className="rounded-lg border border-[var(--border)] bg-surface-900/60 p-3"><div className="text-sm font-semibold text-[var(--text-primary)]">{translateSettings(name, language)}</div><div className="mt-1 text-xs text-[var(--text-secondary)]">{translateSettings(desc, language)}</div></div>;
 }

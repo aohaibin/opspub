@@ -7,6 +7,19 @@
 @import "tailwindcss";
 @import "./variables.css";
 
+/* 仅声明 CSS 变量不会生成 Tailwind 工具类；显式映射后，工作区表面才能跟随主题。 */
+@theme inline {
+  --color-surface-950: var(--surface-950);
+  --color-surface-900: var(--surface-900);
+  --color-surface-850: var(--surface-850);
+  --color-surface-800: var(--surface-800);
+  --color-surface-750: var(--surface-750);
+  --color-surface-700: var(--surface-700);
+  --color-brand-300: var(--brand-400);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+}
+
 html,
 body,
 #root {
@@ -273,6 +286,89 @@ textarea {
 .copilot-markdown hr {
   border: 0;
   border-top: 1px solid rgb(148 163 184 / 18%);
+}
+
+/* 历史弹窗挂在 body 下，不能依赖聊天页容器继承主题颜色。 */
+:root[data-theme="light"] .copilot-history-modal .ant-modal-content {
+  border-color: var(--border);
+  background: var(--surface-900);
+  box-shadow: var(--shadow-lg);
+}
+
+:root[data-theme="light"] .copilot-history-modal .ant-modal-header {
+  border-color: var(--border);
+}
+
+:root[data-theme="light"] .copilot-history-modal .ant-modal-title,
+:root[data-theme="light"] .copilot-history-item-heading strong,
+:root[data-theme="light"] .copilot-markdown,
+:root[data-theme="light"] .copilot-markdown :is(h1, h2, h3, strong) {
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .copilot-history-modal .ant-modal-close,
+:root[data-theme="light"] .copilot-history-title small,
+:root[data-theme="light"] .copilot-history-item-preview,
+:root[data-theme="light"] .copilot-history-item-meta,
+:root[data-theme="light"] .copilot-history-count,
+:root[data-theme="light"] .copilot-markdown :is(blockquote, th, td) {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .copilot-history-toolbar .ant-input-affix-wrapper,
+:root[data-theme="light"] .copilot-history-toolbar .ant-input-group-addon .ant-btn,
+:root[data-theme="light"] .copilot-history-item,
+:root[data-theme="light"] .copilot-history-empty {
+  border-color: var(--border);
+  background: var(--surface-950);
+}
+
+:root[data-theme="light"] .copilot-history-modal .ant-modal-close:hover,
+:root[data-theme="light"] .copilot-history-item:hover,
+:root[data-theme="light"] .copilot-history-count {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="light"] .copilot-history-item.is-active {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+}
+
+:root[data-theme="light"] .copilot-history-title-icon,
+:root[data-theme="light"] .copilot-history-item-icon {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-900));
+}
+
+:root[data-theme="light"] .is-active .copilot-history-item-icon {
+  color: var(--nav-active-text);
+  background: var(--nav-active-bg);
+}
+
+:root[data-theme="light"] .copilot-markdown :is(blockquote, code, pre, th, td, hr) {
+  border-color: var(--border);
+}
+
+:root[data-theme="light"] .copilot-markdown :is(code, th) {
+  background: var(--surface-850);
+}
+
+:root[data-theme="light"] .copilot-markdown code {
+  color: var(--warning);
+}
+
+:root[data-theme="light"] .copilot-markdown pre {
+  background: var(--surface-950);
+}
+
+:root[data-theme="light"] .copilot-markdown pre code {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+/* 旧页面的白字标题在浅色表面不可读；只修正标题，不改变实色按钮/终端配色。 */
+:root[data-theme="light"] .ant-layout-content :is(h1, h2, h3, h4, h5, h6).text-white {
+  color: var(--text-primary);
 }
 
 /* 链接默认样式 */

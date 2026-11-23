@@ -87,7 +87,7 @@ export const lightTheme: ThemeConfig = {
   token: {
     ...sharedToken,
     colorPrimary: "#315fce",
-    colorSuccess: "#22c55e",
+    colorSuccess: "#16845b",
     colorWarning: "#a96808",
     colorError: "#c53b46",
     colorInfo: "#2563a8",
@@ -178,22 +178,22 @@ const SKIN_ANTD_MAP: Record<SkinId, SkinAntdOverrides> = {
     colorBgLayout: "#12100e",
   },
   sky: {
-    colorPrimary: "#3b82f6",
+    colorPrimary: "#2563a8",
     colorBgContainer: "#ffffff",
     colorBgElevated: "#ffffff",
-    colorBgLayout: "#f8fafc",
+    colorBgLayout: "#f4f8ff",
   },
   warm: {
-    colorPrimary: "#f97316",
+    colorPrimary: "#c25a12",
     colorBgContainer: "#ffffff",
     colorBgElevated: "#ffffff",
-    colorBgLayout: "#fffbeb",
+    colorBgLayout: "#fffaf2",
   },
   aurora: {
-    colorPrimary: "#14b8a6",
+    colorPrimary: "#087f78",
     colorBgContainer: "#ffffff",
     colorBgElevated: "#ffffff",
-    colorBgLayout: "#f0fdfa",
+    colorBgLayout: "#f2fbfa",
   },
 };
 

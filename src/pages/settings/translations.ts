@@ -1,6 +1,22 @@
 export type SettingsLanguage = "zh-CN" | "en-US";
 
 const en: Record<string, string> = {
+  "设置分区": "Settings sections",
+  "安全与控制": "Security & Controls",
+  "数据与关于": "Data & About",
+  "切换后立即生效，并保存语言偏好。": "Applies immediately and saves your language preference.",
+  "明暗模式": "Color mode",
+  "午夜耀石": "Midnight Obsidian", "石墨暗黑": "Graphite", "暮薇暖橙": "Amber",
+  "晴空素白": "Clear Sky", "活力晨光": "Morning Light", "极光浅葱": "Aurora",
+  "终端主题与渲染": "Terminal Theme & Rendering",
+  "控制内嵌 SSH 终端的配色方案、字号与光标渲染样式。更改会立即应用到已连接的终端。": "Customize the SSH terminal palette, font size, and cursor. Changes apply to connected terminals immediately.",
+  "深灰底色 + 霓虹高亮": "Charcoal with neon accents", "柔和莫兰迪色系": "Muted pastels",
+  "经典吸血鬼暗紫": "Classic dark purple", "黑客绿荧光终端": "Phosphor green",
+  "终端字号": "Font size", "行高": "Line height", "光标样式": "Cursor style",
+  "13px（紧凑高效）": "13px (compact)", "14px（推荐）": "14px (recommended)", "16px（大屏适中）": "16px (large)",
+  "1.35（标准）": "1.35 (standard)", "1.20（紧密）": "1.20 (compact)", "1.50（宽松）": "1.50 (relaxed)",
+  "闪烁方块": "Blinking block", "垂直光标细线": "Vertical bar", "静态下划线": "Underline",
+  "将本地工作区导出为加密备份，便于迁移到新设备或灾难恢复。": "Export an encrypted workspace backup for device migration or disaster recovery.",
   "配对服务只绑定所选私网网卡，120 秒后自动关闭，绝不监听公网。": "Pairing binds only to the selected private adapter and closes after 120 seconds. It never listens on a public interface.",
   "让配对过的手机连回这台电脑，进行审批、应急锁定、AI 对话和知识库查询。": "Connect paired phones to this computer for approvals, emergency locking, AI chat, and knowledge search.",
   "设置": "Settings", "系统与 AI 配置中心": "System and AI configuration center",

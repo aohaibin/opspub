@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Alert, AutoComplete, Button, Input, Modal, Select, Tag as AntTag, message, Switch } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
-import { enable as enableAutoStart, disable as disableAutoStart, isEnabled as isAutoStartEnabled } from "@tauri-apps/plugin-autostart";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { open as openFileDialog, save as saveFileDialog } from "@tauri-apps/plugin-dialog";
 import {
@@ -50,14 +49,16 @@ import {
   Globe,
 } from "lucide-react";
 import { backupApi, configApi, getErrorMessage } from "@/lib/api";
+import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import type { BackupStorageEndpoint, BackupStorageInput } from "@/lib/api/backup";
 import { DeviceChannelSettings, MobilePairingSettings } from "./DeviceSettings";
-import { SETTINGS_KEYS, useSettingsStore, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme } from "@/store/settings";
+import { loadSettings, SETTINGS_KEYS, useSettingsStore, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme } from "@/store/settings";
 import { TERMINAL_CURSOR_OPTIONS, TERMINAL_FONT_SIZE_OPTIONS, TERMINAL_LINE_HEIGHT_OPTIONS, TERMINAL_THEME_OPTIONS } from "@/components/terminal/terminal-themes";
 import { SKINS, useAppStore, type SkinId, type ThemeMode } from "@/store/app";
 import { modelServiceApi } from "@/lib/api/model-service";
 import type { ModelPreset, ModelProfile, ModelProfileInput, ModelProtocol, ModelVendor } from "@/types";
 import { translateSettings } from "./translations";
+import "./settings.css";
 
 type SettingsSection =
   | "language"
@@ -101,7 +102,7 @@ const NAV_GROUPS: Array<{ title: string; items: Array<{ id: SettingsSection; lab
     ],
   },
   {
-    title: "安全",
+    title: "安全与控制",
     items: [
       { id: "ssh-keys", label: "SSH 密钥", icon: KeyRound },
       { id: "lock", label: "主密码 / 应用锁定", icon: Lock },
@@ -110,22 +111,25 @@ const NAV_GROUPS: Array<{ title: string; items: Array<{ id: SettingsSection; lab
     ],
   },
   {
-    title: "数据",
+    title: "数据与关于",
     items: [
       { id: "backup", label: "备份与还原", icon: Database },
       { id: "mobile-pairing", label: "手机配对", icon: Smartphone },
       { id: "device-channel", label: "设备通道", icon: RadioIcon },
-    ],
-  },
-  {
-    title: "关于",
-    items: [
       { id: "legal", label: "法律声明", icon: FileText },
       { id: "community", label: "作者 & 社区", icon: Users },
       { id: "apps", label: "推荐应用", icon: Sparkles },
     ],
   },
 ];
+
+function scrollToSection(container: HTMLDivElement, section: SettingsSection) {
+  const target = container.querySelector<HTMLElement>(`[data-settings-section="${section}"]`);
+  if (!target) return;
+  const inset = Number.parseFloat(getComputedStyle(container).scrollPaddingTop);
+  const top = target.getBoundingClientRect().top - container.getBoundingClientRect().top;
+  container.scrollTo({ top: container.scrollTop + top - inset, behavior: "instant" });
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -138,45 +142,45 @@ export default function SettingsPage() {
   const skin = useAppStore((state) => state.skin);
   const setTheme = useAppStore((state) => state.setTheme);
   const setSkin = useAppStore((state) => state.setSkin);
-  const [autoStartBusy, setAutoStartBusy] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [pendingPreferences, setPendingPreferences] = useState<string[]>([]);
   const [proxyAddress, setProxyAddress] = useState("");
   const [proxySaving, setProxySaving] = useState(false);
   const [outboundHosts, setOutboundHosts] = useState<string[]>([]);
   const [outboundHostDraft, setOutboundHostDraft] = useState("");
   const [outboundEnabled, setOutboundEnabled] = useState(false);
   const [outboundSaving, setOutboundSaving] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const flowRef = useRef<HTMLDivElement>(null);
+  const preferenceBusy = (key: string) => settingsLoading || pendingPreferences.includes(key);
+  const autoStart = settings.autoStart ?? settings.storedAutoStart;
+  const autoStartDisabled = settingsLoading || settings.autoStartStatus !== "ready";
+  const autoStartBusy = settingsLoading || settings.autoStartStatus === "loading" || settings.autoStartStatus === "saving";
 
   useEffect(() => {
     let alive = true;
-    void Promise.all([configApi.getAll(), isAutoStartEnabled()]).then(([configs, enabled]) => {
+    const configRead = loadSettings().then(() => {
       if (!alive) return;
-      const values = Object.fromEntries(configs.map(({ key, value }) => [key, value]));
-      settings.hydrate(values);
-      setProxyAddress(values[SETTINGS_KEYS.proxyAddress] ?? "");
-      try {
-        const savedHosts: unknown = JSON.parse(values[SETTINGS_KEYS.outboundHosts] ?? "[]");
-      const hostList = Array.isArray(savedHosts) ? savedHosts.filter((host): host is string => typeof host === "string") : [];
-      setOutboundHosts(hostList);
-      settings.setOutboundHosts(hostList);
-      } catch {
-        setOutboundHosts([]);
-      }
-      setOutboundEnabled(values[SETTINGS_KEYS.outboundEnabled] === "true");
-      if (settings.autoStart !== enabled) settings.setAutoStart(enabled);
+      const restored = useSettingsStore.getState();
+      setProxyAddress(restored.proxyAddress);
+      setOutboundHosts(restored.outboundHosts);
+      setOutboundEnabled(restored.outboundEnabled);
     }).catch((error) => {
+      if (alive) message.error(getErrorMessage(error));
+    }).finally(() => {
+      if (alive) setSettingsLoading(false);
+    });
+    void settings.refreshAutoStart(configRead).catch((error) => {
       if (alive) message.error(getErrorMessage(error));
     });
     return () => { alive = false; };
   }, []);
 
   useEffect(() => {
-    document.documentElement.lang = settings.language;
-  }, [settings.language]);
-
-  useEffect(() => {
     const container = contentRef.current;
-    if (!container) return;
+    const flow = flowRef.current;
+    if (!container || !flow) return;
 
     let frame = 0;
     const syncActiveSection = () => {
@@ -184,40 +188,52 @@ export default function SettingsPage() {
       const sections = Array.from(container.querySelectorAll<HTMLElement>('[data-settings-section]'));
       if (sections.length === 0) return;
 
-      const containerTop = container.getBoundingClientRect().top;
-      const activationOffset = 36;
+      const inset = Number.parseFloat(getComputedStyle(container).scrollPaddingTop);
+      const activationLine = container.getBoundingClientRect().top + inset + 2;
       let current = sections[0];
       for (const section of sections) {
-        if (section.getBoundingClientRect().top - containerTop <= activationOffset) current = section;
+        if (section.getBoundingClientRect().top <= activationLine) current = section;
         else break;
       }
-      if (container.scrollTop + container.clientHeight >= container.scrollHeight - 4) current = sections[sections.length - 1];
 
       const nextSection = current.dataset.settingsSection as SettingsSection | undefined;
       if (nextSection) setActiveSection((previous) => previous === nextSection ? previous : nextSection);
     };
 
-    const handleScroll = () => {
+    const queueSync = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(syncActiveSection);
     };
 
-    container.addEventListener("scroll", handleScroll, { passive: true });
+    container.addEventListener("scroll", queueSync, { passive: true });
+    const observer = new ResizeObserver(queueSync);
+    observer.observe(container);
+    observer.observe(flow);
     syncActiveSection();
     return () => {
-      container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener("scroll", queueSync);
+      observer.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
 
   useEffect(() => {
+    const nav = navRef.current;
+    const sidebar = nav?.closest<HTMLElement>(".workspace-subnav-scroll");
+    const current = nav?.querySelector('[aria-current="location"]');
+    if (!sidebar || !current) return;
+    const viewport = sidebar.getBoundingClientRect();
+    const item = current.getBoundingClientRect();
+    // 只滚动侧栏，折叠时也能为下次展开保留当前项的位置。
+    if (item.top < viewport.top) sidebar.scrollTop += item.top - viewport.top;
+    if (item.bottom > viewport.bottom) sidebar.scrollTop += item.bottom - viewport.bottom;
+  }, [activeSection]);
+
+  useEffect(() => {
     if (!returnToCopilot) return;
-    setActiveSection("models");
-    const timer = window.setTimeout(() => {
-      contentRef.current?.querySelector<HTMLElement>('[data-settings-section="models"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [returnToCopilot]);
+    const container = contentRef.current;
+    if (container) scrollToSection(container, "models");
+  }, [location.key, returnToCopilot]);
 
   async function persistSetting(key: string, value: string) {
     try {
@@ -229,70 +245,46 @@ export default function SettingsPage() {
   }
 
   async function changeAutoStart(enabled: boolean) {
-    setAutoStartBusy(true);
-    try {
-      if (enabled) await enableAutoStart();
-      else await disableAutoStart();
-      settings.setAutoStart(enabled);
-      await persistSetting(SETTINGS_KEYS.autoStart, String(enabled));
-    message.success(enabled ? t("已加入系统登录启动") : t("已取消系统登录启动"));
-    } catch (error) {
-      settings.setAutoStart(!enabled);
-      message.error(getErrorMessage(error));
-    } finally {
-      setAutoStartBusy(false);
-    }
-  }
-
-  async function changeStartMinimized(enabled: boolean) {
-    settings.setStartMinimized(enabled);
-    try {
-      await persistSetting(SETTINGS_KEYS.startMinimized, String(enabled));
-    } catch {
-      settings.setStartMinimized(!enabled);
+    if (autoStartDisabled) return;
+    const result = await settings.saveAutoStart(enabled);
+    if (result === "saved") {
+      message.success(enabled ? t("已加入系统登录启动") : t("已取消系统登录启动"));
+    } else if (Array.isArray(result)) {
+      for (const error of result) message.error(getErrorMessage(error));
     }
   }
 
   async function changeCloseBehavior(value: CloseBehavior) {
-    settings.setCloseBehavior(value);
-    try {
-      await persistSetting(SETTINGS_KEYS.closeBehavior, value);
-    } catch {
-      settings.setCloseBehavior("ask");
-    }
+    await changePreference(value, settings.setCloseBehavior, SETTINGS_KEYS.closeBehavior, settings.closeBehavior);
   }
 
   async function changeLanguage(value: "zh-CN" | "en-US") {
-    settings.setLanguage(value);
-    try {
-      await persistSetting(SETTINGS_KEYS.language, value);
+    if (await changePreference(value, settings.setLanguage, SETTINGS_KEYS.language, settings.language)) {
       message.success(value === "en-US" ? "Language switched to English" : "已切换为简体中文");
-    } catch {
-      settings.setLanguage(value === "zh-CN" ? "en-US" : "zh-CN");
     }
   }
 
   async function changeTerminalTheme(value: TerminalTheme) {
-    const previous = settings.terminalTheme;
-    settings.setTerminalTheme(value);
-    try {
-      await persistSetting(SETTINGS_KEYS.terminalTheme, value);
-    } catch {
-      settings.setTerminalTheme(previous);
-    }
+    await changePreference(value, settings.setTerminalTheme, SETTINGS_KEYS.terminalTheme, settings.terminalTheme);
   }
 
-  async function changeTerminalSetting<T extends string | number>(
+  async function changePreference<T extends string | number | boolean>(
     value: T,
     setValue: (next: T) => void,
     key: string,
     previous: T,
   ) {
+    if (preferenceBusy(key) || value === previous) return false;
+    setPendingPreferences((pending) => [...pending, key]);
     setValue(value);
     try {
       await persistSetting(key, String(value));
+      return true;
     } catch {
       setValue(previous);
+      return false;
+    } finally {
+      setPendingPreferences((pending) => pending.filter((item) => item !== key));
     }
   }
 
@@ -390,99 +382,100 @@ export default function SettingsPage() {
   }
 
   function selectSection(section: SettingsSection) {
-    setActiveSection(section);
-    contentRef.current?.querySelector<HTMLElement>(`[data-settings-section="${section}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const container = contentRef.current;
+    if (container) scrollToSection(container, section);
   }
 
   return (
-    <div className="ops-settings-page flex h-[calc(100vh-82px)] min-h-[620px] w-full overflow-hidden rounded-xl border border-slate-800/80 bg-surface-950/80">
-      <aside className="flex w-[230px] shrink-0 flex-col border-r border-slate-800/80 bg-[#0a0e13]/90">
-        <div className="shrink-0 border-b border-slate-800/80 px-4 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-teal-500/30 bg-teal-500/10 text-teal-300"><ShieldCheck size={15} /></div>
-            <div className="min-w-0">
-              <h1 className="text-base font-bold leading-tight text-white">{t("设置")}</h1>
-              <p className="truncate text-xs text-slate-500">{t("系统与 AI 配置中心")}</p>
-            </div>
-          </div>
-        </div>
-        <nav className="flex-1 space-y-3 overflow-y-auto p-2.5 text-xs custom-scrollbar">
+    <>
+      <WorkspaceSidebarSlot>
+        <nav ref={navRef} className="ops-settings-nav" aria-label={t("设置分区")}>
           {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="border-t border-slate-800/60 pt-2 first:border-0 first:pt-0">
-              <div className="px-2 py-1 text-xs font-semibold tracking-wide text-slate-500">{t(group.title)}</div>
-              <div className="mt-0.5 space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const active = activeSection === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => selectSection(item.id)}
-                      className={`flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition ${active ? "border-teal-500/30 bg-teal-500/10 font-medium text-teal-300" : "border-transparent text-slate-400 hover:bg-surface-900/70 hover:text-slate-200"}`}
-                    >
-                      <Icon size={14} className={active ? "text-teal-400" : "text-slate-500"} />
-                      <span className="truncate">{t(item.label)}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div key={group.title} className="ops-settings-nav-group">
+              <p>{t(group.title)}</p>
+              {group.items.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-controls={`setting-${id}`}
+                  aria-current={activeSection === id ? "location" : undefined}
+                  onClick={() => selectSection(id)}
+                >
+                  <Icon size={14} aria-hidden />
+                  <span>{t(label)}</span>
+                </button>
+              ))}
             </div>
           ))}
         </nav>
-      </aside>
+      </WorkspaceSidebarSlot>
 
-      <main ref={contentRef} className="min-w-0 flex-1 space-y-4 overflow-y-auto bg-surface-950/40 p-6 custom-scrollbar">
-        <div className="mb-1 flex items-end justify-between border-b border-slate-800/80 pb-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-400">OpsPub Control Center</p>
-            <h2 className="mt-1 text-xl font-bold text-white">{t("系统与 AI 设置")}</h2>
-            <p className="mt-1 text-sm text-slate-400">{t("外观、窗口行为、模型服务与本地安全策略的统一配置面板")}</p>
+      <div ref={contentRef} className="ops-settings-scroll custom-scrollbar" role="region" aria-labelledby="settings-title" tabIndex={0}>
+        <div ref={flowRef} className="ops-settings-flow">
+        <h1 id="settings-title">{t("系统与 AI 设置")}</h1>
+
+        <SettingCard id="language" icon={<FileText size={15} />} title="界面语言" desc="切换后立即生效，并保存语言偏好。">
+          <div className="ops-settings-options" role="group" aria-label={t("界面语言")}>
+            <StaticButton disabled={preferenceBusy(SETTINGS_KEYS.language)} active={settings.language === "zh-CN"} onClick={() => void changeLanguage("zh-CN")}>简体中文</StaticButton>
+            <StaticButton disabled={preferenceBusy(SETTINGS_KEYS.language)} active={settings.language === "en-US"} onClick={() => void changeLanguage("en-US")}>English</StaticButton>
           </div>
-          <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">{t("本地配置")}</span>
-        </div>
-
-        <SettingCard id="language" icon={<FileText size={15} />} title="界面语言" desc="保存语言偏好；当前界面文案仍以简体中文提供。">
-          <div className="flex gap-2.5"><StaticButton active={settings.language === "zh-CN"} onClick={() => void changeLanguage("zh-CN")}>简体中文</StaticButton><StaticButton active={settings.language === "en-US"} onClick={() => void changeLanguage("en-US")}>English</StaticButton></div>
         </SettingCard>
 
         <SettingCard id="startup" icon={<Power size={15} />} title="启动行为" desc="系统登录后自动启动 OpsPub，并按选择决定是否进入托盘。">
           <div className="space-y-3">
-            <ToggleRow label="开机自启" desc="随系统登录启动 OpsPub" checked={settings.autoStart} loading={autoStartBusy} onChange={(value) => void changeAutoStart(value)} />
-            <ToggleRow label="自启后收进托盘" desc="仅在系统启动应用时隐藏主窗口" checked={settings.startMinimized} onChange={(value) => void changeStartMinimized(value)} disabled={!settings.autoStart} />
+            <ToggleRow label="开机自启" desc="随系统登录启动 OpsPub" checked={autoStart} loading={autoStartBusy} disabled={autoStartDisabled} onChange={(value) => void changeAutoStart(value)} />
+            <ToggleRow label="自启后收进托盘" desc="仅在系统启动应用时隐藏主窗口" checked={settings.startMinimized} onChange={(value) => void changePreference(value, settings.setStartMinimized, SETTINGS_KEYS.startMinimized, settings.startMinimized)} disabled={!autoStart || autoStartDisabled || preferenceBusy(SETTINGS_KEYS.startMinimized)} />
           </div>
         </SettingCard>
 
         <SettingCard id="window" icon={<AppWindow size={15} />} title="窗口与托盘" desc="点击主窗口关闭按钮时的行为。">
-          <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-700/80 bg-[#141a22] p-0.5"><StaticButton active={settings.closeBehavior === "ask"} onClick={() => void changeCloseBehavior("ask")}>每次询问</StaticButton><StaticButton active={settings.closeBehavior === "minimize"} onClick={() => void changeCloseBehavior("minimize")}>最小化到托盘</StaticButton><StaticButton active={settings.closeBehavior === "exit"} onClick={() => void changeCloseBehavior("exit")}>直接退出</StaticButton></div>
+          <div className="ops-settings-options" role="group" aria-label={t("窗口与托盘")}>
+            {([ ["ask", "每次询问"], ["minimize", "最小化到托盘"], ["exit", "直接退出"] ] as const).map(([value, label]) => (
+              <StaticButton key={value} disabled={preferenceBusy(SETTINGS_KEYS.closeBehavior)} active={settings.closeBehavior === value} onClick={() => void changeCloseBehavior(value)}>{label}</StaticButton>
+            ))}
+          </div>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">{t("关闭后仍可保持后台服务与连接会话，双击托盘图标可以重新打开主窗口。")}</p>
         </SettingCard>
 
         <SettingCard id="appearance" icon={<Palette size={15} />} title="外观主题" desc="选择应用皮肤和明暗模式，预览会同步到整个应用。">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-            {SKINS.map((item) => (
-              <button key={item.id} type="button" aria-pressed={skin === item.id} onClick={() => selectSkin(item.id)} className={`rounded-lg border p-2.5 text-left transition ${skin === item.id ? "border-teal-500/60" : "border-slate-800 hover:border-slate-600"}`} style={{ background: item.preview }}>
-                <div className="mb-3 h-7 rounded-md border border-white/10" style={{ background: `linear-gradient(135deg, ${item.swatch}55, transparent)` }} />
-                <div className="flex items-center justify-between gap-1"><span className="text-xs font-semibold" style={{ color: item.family === "light" ? "#334155" : "#e2e8f0" }}>{item.name}</span>{skin === item.id && <Check size={13} className="text-teal-300" />}</div>
-              </button>
+          <div className="ops-settings-options" role="group" aria-label={t("明暗模式")}>
+            {([ ["system", "跟随系统"], ["dark", "暗色"], ["light", "亮色"] ] as const).map(([mode, label]) => (
+              <StaticButton key={mode} active={theme === mode} onClick={() => selectTheme(mode)}>{label}</StaticButton>
             ))}
           </div>
-          <div className="mt-3 flex flex-wrap gap-2"><StaticButton active={theme === "system"} onClick={() => selectTheme("system")}>跟随系统</StaticButton><StaticButton active={theme === "dark"} onClick={() => selectTheme("dark")}>暗色</StaticButton><StaticButton active={theme === "light"} onClick={() => selectTheme("light")}>亮色</StaticButton></div>
+          <div className="ops-settings-skin-groups">
+            {([ ["dark", "暗色"], ["light", "亮色"] ] as const).map(([family, label]) => (
+              <div key={family} role="group" aria-label={t(label)}>
+                <h3>{t(label)}</h3>
+                <div className="ops-settings-skins">
+                  {SKINS.filter((item) => item.family === family).map((item) => {
+                    const selected = theme === family && skin === item.id;
+                    return (
+                      <button key={item.id} type="button" className="ops-settings-preview" aria-pressed={selected} onClick={() => selectSkin(item.id)}>
+                        <span className="ops-settings-swatch" style={{ backgroundColor: item.preview, color: item.swatch }} aria-hidden><i /><i /><i /></span>
+                        <span className="ops-settings-preview-label">{t(item.name)}{selected && <Check size={13} aria-hidden />}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </SettingCard>
 
         <SettingCard id="terminal-theme" icon={<Terminal size={15} />} title="终端主题与渲染" desc="控制内嵌 SSH 终端的配色方案、字号与光标渲染样式。更改会立即应用到已连接的终端。">
-          <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="ops-settings-terminal-themes" role="group" aria-label={t("终端主题")}>
             {TERMINAL_THEME_OPTIONS.map((option) => (
-              <button key={option.id} type="button" aria-pressed={settings.terminalTheme === option.id} onClick={() => void changeTerminalTheme(option.id)} className={`rounded-lg border p-3 text-left transition ${settings.terminalTheme === option.id ? "border-teal-500/80 bg-teal-500/5 ring-1 ring-teal-500/40" : "border-slate-800 bg-surface-900/50 hover:border-slate-600"}`}>
+              <button key={option.id} type="button" className="ops-settings-preview" disabled={preferenceBusy(SETTINGS_KEYS.terminalTheme)} aria-pressed={settings.terminalTheme === option.id} onClick={() => void changeTerminalTheme(option.id)}>
                 <PreviewTerminal title={option.name} background={option.previewBackground} foreground={option.previewForeground} selected={settings.terminalTheme === option.id} />
-                <span className="mt-2 block text-xs text-slate-400">{option.description}</span>
+                <span className="ops-settings-preview-label">{t(option.description)}</span>
               </button>
             ))}
           </div>
-          <div className="mt-4 grid gap-3 border-t border-slate-800/70 pt-4 sm:grid-cols-2 xl:grid-cols-3">
-            <TerminalSettingSelect label="终端字号" value={settings.terminalFontSize} options={TERMINAL_FONT_SIZE_OPTIONS} onChange={(value) => void changeTerminalSetting<TerminalFontSize>(value, settings.setTerminalFontSize, SETTINGS_KEYS.terminalFontSize, settings.terminalFontSize)} />
-            <TerminalSettingSelect label="行高" value={settings.terminalLineHeight} options={TERMINAL_LINE_HEIGHT_OPTIONS} onChange={(value) => void changeTerminalSetting<TerminalLineHeight>(value, settings.setTerminalLineHeight, SETTINGS_KEYS.terminalLineHeight, settings.terminalLineHeight)} />
-            <TerminalSettingSelect label="光标样式" value={settings.terminalCursorStyle} options={TERMINAL_CURSOR_OPTIONS} onChange={(value) => void changeTerminalSetting<TerminalCursorStyle>(value, settings.setTerminalCursorStyle, SETTINGS_KEYS.terminalCursorStyle, settings.terminalCursorStyle)} />
+          <div className="ops-settings-terminal-controls">
+            <TerminalSettingSelect label={t("终端字号")} value={settings.terminalFontSize} options={TERMINAL_FONT_SIZE_OPTIONS} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalFontSize)} onChange={(value) => void changePreference<TerminalFontSize>(value, settings.setTerminalFontSize, SETTINGS_KEYS.terminalFontSize, settings.terminalFontSize)} />
+            <TerminalSettingSelect label={t("行高")} value={settings.terminalLineHeight} options={TERMINAL_LINE_HEIGHT_OPTIONS} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalLineHeight)} onChange={(value) => void changePreference<TerminalLineHeight>(value, settings.setTerminalLineHeight, SETTINGS_KEYS.terminalLineHeight, settings.terminalLineHeight)} />
+            <TerminalSettingSelect label={t("光标样式")} value={settings.terminalCursorStyle} options={TERMINAL_CURSOR_OPTIONS} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalCursorStyle)} onChange={(value) => void changePreference<TerminalCursorStyle>(value, settings.setTerminalCursorStyle, SETTINGS_KEYS.terminalCursorStyle, settings.terminalCursorStyle)} />
           </div>
         </SettingCard>
 
@@ -502,11 +495,14 @@ export default function SettingsPage() {
         <SettingCard id="whitelist" icon={<ShieldCheck size={17} />} title="AI 出站地址白名单" desc="维护允许域名列表。策略启停和域名数据保存在本机配置中。">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0"><div className="text-sm font-semibold text-slate-200">{t("出站地址策略")}</div><p className="mt-1 text-sm leading-6 text-slate-500">{t("启用后，名单可供后续 AI 命令审批策略使用；当前命令执行引擎尚未读取此列表。")}</p></div>
-            <Switch checked={outboundEnabled} onChange={(checked) => {
+            <Switch checked={outboundEnabled} disabled={settingsLoading || outboundSaving} onChange={(checked) => {
               const previous = outboundEnabled;
               setOutboundEnabled(checked);
               settings.setOutboundEnabled(checked);
-              void saveOutboundSettings(outboundHosts, checked).catch(() => setOutboundEnabled(previous));
+              void saveOutboundSettings(outboundHosts, checked).catch(() => {
+                setOutboundEnabled(previous);
+                settings.setOutboundEnabled(previous);
+              });
             }} aria-label={t("启用出站地址白名单")} />
           </div>
           <div className="mt-4 border-t border-slate-800/70 pt-4">
@@ -525,7 +521,7 @@ export default function SettingsPage() {
             <p className="mt-2 text-sm leading-6 text-slate-500">{t("输入完整 URL 时只保存主机名；支持子域名匹配的意图配置，但目前尚未进入命令执行判定。")}</p>
           </div>
           <div className="mt-4 flex justify-end border-t border-slate-800/70 pt-3">
-            <Button type="primary" loading={outboundSaving} onClick={() => void saveOutboundSettings()}>{t("保存白名单")}</Button>
+            <Button type="primary" disabled={settingsLoading} loading={outboundSaving} onClick={() => void saveOutboundSettings().catch(() => undefined)}>{t("保存白名单")}</Button>
           </div>
         </SettingCard>
 
@@ -565,18 +561,29 @@ export default function SettingsPage() {
           <CommunitySettings />
         </SettingCard>
 
-        <SettingCard id="apps" icon={<Sparkles size={15} />} title="推荐应用" desc="与 OpsPub 配合使用的终端、编辑器和安全工具。">
-          <div className="grid gap-2 sm:grid-cols-3"><AppTile name="Windows Terminal" desc="终端会话" /><AppTile name="VS Code" desc="配置与脚本" /><AppTile name="1Password" desc="凭据托管" /></div>
-        </SettingCard>
-      </main>
-    </div>
+        <div className="ops-settings-tail">
+          <SettingCard id="apps" icon={<Sparkles size={15} />} title="推荐应用" desc="与 OpsPub 配合使用的终端、编辑器和安全工具。">
+            <div className="grid gap-2 sm:grid-cols-3"><AppTile name="Windows Terminal" desc="终端会话" /><AppTile name="VS Code" desc="配置与脚本" /><AppTile name="1Password" desc="凭据托管" /></div>
+          </SettingCard>
+        </div>
+        </div>
+      </div>
+    </>
   );
 }
 
 function SettingCard({ id, icon, title, desc, children, hideHeader = false }: { id: SettingsSection; icon: ReactNode; title: string; desc: string; children: ReactNode; hideHeader?: boolean }) {
   const language = useSettingsStore((state) => state.language);
-  const cardClass = hideHeader ? "scroll-mt-5" : "scroll-mt-5 rounded-xl border border-slate-800/80 bg-[#0f141c] p-4 shadow-lg sm:p-5";
-  return <section data-settings-section={id} className={cardClass}>{!hideHeader && <div className="flex items-start gap-2"><span className="mt-0.5 text-teal-400">{icon}</span><div><h3 className="text-sm font-semibold text-white">{translateSettings(title, language)}</h3><p className="mt-1 text-xs leading-relaxed text-slate-400">{translateSettings(desc, language)}</p></div></div>}<div className={hideHeader ? "" : "mt-4"}>{children}</div></section>;
+  const label = translateSettings(title, language);
+  return (
+    <section id={`setting-${id}`} data-settings-section={id} className={hideHeader ? undefined : "ops-settings-card"} aria-label={label}>
+      {!hideHeader && <header className="ops-settings-card-heading">
+        <span aria-hidden>{icon}</span>
+        <div><h2>{label}</h2><p>{translateSettings(desc, language)}</p></div>
+      </header>}
+      {children}
+    </section>
+  );
 }
 
 interface ModelDraft {
@@ -885,23 +892,24 @@ function LimitField({ label, value }: { label: string; value: number | null | un
   return <div className="flex items-center overflow-hidden rounded-lg border border-slate-700/80 bg-surface-950/70"><span className="shrink-0 border-r border-slate-700/80 bg-surface-900 px-2.5 py-2 text-sm text-slate-400">{label}</span><span className="min-w-0 flex-1 px-2.5 py-2 text-sm font-mono text-slate-300">{value == null ? "未知" : value.toLocaleString()}</span></div>;
 }
 
-function StaticButton({ active = false, children, className = "", onClick }: { active?: boolean; children: ReactNode; className?: string; onClick?: () => void }) {
+function StaticButton({ active, children, disabled = false, onClick }: { active?: boolean; children: ReactNode; disabled?: boolean; onClick?: () => void }) {
   const language = useSettingsStore((state) => state.language);
   const label = typeof children === "string" ? translateSettings(children, language) : children;
-  return <button type="button" onClick={onClick} className={`rounded-lg border px-3.5 py-1.5 text-xs font-medium transition ${active ? "border-teal-500/50 bg-teal-500/20 text-teal-200" : "border-slate-700 bg-surface-900 text-slate-300 hover:border-slate-600 hover:text-white"} ${className}`}>{label}</button>;
+  return <Button size="small" className="ops-settings-choice" aria-pressed={active} disabled={disabled || !onClick} onClick={onClick}>{label}</Button>;
 }
 
 function ToggleRow({ label, desc, checked, onChange, disabled = false, loading = false }: { label: string; desc: string; checked: boolean; onChange: (value: boolean) => void; disabled?: boolean; loading?: boolean }) {
   const language = useSettingsStore((state) => state.language);
-  return <div className={`flex items-center gap-3 ${disabled ? "opacity-50" : ""}`}><span className="w-32 shrink-0 text-xs text-slate-300">{translateSettings(label, language)}</span><Switch size="small" checked={checked} loading={loading} disabled={disabled} onChange={onChange} /><span className="text-xs text-slate-500">{translateSettings(desc, language)}</span></div>;
+  const name = translateSettings(label, language);
+  return <div className={`flex flex-wrap items-center gap-3 ${disabled ? "opacity-50" : ""}`}><span className="w-32 shrink-0 text-xs text-[var(--text-primary)]">{name}</span><Switch aria-label={name} size="small" checked={checked} loading={loading} disabled={disabled} onChange={onChange} /><span className="text-xs text-[var(--text-secondary)]">{translateSettings(desc, language)}</span></div>;
 }
 
-function TerminalSettingSelect<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: Array<{ value: T; label: string }>; onChange: (value: T) => void }) {
-  return <label className="block min-w-0"><span className="mb-1.5 block text-xs font-medium text-slate-400">{label}</span><Select className="w-full" value={value} options={options} onChange={onChange} /></label>;
+function TerminalSettingSelect<T extends string | number>({ label, value, options, translate, disabled, onChange }: { label: string; value: T; options: Array<{ value: T; label: string }>; translate: (text: string) => string; disabled: boolean; onChange: (value: T) => void }) {
+  return <label className="block min-w-0"><span className="mb-1.5 block text-xs font-medium text-slate-400">{label}</span><Select aria-label={label} className="w-full" value={value} options={options.map((option) => ({ ...option, label: translate(option.label) }))} disabled={disabled} onChange={onChange} /></label>;
 }
 
 function PreviewTerminal({ title, background, foreground, selected }: { title: string; background: string; foreground: string; selected?: boolean }) {
-  return <div className="rounded-md border border-white/10 p-3" style={{ background }}><div className="mb-2 flex items-center justify-between text-xs" style={{ color: `${foreground}aa` }}><span className="font-mono font-semibold" style={{ color: foreground }}>{title}</span><span className="font-mono">bash</span></div><pre className="overflow-hidden font-mono text-xs leading-relaxed" style={{ color: foreground }}>$ ssh opspub@server{`\n`}Connected · ready for commands{`\n`}$ <span className={selected ? "animate-pulse" : ""}>█</span></pre></div>;
+  return <div className="rounded-md p-2.5 font-mono text-xs leading-relaxed" style={{ background, color: foreground }}><div className="mb-1 font-semibold">{title}</div><div aria-hidden>$ <span className={selected ? "motion-safe:animate-pulse" : ""}>█</span></div></div>;
 }
 
 type LegalTab = "eula" | "privacy" | "aiops" | "sbom";

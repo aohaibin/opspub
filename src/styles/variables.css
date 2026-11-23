@@ -1035,13 +1035,13 @@
 /* ============================================================
  * 主题皮肤（原型顶栏调色盘下拉的 6 套）
  *
- * 放在文件末尾是刻意的：皮肤选择器与上方的 data-theme 选择器同优先级，
- * 依据「后出现者胜出」覆盖它们。移到前面就会静默失效。
+ * 皮肤覆盖放在基础令牌之后，且仅在明暗族一致时生效。
+ * 单独切换主题或跟随系统时，不能让上次选择的暗色皮肤覆盖亮色底色。
  * 每套只覆盖背景层级 + 品牌色，文字/边框/圆角等沿用所属明暗族。
  * ============================================================ */
 
 /* --- 暗色 · 午夜耀石（= 默认暗色，仅作显式声明，便于日后单独调） --- */
-:root[data-skin="obsidian"] {
+:root[data-theme="dark"][data-skin="obsidian"] {
   --surface-950: #090d16;
   --surface-900: #0f172a;
   --surface-850: #141e33;
@@ -1054,7 +1054,7 @@
 }
 
 /* --- 暗色 · 石墨暗黑（中性灰 + 靛蓝强调） --- */
-:root[data-skin="graphite"] {
+:root[data-theme="dark"][data-skin="graphite"] {
   --surface-950: #0a0a0b;
   --surface-900: #18181b;
   --surface-850: #202023;
@@ -1074,7 +1074,7 @@
 }
 
 /* --- 暗色 · 暮薇暖橙（暖褐 + 琥珀强调） --- */
-:root[data-skin="amber"] {
+:root[data-theme="dark"][data-skin="amber"] {
   --surface-950: #12100e;
   --surface-900: #1c1917;
   --surface-850: #241f1c;
@@ -1094,7 +1094,7 @@
 }
 
 /* --- 亮色 · 晴空素白（冷灰白 + 蓝强调） --- */
-:root[data-skin="sky"] {
+:root[data-theme="light"][data-skin="sky"] {
   --surface-950: #f4f8ff;
   --surface-900: #ffffff;
   --surface-850: #edf3fb;
@@ -1114,7 +1114,7 @@
 }
 
 /* --- 亮色 · 活力晨光（暖米白 + 橙强调） --- */
-:root[data-skin="warm"] {
+:root[data-theme="light"][data-skin="warm"] {
   --surface-950: #fffaf2;
   --surface-900: #ffffff;
   --surface-850: #fff5e8;
@@ -1134,7 +1134,7 @@
 }
 
 /* --- 亮色 · 极光浅葱（薄荷白 + 青绿强调） --- */
-:root[data-skin="aurora"] {
+:root[data-theme="light"][data-skin="aurora"] {
   --surface-950: #f2fbfa;
   --surface-900: #ffffff;
   --surface-850: #e8f8f5;

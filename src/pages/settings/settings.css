@@ -1,0 +1,254 @@
+.ops-settings-nav {
+  padding: 0 9px 10px;
+  color: var(--text-secondary);
+}
+
+.ops-settings-nav-group {
+  display: grid;
+  gap: 2px;
+  padding-block: 7px;
+  border-block-start: 1px solid var(--border);
+}
+
+.ops-settings-nav-group > p {
+  padding: 2px 9px 4px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.ops-settings-nav-group > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 29px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ops-settings-nav-group > button svg {
+  flex: none;
+}
+
+.ops-settings-nav-group > button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ops-settings-nav-group > button[aria-current="location"] {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  font-weight: 650;
+}
+
+.ops-settings-scroll {
+  --settings-inset: 24px;
+  block-size: 100%;
+  container: settings / size;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block-start: var(--settings-inset);
+}
+
+.ops-settings-flow {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  max-inline-size: 1140px;
+  margin-inline: auto;
+  padding: var(--settings-inset);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.ops-settings-flow > h1 {
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.ops-settings-card {
+  min-inline-size: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-900);
+}
+
+.ops-settings-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-block-end: 14px;
+}
+
+.ops-settings-card-heading > span {
+  flex: none;
+  margin-block-start: 2px;
+  color: var(--nav-active-text);
+}
+
+.ops-settings-card-heading h2 {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.ops-settings-card-heading p {
+  margin-block-start: 3px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* 末节也能对齐滚动判定线，前面的短节不会因触底而被跳过。 */
+.ops-settings-tail {
+  min-block-size: calc(100cqh - 2 * var(--settings-inset));
+}
+
+.ops-settings-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ops-settings-options .ops-settings-choice {
+  min-block-size: 28px;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+
+.ops-settings-options .ops-settings-choice[aria-pressed="true"] {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+}
+
+.ops-settings-skin-groups,
+.ops-settings-terminal-themes,
+.ops-settings-terminal-controls {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ops-settings-skin-groups,
+.ops-settings-terminal-controls {
+  margin-block-start: 14px;
+  padding-block-start: 14px;
+  border-block-start: 1px solid var(--border);
+}
+
+.ops-settings-skin-groups h3 {
+  margin-block-end: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ops-settings-skins {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ops-settings-preview {
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-950);
+  text-align: start;
+  cursor: pointer;
+}
+
+.ops-settings-preview:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.ops-settings-preview[aria-pressed="true"] {
+  border-color: var(--nav-active-icon);
+  background: var(--nav-active-bg);
+}
+
+.ops-settings-preview:disabled {
+  cursor: default;
+}
+
+.ops-settings-nav-group > button:focus-visible,
+.ops-settings-preview:focus-visible,
+.ops-settings-scroll:focus-visible {
+  outline: 2px solid var(--nav-active-icon);
+  outline-offset: -2px;
+}
+
+.ops-settings-swatch {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  block-size: 41px;
+  padding-inline: 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.ops-settings-swatch > i {
+  inline-size: 65%;
+  block-size: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: .45;
+}
+
+.ops-settings-swatch > i:first-child {
+  inline-size: 32%;
+  opacity: 1;
+}
+
+.ops-settings-swatch > i:last-child {
+  inline-size: 50%;
+}
+
+.ops-settings-preview-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-block-start: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ops-settings-preview-label svg {
+  flex: none;
+  color: var(--nav-active-text);
+}
+
+.ops-settings-terminal-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@container settings (min-width: 790px) {
+  .ops-settings-terminal-themes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@container settings (max-width: 660px) {
+  .ops-settings-skin-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container settings (max-width: 480px) {
+  .ops-settings-terminal-themes,
+  .ops-settings-terminal-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

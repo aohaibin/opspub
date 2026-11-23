@@ -9,14 +9,12 @@ import { useAppStore } from "@/store";
 import { useSshSessionStore } from "@/store/ssh";
 import { getAntdTheme } from "@/theme/antdTheme";
 import { AppRouter } from "@/Router";
-import { configApi } from "@/lib/api";
-import { useSettingsStore } from "@/store/settings";
+import { loadSettings, useSettingsStore } from "@/store/settings";
 
 function App() {
   const appTheme = useAppStore((s) => s.theme);
   const skin = useAppStore((s) => s.skin);
   const hydrateCredentials = useSshSessionStore((s) => s.hydrateCredentials);
-  const hydrateSettings = useSettingsStore((s) => s.hydrate);
   const language = useSettingsStore((s) => s.language);
   const [credentialsReady, setCredentialsReady] = useState(false);
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
@@ -43,19 +41,16 @@ function App() {
   }, [hydrateCredentials]);
 
   useEffect(() => {
-    void configApi.getAll().then((configs) => {
-      hydrateSettings(Object.fromEntries(configs.map(({ key, value }) => [key, value])));
-    }).catch(() => undefined);
-  }, [hydrateSettings]);
+    void loadSettings().catch(() => undefined);
+  }, []);
 
   useEffect(() => {
-    if (appTheme !== "system") return;
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) =>
       setSystemTheme(e.matches ? "dark" : "light");
     mql.addEventListener("change", handler);
     return () => mql.removeEventListener("change", handler);
-  }, [appTheme]);
+  }, []);
 
   const resolved = appTheme === "system" ? systemTheme : appTheme;
 
@@ -66,6 +61,10 @@ function App() {
     root.setAttribute("data-skin", skin);
     root.classList.toggle("dark", resolved === "dark");
   }, [resolved, skin]);
+
+  useLayoutEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const antdTheme = useMemo(
     () => getAntdTheme(resolved, skin),

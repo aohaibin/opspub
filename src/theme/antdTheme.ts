@@ -1,6 +1,6 @@
 import type { ThemeConfig } from "antd";
 import { theme } from "antd";
-import type { SkinId } from "@/store/app";
+import { SKINS, type SkinId } from "@/store/app";
 
 /**
  * 暗色/亮色主题的共享 token
@@ -201,6 +201,9 @@ const SKIN_ANTD_MAP: Record<SkinId, SkinAntdOverrides> = {
 export function getAntdTheme(resolved: "light" | "dark", skin?: SkinId): ThemeConfig {
   const base = resolved === "dark" ? darkTheme : lightTheme;
   if (!skin || !SKIN_ANTD_MAP[skin]) return base;
+
+  // 与 CSS 的皮肤明暗族约束一致，避免亮色控件叠在残留的暗色表面上。
+  if (SKINS.find((item) => item.id === skin)?.family !== resolved) return base;
 
   const overrides = SKIN_ANTD_MAP[skin];
   return {

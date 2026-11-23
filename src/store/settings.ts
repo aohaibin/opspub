@@ -1,13 +1,22 @@
 import { create } from "zustand";
-export type CloseBehavior = "ask" | "minimize" | "exit";
+import { disable as disableAutoStart, enable as enableAutoStart, isEnabled as isAutoStartEnabled } from "@tauri-apps/plugin-autostart";
+import { configApi } from "@/lib/api/config";
 import type { TerminalCursorStyle, TerminalFontSize, TerminalLineHeight, TerminalTheme } from "@/components/terminal/terminal-themes";
+
+export type CloseBehavior = "ask" | "minimize" | "exit";
 export type { TerminalCursorStyle, TerminalFontSize, TerminalLineHeight, TerminalTheme } from "@/components/terminal/terminal-themes";
+
+type AutoStartStatus = "loading" | "ready" | "saving" | "unavailable";
+type AutoStartSaveResult = "saved" | "ignored" | unknown[];
 
 interface SettingsStore {
   language: "zh-CN" | "en-US";
   setLanguage: (language: "zh-CN" | "en-US") => void;
-  autoStart: boolean;
-  setAutoStart: (enabled: boolean) => void;
+  autoStart: boolean | null;
+  storedAutoStart: boolean;
+  autoStartStatus: AutoStartStatus;
+  refreshAutoStart: (configRead: Promise<void>) => Promise<void>;
+  saveAutoStart: (enabled: boolean) => Promise<AutoStartSaveResult>;
   startMinimized: boolean;
   setStartMinimized: (enabled: boolean) => void;
   closeBehavior: CloseBehavior;
@@ -43,11 +52,66 @@ export const SETTINGS_KEYS = {
   outboundEnabled: "network.outbound_enabled",
 } as const;
 
-export const useSettingsStore = create<SettingsStore>((set) => ({
+let autoStartReadId = 0;
+
+function applySystemAutoStart(enabled: boolean): Promise<void> {
+  return enabled ? enableAutoStart() : disableAutoStart();
+}
+
+export const useSettingsStore = create<SettingsStore>((set, get) => ({
   language: "zh-CN",
   setLanguage: (language) => set({ language }),
-  autoStart: false,
-  setAutoStart: (autoStart) => set({ autoStart }),
+  autoStart: null,
+  storedAutoStart: false,
+  autoStartStatus: "loading",
+  refreshAutoStart: async (configRead) => {
+    // 保存期间系统可能处于中间状态，新页面直接订阅保存的最终结果。
+    if (get().autoStartStatus === "saving") return;
+    const readId = ++autoStartReadId;
+    set({ autoStartStatus: "loading" });
+    const [, system] = await Promise.allSettled([configRead, isAutoStartEnabled()]);
+    if (readId !== autoStartReadId) return;
+    if (system.status === "fulfilled") {
+      set({ autoStart: system.value, autoStartStatus: "ready" });
+    } else {
+      set({ autoStartStatus: "unavailable" });
+      throw system.reason;
+    }
+  },
+  saveAutoStart: async (enabled) => {
+    const { autoStart: previous, autoStartStatus } = get();
+    if (autoStartStatus !== "ready" || previous === null || enabled === previous) return "ignored";
+
+    set({ autoStartStatus: "saving" });
+    let current = previous;
+    let status: AutoStartStatus = "ready";
+    try {
+      await applySystemAutoStart(enabled);
+      try {
+        await configApi.set(SETTINGS_KEYS.autoStart, String(enabled));
+      } catch (writeError) {
+        // 配置拒绝后仍持有保存状态，直到补偿结束或重新确认系统状态。
+        try {
+          await applySystemAutoStart(previous);
+        } catch (restoreError) {
+          try {
+            current = await isAutoStartEnabled();
+          } catch (readError) {
+            status = "unavailable";
+            return [writeError, restoreError, readError];
+          }
+          return [writeError, restoreError];
+        }
+        return [writeError];
+      }
+      current = enabled;
+      return "saved";
+    } catch (systemError) {
+      return [systemError];
+    } finally {
+      set({ autoStart: current, autoStartStatus: status });
+    }
+  },
   startMinimized: false,
   setStartMinimized: (startMinimized) => set({ startMinimized }),
   closeBehavior: "ask",
@@ -68,7 +132,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   setOutboundEnabled: (outboundEnabled) => set({ outboundEnabled }),
   hydrate: (values) => set({
     language: values[SETTINGS_KEYS.language] === "en-US" ? "en-US" : "zh-CN",
-    autoStart: values[SETTINGS_KEYS.autoStart] === "true",
+    storedAutoStart: values[SETTINGS_KEYS.autoStart] === "true",
     startMinimized: values[SETTINGS_KEYS.startMinimized] === "true",
     closeBehavior: values[SETTINGS_KEYS.closeBehavior] === "minimize" || values[SETTINGS_KEYS.closeBehavior] === "exit"
       ? (values[SETTINGS_KEYS.closeBehavior] as CloseBehavior)
@@ -101,3 +165,16 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     outboundEnabled: values[SETTINGS_KEYS.outboundEnabled] === "true",
   }),
 }));
+
+let settingsRead: Promise<void> | undefined;
+
+export function loadSettings(): Promise<void> {
+  // 应用和设置页共用同一次在途读取，避免旧快照在页面可写后再次回填。
+  settingsRead ??= configApi.getAll().then((configs) => {
+    const values = Object.fromEntries(configs.map(({ key, value }) => [key, value]));
+    useSettingsStore.getState().hydrate(values);
+  }).finally(() => {
+    settingsRead = undefined;
+  });
+  return settingsRead;
+}

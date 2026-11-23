@@ -318,7 +318,7 @@
   z-index: 1;
   display: grid;
   gap: 8px;
-  width: 260px;
+  width: min(320px, calc(100vw - 78px));
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -342,6 +342,47 @@
   background: var(--surface-850);
   color: var(--text-primary);
 }
+
+.workspace-notification-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.workspace-notification-heading button {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.workspace-notification-heading button:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.workspace-notification-events {
+  display: grid;
+  gap: 4px;
+  max-height: min(280px, 45vh);
+  overflow-y: auto;
+}
+
+.workspace-notification-event {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  border-inline-start: 2px solid var(--info);
+}
+
+.workspace-notification-event[data-severity="critical"] { border-inline-start-color: var(--danger); }
+.workspace-notification-event[data-severity="warning"] { border-inline-start-color: var(--warning); }
+.workspace-notification-event strong, .workspace-notification-event small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-notification-event small { color: var(--text-secondary); }
 
 @media (max-width: 1160px) {
   .workspace-header {

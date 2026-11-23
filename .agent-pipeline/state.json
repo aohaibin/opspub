@@ -1,0 +1,375 @@
+{
+    "project":  "OpsPub 新版双轨工作区迁移",
+    "controllerSessionId":  "80eecc98-6050-4832-86df-892539421943",
+    "round":  1,
+    "planConfirmed":  true,
+    "workspace":  "D:/itemWork/bushu/yunwei/template-tauri",
+    "prototype":  "docs/ops-prototype-direction2-workspace.html",
+    "baseline":  {
+                     "branch":  "opspub",
+                     "head":  "0c1f72f",
+                     "includeCurrentFunctionalState":  true,
+                     "existingUncommittedChanges":  true,
+                     "overlappingAreas":  [
+                                              "AppLayout",
+                                              "SFTP",
+                                              "Copilot",
+                                              "审计",
+                                              "告警",
+                                              "设置",
+                                              "主题"
+                                          ],
+                     "commitPolicy":  "已有修改作为行为基线。重叠文件先建立本步前后差异，逐文件仅暂存本步补丁，核对暂存区。存在不可拆的提交依赖时记录并上报裁决。"
+                 },
+    "roles":  {
+                  "controller":  "拆解、派发、查证回执与裁决",
+                  "implementation":  {
+                                         "provider_id":  "codex",
+                                         "model":  "provider-default"
+                                     },
+                  "review":  {
+                                 "provider_id":  "codex",
+                                 "model":  "gpt-6.1-sol",
+                                 "separateSession":  true
+                             }
+              },
+    "execution":  {
+                      "writeConcurrency":  1,
+                      "maxRejectionRounds":  2,
+                      "push":  false,
+                      "dispatch":  "指定的 start_agent_session 和 watch_session 当前不可用。新会话通过 Codex 任务工具 create_thread 创建，使用 Codex 实现模型默认设置。以工具回执和报告为准。该工具不会登记原工作站的 AGENT-EVENT。",
+                      "commitAfterVerdict":  true,
+                      "batchReviewSize":  {
+                                              "min":  3,
+                                              "max":  5
+                                          },
+                      "highRiskTriggers":  [
+                                               "外部数据或 API",
+                                               "数据库结构或接口约定",
+                                               "安全、权限或凭据",
+                                               "同时改前后端",
+                                               "数据迁移或同步",
+                                               "实现超过 20 分钟",
+                                               "涉及至少 15 个文件"
+                                           ],
+                      "largeStepSplit":  [
+                                             "预计超过 60 分钟",
+                                             "涉及至少 15 个文件",
+                                             "任务书超过 5000 字"
+                                         ],
+                      "scope":  "按新版替换当前界面，迁移现有 17 个模块。真实空间隔离、独立环境知识库和双版本切换视为另行明确的功能。"
+                  },
+    "modules":  [
+                    "servers",
+                    "terminal",
+                    "workbench",
+                    "sftp",
+                    "database",
+                    "batch",
+                    "deploy",
+                    "copilot",
+                    "mcp",
+                    "skills",
+                    "inspector",
+                    "credentials",
+                    "sensitive",
+                    "alerts",
+                    "security",
+                    "audit",
+                    "settings"
+                ],
+    "completed":  [
+                      "核对新版原型、当前仓库基线和 17 个模块范围",
+                      "完成拆解、角色分工和风险验收方案",
+                      "准备通用验收清单",
+                      "第 00 步静态核对通过，.agent-pipeline/baseline.md 已覆盖 17 个模块",
+                      "第 01 步有条件通过静态交付，本地提交 e0dd3e7",
+                      "第 02 步首轮返工独立复验通过，本地提交 4c3f89c",
+                      "Step 03 terminal passed independent review after four rework rounds and committed locally 56fc3fb3a7a91fd83ccaa10cba6c4cf6a51df856",
+                      "Step 04 SFTP passed independent review and committed locally a2149d034c0014f8aeed19e8677d3812ecda93f1",
+                      "Step 05 workbench passed independent review and committed locally a5908833e49aae4220f3303a3c617019c7f17e49",
+                      "Step 06 database passed independent review after one rework round and committed locally 1b1910ad9598e6f1d92bd58bbeafc4e86165a148",
+                      "Step 07 batch passed independent review and committed locally 10c72db08b706c93e2066f273cbcce449f892f87",
+                      "Step 08 deployment passed independent review after one rework round and committed locally 6f886c0da467d9372c046626a29a79c0cd53d9f2",
+                      "Step 09 copilot layout and streaming lifecycle passed independent review and committed locally f04d6d989020efe81f02d29f862985a31552f839, 948d20ca9fb0ae0c63b5e1770e78b9be31b94ecd",
+                      "第11步敏感库安全修复通过独立验收，本地提交be55cc06afac3c170c62f553a6148e26acedae08",
+                      "Step 12 approval independently passed and committed locally d2bb26d306d5f20136b0ad38db27f88da284ab95.",
+                      "Step 12 audit security review passed after one blocking rework and committed locally fd08765fc4cf0441c85079df6c33a783d2a2db0c.",
+                      "Step 12 alerts passed independent review after one blocking rework and committed locally 34bddf3284f46d0931f29243f1c7a163b1ed0236.",
+                      "第 13 步设置与全局样式通过独立验收，本地提交 e137ace2b58f69de00e527b3e15fba32148ecb5e。",
+                      "第 14 步按用户要求标记为已完成。Windows 安装包由用户打包后亲自测试，验收结果待用户确认。"
+                  ],
+    "pending":  [],
+    "pendingCombinedReview":  [
+
+                              ],
+    "remainingIssues":  [
+                            "第 01 步未动态验证 Windows 默认/最小窗口、亮暗主题、真实前进后退、终端输入与窗口交互，安排到最终整体验收补测。",
+                            "第 02 步多标签匹配沿用旧页面交集，原型使用并集。状态筛选缺少未探测提示，隧道沿用既有占位入口。",
+                            "第 02 步 Windows 窗口及服务器保存、导入和连接接口待实测。",
+                            "Step 03 real Windows/SSH/PTY/IPC/packet-loss validation remains unverified and is reserved for final acceptance.",
+                            "第 08 步非阻断 N1：直接调用部署 IPC 并显式复用运行 ID 时，运行日志仍无法区分。页面和 MCP 正常路径逐次生成新 ID。",
+                            "第 08 步待实测：原生 Windows Tauri、真实远程部署和回滚、MCP 审批及审计落库。",
+                            "第 09 步待实测：原生 Windows Tauri、真实模型流式事件、审批执行、超时和审计落库。",
+                            "Step 12 approval non-blocking review: approval history/statistics should label the recent-100-record scope.",
+                            "Step 12 approval non-blocking review: server policy read failures should include recovery guidance rather than only Unknown.",
+                            "Step 12 audit non-blocking: stale detail links after pagination can temporarily show record not found; resolve during closeout if feasible.",
+                            "第 13 步非阻断：语言保存挂起时切页可能在保存成功后保留旧显示，四组复现。",
+                            "第 13 步非阻断：主题数据库写入失败时旧的主题双写行为仍保留；英文模型弹窗混用中文。",
+                            "第 13 步非阻断：启动设置禁用时说明文字偏淡。启用态亮暗两种主题、两个窗口尺寸均通过定向复验。"
+                        ],
+    "decidedForUser":  [
+                           "指定的派发接口缺失，按用户要求新建可见的 Codex 独立任务。继续一次只派一个写入任务，实现和验收分别开会话。",
+                           "User explicitly authorized continuing 第03步核验 after the two-rejection circuit breaker; continue rework and independent review automatically.",
+                           "第04步 SFTP 在当前已提交 HEAD 上依赖未提交的上传 store/API/transfer backend；为保证迁移交付自包含，合并为一个 SFTP 范围本地提交。共享 AppLayout/models/lib.rs 仅暂存 SFTP 相关 hunks，其他模块差异保留。",
+                           "第 13 步提交候选隔离验证暴露主题切换对比度问题，将已存在的最小 CSS/Ant Design 明暗族匹配改动列为必要依赖，独立复验后才连同设置迁移提交。",
+                           "将暂停后的「提交」按恢复第 13 步提交处理，先关闭已知亮色可读性阻断，再提交设置迁移。"
+                       ],
+    "steps":  [
+                  {
+                      "id":  "00",
+                      "title":  "迁移基线",
+                      "scope":  "逐项建立旧入口、新入口、验证流程及现有缺陷对照表，核对 17 个路由与原型差异，标注与现有工作区改动重叠的文件。",
+                      "assignment":  {
+                                         "provider_id":  "codex",
+                                         "workMode":  "只读核对，逐模块分批输出，完成第 00 步即停。现有方案和通用验收清单已准备，无需重做。",
+                                         "deliverable":  "在 .agent-pipeline/baseline.md 记录 17 个模块的当前入口、新入口、对应文件、验证步骤、前置条件和风险，标注已有工作区改动的重叠范围，附第 01 步的建议文件边界。",
+                                         "verdictRules":  "静态推断或未实测项标为未验证。阻断、建议否决或需决策写入结论文件，附推荐处理并完成独立核对项。无需弹出选项菜单。",
+                                         "verification":  "本步仅核对工作区源码与原型，无需启动服务、构建、改业务代码或创建提交。"
+                                     },
+                      "review":  "batch",
+                      "status":  "passed",
+                      "round":  1,
+                      "verdict":  "静态基线通过。完整映射和验证步骤见 .agent-pipeline/baseline.md。运行行为未验证，只读步骤无提交。",
+                      "commits":  [
+
+                                  ]
+                  },
+                  {
+                      "id":  "01",
+                      "title":  "公共工作区",
+                      "scope":  "实现一级业务域、二级侧栏框架、顶部导航和路由同步，保留现有跨页入口及全局浮窗挂载点。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  1,
+                      "verdict":  "有条件通过静态交付；未发现已证实的新增代码阻断。Windows 动态验收保留到最终整体验收。",
+                      "commits":  [
+                                      "e0dd3e7"
+                                  ]
+                  },
+                  {
+                      "id":  "02",
+                      "title":  "服务器",
+                      "scope":  "迁移分组与标签筛选、资产表格、SSH 直连入口、新增/编辑和导入。若要改变接口或 Rust 层，先拆分。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  2,
+                      "verdict":  "首次因跨筛选勾选丢失退回，首轮返工独立复验通过。动态实测缺口保留。",
+                      "commits":  [
+                                      "4c3f89c"
+                                  ]
+                  },
+                  {
+                      "id":  "03",
+                      "title":  "终端",
+                      "assignment":  {
+                                         "firstBatch":  "对照新版原型，将现有服务器选择与会话入口接入公共二级栏。检查服务器列表直达时的目标 ID、已有会话切换、侧栏折叠和跨菜单恢复。复用现有会话状态、SSH、凭据与审批接口。第一批仅限终端 UI，使用合成资产。",
+                                         "secondBatch":  "第一批回报后再处理分屏、输入、既有 Ctrl+K 冲突及终端布局。",
+                                         "deliverable":  "先读 .agent-pipeline/review-checklist.md、baseline.md 的终端章节和新版原型对应部分。保留前两步本地提交与现有工作区修改。先核对 git status 和拟改文件的最近提交，只改终端前端。分批运行 TypeScript 检查、pnpm build 和针对性隔离检查，记录实际命令、退出码、证据及未验证项，写入 .agent-pipeline/step-03-implementation.md。完成首批即停下回报，分屏批次及本地提交等总控派发。",
+                                         "testing":  "只用合成资产和隔离环境验证。真实资料如需使用先复制临时目录并核对原件。启动项目先 list_project_tasks，再按需 scan_project_tasks、resolve_and_start_task。仅前端改动使用热更新，构建配置、环境变量或依赖变动才重启。若 Tauri 自动重编，等 logTail 和真实窗口就绪。临时任务结束后停止。项目任务工具不可用则记录未验证。",
+                                         "decisionRules":  "先做可以独立完成的内容。可给建议否决。需决策事项写入报告并附推荐，不弹选项菜单。预计超过 60 分钟或涉及 15 个文件时先回报拆分建议。只做本批，保留现有权限和凭据流程，禁止推送。"
+                                     },
+                      "scope":  "迁移二级栏的会话与服务器选择，核对直达、多会话、分屏、交互及切页恢复。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  4,
+                      "verdict":  "Independent round 4 passed B1/B2 with zero blocking findings. Real Windows/SSH/PTY/IPC/packet-loss remain non-blocking unverified.",
+                      "commits":  [
+                                      "56fc3fb3a7a91fd83ccaa10cba6c4cf6a51df856"
+                                  ]
+                  },
+                  {
+                      "id":  "04",
+                      "title":  "SFTP",
+                      "scope":  "迁移连接与目录入口，以现有后台上传为基线，核对双栏、上传下载、浮窗和跨页状态。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  2,
+                      "verdict":  "Independent review round 2 passed session restoration, dual-host isolation and upload queue workflows. N1 contrast and real Windows/SFTP bytes remain non-blocking unverified.",
+                      "commits":  [
+                                      "a2149d034c0014f8aeed19e8677d3812ecda93f1"
+                                  ]
+                  },
+                  {
+                      "id":  "05",
+                      "title":  "工作台",
+                      "scope":  "迁移主机选择、概览及工具入口，核对从服务器直达及目标主机一致性。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  1,
+                      "verdict":  "Independent review passed with no blocking findings. Synthetic light/dark viewport suites, host targeting, stale result isolation, DB scope isolation, cargo check, cargo test 180/0/3 passed; real Windows/SSH/DB operations reserved as final non-blocking gaps.",
+                      "commits":  [
+                                      "a5908833e49aae4220f3303a3c617019c7f17e49"
+                                  ]
+                  },
+                  {
+                      "id":  "06",
+                      "title":  "数据库",
+                      "scope":  "迁移连接树、库表菜单、查询与导出，核对已保存连接和错误场景。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  2,
+                      "verdict":  "首轮因 B1/B2 退回。首次返工后独立复验通过，四组模拟 IPC 共 288 项断言通过。真实数据库、原生保存框及文件落盘留待整体验收。",
+                      "commits":  [
+                                      "1b1910ad9598e6f1d92bd58bbeafc4e86165a148"
+                                  ]
+                  },
+                  {
+                      "id":  "07",
+                      "title":  "批量",
+                      "scope":  "迁移目标选择、结果和错误展示，并验证服务器列表预选入口。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  1,
+                      "verdict":  "独立验收通过，24 组离线模拟 IPC 场景通过。真实 SSH 和原生 Tauri 窗口留待整体验收。",
+                      "commits":  [
+                                      "10c72db08b706c93e2066f273cbcce449f892f87"
+                                  ]
+                  },
+                  {
+                      "id":  "08",
+                      "title":  "部署",
+                      "scope":  "迁移任务、日志、配置弹窗及结果展示，复用现有部署服务。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  2,
+                      "verdict":  "首次返工后独立复验通过，B1 关闭。24 组离线基线、128 项前端断言、7 项 Rust 测试通过，旧历史兼容和 MCP 历史归属已核对。N1 保留为非阻断遗留项。",
+                      "commits":  [
+                                      "6f886c0da467d9372c046626a29a79c0cd53d9f2"
+                                  ]
+                  },
+                  {
+                      "id":  "09",
+                      "title":  "AI 助手",
+                      "scope":  "迁移主机上下文、对话历史、流式过程及审批入口，核对锁定和审批状态。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  5,
+                      "verdict":  "布局通过独立验收，流式 N1–N3 和并发审批预览 R1 已通过独立复验，对应本地提交 f04d6d9 和 948d20c。真实 Windows Tauri、模型和远程审批仍待整体验收。",
+                      "commits":  [
+                                      "f04d6d989020efe81f02d29f862985a31552f839",
+                                      "948d20ca9fb0ae0c63b5e1770e78b9be31b94ecd"
+                                  ]
+                  },
+                  {
+                      "id":  "10",
+                      "title":  "技能、MCP、巡检",
+                      "scope":  "逐模块对照新版入口、列表、详情和主要交互，按触发条件把需独验的子项拆出。",
+                      "review":  "assess-at-handoff",
+                      "status":  "passed",
+                      "round":  2,
+                      "verdict":  "技能、MCP、巡检子批次均独立验收通过。技能388项、MCP mock10项/Rust57项、巡检380项离线断言通过，均已本地提交。",
+                      "commits":  [
+                                      "7cfe11f04ccde8b2f22de6e52ae2be33bbed0eec",
+                                      "f1c416fc43b0f783519f961ec0815d22923c4bb5",
+                                      "41f4ae57b1d4998b0c086852c68cda5b950bef0b"
+                                  ]
+                  },
+                  {
+                      "id":  "11",
+                      "title":  "服务凭据、敏感库",
+                      "scope":  "迁移列表、详情与现有管理流程，核对脱敏、授权与既有数据。",
+                      "review":  "independent",
+                      "status":  "passed",
+                      "round":  7,
+                      "verdict":  "新安全修复批次通过独立验收：来源统一安全投影，混合/历史裸值不经列表、搜索、详情或CSV泄露；Rust 19项、tsc/build/diff-check通过。历史磁盘原文、真实Tauri/WebView2/磁盘导出未验证，列为非阻断遗留。",
+                      "commits":  [
+                                      "82c2c147d895c7c503c34ccb8634c2ff5ace89fb",
+                                      "be55cc06afac3c170c62f553a6148e26acedae08"
+                                  ],
+                      "reviewStatus":  "passed",
+                      "reviewThreadId":  "01a20399-7e1b-7ba2-9201-11be733a0723",
+                      "reworkThreadId":  "01a202b2-8015-7d73-800f-cf2429382e1e",
+                      "remediationThreadId":  "01a2038f-bc24-7200-b38a-b1ea41d5a128"
+                  },
+                  {
+                      "id":  "12",
+                      "title":  "审批、审计、告警",
+                      "scope":  "迁移页面及通知跳转，核对审批通过、拒绝、超时和结果审计。按规模拆批。",
+                      "review":  "independent",
+                      "round":  1,
+                      "reviewThreadId":  "01a203b7-9d45-7381-8dae-962a7799485e",
+                      "approvalReviewStatus":  "passed",
+                      "approvalReviewThreadId":  "01a203b7-9d45-7381-8dae-962a7799485e",
+                      "approvalCommit":  "d2bb26d306d5f20136b0ad38db27f88da284ab95",
+                      "approvalReviewReport":  ".agent-pipeline/step-12-approval-review.md",
+                      "implementationThreadId":  "01a203c7-7a35-7230-83b3-5958dd2cd5ab",
+                      "reviewStatus":  "not_started",
+                      "auditImplementationReport":  ".agent-pipeline/step-12-audit-implementation.md",
+                      "auditReviewThreadId":  "01a203fe-c451-7ca3-a21c-3d7fb0ce18dc",
+                      "auditReworkRound":  1,
+                      "auditReviewStatus":  "passed",
+                      "auditReviewReport":  ".agent-pipeline/step-12-audit-review.md",
+                      "auditCommit":  "fd08765fc4cf0441c85079df6c33a783d2a2db0c",
+                      "substep":  "alerts",
+                      "implementationStatus":  "pending",
+                      "alertsImplementationThreadId":  "01a205ac-4d84-7362-b9fd-d187c39579a8",
+                      "alertsReworkRound":  1,
+                      "alertsImplementationStatus":  "rework",
+                      "alertsReviewThreadId":  "01a205cc-9473-7011-a6a6-dfc6b9ea7044",
+                      "alertsReviewStatus":  "passed",
+                      "alertsReviewReport":  ".agent-pipeline/step-12-alerts-review.md",
+                      "alertsCommit":  "34bddf3284f46d0931f29243f1c7a163b1ed0236",
+                      "status":  "passed",
+                      "verdict":  "Approval, audit and alerts sub-batches independently passed. Approval d2bb26d, audit fd08765, alerts 34bddf3 committed locally. Real native Tauri/Windows/SSH/channel delivery remain non-blocking unverified.",
+                      "commits":  [
+                                      "d2bb26d306d5f20136b0ad38db27f88da284ab95",
+                                      "fd08765fc4cf0441c85079df6c33a783d2a2db0c",
+                                      "34bddf3284f46d0931f29243f1c7a163b1ed0236"
+                                  ]
+                  },
+                  {
+                      "id":  "13",
+                      "title":  "设置与全局样式",
+                      "scope":  "迁移设置分区与可见交互，核对两种主题、默认/最小窗口及设置持久化。",
+                      "review":  "assess-at-handoff",
+                      "status":  "passed",
+                      "round":  3,
+                      "verdict":  "设置迁移通过独立验收。启动事务与主题对比度阻断均关闭，已将核验过的八路径补丁提交到本地 e137ace。原生 Windows 行为待整体验收。",
+                      "commits":  [
+                                      "e137ace2b58f69de00e527b3e15fba32148ecb5e"
+                                  ],
+                      "implementationThreadId":  "01a205d9-19d9-77c0-9eb8-3c7bc945fdda",
+                      "reviewStatus":  "passed",
+                      "reviewThreadId":  "01a205e4-c95b-74c2-bf01-bfbcf3077ba0",
+                      "reworkRound":  3,
+                      "implementationStatus":  "committed",
+                      "reReviewThreadId":  "01a205f8-a3da-7200-b668-f6b325e683fe",
+                      "reReviewReport":  "docs/step-13-review-round2.md",
+                      "reReviewRound3ThreadId":  "01a2060b-0ed2-7303-abdc-228d9d9e619a",
+                      "reReviewRound3Report":  "docs/step-13-review-round3.md",
+                      "themeDependencyReviewThreadId":  "01a2061c-e241-7253-aaba-a22a13cd10e4",
+                      "themeDependencyReviewReport":  "docs/step-13-theme-dependency-review.md",
+                      "finalCandidateReviewThreadId":  "01a20668-fed2-7c51-8242-b77cc3fdc705",
+                      "finalCandidateReviewReport":  "docs/step-13-candidate-review.md"
+                  },
+                  {
+                      "id":  "14",
+                      "title":  "合并验收与收尾",
+                      "scope":  "先结清待合并验收，汇总非阻断遗留项。另开会话做整体验收、Windows 包走查、逐模块记录和原型对照截图。",
+                      "review":  "final",
+                      "status":  "completed",
+                      "round":  0,
+                      "verdict":  "按用户要求关闭编排步骤。Windows 安装包由用户打包后亲自测试，尚无实测结果。",
+                      "commits":  [
+
+                                  ]
+                  }
+              ],
+    "blocked":  [
+
+                ],
+    "currentStep":  null,
+    "phase":  "completed",
+    "attention":  "迁移编排已结束。Windows 安装包实测由用户负责，结果待确认。"
+}

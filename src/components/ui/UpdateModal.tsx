@@ -4,6 +4,7 @@ import { CheckCircleOutlined, DownloadOutlined, SyncOutlined } from "@ant-design
 import type { Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { getErrorMessage } from "@/lib/api";
+import { formatReleaseDate, parseReleaseNotes } from "@/lib/release-notes.mjs";
 
 type UpdateStatus = "found" | "downloading" | "downloaded";
 
@@ -122,7 +123,8 @@ export function UpdateModal({
     onClose();
   }
 
-  const releaseDate = update?.date ? new Date(update.date).toLocaleDateString("zh-CN") : "";
+  const releaseDate = formatReleaseDate(update?.date);
+  const releaseNotes = parseReleaseNotes(update?.body);
 
   return (
     <Modal
@@ -157,9 +159,19 @@ export function UpdateModal({
           <div className="rounded-xl border border-[var(--success)]/30 bg-[var(--success)]/5 p-4">
             <div className="flex items-center justify-between"><span className="flex items-center gap-2 font-medium">{status === "downloading" ? <SyncOutlined spin /> : <CheckCircleOutlined style={{ color: "var(--success)" }} />}{status === "found" && "发现新版本，可开始下载"}{status === "downloading" && "正在下载更新包"}{status === "downloaded" && "更新包已下载完毕，随时可安装"}</span><span className="font-mono font-bold text-[var(--success)]">{progress}%</span></div>
             <Progress percent={progress} showInfo={false} strokeColor="var(--success)" trailColor="var(--border)" className="mb-1 mt-2" />
-            <div className="flex justify-between font-mono text-[11px] text-[var(--text-muted)]"><span>{totalSize > 0 ? `${formatSize(downloadedSize)} / ${formatSize(totalSize)}` : status === "found" ? "等待下载" : "正在准备下载"}</span><span>{releaseDate ? `发布时间 ${releaseDate}` : "官方稳定源"}</span></div>
+            <div className="flex justify-between font-mono text-[11px] text-[var(--text-muted)]"><span>{totalSize > 0 ? `${formatSize(downloadedSize)} / ${formatSize(totalSize)}` : status === "found" ? "等待下载" : "正在准备下载"}</span><span>官方稳定源</span></div>
           </div>
-          <div><div className="mb-2 flex items-center justify-between font-semibold"><span>v{update.version} 更新内容</span><span className="text-[11px] font-normal text-[var(--text-muted)]">来自 Git 提交记录</span></div><div className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl border border-[var(--border)] bg-[var(--surface-950)] p-3.5 text-[13px] leading-6 text-[var(--text-secondary)]">{update.body?.trim() || "本次版本包含功能优化与问题修复。"}</div></div>
+          <div>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-1.5 font-semibold">
+              <span>v{update.version} 更新内容</span>
+              <span className="text-[11px] font-normal text-[var(--text-muted)]">发布时间：{releaseDate}</span>
+            </div>
+            <div className="max-h-48 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface-950)] p-3.5 text-[13px] leading-6 text-[var(--text-secondary)]">
+              <ol className="m-0 list-decimal space-y-2 pl-5">
+                {releaseNotes.map((note, index) => <li key={`${index}:${note}`}>{note}</li>)}
+              </ol>
+            </div>
+          </div>
         </div>
       )}
     </Modal>

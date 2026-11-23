@@ -4,6 +4,7 @@ param(
   [string]$Tag,
 
   [string]$PackageDirectory,
+  [string]$ReleaseNotesFile,
   [string]$BackupRepoPath = 'D:\itemWork\bushu\yunwei\opspub',
   [string]$WebsitePath = 'D:\itemWork\bushu\doler\yuming\yuming\opspub'
 )
@@ -29,29 +30,29 @@ function Write-Utf8NoBom {
   [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
-function Get-ReleaseNotes {
-  param([string]$RepositoryPath, [string]$ReleaseTag)
+function Get-ReleaseSummary {
+  param([string]$RepositoryPath, [string]$ReleaseTag, [string]$NotesFile)
 
-  $previousTag = (& git -C $RepositoryPath describe --tags --abbrev=0 "$ReleaseTag^" 2>$null)
-  if ($LASTEXITCODE -eq 0 -and $previousTag) {
-    $range = "$previousTag..$ReleaseTag"
-  } else {
-    $range = $ReleaseTag
+  $generator = Join-Path $PSScriptRoot 'generate-release-notes.mjs'
+  $generatorArguments = @($generator, '--repository', $RepositoryPath, '--tag', $ReleaseTag)
+  if ($NotesFile) { $generatorArguments += @('--notes-file', (Resolve-Path -LiteralPath $NotesFile).Path) }
+  $previousEncoding = [Console]::OutputEncoding
+  try {
+    # Windows PowerShell 也按 UTF-8 解码 Node 输出，避免中文摘要在发布时变成乱码。
+    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+    $json = @(& node @generatorArguments)
+    if ($LASTEXITCODE -ne 0) { throw 'Could not generate complete release notes from version history.' }
+  } finally {
+    [Console]::OutputEncoding = $previousEncoding
   }
-
-  $subjects = @(& git -C $RepositoryPath log $range --no-merges --format=%s -n 12 2>$null)
-  if ($LASTEXITCODE -ne 0 -or $subjects.Count -eq 0) {
-    return "- 优化应用体验并修复已知问题。"
-  }
-
-  $notes = @()
-  foreach ($subject in $subjects) {
-    $notes += ('- ' + $subject)
-  }
-  return ($notes -join [Environment]::NewLine)
+  return (($json -join "`n") | ConvertFrom-Json)
 }
 
 try {
+  # 先完整汇总版本区间；历史不全等情况在复制安装包或推送前失败。
+  $releaseSummary = Get-ReleaseSummary -RepositoryPath $sourceRoot -ReleaseTag $Tag -NotesFile $ReleaseNotesFile
+  $notes = $releaseSummary.notes
+  Write-Host "Release notes generated from $($releaseSummary.range) ($($releaseSummary.commitCount) commits)."
   if (-not $packageRoot) {
     $temporaryDownload = Join-Path ([System.IO.Path]::GetTempPath()) ("opspub-$Tag-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $temporaryDownload | Out-Null
@@ -118,11 +119,12 @@ try {
 
   $assetBaseUrl = "https://gitee.com/aohai/opspub/raw/master/releases/$Tag"
   $encodedInstaller = [System.Uri]::EscapeDataString($windowsUpdater[0].Name)
-  $notes = Get-ReleaseNotes -RepositoryPath $sourceRoot -ReleaseTag $Tag
+  # 官网、备份源与版本清单共用一次发布时间，不使用提交时间，也不各自产生不同时间。
+  $publishedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
   $update = [ordered]@{
     version = $version
     notes = $notes
-    pub_date = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+    pub_date = $publishedAt
     platforms = [ordered]@{
       'windows-x86_64' = [ordered]@{
         signature = $signature
@@ -165,7 +167,8 @@ try {
   $manifest = [ordered]@{
     version = $version
     tag = $Tag
-    publishedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+    publishedAt = $publishedAt
+    notes = $notes
     files = @($websitePackages | ForEach-Object { $_.Name })
   }
   Write-Utf8NoBom -Path (Join-Path $websiteDownload 'version.json') -Content (($manifest | ConvertTo-Json -Depth 5) + "`n")
@@ -174,7 +177,7 @@ try {
   $websiteUpdate = [ordered]@{
     version = $version
     notes = $notes
-    pub_date = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+    pub_date = $publishedAt
     platforms = [ordered]@{
       'windows-x86_64' = [ordered]@{
         signature = $signature

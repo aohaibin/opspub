@@ -131,7 +131,7 @@ export function VersionBadge() {
 
           {message && <p style={{ fontSize: 11, lineHeight: 1.6, color: state === "error" ? "var(--warning)" : "var(--success)" }}>{message}</p>}
           <p style={{ paddingTop: 8, borderTop: "1px solid var(--border)", fontSize: 11, lineHeight: 1.6, color: "var(--text-muted)" }}>
-            {lastChecked ? `上次检查 ${lastChecked} · 官方稳定源` : "启动后自动检查官网最新版本"}
+            {lastChecked ? `上次检查 ${lastChecked} · 每 6 小时自动检查` : "启动后自动检查官网最新版本，运行期间每 6 小时检查一次"}
           </p>
         </div>
       </HeaderDropdown>

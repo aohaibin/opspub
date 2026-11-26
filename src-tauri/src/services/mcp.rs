@@ -2675,9 +2675,9 @@ fn stdio_launcher_path(app: &tauri::AppHandle) -> String {
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_else(|_| {
             if cfg!(windows) {
-                "OpsPub AI.exe".into()
+                "OpsPub.exe".into()
             } else {
-                "OpsPub AI".into()
+                "OpsPub".into()
             }
         })
 }

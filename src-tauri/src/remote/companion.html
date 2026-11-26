@@ -112,7 +112,7 @@
     finally { $('search').disabled=false; }
   }
   function appendMessage(role,content,result) {
-    const card=text('article','',role==='user'?'card chat-user':'card chat-assistant'); card.append(text('small',role==='user'?'你':'OpsPub AI'),text('div',content,'content'));
+    const card=text('article','',role==='user'?'card chat-user':'card chat-assistant'); card.append(text('small',role==='user'?'你':'OpsPub'),text('div',content,'content'));
     if(result) {
       for(const call of result.toolCalls||[]) { const detail=text('details','','tool'); detail.append(text('summary',(call.serverAlias?call.serverAlias+' · ':'')+call.tool+' · '+call.status),text('pre',call.output,'content')); card.append(detail); }
       for(const warning of result.warnings||[]) card.append(text('p',warning,'muted'));

@@ -289,4 +289,4 @@ PersistentKeepalive = 25
 - **Runbook 库**：本机为空（0 条），无可导出内容
 - **Agent / Loop 配置**：OpsPub 的 AI Agent 定义与定时 Loop 配置不在助手可读工具范围内，未纳入本文件
 - **导出时间**：本次会话
-- **导出人**：OpsPub AI 助手（经策略引擎审计）
+- **导出人**：OpsPub 助手（经策略引擎审计）

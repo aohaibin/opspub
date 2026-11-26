@@ -632,14 +632,14 @@
 
 ### 2026-11-12 10:20
 
-- 更正联调对象：本轮目标为 OpsPub 自身 MCP，不使用 OpsPub MCP。通过本机安装版 `OpsPub AI\\tauri.exe --mcp-stdio --token-id 2 --port 18180` 直接验证，未读取或输出 Token 明文。
+- 更正联调对象：本轮目标为 OpsPub 自身 MCP，不使用 OpsPub MCP。通过本机安装版 `tauri.exe --mcp-stdio --token-id 2 --port 18180` 直接验证，未读取或输出 Token 明文。
 - `initialize` 成功，服务端为 `OpsPub MCP 0.1.0`，协议版本 `2025-03-26`；`tools/list` 返回 20 个工具。
 - OpsPub 真实只读调用通过：`list_servers`、`docker_list(serverId=1)`、`disk_usage(serverId=1)`；返回 `isError=false`、退出码 0、`source=remote-readonly-probe`、`truncated=false` 等结构化字段。没有执行任何远端写操作。
 - 本轮仅确认 OpsPub 外部 stdio → MCP HTTP → OpsPub 远端只读探针链路正常；计划/审批/部署闭环仍需具备写权限范围的联调 Token、部署目标/制品和人工审批，任务 20 保持 19 / 20。
 
 ### 2026-11-12 10:35
 
-- 按用户要求直接通过当前设备已配置的 OpsPub MCP 进行完整只读联调，使用安装版 `OpsPub AI\\tauri.exe --mcp-stdio --token-id 2 --port 18180`；未切换到 OpsPub，未读取或输出 Token 明文。
+- 按用户要求直接通过当前设备已配置的 OpsPub MCP 进行完整只读联调，使用安装版 `tauri.exe --mcp-stdio --token-id 2 --port 18180`；未切换到 OpsPub，未读取或输出 Token 明文。
 - 协议结果：`initialize`、`ping` 成功；`tools/list` 发现 20 个工具；`list_servers` 成功识别授权服务器 ID 1。
 - 远程只读工具全部通过（退出码 0，来源 `remote-readonly-probe`）：`system_info`、`docker_list`、`disk_usage`、`memory_usage`、`process_list`、`service_status(nginx)`、`service_logs(nginx)`、`service_list`、`port_check`、`tail_log`、`cpu_info`、`docker_logs(mysql-container)`。返回内容均有长度限制/脱敏和结构化状态字段。
 - 本地能力工具通过：`search_skills`、`get_skill` 返回内置索引结果；`get_task_status` 对不存在任务返回受控 `OPERATION_FAILED`；`list_deployment_targets`、`list_deployment_artifacts`、`deployment_history` 正常返回空数据，说明接口可用但当前未配置部署数据；不存在部署目标的 `deployment_preflight` 返回受控业务错误。

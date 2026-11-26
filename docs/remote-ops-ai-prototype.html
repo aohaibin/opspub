@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpsPub AI — 受控远程运维与智能环境诊断平台</title>
+  <title>OpsPub — 受控远程运维与智能环境诊断平台</title>
   <link rel="icon" type="image/png" href="./logo.png">
   <!-- TailwindCSS 3.4 CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -5351,10 +5351,37 @@
             <div class="shrink-0 flex items-center justify-between px-3 py-2 border-b border-slate-800/60 bg-surface-950/60">
               <div class="flex items-center space-x-2">
                 <!-- 严格跟随主题色的上传文件主按钮 -->
-                <button type="button" onclick="document.getElementById('sftpLocalFileInput').click()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white border border-brand-500 text-xs font-bold transition shadow-sm hover:shadow-[0_0_12px_rgba(99,102,241,0.35)] cursor-pointer select-none active:scale-95" title="选择本地文件上传至当前目录（或直接拖拽文件进窗口）">
-                  <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                  <span>上传文件</span>
-                </button>
+                <!-- 严格跟随主题色的上传文件主按钮 (支持本地文件选择与一键呼出全局多任务传输浮窗) -->
+                <div class="relative inline-flex items-center">
+                  <button type="button" onclick="triggerSftpUploadClick(event)" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-l-lg bg-brand-500 hover:bg-brand-600 text-white border border-brand-500 text-xs font-bold transition shadow-sm hover:shadow-[0_0_12px_rgba(99,102,241,0.35)] cursor-pointer select-none active:scale-95" title="选择本地文件上传至当前目录（支持直接拖拽文件进窗口）">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                    <span>上传文件</span>
+                  </button>
+                  <button type="button" onclick="toggleSftpUploadQuickMenu(event)" class="px-1.5 py-1.5 rounded-r-lg bg-brand-600 hover:bg-brand-700 text-white border-y border-r border-brand-500 text-xs transition cursor-pointer" title="上传选项与多任务并发测试">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <!-- 下拉快捷浮层 -->
+                  <div id="sftpUploadQuickMenu" class="hidden absolute left-0 top-full mt-1.5 w-56 bg-surface-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 text-xs text-slate-200 font-sans space-y-1">
+                    <div onclick="document.getElementById('sftpLocalFileInput').click(); toggleSftpUploadQuickMenu(event);" class="flex items-center space-x-2 px-2.5 py-2 rounded-lg hover:bg-surface-800 cursor-pointer">
+                      <i data-lucide="folder-up" class="w-4 h-4 text-brand-400"></i>
+                      <div>
+                        <div class="font-medium text-white">选择本地真实文件...</div>
+                        <div class="text-[10px] text-slate-400">支持批量选择并后台并发上传</div>
+                      </div>
+                    </div>
+                    <div onclick="addMockSftpUploadTask('multi'); toggleSftpUploadQuickMenu(event);" class="flex items-center space-x-2 px-2.5 py-2 rounded-lg hover:bg-surface-800 cursor-pointer text-emerald-400">
+                      <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i>
+                      <div>
+                        <div class="font-medium text-emerald-300">模拟并发上传多文件</div>
+                        <div class="text-[10px] text-slate-400">一键添加多个不同主机的传输任务</div>
+                      </div>
+                    </div>
+                    <div onclick="expandSftpTransferWidget(); toggleSftpUploadQuickMenu(event);" class="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-800 cursor-pointer border-t border-slate-800 pt-1.5 text-slate-300 hover:text-white">
+                      <i data-lucide="layout-list" class="w-3.5 h-3.5 text-slate-400"></i>
+                      <span>展开全局传输任务窗</span>
+                    </div>
+                  </div>
+                </div>
 
                 <div class="flex items-center space-x-1 border-l border-slate-800 pl-2">
                   <button type="button" onclick="promptCreateSftpFolder()" class="p-1.5 rounded-lg hover:bg-surface-800 text-slate-400 hover:text-white transition cursor-pointer" title="新建文件夹">
@@ -7938,7 +7965,7 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
                 <div class="flex items-center space-x-2">
                   <span class="font-bold text-white flex items-center space-x-1.5">
                     <span class="text-sm">🤖</span>
-                    <span>OpsPub AI 助手</span>
+                    <span>OpsPub 助手</span>
                   </span>
                   <span id="aiCardStatusPill" class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
                     <i data-lucide="check" class="w-3 h-3"></i>
@@ -9478,7 +9505,7 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
                   <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                     <div class="flex items-center space-x-2 text-xs font-bold text-white">
                       <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
-                      <span>OpsPub AI 治理建议</span>
+                      <span>OpsPub 治理建议</span>
                     </div>
                     <span class="px-2 py-0.5 rounded text-[10px] bg-brand-500/20 text-brand-300 border border-brand-500/30 font-semibold font-mono">3项就绪</span>
                   </div>
@@ -15027,12 +15054,12 @@ if (Get-Command choco -ErrorAction SilentlyContinue) {
           </div>
         </div>
 
-        <!-- 分组 4: OpsPub AI 自愈预案与整改建议绑定 (独家特色) -->
+        <!-- 分组 4: OpsPub 自愈预案与整改建议绑定 (独家特色) -->
         <div class="p-3.5 rounded-xl bg-surface-950 border border-brand-500/30 space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-brand-300 flex items-center space-x-1.5">
               <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
-              <span>OpsPub AI 自动愈合预案 (可选):</span>
+              <span>OpsPub 自动愈合预案 (可选):</span>
             </span>
             <span class="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-300 font-mono">告警事件联动一键修复</span>
           </div>
@@ -17492,6 +17519,59 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       renderDeployPage();
       safeRenderLucideIcons();
       switchTab('tab-servers');
+      if (typeof renderSftpTasks === 'function') renderSftpTasks();
+      if (typeof startSftpTransferEngine === 'function') startSftpTransferEngine();
+      if (typeof initSftpWidgetDraggable === 'function') initSftpWidgetDraggable();
+
+      // 支持 URL Hash 快捷定位与调试
+      if (window.location.hash) {
+        const h = window.location.hash.replace('#', '');
+        if (h === 'sftp') {
+          switchTab('tab-sftp');
+        } else if (h === 'collapsed' || h === 'ball') {
+          collapseSftpTransferWidget();
+        } else if (h === 'sftp-collapsed') {
+          switchTab('tab-sftp');
+          collapseSftpTransferWidget();
+        } else if (h === 'multi') {
+          addMockSftpUploadTask('multi');
+        } else if (h === 'sftp-multi') {
+          switchTab('tab-sftp');
+          addMockSftpUploadTask('multi');
+        } else if (h === 'sftp-finished') {
+          switchTab('tab-sftp');
+          if (sftpUploadTasks.length > 0) {
+            sftpUploadTasks[0].percent = 100;
+            sftpUploadTasks[0].status = 'completed';
+            sftpUploadTasks[0].eta = '0:00';
+            sftpUploadTasks[0].speed = '0.0 MB/s';
+          }
+          expandSftpTransferWidget();
+          triggerAllUploadsFinishedAction();
+        } else if (h === 'drag-test') {
+          switchTab('tab-sftp');
+          expandSftpTransferWidget();
+          const p = document.getElementById('sftpTransferFloatPanel');
+          if (p) {
+            p.style.setProperty('left', '920px', 'important');
+            p.style.setProperty('top', '140px', 'important');
+            p.style.setProperty('right', 'auto', 'important');
+            p.style.setProperty('bottom', 'auto', 'important');
+          }
+        } else if (h === 'ball-drag-test') {
+          switchTab('tab-sftp');
+          collapseSftpTransferWidget();
+          const b = document.getElementById('sftpTransferFloatBall');
+          if (b) {
+            b.style.setProperty('left', '1360px', 'important');
+            b.style.setProperty('top', '420px', 'important');
+            b.style.setProperty('right', 'auto', 'important');
+            b.style.setProperty('bottom', 'auto', 'important');
+          }
+        } else if (document.getElementById(h)) {
+          switchTab(h);
+        }
+      }
       const savedSkin = localStorage.getItem('opspub_skin') || 'obsidian';
       selectThemeSkin(savedSkin, true);
       if (typeof applyAILockState === 'function') applyAILockState();
@@ -19806,32 +19886,35 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         return;
       }
 
-      const uploadedNames = [];
-      const now = new Date();
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
       for (let i = 0; i < fileList.length; i++) {
         const f = fileList[i];
-        uploadedNames.push(f.name);
-        const existingIdx = (activeTab.files || []).findIndex(item => item.name === f.name);
-        const newItem = {
+        const totalBytes = f.size || (8.5 * 1024 * 1024);
+        const totalStr = formatFileSize(totalBytes);
+        const currentActiveCount = sftpUploadTasks.filter(t => t.status === 'uploading').length + 1;
+        const totalCount = sftpUploadTasks.length + fileList.length;
+        const newTask = {
+          id: 'task-upload-' + Date.now() + '-' + i,
           name: f.name,
-          type: 'file',
-          size: f.size || 1024,
-          mtime: timeStr,
-          mode: '-rw-r--r--',
-          owner: 'root',
-          group: 'root'
+          host: activeTab.title || '我的服务器',
+          tabId: activeTab.id,
+          targetPath: activeTab.currentPath || '/root',
+          totalBytes: totalBytes,
+          loadedBytes: 0,
+          totalStr: totalStr,
+          loadedStr: '0.0 MB',
+          speed: '1.2 MB/s',
+          eta: '0:0' + (5 + (i * 2)),
+          percent: 5,
+          status: 'uploading',
+          stepText: (currentActiveCount) + '/' + Math.max(11, totalCount)
         };
-        if (existingIdx >= 0) {
-          activeTab.files[existingIdx] = newItem;
-        } else {
-          activeTab.files.push(newItem);
-        }
+        sftpUploadTasks.push(newTask);
       }
 
-      renderSftpFilesTable();
-      showToast(`🚀 已成功将 [${uploadedNames.join(', ')}] 上传至 ${activeTab.currentPath} (256KiB 分块流传输完成)`);
+      renderSftpTasks();
+      expandSftpTransferWidget();
+      startSftpTransferEngine();
+      showToast('📤 已成功加入 ' + fileList.length + ' 个文件至后台并发上传队列 (切换任意页面不影响传输)');
     }
 
     // 路径与历史导航
@@ -21100,7 +21183,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
     }
 
     // =========================================================================
-    // ★ OpsPub AI 全域自动化巡检与漏洞雷达系统控制器 (Inspection Controller)
+    // ★ OpsPub 全域自动化巡检与漏洞雷达系统控制器 (Inspection Controller)
     // =========================================================================
     let isScanning = false;
     let currentDryRunTarget = 'mysql';
@@ -25204,7 +25287,7 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       const resultMd = document.getElementById('executionResultMarkdown');
       const resultText = resultMd ? resultMd.innerText.trim() : '';
 
-      const fullReport = `### 运维对话排障记录 (OpsPub AI Copilot)
+      const fullReport = `### 运维对话排障记录 (OpsPub Copilot)
 - **目标服务器**: 我的香草云 (生产边缘 / 156.226.177.226:22000)
 - **用户提问**: ${userPrompt}
 - **时间**: ${new Date().toLocaleString()}
@@ -30438,14 +30521,14 @@ ${resultText}
       if (!mcpPrototype.running) { showToast('请先启动 MCP HTTP 端点'); return; }
       const current = mcpCurrentToken('claude');
       if (!current) { showToast('请先创建当前客户端可用的 Scoped Token'); return; }
-      copyMcpText(`OpsPub AI --mcp-stdio --token ${current.secret} --port ${mcpPrototype.port}`, 'stdio 启动命令已复制');
+      copyMcpText(`OpsPub --mcp-stdio --token ${current.secret} --port ${mcpPrototype.port}`, 'stdio 启动命令已复制');
     }
 
     function copyMcpHttpUrl() { copyMcpText(`http://127.0.0.1:${mcpPrototype.port}/mcp`, 'HTTP 地址已复制'); }
     function openMcpHttpProbe() { if (!mcpPrototype.running) { showToast('端点未启动，请先启动 MCP HTTP 端点'); return; } window.open(`http://127.0.0.1:${mcpPrototype.port}/health`, '_blank'); }
 
     function mcpConfigFor(client, secret) {
-      const command = 'OpsPub AI';
+      const command = 'OpsPub';
       const args = ['--mcp-stdio', '--token', secret, '--port', String(mcpPrototype.port)];
       if (client === 'codex') return `[mcp_servers.opspub]\ncommand = "${command}"\nargs = ["${args.join('", "')}"]`;
       if (client === 'opencode') return JSON.stringify({ mcp: { opspub: { type: 'local', command: [command, ...args] } } }, null, 2);
@@ -36986,6 +37069,555 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       showToast('已复制设备通道地址：' + addr);
     }
 
+
+
+    // =========================================================================
+    // SFTP 全局后台传输与浮动窗引擎 (支持全屏自由拖拽移动、多任务并发、平滑进度、智能延时收起)
+    // 严格 1:1 对齐用户最新截图 1 (展开卡片) 与 截图 2 (收缩悬浮球 + 红点角标)
+    // =========================================================================
+
+    let sftpUploadTasks = [
+      {
+        id: 'task-opspub-init',
+        name: 'OpsPub-amd64.deb',
+        host: '我的香草云',
+        targetPath: '/root',
+        totalBytes: 9.5 * 1024 * 1024,
+        loadedBytes: 4.0 * 1024 * 1024,
+        totalStr: '9.5 MB',
+        loadedStr: '4.0 MB',
+        speed: '1.0 MB/s',
+        eta: '0:05',
+        percent: 42,
+        status: 'uploading',
+        stepText: '2/11'
+      }
+    ];
+
+    let sftpTransferTicker = null;
+    let sftpAutoCloseTimer = null;
+    let sftpAutoCloseSeconds = 4;
+    let isHoveringSftpPanel = false;
+    let sftpAllFinishedNotified = false;
+
+    // 格式化文件大小
+    function formatFileSize(bytes) {
+      if (!bytes || bytes <= 0) return '0 B';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // 展开传输面板 (平滑保持在当前悬浮球附近或记忆位置)
+    function expandSftpTransferWidget() {
+      const ball = document.getElementById('sftpTransferFloatBall');
+      const panel = document.getElementById('sftpTransferFloatPanel');
+      if (ball && panel) {
+        if (ball.style.left && ball.style.left !== 'auto') {
+          const bRect = ball.getBoundingClientRect();
+          const panelW = 380;
+          const panelH = 260;
+          let newPanelX = bRect.right - panelW;
+          let newPanelY = bRect.top;
+          newPanelX = Math.max(8, Math.min(window.innerWidth - panelW - 8, newPanelX));
+          newPanelY = Math.max(8, Math.min(window.innerHeight - panelH - 8, newPanelY));
+          panel.style.setProperty('left', newPanelX + 'px', 'important');
+          panel.style.setProperty('top', newPanelY + 'px', 'important');
+          panel.style.setProperty('right', 'auto', 'important');
+          panel.style.setProperty('bottom', 'auto', 'important');
+        }
+        ball.classList.add('hidden');
+        panel.classList.remove('hidden');
+        renderSftpTasks();
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    // 收起为悬浮球 (平滑保持在当前卡片附近或记忆位置)
+    function collapseSftpTransferWidget() {
+      if (sftpAutoCloseTimer) {
+        clearInterval(sftpAutoCloseTimer);
+        sftpAutoCloseTimer = null;
+      }
+      const ball = document.getElementById('sftpTransferFloatBall');
+      const panel = document.getElementById('sftpTransferFloatPanel');
+      if (panel && ball) {
+        if (panel.style.left && panel.style.left !== 'auto') {
+          const pRect = panel.getBoundingClientRect();
+          const newBallX = Math.max(8, Math.min(window.innerWidth - 60, pRect.right - 56));
+          const newBallY = Math.max(8, Math.min(window.innerHeight - 60, pRect.top));
+          ball.style.setProperty('left', newBallX + 'px', 'important');
+          ball.style.setProperty('top', newBallY + 'px', 'important');
+          ball.style.setProperty('right', 'auto', 'important');
+          ball.style.setProperty('bottom', 'auto', 'important');
+        }
+        panel.classList.add('hidden');
+        ball.classList.remove('hidden');
+        updateSftpFloatBadge();
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    // 彻底关闭传输浮窗（手动关闭）
+    function closeSftpTransferWidgetCompletely() {
+      if (sftpAutoCloseTimer) {
+        clearInterval(sftpAutoCloseTimer);
+        sftpAutoCloseTimer = null;
+      }
+      const ball = document.getElementById('sftpTransferFloatBall');
+      const panel = document.getElementById('sftpTransferFloatPanel');
+      if (panel) panel.classList.add('hidden');
+      if (ball) ball.classList.add('hidden');
+      showToast('已关闭传输浮窗 (下次上传时将自动重新唤出)');
+    }
+
+    // 鼠标移入浮窗：暂停自动收起倒计时 (保护用户查看详情)
+    function handleSftpPanelMouseEnter() {
+      isHoveringSftpPanel = true;
+      const countdownEl = document.getElementById('sftpAutoCloseCountdown');
+      if (countdownEl && sftpAutoCloseTimer) {
+        countdownEl.innerText = '(已暂停自动收起)';
+        countdownEl.className = 'text-amber-400 font-mono text-[11px] font-normal ml-1';
+      }
+    }
+
+    // 鼠标移出浮窗：恢复自动收起倒计时
+    function handleSftpPanelMouseLeave() {
+      isHoveringSftpPanel = false;
+      const countdownEl = document.getElementById('sftpAutoCloseCountdown');
+      if (countdownEl && sftpAutoCloseTimer) {
+        countdownEl.innerText = '(' + sftpAutoCloseSeconds + 's后自动收起)';
+        countdownEl.className = 'text-slate-400 font-mono text-[11px] font-normal ml-1';
+      }
+    }
+
+    // 触发全部上传完毕提醒与智能延时收起倒计时
+    function triggerAllUploadsFinishedAction() {
+      if (sftpAllFinishedNotified) return;
+      sftpAllFinishedNotified = true;
+
+      // 1. 弹出强视觉上传完毕提醒 (Toast)
+      showToast('🎉【上传完毕提醒】所有文件已成功传输至目标服务器！已全部就绪');
+
+      // 2. 启动 4 秒智能倒计时平滑自动收起为悬浮球 (兼顾结果查看与界面无扰)
+      sftpAutoCloseSeconds = 4;
+      if (sftpAutoCloseTimer) clearInterval(sftpAutoCloseTimer);
+      sftpAutoCloseTimer = setInterval(() => {
+        if (isHoveringSftpPanel) return; // 用户正在查看详情时暂停倒计时
+
+        sftpAutoCloseSeconds--;
+        const countdownEl = document.getElementById('sftpAutoCloseCountdown');
+        if (countdownEl) {
+          countdownEl.innerText = '(' + sftpAutoCloseSeconds + 's后自动收起)';
+        }
+
+        if (sftpAutoCloseSeconds <= 0) {
+          clearInterval(sftpAutoCloseTimer);
+          sftpAutoCloseTimer = null;
+          collapseSftpTransferWidget();
+        }
+      }, 1000);
+    }
+
+    // 更新浮动球角标与总控数据
+    function updateSftpFloatBadge() {
+      const activeTasks = sftpUploadTasks.filter(t => t.status === 'uploading');
+      const activeCount = activeTasks.length;
+      
+      const badge = document.getElementById('sftpFloatBadgeCount');
+      if (badge) {
+        if (activeCount === 0) {
+          badge.className = 'pointer-events-none absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 bg-emerald-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-md ring-1 ring-emerald-500/30';
+          badge.innerText = '✓';
+        } else {
+          badge.className = 'pointer-events-none absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 bg-[#ef4444] text-white text-[11px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-md ring-1 ring-rose-500/30';
+          badge.innerText = activeCount;
+        }
+      }
+
+      let totalPercent = 0;
+      if (activeTasks.length > 0) {
+        totalPercent = Math.round(activeTasks.reduce((acc, t) => acc + t.percent, 0) / activeTasks.length);
+      } else if (sftpUploadTasks.length > 0) {
+        totalPercent = 100;
+      }
+
+      const statusText = document.getElementById('sftpHeaderStatusText');
+      const spinIcon = document.getElementById('sftpHeaderSpinIcon');
+
+      if (spinIcon) {
+        if (activeCount > 0) {
+          spinIcon.className = 'w-3.5 h-3.5 animate-spin text-slate-300';
+          spinIcon.setAttribute('data-lucide', 'rotate-cw');
+        } else {
+          spinIcon.className = 'w-3.5 h-3.5 text-emerald-400';
+          spinIcon.setAttribute('data-lucide', 'check-circle');
+        }
+      }
+
+      if (statusText) {
+        if (activeCount > 0) {
+          statusText.innerHTML = '<span>传输中</span> <span id="sftpHeaderCount" class="font-bold">' + activeCount + '</span><span>个</span><span class="text-slate-500 mx-0.5">·</span><span id="sftpHeaderPercent" class="font-mono font-semibold">' + totalPercent + '%</span>';
+        } else {
+          statusText.innerHTML = '<span class="text-emerald-400 font-semibold flex items-center space-x-1"><span>全部上传完毕！</span></span><span id="sftpAutoCloseCountdown" class="text-slate-400 font-mono text-[11px] font-normal ml-1">(' + sftpAutoCloseSeconds + 's后自动收起)</span>';
+        }
+      }
+    }
+
+    // 渲染任务列表 (1:1 严格对齐截图 1: ↻ ↥ (2/11) OpsPub-amd64.deb 我的香草云 ⏹ + 翡翠绿进度条 + 4.0 MB/9.5 MB · 1.0 MB/s · ⌛ 0:05)
+    function renderSftpTasks() {
+      const container = document.getElementById('sftpTasksListContainer');
+      if (!container) return;
+
+      if (sftpUploadTasks.length === 0) {
+        container.innerHTML = '<div class="bg-[#181a20]/95 backdrop-blur-md border border-slate-700/70 rounded-2xl p-4 text-center text-xs text-slate-400 space-y-2"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-400 mx-auto"></i><div>暂无正在传输的文件任务</div><button type="button" onclick="addMockSftpUploadTask()" class="mt-1 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs transition cursor-pointer">+ 添加模拟上传任务</button></div>';
+        updateSftpFloatBadge();
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = sftpUploadTasks.map(task => {
+        const isUploading = task.status === 'uploading';
+        const isCompleted = task.status === 'completed';
+        const isCanceled = task.status === 'canceled';
+
+        const barColor = isCompleted ? 'bg-emerald-400' : (isCanceled ? 'bg-slate-600' : 'bg-[#48d597]');
+
+        let statusIconHtml = '';
+        if (isUploading) {
+          statusIconHtml = '<i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-slate-300 animate-spin"></i>';
+        } else if (isCompleted) {
+          statusIconHtml = '<i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>';
+        } else {
+          statusIconHtml = '<i data-lucide="x-circle" class="w-3.5 h-3.5 text-slate-500"></i>';
+        }
+
+        return `
+          <div id="task-card-${task.id}" class="bg-[#181a20]/95 backdrop-blur-md border border-slate-700/70 rounded-2xl p-3 shadow-xl space-y-2 transition-all">
+            <!-- 行 1: 状态、方向、序号、文件名、主机、操作 -->
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-1.5 min-w-0">
+                <span class="text-slate-300 shrink-0">${statusIconHtml}</span>
+                <span class="text-slate-300 shrink-0"><i data-lucide="arrow-up" class="w-3.5 h-3.5"></i></span>
+                <span class="text-slate-400 font-mono text-[11px] shrink-0">(${task.stepText})</span>
+                <span class="text-slate-100 font-semibold text-xs truncate max-w-[130px]" title="${task.name}">${task.name}</span>
+                <span class="text-slate-400 text-xs ml-1 truncate max-w-[85px] shrink-0" title="${task.host}">${task.host}</span>
+              </div>
+              <!-- 右侧取消/终止按钮 ⏹ (对齐截图 1 方块图标) -->
+              <button type="button" onmousedown="event.stopPropagation()" onclick="cancelSftpUploadTask('${task.id}')"
+                      class="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 p-1 rounded-md transition cursor-pointer shrink-0 ml-1"
+                      title="${isUploading ? '停止/取消上传' : '移除记录'}">
+                <i data-lucide="${isUploading ? 'square' : 'trash-2'}" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <!-- 行 2: 进度条 + 百分比 (对齐截图 1 翡翠绿 42%) -->
+            <div class="flex items-center space-x-2.5">
+              <div class="flex-1 h-1.5 bg-[#232730] rounded-full overflow-hidden flex items-center">
+                <div class="h-full rounded-full transition-all duration-300 ${barColor}" style="width: ${task.percent}%"></div>
+              </div>
+              <span class="text-xs font-mono font-medium text-slate-300 w-9 text-right shrink-0">${task.percent}%</span>
+            </div>
+
+            <!-- 行 3: 指标行 4.0 MB/9.5 MB · 1.0 MB/s · ⌛ 0:05 (对齐截图 1) -->
+            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+              <div class="flex items-center space-x-1.5">
+                <span>${task.loadedStr}/${task.totalStr}</span>
+                <span class="text-slate-600">·</span>
+                <span>${task.speed}</span>
+                <span class="text-slate-600">·</span>
+                <span class="flex items-center space-x-1">
+                  <span>⌛</span>
+                  <span>${task.eta}</span>
+                </span>
+              </div>
+              ${isCompleted ? '<span class="text-emerald-400 font-sans text-[11px] font-medium flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i>已就绪</span>' : (isCanceled ? '<span class="text-rose-400 font-sans text-[11px]">已终止</span>' : '')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateSftpFloatBadge();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 取消或移除某个任务
+    function cancelSftpUploadTask(taskId) {
+      const task = sftpUploadTasks.find(t => t.id === taskId);
+      if (!task) return;
+      if (task.status === 'uploading') {
+        task.status = 'canceled';
+        task.speed = '0.0 MB/s';
+        task.eta = '--:--';
+        showToast('⏹ 已停止传输 [' + task.name + ']');
+      } else {
+        sftpUploadTasks = sftpUploadTasks.filter(t => t.id !== taskId);
+        showToast('🗑️ 已移除传输记录 [' + task.name + ']');
+      }
+      renderSftpTasks();
+    }
+
+    // 模拟新增上传任务（支持单任务或多任务并发）
+    function addMockSftpUploadTask(mode) {
+      const mockCandidates = [
+        { name: 'nginx-1.24.0.tar.gz', host: '阿里云', size: 12.8 * 1024 * 1024, speed: '1.4 MB/s' },
+        { name: 'app-backend-v2.jar', host: '腾讯云0209', size: 34.5 * 1024 * 1024, speed: '2.1 MB/s' },
+        { name: 'dist-production.zip', host: '生产主节点', size: 18.2 * 1024 * 1024, speed: '1.8 MB/s' },
+        { name: 'redis-cluster.conf', host: '我的香草云', size: 2.1 * 1024 * 1024, speed: '0.8 MB/s' }
+      ];
+
+      const toAdd = mode === 'multi' ? mockCandidates.slice(0, 3) : [mockCandidates[Math.floor(Math.random() * mockCandidates.length)]];
+
+      sftpAllFinishedNotified = false;
+      if (sftpAutoCloseTimer) {
+        clearInterval(sftpAutoCloseTimer);
+        sftpAutoCloseTimer = null;
+      }
+
+      toAdd.forEach((item, idx) => {
+        const currentActiveTotal = sftpUploadTasks.filter(t => t.status === 'uploading').length + 1;
+        const totalCount = Math.max(11, sftpUploadTasks.length + 1);
+        const newTask = {
+          id: 'task-mock-' + Date.now() + '-' + idx,
+          name: item.name,
+          host: item.host,
+          targetPath: '/root',
+          totalBytes: item.size,
+          loadedBytes: Math.floor(item.size * 0.1),
+          totalStr: formatFileSize(item.size),
+          loadedStr: formatFileSize(Math.floor(item.size * 0.1)),
+          speed: item.speed,
+          eta: '0:0' + (6 + idx * 3),
+          percent: 10 + idx * 8,
+          status: 'uploading',
+          stepText: currentActiveTotal + '/' + totalCount
+        };
+        sftpUploadTasks.push(newTask);
+      });
+
+      expandSftpTransferWidget();
+      showToast('📤 已新增 ' + toAdd.length + ' 个文件至后台并发上传队列');
+      startSftpTransferEngine();
+    }
+
+    // 启动平滑动态进度推进引擎
+    function startSftpTransferEngine() {
+      if (sftpTransferTicker) return;
+      sftpTransferTicker = setInterval(() => {
+        let hasActive = false;
+        sftpUploadTasks.forEach(task => {
+          if (task.status === 'uploading') {
+            hasActive = true;
+            // 每次平滑增加 3% ~ 6%
+            const deltaPercent = Math.floor(Math.random() * 4) + 3;
+            task.percent = Math.min(100, task.percent + deltaPercent);
+            task.loadedBytes = Math.floor(task.totalBytes * (task.percent / 100));
+            task.loadedStr = formatFileSize(task.loadedBytes);
+
+            const remainingSec = Math.max(0, Math.ceil((100 - task.percent) / 8));
+            task.eta = '0:' + String(remainingSec).padStart(2, '0');
+
+            if (task.percent >= 100) {
+              task.status = 'completed';
+              task.speed = '0.0 MB/s';
+              task.eta = '0:00';
+              syncCompletedFileToSftp(task);
+            }
+          }
+        });
+
+        // 检查是否所有任务均已完成
+        const remainingActive = sftpUploadTasks.filter(t => t.status === 'uploading');
+        if (remainingActive.length === 0 && sftpUploadTasks.length > 0) {
+          triggerAllUploadsFinishedAction();
+        }
+
+        renderSftpTasks();
+      }, 1200);
+    }
+
+    // 文件上传完成同步入 SFTP 当前视图
+    function syncCompletedFileToSftp(task) {
+      const activeTab = (typeof sftpTabs !== 'undefined') ? sftpTabs.find(t => t.title === task.host || t.id === activeSftpTabId) : null;
+      if (activeTab && activeTab.files) {
+        const existingIdx = activeTab.files.findIndex(f => f.name === task.name);
+        const now = new Date();
+        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+        const newItem = {
+          name: task.name,
+          type: 'file',
+          size: task.totalBytes,
+          displaySize: task.totalStr,
+          mtime: timeStr,
+          mode: '-rw-r--r--',
+          owner: 'root',
+          group: 'root'
+        };
+        if (existingIdx >= 0) {
+          activeTab.files[existingIdx] = newItem;
+        } else {
+          activeTab.files.push(newItem);
+        }
+        if (typeof renderSftpFilesTable === 'function' && activeTab.id === activeSftpTabId) {
+          renderSftpFilesTable();
+        }
+      }
+    }
+
+    // =========================================================================
+    // 浮动传输面板与悬浮球全局平滑拖拽控制器 (Draggable Engine)
+    // 支持展开卡片拖拽、悬浮球拖拽、视口边缘自适应吸附与点击/拖拽智能判别
+    // =========================================================================
+
+    function initSftpWidgetDraggable() {
+      const panel = document.getElementById('sftpTransferFloatPanel');
+      const header = document.getElementById('sftpPanelDragHeader');
+      const ball = document.getElementById('sftpTransferFloatBall');
+
+      // 1. 展开态浮窗按住顶栏自由拖拽
+      if (header && panel) {
+        let isDraggingPanel = false;
+        let startX, startY, origLeft, origTop;
+
+        header.addEventListener('mousedown', (e) => {
+          if (e.target.closest('button')) return; // 避免按钮操作触发拖拽
+          isDraggingPanel = true;
+          startX = e.clientX;
+          startY = e.clientY;
+
+          const rect = panel.getBoundingClientRect();
+          origLeft = rect.left;
+          origTop = rect.top;
+
+          header.style.cursor = 'grabbing';
+          panel.style.transition = 'none';
+          document.body.style.userSelect = 'none';
+
+          const onPanelMouseMove = (ev) => {
+            if (!isDraggingPanel) return;
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            let newX = origLeft + dx;
+            let newY = origTop + dy;
+
+            // 视口边缘保护
+            const maxX = window.innerWidth - panel.offsetWidth - 8;
+            const maxY = window.innerHeight - panel.offsetHeight - 8;
+            newX = Math.max(8, Math.min(maxX, newX));
+            newY = Math.max(8, Math.min(maxY, newY));
+
+            panel.style.setProperty('left', newX + 'px', 'important');
+            panel.style.setProperty('top', newY + 'px', 'important');
+            panel.style.setProperty('right', 'auto', 'important');
+            panel.style.setProperty('bottom', 'auto', 'important');
+          };
+
+          const onPanelMouseUp = () => {
+            if (!isDraggingPanel) return;
+            isDraggingPanel = false;
+            header.style.cursor = 'grab';
+            panel.style.transition = '';
+            document.body.style.userSelect = '';
+            window.removeEventListener('mousemove', onPanelMouseMove);
+            window.removeEventListener('mouseup', onPanelMouseUp);
+          };
+
+          window.addEventListener('mousemove', onPanelMouseMove);
+          window.addEventListener('mouseup', onPanelMouseUp);
+        });
+      }
+
+      // 2. 收缩态悬浮球全屏自由拖拽 (区分拖拽与点击)
+      if (ball) {
+        let isDraggingBall = false;
+        let ballStartX, ballStartY, ballOrigLeft, ballOrigTop;
+        let ballMoved = false;
+
+        ball.addEventListener('mousedown', (e) => {
+          isDraggingBall = true;
+          ballMoved = false;
+          ballStartX = e.clientX;
+          ballStartY = e.clientY;
+
+          const rect = ball.getBoundingClientRect();
+          ballOrigLeft = rect.left;
+          ballOrigTop = rect.top;
+
+          ball.style.cursor = 'grabbing';
+          ball.style.transition = 'none';
+          document.body.style.userSelect = 'none';
+
+          const onBallMouseMove = (ev) => {
+            if (!isDraggingBall) return;
+            const dx = ev.clientX - ballStartX;
+            const dy = ev.clientY - ballStartY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+              ballMoved = true;
+            }
+            let newX = ballOrigLeft + dx;
+            let newY = ballOrigTop + dy;
+
+            const maxX = window.innerWidth - ball.offsetWidth - 8;
+            const maxY = window.innerHeight - ball.offsetHeight - 8;
+            newX = Math.max(8, Math.min(maxX, newX));
+            newY = Math.max(8, Math.min(maxY, newY));
+
+            ball.style.setProperty('left', newX + 'px', 'important');
+            ball.style.setProperty('top', newY + 'px', 'important');
+            ball.style.setProperty('right', 'auto', 'important');
+            ball.style.setProperty('bottom', 'auto', 'important');
+          };
+
+          const onBallMouseUp = () => {
+            if (!isDraggingBall) return;
+            isDraggingBall = false;
+            ball.style.cursor = 'grab';
+            ball.style.transition = '';
+            document.body.style.userSelect = '';
+            window.removeEventListener('mousemove', onBallMouseMove);
+            window.removeEventListener('mouseup', onBallMouseUp);
+          };
+
+          window.addEventListener('mousemove', onBallMouseMove);
+          window.addEventListener('mouseup', onBallMouseUp);
+        });
+
+        ball.addEventListener('click', (e) => {
+          if (ballMoved) {
+            e.preventDefault();
+            e.stopPropagation();
+            ballMoved = false;
+            return;
+          }
+          expandSftpTransferWidget();
+        });
+      }
+    }
+
+    // SFTP 上传主按钮点击
+    function triggerSftpUploadClick(e) {
+      if (e) e.stopPropagation();
+      const fileInput = document.getElementById('sftpLocalFileInput');
+      if (fileInput) {
+        fileInput.click();
+      }
+    }
+
+    function toggleSftpUploadQuickMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('sftpUploadQuickMenu');
+      if (menu) {
+        menu.classList.toggle('hidden');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('sftpUploadQuickMenu');
+      if (menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+      }
+    });
+
 </script>
 
   <!-- 浮动悬停/点击名称气泡提示 (当侧边栏收缩时展示) -->
@@ -37189,7 +37821,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
           <img src="./logo.png" alt="OpsPub Logo" class="w-9 h-9 object-contain filter drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
           <div>
             <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-              <span>OpsPub AI 桌面端</span>
+              <span>OpsPub 桌面端</span>
               <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">Stable</span>
             </h3>
             <p class="text-[11px] text-slate-400">架构: Tauri 2.3 · Rust Core · SQLite · WebKit</p>
@@ -38044,7 +38676,7 @@ triggers: <span id="rfmTriggers" class="text-slate-300">关键词1, 关键词2</
 
   <!-- 右下角直接升级悬浮通知卡片 (1:1 严格对齐截图 4: 主题皮肤颜色深度适配) -->
   <!-- =================================================================================== -->
-  <div id="floatUpdateNotification" class="fixed bottom-6 right-6 z-[9998] w-96 p-4 rounded-2xl border shadow-2xl backdrop-blur-xl font-sans text-xs select-none space-y-3 animate-in slide-in-from-bottom-5 duration-300">
+  <div id="floatUpdateNotification" class="hidden fixed bottom-6 right-6 z-[9998] w-96 p-4 rounded-2xl border shadow-2xl backdrop-blur-xl font-sans text-xs select-none space-y-3 animate-in slide-in-from-bottom-5 duration-300">
     <!-- 顶栏 -->
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-1.5">
@@ -38083,6 +38715,79 @@ triggers: <span id="rfmTriggers" class="text-slate-300">关键词1, 关键词2</
     <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
     <div class="font-bold text-sm">正在应用新版本安装包并重启 OpsPub...</div>
     <div class="text-xs text-slate-400 font-mono">校验包 SHA-256 · 释放新二进制 · 重载进程</div>
+  </div>
+
+  
+  <!-- =================================================================================== -->
+  <!-- SFTP 全局传输浮动管理组件 (支持多任务、后台无阻断运行、收缩为文件上传悬浮球带角标) -->
+  <!-- 严格 1:1 对齐用户最新截图 1 (展开卡片) 与 截图 2 (收缩悬浮球 + 红点角标) -->
+  <!-- =================================================================================== -->
+
+  <!-- 1. 收缩态：圆形上传文件悬浮球 (严格对齐截图 2: 支持屏幕自由拖拽移动 + 原地点击展开) -->
+  <div id="sftpTransferFloatBall"
+       class="hidden fixed bottom-12 right-6 z-[9990] flex items-center justify-center cursor-grab active:cursor-grabbing select-none group transition-shadow duration-200 hover:scale-105 active:scale-95"
+       title="按住可自由拖拽位置，点击展开实时传输列表">
+    <!-- 外层圆形卡片，立体弥散投影与精致微边框 -->
+    <div class="w-[52px] h-[52px] rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200/90 dark:border-slate-700/80 shadow-[0_8px_24px_rgba(0,0,0,0.22)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.30)] flex items-center justify-center relative">
+      <!-- 居中图标：标准上传文件图标 (带有文档页面与向上箭头) -->
+      <div class="relative flex items-center justify-center text-sky-500 dark:text-sky-400 group-hover:text-brand-500 transition-colors pointer-events-none">
+        <i data-lucide="file-up" class="w-6 h-6 stroke-[2.2]"></i>
+      </div>
+      <!-- 右上角红色角标 Badge (显示正在上传数量，严格对齐截图 2) -->
+      <span id="sftpFloatBadgeCount" class="pointer-events-none absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 bg-[#ef4444] text-white text-[11px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-md ring-1 ring-rose-500/30">1</span>
+    </div>
+  </div>
+
+  <!-- 2. 展开态：浮动卡片面板 (严格 1:1 对齐截图 1: 支持按住顶栏自由拖拽移动 + 智能自动收起 + 手动关闭) -->
+  <div id="sftpTransferFloatPanel"
+       onmouseenter="handleSftpPanelMouseEnter()"
+       onmouseleave="handleSftpPanelMouseLeave()"
+       class="fixed bottom-12 right-6 z-[9990] w-[360px] sm:w-[380px] max-w-[calc(100vw-32px)] flex flex-col gap-1.5 select-none font-sans pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200 shadow-2xl">
+    
+    <!-- 2.1 顶部总控条 (Capsule Header - 支持按住自由拖拽位置) -->
+    <div id="sftpPanelDragHeader"
+         class="bg-[#181a20]/95 backdrop-blur-md border border-slate-700/70 rounded-2xl px-3 py-2 flex items-center justify-between shadow-2xl text-slate-200 cursor-grab active:cursor-grabbing select-none"
+         title="按住此处可自由拖拽浮窗位置">
+      <div class="flex items-center space-x-2 pointer-events-none">
+        <!-- 抓手把手 ::: -->
+        <span class="text-slate-500 p-0.5" title="按住拖拽位置">
+          <i data-lucide="grip-vertical" class="w-3.5 h-3.5"></i>
+        </span>
+        <!-- 旋转刷新图标 ↻ -->
+        <span class="text-slate-300">
+          <i data-lucide="rotate-cw" id="sftpHeaderSpinIcon" class="w-3.5 h-3.5 animate-spin"></i>
+        </span>
+        <!-- 状态文本：传输中 或 上传完毕提示与倒计时 -->
+        <div id="sftpHeaderStatusText" class="text-xs font-medium tracking-tight text-slate-200 flex items-center space-x-1">
+          <span>传输中</span>
+          <span id="sftpHeaderCount" class="font-bold">1</span>
+          <span>个</span>
+          <span class="text-slate-500 mx-0.5">·</span>
+          <span id="sftpHeaderPercent" class="font-mono font-semibold">42%</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-1">
+        <!-- 快捷添加模拟任务按钮（方便演示多任务并发与数量切换） -->
+        <button type="button" onmousedown="event.stopPropagation()" onclick="addMockSftpUploadTask()" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-emerald-400 rounded-lg transition cursor-pointer" title="模拟添加上传任务 (演示多文件并发)">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        </button>
+        <!-- 收缩按钮 ⌄ (点击收起为圆形悬浮球，随时可点球再次展开) -->
+        <button type="button" onmousedown="event.stopPropagation()" onclick="collapseSftpTransferWidget()" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition cursor-pointer" title="收起至悬浮球 (可随时点击悬浮球再次展开)">
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </button>
+        <!-- 彻底关闭按钮 ✕ (直接关闭浮窗) -->
+        <button type="button" onmousedown="event.stopPropagation()" onclick="closeSftpTransferWidgetCompletely()" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg transition cursor-pointer" title="直接关闭传输浮窗">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2.2 任务卡片容器 (支持多个任务滚动展示，对齐截图 1 单项任务卡片) -->
+    <div id="sftpTasksListContainer" class="max-h-[380px] overflow-y-auto no-scrollbar space-y-1.5">
+      <!-- 动态渲染每个任务项 -->
+    </div>
+
   </div>
 
   </body>

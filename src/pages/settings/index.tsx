@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Alert, AutoComplete, Button, Input, Modal, Select, Tag as AntTag, message, Switch } from "antd";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Alert, AutoComplete, Button, Input, InputNumber, Modal, Select, Tag as AntTag, message, Switch } from "antd";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { open as openFileDialog, save as saveFileDialog } from "@tauri-apps/plugin-dialog";
 import {
@@ -28,6 +28,7 @@ import {
   Layers,
   Lock,
   MessageSquare,
+  Minus,
   Network,
   Plus,
   Palette,
@@ -53,10 +54,11 @@ import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import type { BackupStorageEndpoint, BackupStorageInput } from "@/lib/api/backup";
 import { DeviceChannelSettings, MobilePairingSettings } from "./DeviceSettings";
 import { LogoColorSettings } from "./LogoColorSettings";
-import { loadSettings, SETTINGS_KEYS, useSettingsStore, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme } from "@/store/settings";
-import { TERMINAL_CURSOR_OPTIONS, TERMINAL_FONT_SIZE_OPTIONS, TERMINAL_LINE_HEIGHT_OPTIONS, TERMINAL_THEME_OPTIONS } from "@/components/terminal/terminal-themes";
+import { loadSettings, SETTINGS_KEYS, useSettingsStore, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme, type UiFontFamily } from "@/store/settings";
+import { TERMINAL_CURSOR_OPTIONS, TERMINAL_FONT_FAMILY_OPTIONS, TERMINAL_FONT_SIZE_OPTIONS, TERMINAL_LINE_HEIGHT_OPTIONS, TERMINAL_SCROLLBACK_OPTIONS, TERMINAL_THEME_OPTIONS, type TerminalFontFamily, type TerminalRightClick } from "@/components/terminal/terminal-themes";
 import { SKINS, useAppStore, type SkinId, type ThemeMode } from "@/store/app";
 import { modelServiceApi } from "@/lib/api/model-service";
+import { sftpApi } from "@/lib/api/sftp";
 import type { ModelPreset, ModelProfile, ModelProfileInput, ModelProtocol, ModelVendor } from "@/types";
 import { translateSettings } from "./translations";
 import "./settings.css";
@@ -66,7 +68,12 @@ type SettingsSection =
   | "startup"
   | "window"
   | "appearance"
+  | "ui-typography"
+  | "sftp-transfer"
+  | "sftp-drag"
+  | "sftp-files"
   | "terminal-theme"
+  | "terminal-behavior"
   | "models"
   | "proxy"
   | "whitelist"
@@ -81,62 +88,22 @@ type SettingsSection =
   | "community"
   | "apps";
 
-type SettingIcon = typeof Palette;
-
-const NAV_GROUPS: Array<{ title: string; items: Array<{ id: SettingsSection; label: string; icon: SettingIcon }> }> = [
-  {
-    title: "外观与交互",
-    items: [
-      { id: "language", label: "界面语言", icon: FileText },
-      { id: "startup", label: "启动行为", icon: Power },
-      { id: "window", label: "窗口与托盘", icon: AppWindow },
-      { id: "appearance", label: "外观主题", icon: Palette },
-      { id: "terminal-theme", label: "终端主题", icon: Terminal },
-    ],
-  },
-  {
-    title: "AI 与网络",
-    items: [
-      { id: "models", label: "模型服务", icon: Sparkles },
-      { id: "proxy", label: "网络代理", icon: Network },
-      { id: "whitelist", label: "出站地址白名单", icon: ShieldCheck },
-    ],
-  },
-  {
-    title: "安全与控制",
-    items: [
-      { id: "ssh-keys", label: "SSH 密钥", icon: KeyRound },
-      { id: "lock", label: "主密码 / 应用锁定", icon: Lock },
-      { id: "blacklist", label: "命令黑名单", icon: AlertTriangle },
-      { id: "audit-retention", label: "审计保留", icon: ClipboardList },
-    ],
-  },
-  {
-    title: "数据与关于",
-    items: [
-      { id: "backup", label: "备份与还原", icon: Database },
-      { id: "mobile-pairing", label: "手机配对", icon: Smartphone },
-      { id: "device-channel", label: "设备通道", icon: RadioIcon },
-      { id: "legal", label: "法律声明", icon: FileText },
-      { id: "community", label: "作者 & 社区", icon: Users },
-      { id: "apps", label: "推荐应用", icon: Sparkles },
-    ],
-  },
-];
-
-function scrollToSection(container: HTMLDivElement, section: SettingsSection) {
-  const target = container.querySelector<HTMLElement>(`[data-settings-section="${section}"]`);
-  if (!target) return;
-  const inset = Number.parseFloat(getComputedStyle(container).scrollPaddingTop);
-  const top = target.getBoundingClientRect().top - container.getBoundingClientRect().top;
-  container.scrollTo({ top: container.scrollTop + top - inset, behavior: "instant" });
-}
+const SETTINGS_PANELS = [
+  { id: "general", label: "通用", icon: AppWindow },
+  { id: "sftp", label: "SFTP 传输", icon: FolderOpen },
+  { id: "terminal", label: "终端", icon: Terminal },
+  { id: "ai", label: "AI 助手", icon: Sparkles },
+  { id: "security", label: "安全与控制", icon: ShieldCheck },
+  { id: "data", label: "数据与关于", icon: Database },
+] as const;
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const returnToCopilot = (location.state as { from?: string } | null)?.from === "copilot";
-  const [activeSection, setActiveSection] = useState<SettingsSection>("language");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activePanel = SETTINGS_PANELS.find(({ id }) => id === searchParams.get("section"))
+    ?? (returnToCopilot ? SETTINGS_PANELS[3] : SETTINGS_PANELS[0]);
   const settings = useSettingsStore();
   const t = (text: string) => translateSettings(text, settings.language);
   const theme = useAppStore((state) => state.theme);
@@ -151,9 +118,9 @@ export default function SettingsPage() {
   const [outboundHostDraft, setOutboundHostDraft] = useState("");
   const [outboundEnabled, setOutboundEnabled] = useState(false);
   const [outboundSaving, setOutboundSaving] = useState(false);
+  const [auditRetentionDraft, setAuditRetentionDraft] = useState<number | null>();
+  const auditRetentionDays = auditRetentionDraft === undefined ? settings.auditRetentionDays : auditRetentionDraft;
   const navRef = useRef<HTMLElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const flowRef = useRef<HTMLDivElement>(null);
   const preferenceBusy = (key: string) => settingsLoading || pendingPreferences.includes(key);
   const autoStart = settings.autoStart ?? settings.storedAutoStart;
   const autoStartDisabled = settingsLoading || settings.autoStartStatus !== "ready";
@@ -179,46 +146,6 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    const container = contentRef.current;
-    const flow = flowRef.current;
-    if (!container || !flow) return;
-
-    let frame = 0;
-    const syncActiveSection = () => {
-      frame = 0;
-      const sections = Array.from(container.querySelectorAll<HTMLElement>('[data-settings-section]'));
-      if (sections.length === 0) return;
-
-      const inset = Number.parseFloat(getComputedStyle(container).scrollPaddingTop);
-      const activationLine = container.getBoundingClientRect().top + inset + 2;
-      let current = sections[0];
-      for (const section of sections) {
-        if (section.getBoundingClientRect().top <= activationLine) current = section;
-        else break;
-      }
-
-      const nextSection = current.dataset.settingsSection as SettingsSection | undefined;
-      if (nextSection) setActiveSection((previous) => previous === nextSection ? previous : nextSection);
-    };
-
-    const queueSync = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(syncActiveSection);
-    };
-
-    container.addEventListener("scroll", queueSync, { passive: true });
-    const observer = new ResizeObserver(queueSync);
-    observer.observe(container);
-    observer.observe(flow);
-    syncActiveSection();
-    return () => {
-      container.removeEventListener("scroll", queueSync);
-      observer.disconnect();
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
-  useEffect(() => {
     const nav = navRef.current;
     const sidebar = nav?.closest<HTMLElement>(".workspace-subnav-scroll");
     const current = nav?.querySelector('[aria-current="location"]');
@@ -228,13 +155,7 @@ export default function SettingsPage() {
     // 只滚动侧栏，折叠时也能为下次展开保留当前项的位置。
     if (item.top < viewport.top) sidebar.scrollTop += item.top - viewport.top;
     if (item.bottom > viewport.bottom) sidebar.scrollTop += item.bottom - viewport.bottom;
-  }, [activeSection]);
-
-  useEffect(() => {
-    if (!returnToCopilot) return;
-    const container = contentRef.current;
-    if (container) scrollToSection(container, "models");
-  }, [location.key, returnToCopilot]);
+  }, [activePanel.id]);
 
   async function persistSetting(key: string, value: string) {
     try {
@@ -267,6 +188,26 @@ export default function SettingsPage() {
 
   async function changeTerminalTheme(value: TerminalTheme) {
     await changePreference(value, settings.setTerminalTheme, SETTINGS_KEYS.terminalTheme, settings.terminalTheme);
+  }
+
+  function saveAuditRetention() {
+    const days = auditRetentionDays;
+    if (days === null || !Number.isInteger(days) || days < 0 || days > 3650) return;
+    const save = async () => {
+      if (await changePreference(days, settings.setAuditRetentionDays, SETTINGS_KEYS.auditRetentionDays, settings.auditRetentionDays)) {
+        setAuditRetentionDraft(undefined);
+        message.success(t("审计保留策略已保存"));
+      }
+    };
+    if (days > 0 && (settings.auditRetentionDays === 0 || days < settings.auditRetentionDays)) {
+      Modal.confirm({
+        title: t("确认缩短审计保留期？"),
+        content: t("下次读写审计时，超出新保留期的日志将被删除。"),
+        okText: t("保存"),
+        cancelText: t("取消"),
+        onOk: save,
+      });
+    } else void save();
   }
 
   async function changePreference<T extends string | number | boolean>(
@@ -382,44 +323,46 @@ export default function SettingsPage() {
     void persistSetting("ui.theme", mode).catch(() => undefined);
   }
 
-  function selectSection(section: SettingsSection) {
-    const container = contentRef.current;
-    if (container) scrollToSection(container, section);
-  }
-
   return (
     <>
       <WorkspaceSidebarSlot>
         <nav ref={navRef} className="ops-settings-nav" aria-label={t("设置分区")}>
-          {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="ops-settings-nav-group">
-              <p>{t(group.title)}</p>
-              {group.items.map(({ id, label, icon: Icon }) => (
+          <div className="ops-settings-nav-group">
+              {SETTINGS_PANELS.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   type="button"
-                  aria-controls={`setting-${id}`}
-                  aria-current={activeSection === id ? "location" : undefined}
-                  onClick={() => selectSection(id)}
+                  aria-controls={activePanel.id === id ? `settings-panel-${id}` : undefined}
+                  aria-current={activePanel.id === id ? "location" : undefined}
+                  onClick={() => {
+                    if (activePanel.id === id) return;
+                    const next = new URLSearchParams(searchParams);
+                    next.set("section", id);
+                    setSearchParams(next, { state: location.state });
+                  }}
                 >
                   <Icon size={14} aria-hidden />
                   <span>{t(label)}</span>
                 </button>
               ))}
-            </div>
-          ))}
+          </div>
         </nav>
       </WorkspaceSidebarSlot>
 
-      <div ref={contentRef} className="ops-settings-scroll custom-scrollbar" role="region" aria-labelledby="settings-title" tabIndex={0}>
-        <div ref={flowRef} className="ops-settings-flow">
-        <h1 id="settings-title">{t("系统与 AI 设置")}</h1>
+      <div key={activePanel.id} id={`settings-panel-${activePanel.id}`} className="ops-settings-scroll custom-scrollbar" role="region" aria-labelledby="settings-title" tabIndex={0}>
+        <div className="ops-settings-flow">
+        <h1 id="settings-title" className="sr-only">{t(activePanel.label)}</h1>
 
+        {activePanel.id === "general" && <>
         <SettingCard id="language" icon={<FileText size={15} />} title="界面语言" desc="切换后立即生效，并保存语言偏好。">
           <div className="ops-settings-options" role="group" aria-label={t("界面语言")}>
             <StaticButton disabled={preferenceBusy(SETTINGS_KEYS.language)} active={settings.language === "zh-CN"} onClick={() => void changeLanguage("zh-CN")}>简体中文</StaticButton>
             <StaticButton disabled={preferenceBusy(SETTINGS_KEYS.language)} active={settings.language === "en-US"} onClick={() => void changeLanguage("en-US")}>English</StaticButton>
           </div>
+        </SettingCard>
+
+        <SettingCard id="ui-typography" icon={<FileText size={15} />} title="界面文字" desc="调整应用界面基础字号与字体，设置会保存到本机。">
+          <UiTypographySettings disabled={settingsLoading} />
         </SettingCard>
 
         <SettingCard id="startup" icon={<Power size={15} />} title="启动行为" desc="系统登录后自动启动 OpsPub，并按选择决定是否进入托盘。">
@@ -465,6 +408,11 @@ export default function SettingsPage() {
           <LogoColorSettings disabled={settingsLoading} />
         </SettingCard>
 
+        </>}
+
+        {activePanel.id === "sftp" && <SftpSettings disabled={settingsLoading} />}
+
+        {activePanel.id === "terminal" && <>
         <SettingCard id="terminal-theme" icon={<Terminal size={15} />} title="终端主题与渲染" desc="控制内嵌 SSH 终端的配色方案、字号与光标渲染样式。更改会立即应用到已连接的终端。">
           <div className="ops-settings-terminal-themes" role="group" aria-label={t("终端主题")}>
             {TERMINAL_THEME_OPTIONS.map((option) => (
@@ -475,12 +423,26 @@ export default function SettingsPage() {
             ))}
           </div>
           <div className="ops-settings-terminal-controls">
+            <TerminalSettingSelect label={t("终端字体")} value={settings.terminalFontFamily} options={TERMINAL_FONT_FAMILY_OPTIONS} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalFontFamily)} onChange={(value) => void changePreference<TerminalFontFamily>(value, settings.setTerminalFontFamily, SETTINGS_KEYS.terminalFontFamily, settings.terminalFontFamily)} />
             <TerminalSettingSelect label={t("终端字号")} value={settings.terminalFontSize} options={TERMINAL_FONT_SIZE_OPTIONS} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalFontSize)} onChange={(value) => void changePreference<TerminalFontSize>(value, settings.setTerminalFontSize, SETTINGS_KEYS.terminalFontSize, settings.terminalFontSize)} />
             <TerminalSettingSelect label={t("行高")} value={settings.terminalLineHeight} options={TERMINAL_LINE_HEIGHT_OPTIONS} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalLineHeight)} onChange={(value) => void changePreference<TerminalLineHeight>(value, settings.setTerminalLineHeight, SETTINGS_KEYS.terminalLineHeight, settings.terminalLineHeight)} />
             <TerminalSettingSelect label={t("光标样式")} value={settings.terminalCursorStyle} options={TERMINAL_CURSOR_OPTIONS} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalCursorStyle)} onChange={(value) => void changePreference<TerminalCursorStyle>(value, settings.setTerminalCursorStyle, SETTINGS_KEYS.terminalCursorStyle, settings.terminalCursorStyle)} />
           </div>
         </SettingCard>
 
+        <SettingCard id="terminal-behavior" icon={<Terminal size={15} />} title="终端交互与会话保活" desc="设置选中复制、右键操作和历史回滚缓冲区。">
+          <ToggleRow label="选中文本自动复制" desc="在终端拖选文本后写入系统剪贴板。" checked={settings.terminalAutoCopy} disabled={preferenceBusy(SETTINGS_KEYS.terminalAutoCopy)} onChange={(value) => void changePreference(value, settings.setTerminalAutoCopy, SETTINGS_KEYS.terminalAutoCopy, settings.terminalAutoCopy)} />
+          <div className="ops-settings-terminal-controls mt-3 border-t border-[var(--border)] pt-3">
+            <TerminalSettingSelect<TerminalRightClick> label={t("鼠标右键点击行为")} value={settings.terminalRightClick} options={[{ value: "menu", label: "弹出快捷菜单" }, { value: "paste", label: "粘贴剪贴板" }]} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalRightClick)} onChange={(value) => void changePreference(value, settings.setTerminalRightClick, SETTINGS_KEYS.terminalRightClick, settings.terminalRightClick)} />
+            <TerminalSettingSelect label={t("历史回滚缓冲区")} value={settings.terminalScrollback} options={TERMINAL_SCROLLBACK_OPTIONS.map((value) => ({ value, label: `${value.toLocaleString(settings.language)} ${t("行")}` }))} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalScrollback)} onChange={(value) => void changePreference(value, settings.setTerminalScrollback, SETTINGS_KEYS.terminalScrollback, settings.terminalScrollback)} />
+            <TerminalSettingSelect label={t("SSH 心跳间隔")} value={settings.terminalKeepalive} options={[15, 30, 60, 0].map((value) => ({ value, label: value ? `${value} s` : "禁用保活" }))} translate={t} disabled={preferenceBusy(SETTINGS_KEYS.terminalKeepalive)} onChange={(value) => void changePreference(value, settings.setTerminalKeepalive, SETTINGS_KEYS.terminalKeepalive, settings.terminalKeepalive)} />
+          </div>
+          <p className="mt-2 text-xs text-[var(--text-secondary)]">{t("心跳间隔对新建或重新连接的 SSH 终端生效。")}</p>
+        </SettingCard>
+
+        </>}
+
+        {activePanel.id === "ai" && <>
         <SettingCard id="models" icon={<Sparkles size={17} />} title="模型服务" desc="管理模型服务商、接口端点与系统托管密钥；可测试连接、获取模型并导入或导出配置。">
           <ModelServiceSettings showReturnToCopilot={returnToCopilot} onReturnToCopilot={() => void navigate("/copilot")} />
         </SettingCard>
@@ -491,7 +453,7 @@ export default function SettingsPage() {
             <Button type="primary" loading={proxySaving} onClick={() => void saveProxyAddress()} className="sm:min-w-28">{t("保存代理地址")}</Button>
           </div>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{t("仅接受 localhost 或回环 IP，防止把代理端口暴露给局域网。留空表示清除地址。")}</p>
-          <Alert className="mt-3" type="info" showIcon message={t("此地址目前会保存到本机配置；服务器“借用本机代理”隧道尚未读取该设置。")}/>
+          <Alert className="mt-3" type="info" showIcon message={t("启用了“借用本机代理”的服务器会在下次连接时使用此地址。")}/>
         </SettingCard>
 
         <SettingCard id="whitelist" icon={<ShieldCheck size={17} />} title="AI 出站地址白名单" desc="维护允许域名列表。策略启停和域名数据保存在本机配置中。">
@@ -527,6 +489,9 @@ export default function SettingsPage() {
           </div>
         </SettingCard>
 
+        </>}
+
+        {activePanel.id === "security" && <>
         <SettingCard id="ssh-keys" icon={<KeyRound size={15} />} title="SSH 密钥" desc="系统凭据管理器中的 SSH 身份与默认认证方式。">
           <div className="overflow-hidden rounded-lg border border-[var(--border)]"><div className="grid grid-cols-[1fr_120px_90px] border-b border-[var(--border)] bg-surface-900/70 px-3 py-2 text-xs text-[var(--text-secondary)]"><span>{t("身份")}</span><span>{t("类型")}</span><span>{t("状态")}</span></div><div className="grid grid-cols-[1fr_120px_90px] px-3 py-2.5 text-sm text-[var(--text-primary)]"><span className="font-mono">{t("系统凭据 · SSH")}</span><span>{t("密码 / 私钥")}</span><span className="text-[var(--success)]">{t("已托管")}</span></div></div>
         </SettingCard>
@@ -540,9 +505,16 @@ export default function SettingsPage() {
         </SettingCard>
 
         <SettingCard id="audit-retention" icon={<ClipboardList size={15} />} title="审计保留" desc="定期清理过期审计行，避免长期运行后本地数据库膨胀。">
-          <div className="flex max-w-xs items-center gap-2"><div className="flex flex-1 items-center rounded-lg border border-[var(--border)] bg-surface-950 px-3 py-2 font-mono text-xs text-[var(--text-primary)]">90 <span className="ml-auto font-sans text-[var(--text-secondary)]">{t("天")}</span></div><StaticButton>保存</StaticButton></div>
+          <div className="flex max-w-xs items-center gap-2">
+            <InputNumber min={0} max={3650} precision={0} suffix={t("天")} value={auditRetentionDays} onChange={setAuditRetentionDraft} disabled={preferenceBusy(SETTINGS_KEYS.auditRetentionDays)} aria-label={t("审计保留天数")} />
+            <Button type="primary" disabled={preferenceBusy(SETTINGS_KEYS.auditRetentionDays) || auditRetentionDays === null || auditRetentionDays === settings.auditRetentionDays} onClick={saveAuditRetention}>{t("保存")}</Button>
+          </div>
+          <p className="mt-2 text-xs text-[var(--text-secondary)]">{t("填写 0 可保留全部历史。变更在下次读写审计时生效。")}</p>
         </SettingCard>
 
+        </>}
+
+        {activePanel.id === "data" && <>
         <SettingCard id="backup" icon={<Archive size={15} />} title="备份与还原" desc="将本地工作区导出为加密备份，便于迁移到新设备或灾难恢复。">
           <BackupSettings />
         </SettingCard>
@@ -563,11 +535,10 @@ export default function SettingsPage() {
           <CommunitySettings />
         </SettingCard>
 
-        <div className="ops-settings-tail">
           <SettingCard id="apps" icon={<Sparkles size={15} />} title="推荐应用" desc="与 OpsPub 配合使用的终端、编辑器和安全工具。">
             <div className="grid gap-2 sm:grid-cols-3"><AppTile name="Windows Terminal" desc="终端会话" /><AppTile name="VS Code" desc="配置与脚本" /><AppTile name="1Password" desc="凭据托管" /></div>
           </SettingCard>
-        </div>
+        </>}
         </div>
       </div>
     </>
@@ -578,7 +549,7 @@ function SettingCard({ id, icon, title, desc, children, hideHeader = false }: { 
   const language = useSettingsStore((state) => state.language);
   const label = translateSettings(title, language);
   return (
-    <section id={`setting-${id}`} data-settings-section={id} className={hideHeader ? undefined : "ops-settings-card"} aria-label={label}>
+    <section id={`setting-${id}`} className={hideHeader ? undefined : "ops-settings-card"} aria-label={label}>
       {!hideHeader && <header className="ops-settings-card-heading">
         <span aria-hidden>{icon}</span>
         <div><h2>{label}</h2><p>{translateSettings(desc, language)}</p></div>
@@ -586,6 +557,132 @@ function SettingCard({ id, icon, title, desc, children, hideHeader = false }: { 
       {children}
     </section>
   );
+}
+
+function UiTypographySettings({ disabled }: { disabled: boolean }) {
+  const settings = useSettingsStore();
+  const language = settings.language;
+  const t = (text: string) => translateSettings(text, language);
+  const [saving, setSaving] = useState(false);
+
+  async function save<T extends string | number>(key: string, value: T, apply: (next: T) => void, previous: T) {
+    if (disabled || saving || value === previous) return;
+    setSaving(true);
+    apply(value);
+    try {
+      await configApi.set(key, String(value));
+    } catch (error) {
+      apply(previous);
+      message.error(getErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const changeSize = (value: number) => {
+    if (value < 12 || value > 20) return;
+    void save(SETTINGS_KEYS.uiFontSize, value, settings.setUiFontSize, settings.uiFontSize);
+  };
+
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><div className="text-sm font-medium text-[var(--text-primary)]">{t("界面字号")}</div><p className="mt-1 text-xs text-[var(--text-secondary)]">{t("调整应用基础文字大小，12 到 20 px。")}</p></div>
+      <div className="flex items-center gap-2">
+        <Button aria-label={t("减小字号")} title={t("减小字号")} icon={<Minus size={14} />} disabled={disabled || saving || settings.uiFontSize <= 12} onClick={() => changeSize(settings.uiFontSize - 1)} />
+        <span className="min-w-16 text-center font-mono text-sm text-[var(--text-primary)]">{settings.uiFontSize} px</span>
+        <Button aria-label={t("增大字号")} title={t("增大字号")} icon={<Plus size={14} />} disabled={disabled || saving || settings.uiFontSize >= 20} onClick={() => changeSize(settings.uiFontSize + 1)} />
+      </div>
+    </div>
+    <div className="ops-settings-options" role="group" aria-label={t("字号预设")}>
+      {[12, 14, 18, 20].map((size) => <StaticButton key={size} active={settings.uiFontSize === size} disabled={disabled || saving} onClick={() => changeSize(size)}>{size} px</StaticButton>)}
+      <Button type="text" icon={<RefreshCw size={14} />} disabled={disabled || saving || settings.uiFontSize === 14} onClick={() => changeSize(14)}>{t("恢复默认字号")}</Button>
+    </div>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+      <div><div className="text-sm font-medium text-[var(--text-primary)]">{t("界面字体")}</div><p className="mt-1 text-xs text-[var(--text-secondary)]">{t("选择应用界面的字体族。")}</p></div>
+      <Select className="w-full max-w-xs" aria-label={t("界面字体")} value={settings.uiFontFamily} disabled={disabled || saving} options={[
+        { value: "system", label: t("系统默认") },
+        { value: "rounded", label: t("圆润字体") },
+        { value: "inter", label: "Inter" },
+      ]} onChange={(value: UiFontFamily) => void save(SETTINGS_KEYS.uiFontFamily, value, settings.setUiFontFamily, settings.uiFontFamily)} />
+    </div>
+    <div className="rounded-md border border-[var(--border)] bg-surface-950/50 px-3 py-2 text-[var(--text-secondary)]" style={{ fontSize: settings.uiFontSize }}>
+      {t("OpsPub 界面文字预览")}
+    </div>
+  </div>;
+}
+
+function SftpSettings({ disabled }: { disabled: boolean }) {
+  const settings = useSettingsStore();
+  const language = settings.language;
+  const copy = (zh: string, en: string) => language === "en-US" ? en : zh;
+  const [saving, setSaving] = useState(false);
+  const busy = disabled || saving;
+
+  async function persist<T extends string | number | boolean>(key: string, value: T, apply: (next: T) => void, previous: T) {
+    if (busy || value === previous) return;
+    setSaving(true);
+    apply(value);
+    try {
+      await configApi.set(key, String(value));
+    } catch (error) {
+      apply(previous);
+      message.error(getErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function chooseDownloadDir() {
+    try {
+      const selected = await openFileDialog({ directory: true, multiple: false, title: copy("选择默认下载目录", "Choose default download folder"), defaultPath: settings.sftpDownloadDir || undefined });
+      if (typeof selected !== "string" || !selected || busy) return;
+      setSaving(true);
+      const previous = settings.sftpDownloadDir;
+      settings.setSftpDownloadDir(selected);
+      try {
+        await configApi.set(SETTINGS_KEYS.sftpDownloadDir, selected);
+        message.success(copy("默认下载目录已保存", "Default download folder saved"));
+      } catch (error) {
+        settings.setSftpDownloadDir(previous);
+        message.error(getErrorMessage(error));
+      } finally {
+        setSaving(false);
+      }
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  }
+
+  return <>
+    <SettingCard id="sftp-transfer" icon={<FolderOpen size={16} />} title="SFTP 传输" desc="设置默认下载目录、并发数和传输浮窗。">
+    <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0"><div className="text-sm font-medium text-[var(--text-primary)]">{copy("默认本地下载目录", "Default download folder")}</div><p className="mt-1 text-xs text-[var(--text-secondary)]">{copy("后台下载和拖拽下载的初始保存位置，下载时仍可选择其他目录。", "Initial destination for background and drag downloads. You can still choose another folder per download.")}</p></div>
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+        <span className="min-w-0 max-w-full break-all font-mono text-xs text-[var(--text-secondary)]" title={settings.sftpDownloadDir}>{settings.sftpDownloadDir || copy("系统默认下载目录", "System Downloads folder")}</span>
+        <Button disabled={busy} onClick={() => void chooseDownloadDir()}>{copy("选择目录", "Choose folder")}</Button>
+        <Button icon={<FolderOpen size={14} />} disabled={busy} onClick={() => void sftpApi.openDownloadFolder().catch((error) => message.error(getErrorMessage(error)))}>{copy("打开目录", "Open folder")}</Button>
+        <Button disabled={busy || !settings.sftpDownloadDir} onClick={() => void persist(SETTINGS_KEYS.sftpDownloadDir, "", settings.setSftpDownloadDir, settings.sftpDownloadDir)}>{copy("使用系统默认", "Use system default")}</Button>
+      </div>
+    </div>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+      <div><div className="text-sm font-medium text-[var(--text-primary)]">{copy("最大并发传输", "Maximum concurrent transfers")}</div><p className="mt-1 text-xs text-[var(--text-secondary)]">{copy("同时运行的上传或下载任务数。", "Number of upload or download tasks running at once.")}</p></div>
+      <div className="ops-settings-options" role="group" aria-label={copy("最大并发传输", "Maximum concurrent transfers")}>
+        {[2, 4, 6, 8].map((value) => <StaticButton key={value} active={settings.sftpMaxConcurrency === value} disabled={busy} onClick={() => void persist(SETTINGS_KEYS.sftpMaxConcurrency, value, settings.setSftpMaxConcurrency, settings.sftpMaxConcurrency)}>{value}</StaticButton>)}
+      </div>
+    </div>
+    <div className="border-t border-[var(--border)] pt-3">
+      <ToggleRow label="传输完成后自动收起浮窗" desc="所有任务完成后将进度面板收起为悬浮按钮" checked={settings.sftpAutoCollapse} disabled={busy} onChange={(value) => void persist(SETTINGS_KEYS.sftpAutoCollapse, value, settings.setSftpAutoCollapse, settings.sftpAutoCollapse)} />
+    </div>
+    </div>
+    </SettingCard>
+    <SettingCard id="sftp-drag" icon={<Upload size={16} />} title="拖拽与目录传输" desc="控制拖拽上传文件夹时是否递归传输。">
+      <ToggleRow label="支持文件夹递归拖拽上传" desc="允许将本地文件夹拖入 SFTP 窗口并递归上传内容" checked={settings.sftpDragRecursive} disabled={busy} onChange={(value) => void persist(SETTINGS_KEYS.sftpDragRecursive, value, settings.setSftpDragRecursive, settings.sftpDragRecursive)} />
+    </SettingCard>
+    <SettingCard id="sftp-files" icon={<ShieldCheck size={16} />} title="文件显示" desc="设置远程文件列表的默认显示范围。">
+      <ToggleRow label="默认显示隐藏文件" desc="在远程文件列表中显示 .ssh、.env 等点文件" checked={settings.sftpShowHidden} disabled={busy} onChange={(value) => void persist(SETTINGS_KEYS.sftpShowHidden, value, settings.setSftpShowHidden, settings.sftpShowHidden)} />
+    </SettingCard>
+  </>;
 }
 
 interface ModelDraft {

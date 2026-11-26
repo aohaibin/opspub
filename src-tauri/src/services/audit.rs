@@ -5,6 +5,7 @@ use crate::services::sensitive::{project_fields, SensitiveService};
 
 const MAX_AUDIT_FIELD_BYTES: usize = 12_000;
 const AUDIT_RETENTION_DAYS: i64 = 180;
+pub const AUDIT_RETENTION_CONFIG_KEY: &str = "audit.retention_days";
 const MAX_AUDIT_PAGE_SIZE: i32 = 100;
 const MAX_AUDIT_OFFSET: i32 = 1_000_000;
 
@@ -20,7 +21,7 @@ impl AuditService {
         user: &str,
         result: &str,
     ) -> Result<i64, AppError> {
-        db.purge_audit_logs(AUDIT_RETENTION_DAYS)?;
+        purge_expired_logs(db)?;
         let safe_server_alias = sanitize_audit_field(db, server_alias, "audit-server")?;
         let safe_command = sanitize_audit_field(db, command, "audit-command")?;
         let safe_user = sanitize_audit_field(db, user, "audit-user")?;
@@ -33,7 +34,7 @@ impl AuditService {
         if limit <= 0 {
             return Err(AppError::InvalidInput("审计日志条数必须是正整数".into()));
         }
-        db.purge_audit_logs(AUDIT_RETENTION_DAYS)?;
+        purge_expired_logs(db)?;
         project_logs(db.get_audit_logs(limit.min(500))?)
     }
 
@@ -42,7 +43,7 @@ impl AuditService {
         if limit <= 0 || offset < 0 || offset > MAX_AUDIT_OFFSET {
             return Err(AppError::InvalidInput("审计日志分页参数超出范围".into()));
         }
-        db.purge_audit_logs(AUDIT_RETENTION_DAYS)?;
+        purge_expired_logs(db)?;
         let limit = limit.min(MAX_AUDIT_PAGE_SIZE);
         let (records, total) = db.get_audit_logs_page(limit, offset)?;
         let has_more = i64::from(offset) + (records.len() as i64) < total;
@@ -55,6 +56,26 @@ impl AuditService {
             has_more,
         })
     }
+}
+
+pub fn parse_retention_days(value: &str) -> Option<i64> {
+    value
+        .parse()
+        .ok()
+        .filter(|days| (0..=3650).contains(days))
+}
+
+fn purge_expired_logs(db: &Database) -> Result<(), AppError> {
+    let days = db
+        .get_config(AUDIT_RETENTION_CONFIG_KEY)?
+        .as_deref()
+        .and_then(parse_retention_days)
+        .unwrap_or(AUDIT_RETENTION_DAYS);
+    // 0 表示保留全部历史，不能交给数据库层作为删除条件。
+    if days > 0 {
+        db.purge_audit_logs(days)?;
+    }
+    Ok(())
 }
 
 fn project_logs(records: Vec<AuditLog>) -> Result<Vec<AuditLog>, AppError> {

@@ -198,8 +198,9 @@ const SKIN_ANTD_MAP: Record<SkinId, SkinAntdOverrides> = {
 };
 
 /** 根据 resolved theme 和 skin 获取对应 Ant Design 主题配置 */
-export function getAntdTheme(resolved: "light" | "dark", skin?: SkinId): ThemeConfig {
-  const base = resolved === "dark" ? darkTheme : lightTheme;
+export function getAntdTheme(resolved: "light" | "dark", skin?: SkinId, fontSize = 13): ThemeConfig {
+  const baseTheme = resolved === "dark" ? darkTheme : lightTheme;
+  const base: ThemeConfig = { ...baseTheme, token: { ...baseTheme.token, fontSize } };
   if (!skin || !SKIN_ANTD_MAP[skin]) return base;
 
   // 与 CSS 的皮肤明暗族约束一致，避免亮色控件叠在残留的暗色表面上。

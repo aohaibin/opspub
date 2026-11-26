@@ -5,7 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 import { useSettingsStore } from "@/store";
 import { TerminalInteractions } from "@/components/terminal/TerminalInteractions";
 import type { Server, TerminalSessionInfo } from "@/types";
-import { TERMINAL_THEMES } from "@/components/terminal/terminal-themes";
+import { TERMINAL_FONT_FAMILIES, TERMINAL_THEMES } from "@/components/terminal/terminal-themes";
 
 interface TerminalPaneProps {
   session: TerminalSessionInfo;
@@ -30,6 +30,8 @@ export function TerminalPane({
   const fontSize = useSettingsStore((state) => state.terminalFontSize);
   const lineHeight = useSettingsStore((state) => state.terminalLineHeight);
   const cursorStyle = useSettingsStore((state) => state.terminalCursorStyle);
+  const fontFamily = useSettingsStore((state) => state.terminalFontFamily);
+  const scrollback = useSettingsStore((state) => state.terminalScrollback);
   const terminalTheme = TERMINAL_THEMES[themeId];
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -53,10 +55,10 @@ export function TerminalPane({
       convertEol: false,
       cursorBlink: cursorStyle !== "underline",
       cursorStyle,
-      fontFamily: "Cascadia Code, JetBrains Mono, Consolas, monospace",
+      fontFamily: TERMINAL_FONT_FAMILIES[fontFamily],
       fontSize,
       lineHeight,
-      scrollback: 8_000,
+      scrollback,
       theme: terminalTheme,
     });
     const fit = new FitAddon();
@@ -108,11 +110,16 @@ export function TerminalPane({
     const terminal = terminalRef.current;
     if (!terminal) return;
     terminal.options.fontSize = fontSize;
+    terminal.options.fontFamily = TERMINAL_FONT_FAMILIES[fontFamily];
     terminal.options.lineHeight = lineHeight;
     terminal.options.cursorStyle = cursorStyle;
     terminal.options.cursorBlink = cursorStyle !== "underline";
     window.requestAnimationFrame(() => fitRef.current?.fit());
-  }, [fontSize, lineHeight, cursorStyle]);
+  }, [fontSize, lineHeight, cursorStyle, fontFamily]);
+
+  useEffect(() => {
+    if (terminalRef.current) terminalRef.current.options.scrollback = scrollback;
+  }, [scrollback]);
 
   useEffect(() => {
     if (terminalRef.current) terminalRef.current.options.theme = terminalTheme;

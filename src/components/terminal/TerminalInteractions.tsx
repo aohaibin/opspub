@@ -8,6 +8,7 @@ import type { Terminal } from "@xterm/xterm";
 import { getErrorMessage } from "@/lib/api/client";
 import { modelServiceApi } from "@/lib/api/model-service";
 import { terminalApi } from "@/lib/api/terminal";
+import { useSettingsStore } from "@/store/settings";
 import { inspectTerminalPaste, saveTerminalLibraryItem, terminalShortcut, TERMINAL_PASTE_EVENT, type TerminalLibraryKind } from "@/lib/terminal-interactions";
 import type { ModelProfile, Server } from "@/types";
 import "./terminal-interactions.css";
@@ -132,12 +133,24 @@ export function TerminalInteractions({ terminal, server, sessionId, connected, o
     setSaveDraft({ kind, title: `${server.alias} · ${kind === "snippet" ? "命令片段" : "终端经验"}`.slice(0, 80), content: text });
   };
 
-  const actionsRef = useRef({ copy, pasteText, onInterrupt });
-  actionsRef.current = { copy, pasteText, onInterrupt };
+  const actionsRef = useRef({ copy, pasteText, readClipboard, onInterrupt });
+  actionsRef.current = { copy, pasteText, readClipboard, onInterrupt };
 
   useEffect(() => {
     if (!terminal?.element) return;
     const host = terminal.element;
+    let copyAfterSelection = false;
+    const selectionStart = (event: MouseEvent) => {
+      copyAfterSelection = event.button === 0 && useSettingsStore.getState().terminalAutoCopy;
+    };
+    const selectionEnd = (event: MouseEvent) => {
+      if (event.button !== 0 || !copyAfterSelection) return;
+      copyAfterSelection = false;
+      const text = terminal.getSelection();
+      if (text && useSettingsStore.getState().terminalAutoCopy) {
+        void navigator.clipboard?.writeText(text)?.catch(() => undefined);
+      }
+    };
     const selected = terminal.onSelectionChange(() => setSelection(terminal.getSelection()));
     terminal.attachCustomKeyEventHandler((event) => {
       const action = terminalShortcut(event, terminal.hasSelection());
@@ -160,6 +173,11 @@ export function TerminalInteractions({ terminal, server, sessionId, connected, o
     const contextMenu = (event: MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
+      if (event.button === 2 && !event.shiftKey && useSettingsStore.getState().terminalRightClick === "paste") {
+        setMenu(null);
+        void actionsRef.current.readClipboard();
+        return;
+      }
       setMenu({ x: event.clientX, y: event.clientY, selection: terminal.getSelection() });
     };
     const preserveSelection = (event: MouseEvent) => {
@@ -171,12 +189,16 @@ export function TerminalInteractions({ terminal, server, sessionId, connected, o
     host.addEventListener("paste", paste, true);
     host.addEventListener("contextmenu", contextMenu, true);
     host.addEventListener("mousedown", preserveSelection, true);
+    host.addEventListener("mousedown", selectionStart, true);
+    window.addEventListener("mouseup", selectionEnd);
     return () => {
       selected.dispose();
       terminal.attachCustomKeyEventHandler(() => true);
       host.removeEventListener("paste", paste, true);
       host.removeEventListener("contextmenu", contextMenu, true);
       host.removeEventListener("mousedown", preserveSelection, true);
+      host.removeEventListener("mousedown", selectionStart, true);
+      window.removeEventListener("mouseup", selectionEnd);
     };
   }, [terminal]);
 

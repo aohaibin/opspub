@@ -73,6 +73,11 @@ impl TerminalManager {
             self.server_sessions.remove(&request.server_id);
         }
 
+        let keepalive_seconds = db
+            .get_config("ui.terminal_keepalive_seconds")?
+            .and_then(|value| value.parse::<u32>().ok())
+            .filter(|value| matches!(value, 0 | 15 | 30 | 60))
+            .unwrap_or(15);
         let (server, session) = ServerService::connect_terminal(db, &request)?;
         let mut channel = session
             .channel_session()
@@ -85,7 +90,7 @@ impl TerminalManager {
             .map_err(|error| AppError::Custom(format!("启动远程 Shell 失败: {error}")))?;
         // 保持空闲 SSH 会话存活，避免服务端空闲超时后用户下一次按键才发现断线。
         // keepalive_send 在工作线程中处理，不阻塞 Tauri IPC。
-        session.set_keepalive(true, 15);
+        session.set_keepalive(keepalive_seconds > 0, keepalive_seconds);
         session.set_blocking(false);
 
         let sequence = self.sequence.fetch_add(1, Ordering::Relaxed);
@@ -126,6 +131,7 @@ impl TerminalManager {
                     session,
                     channel,
                     receiver,
+                    keepalive_seconds,
                 )
             })
             .map_err(|error| {
@@ -219,6 +225,7 @@ fn run_terminal(
     session: Session,
     mut channel: Channel,
     receiver: mpsc::Receiver<TerminalControl>,
+    keepalive_seconds: u32,
 ) {
     emit_status(&app, &session_id, "connected", "SSH 终端已连接");
     let mut pending = VecDeque::<u8>::new();
@@ -235,6 +242,7 @@ fn run_terminal(
     let mut close_requested = false;
     let mut failure_message = None;
     let mut last_keepalive = std::time::Instant::now();
+    let keepalive_interval = Duration::from_secs(u64::from(keepalive_seconds));
     // libssh2 在非阻塞模式下写入前会主动读取窗口更新。Windows 的 socket
     // 暂时超时会被包装成 "Failure while draining incoming flow"，这不是断线，
     // 不能因为一次按键恰好撞上该窗口就结束整个会话。
@@ -305,7 +313,7 @@ fn run_terminal(
                 }
             }
 
-            if last_keepalive.elapsed() >= Duration::from_secs(10) {
+            if keepalive_seconds > 0 && last_keepalive.elapsed() >= keepalive_interval {
                 match session.keepalive_send() {
                     Ok(_) => last_keepalive = std::time::Instant::now(),
                     // 非阻塞模式下 keepalive 也可能返回 EAGAIN。更新时间戳后

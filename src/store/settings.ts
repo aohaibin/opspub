@@ -2,9 +2,10 @@ import { create } from "zustand";
 import { disable as disableAutoStart, enable as enableAutoStart, isEnabled as isAutoStartEnabled } from "@tauri-apps/plugin-autostart";
 import { configApi } from "@/lib/api/config";
 import { DEFAULT_LOGO_COLOR, parseLogoColor, type LogoColor } from "@/lib/logo";
-import type { TerminalCursorStyle, TerminalFontSize, TerminalLineHeight, TerminalTheme } from "@/components/terminal/terminal-themes";
+import { TERMINAL_SCROLLBACK_OPTIONS, type TerminalCursorStyle, type TerminalFontFamily, type TerminalFontSize, type TerminalLineHeight, type TerminalRightClick, type TerminalTheme } from "@/components/terminal/terminal-themes";
 
 export type CloseBehavior = "ask" | "minimize" | "exit";
+export type UiFontFamily = "system" | "rounded" | "inter";
 export type { TerminalCursorStyle, TerminalFontSize, TerminalLineHeight, TerminalTheme } from "@/components/terminal/terminal-themes";
 
 type AutoStartStatus = "loading" | "ready" | "saving" | "unavailable";
@@ -30,6 +31,20 @@ interface SettingsStore {
   setTerminalLineHeight: (lineHeight: TerminalLineHeight) => void;
   terminalCursorStyle: TerminalCursorStyle;
   setTerminalCursorStyle: (cursorStyle: TerminalCursorStyle) => void;
+  terminalFontFamily: TerminalFontFamily;
+  setTerminalFontFamily: (value: TerminalFontFamily) => void;
+  terminalAutoCopy: boolean;
+  setTerminalAutoCopy: (enabled: boolean) => void;
+  terminalRightClick: TerminalRightClick;
+  setTerminalRightClick: (value: TerminalRightClick) => void;
+  terminalScrollback: number;
+  setTerminalScrollback: (value: number) => void;
+  terminalKeepalive: number;
+  setTerminalKeepalive: (value: number) => void;
+  uiFontSize: number;
+  setUiFontSize: (fontSize: number) => void;
+  uiFontFamily: UiFontFamily;
+  setUiFontFamily: (fontFamily: UiFontFamily) => void;
   logoColor: LogoColor;
   setLogoColor: (color: LogoColor) => void;
   sftpDownloadDir: string;
@@ -48,6 +63,8 @@ interface SettingsStore {
   setOutboundHosts: (hosts: string[]) => void;
   outboundEnabled: boolean;
   setOutboundEnabled: (enabled: boolean) => void;
+  auditRetentionDays: number;
+  setAuditRetentionDays: (days: number) => void;
   hydrate: (values: Record<string, string>) => void;
 }
 
@@ -60,6 +77,13 @@ export const SETTINGS_KEYS = {
   terminalFontSize: "ui.terminal_font_size",
   terminalLineHeight: "ui.terminal_line_height",
   terminalCursorStyle: "ui.terminal_cursor_style",
+  terminalFontFamily: "ui.terminal_font_family",
+  terminalAutoCopy: "ui.terminal_auto_copy",
+  terminalRightClick: "ui.terminal_right_click",
+  terminalScrollback: "ui.terminal_scrollback",
+  terminalKeepalive: "ui.terminal_keepalive_seconds",
+  uiFontSize: "ui.font_size",
+  uiFontFamily: "ui.font_family",
   logoColor: "ui.logo_color",
   sftpDownloadDir: "sftp.download_dir",
   sftpMaxConcurrency: "sftp.max_concurrency",
@@ -69,6 +93,7 @@ export const SETTINGS_KEYS = {
   proxyAddress: "network.proxy_address",
   outboundHosts: "network.outbound_hosts",
   outboundEnabled: "network.outbound_enabled",
+  auditRetentionDays: "audit.retention_days",
 } as const;
 
 let autoStartReadId = 0;
@@ -143,6 +168,20 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   setTerminalLineHeight: (terminalLineHeight) => set({ terminalLineHeight }),
   terminalCursorStyle: "block",
   setTerminalCursorStyle: (terminalCursorStyle) => set({ terminalCursorStyle }),
+  terminalFontFamily: "default",
+  setTerminalFontFamily: (terminalFontFamily) => set({ terminalFontFamily }),
+  terminalAutoCopy: false,
+  setTerminalAutoCopy: (terminalAutoCopy) => set({ terminalAutoCopy }),
+  terminalRightClick: "menu",
+  setTerminalRightClick: (terminalRightClick) => set({ terminalRightClick }),
+  terminalScrollback: 10_000,
+  setTerminalScrollback: (terminalScrollback) => set({ terminalScrollback }),
+  terminalKeepalive: 15,
+  setTerminalKeepalive: (terminalKeepalive) => set({ terminalKeepalive }),
+  uiFontSize: 14,
+  setUiFontSize: (uiFontSize) => set({ uiFontSize }),
+  uiFontFamily: "system",
+  setUiFontFamily: (uiFontFamily) => set({ uiFontFamily }),
   logoColor: DEFAULT_LOGO_COLOR,
   setLogoColor: (logoColor) => set({ logoColor }),
   sftpDownloadDir: "",
@@ -161,6 +200,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   setOutboundHosts: (outboundHosts) => set({ outboundHosts }),
   outboundEnabled: false,
   setOutboundEnabled: (outboundEnabled) => set({ outboundEnabled }),
+  auditRetentionDays: 180,
+  setAuditRetentionDays: (auditRetentionDays) => set({ auditRetentionDays }),
   hydrate: (values) => set({
     logoColor: parseLogoColor(values[SETTINGS_KEYS.logoColor]),
     language: values[SETTINGS_KEYS.language] === "en-US" ? "en-US" : "zh-CN",
@@ -185,6 +226,27 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     terminalCursorStyle: values[SETTINGS_KEYS.terminalCursorStyle] === "bar" || values[SETTINGS_KEYS.terminalCursorStyle] === "underline"
       ? values[SETTINGS_KEYS.terminalCursorStyle] as TerminalCursorStyle
       : "block",
+    terminalFontFamily: (() => {
+      const value = values[SETTINGS_KEYS.terminalFontFamily];
+      return value === "cascadia" || value === "jetbrains" || value === "consolas" ? value : "default";
+    })(),
+    terminalAutoCopy: values[SETTINGS_KEYS.terminalAutoCopy] === "true",
+    terminalRightClick: values[SETTINGS_KEYS.terminalRightClick] === "paste" ? "paste" : "menu",
+    terminalScrollback: (() => {
+      const value = Number(values[SETTINGS_KEYS.terminalScrollback]);
+      return TERMINAL_SCROLLBACK_OPTIONS.includes(value) ? value : 10_000;
+    })(),
+    terminalKeepalive: (() => {
+      const value = Number(values[SETTINGS_KEYS.terminalKeepalive] ?? "15");
+      return [0, 15, 30, 60].includes(value) ? value : 15;
+    })(),
+    uiFontSize: (() => {
+      const parsed = Number(values[SETTINGS_KEYS.uiFontSize]);
+      return Number.isInteger(parsed) && parsed >= 12 && parsed <= 20 ? parsed : 14;
+    })(),
+    uiFontFamily: values[SETTINGS_KEYS.uiFontFamily] === "rounded" || values[SETTINGS_KEYS.uiFontFamily] === "inter"
+      ? values[SETTINGS_KEYS.uiFontFamily] as UiFontFamily
+      : "system",
     sftpDownloadDir: values[SETTINGS_KEYS.sftpDownloadDir] ?? "",
     sftpMaxConcurrency: (() => {
       const parsed = Number(values[SETTINGS_KEYS.sftpMaxConcurrency]);
@@ -203,6 +265,11 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       }
     })(),
     outboundEnabled: values[SETTINGS_KEYS.outboundEnabled] === "true",
+    auditRetentionDays: (() => {
+      const raw = values[SETTINGS_KEYS.auditRetentionDays];
+      const days = raw && /^[0-9]+$/.test(raw) ? Number(raw) : 180;
+      return days <= 3650 ? days : 180;
+    })(),
   }),
 }));
 

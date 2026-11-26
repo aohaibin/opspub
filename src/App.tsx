@@ -18,6 +18,8 @@ function App() {
   const hydrateCredentials = useSshSessionStore((s) => s.hydrateCredentials);
   const language = useSettingsStore((s) => s.language);
   const logoColor = useSettingsStore((s) => s.logoColor);
+  const uiFontSize = useSettingsStore((s) => s.uiFontSize);
+  const uiFontFamily = useSettingsStore((s) => s.uiFontFamily);
   const [credentialsReady, setCredentialsReady] = useState(false);
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
@@ -73,9 +75,19 @@ function App() {
     if (favicon) favicon.href = logoUrl.app(logoColor);
   }, [logoColor]);
 
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--font-size", `${uiFontSize}px`);
+    root.style.setProperty("--font-ui", uiFontFamily === "rounded"
+      ? 'var(--font-rounded-ui)'
+      : uiFontFamily === "inter"
+        ? 'Inter, "Microsoft YaHei UI", sans-serif'
+        : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif');
+  }, [uiFontSize, uiFontFamily]);
+
   const antdTheme = useMemo(
-    () => getAntdTheme(resolved, skin),
-    [resolved, skin]
+    () => getAntdTheme(resolved, skin, uiFontSize),
+    [resolved, skin, uiFontSize]
   );
 
   return (

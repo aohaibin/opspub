@@ -4,6 +4,24 @@ export type TerminalTheme = "monokai-pro" | "catppuccin" | "dracula" | "matrix-g
 export type TerminalCursorStyle = "block" | "bar" | "underline";
 export type TerminalFontSize = 13 | 14 | 16;
 export type TerminalLineHeight = 1.2 | 1.35 | 1.5;
+export type TerminalFontFamily = "default" | "cascadia" | "jetbrains" | "consolas";
+export type TerminalRightClick = "menu" | "paste";
+
+export const TERMINAL_FONT_FAMILIES: Record<TerminalFontFamily, string> = {
+  default: "Cascadia Code, JetBrains Mono, Consolas, monospace",
+  cascadia: "Cascadia Code, Consolas, monospace",
+  jetbrains: "JetBrains Mono, Consolas, monospace",
+  consolas: "Consolas, monospace",
+};
+
+export const TERMINAL_FONT_FAMILY_OPTIONS: Array<{ value: TerminalFontFamily; label: string }> = [
+  { value: "default", label: "系统默认" },
+  { value: "cascadia", label: "Cascadia Code" },
+  { value: "jetbrains", label: "JetBrains Mono" },
+  { value: "consolas", label: "Consolas" },
+];
+
+export const TERMINAL_SCROLLBACK_OPTIONS = [5_000, 10_000, 50_000];
 
 export type TerminalThemeOption = {
   id: TerminalTheme;

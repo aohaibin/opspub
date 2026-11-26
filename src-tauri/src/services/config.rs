@@ -1,6 +1,7 @@
 use crate::database::Database;
 use crate::error::AppError;
 use crate::models::AppConfig;
+use crate::services::audit::{parse_retention_days, AUDIT_RETENTION_CONFIG_KEY};
 
 /// 配置管理服务
 pub struct ConfigService;
@@ -26,6 +27,11 @@ impl ConfigService {
         if key == "ai_unlock_until" {
             return Err(AppError::InvalidInput(
                 "AI 操作总开关须通过专用接口修改".into(),
+            ));
+        }
+        if key == AUDIT_RETENTION_CONFIG_KEY && parse_retention_days(value).is_none() {
+            return Err(AppError::InvalidInput(
+                "审计日志保留期必须是 0 到 3650 天的整数".into(),
             ));
         }
         db.set_config(key, value)

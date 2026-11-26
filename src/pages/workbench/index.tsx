@@ -245,7 +245,7 @@ export default function WorkbenchPage() {
           {listError && <Alert className="mb-3" type="error" showIcon message="服务器列表加载失败" description={listError} action={<Button size="small" onClick={() => void loadServers()}>重试</Button>} />}
           {selectedServer ? (
             <WorkbenchRuntimeContext.Provider value={runtime}>
-              {currentView === "overview" && <OverviewView server={selectedServer} autoRefresh={autoRefresh} />}
+              {currentView === "overview" && <OverviewView server={selectedServer} autoRefresh={autoRefresh} onOpenWebsites={() => navigateTo("website")} />}
               {currentView === "appstore" && <AppStoreView />}
               {currentView === "website" && <WebsiteView />}
               {currentView === "database" && <DatabaseView hostScoped />}

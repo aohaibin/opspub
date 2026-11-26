@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Drawer, Form, Input, Modal, Popconfirm, Select, Switch, Table, Tag, message } from "antd";
-import { ArrowRight, Code2, FileCode2, FileText, Globe, Info, Inbox, Plus, RefreshCw, RotateCw, ScrollText, Settings, ShieldAlert, ShieldCheck, Square, Trash2 } from "lucide-react";
+import { Alert, Button, Drawer, Form, Input, Modal, Popconfirm, Select, Switch, Table, Tag, message } from "antd";
+import { ArrowRight, Code2, FileText, Globe, Info, Inbox, Plus, RefreshCw, RotateCw, ScrollText, Settings, ShieldAlert, ShieldCheck, Square, Trash2 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/client";
 import { useWorkbenchRuntime } from "../context";
+import { managedSiteDomain, readWebsiteInventory } from "../websiteInventory";
 import type { WebsiteItem } from "../types";
 
 type WebsiteSubTab = "sites" | "certs" | "proxy4";
@@ -39,12 +40,16 @@ const buildProxyConfig = (rule: ProxyRule): string => {
 };
 
 export const WebsiteView: React.FC = () => {
-  const { runCommand, connected } = useWorkbenchRuntime();
+  const { runCommand, server } = useWorkbenchRuntime();
+  const supportsInventory = server?.os_type !== "windows";
   const [tab, setTab] = useState<WebsiteSubTab>("sites");
   const [serviceState, setServiceState] = useState<"running" | "stopped" | "unknown">("unknown");
   const [serviceBusy, setServiceBusy] = useState(false);
   const [managedSites, setManagedSites] = useState<ManagedSite[]>([]);
   const [panelSites, setPanelSites] = useState<string[]>([]);
+  const [inventoryBusy, setInventoryBusy] = useState(false);
+  const [inventoryReady, setInventoryReady] = useState(false);
+  const [inventoryNotice, setInventoryNotice] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [siteModalOpen, setSiteModalOpen] = useState(false);
   const [siteForm] = Form.useForm<SiteFormValues>();
@@ -72,36 +77,35 @@ export const WebsiteView: React.FC = () => {
 
   const runChecked = useCallback(async (command: string, fallback: string) => { const result = await runCommand(command); if (result.exitCode !== 0) throw checkedError(result.stdout, result.stderr, fallback); return result; }, [runCommand]);
   const refreshService = useCallback(async () => { try { const result = await runCommand("systemctl is-active openresty 2>/dev/null || systemctl is-active nginx 2>/dev/null"); setServiceState(result.stdout.trim() === "active" ? "running" : "stopped"); } catch { setServiceState("unknown"); } }, [runCommand]);
-  const refreshManagedSites = useCallback(async () => {
+  const refreshSites = useCallback(async () => {
+    setInventoryBusy(true);
+    setInventoryNotice(null);
     try {
-      const result = await runCommand("find /etc/nginx/conf.d -maxdepth 1 -type f \\( -name 'ops-pub-*.conf' -o -name 'ops-sentry-*.conf' \\) -printf '%f\\n' 2>/dev/null");
-      if (result.exitCode !== 0) return;
-      const sites = result.stdout.split(/\r?\n/).filter(Boolean).map((fileName): ManagedSite => {
-        const domain = fileName.replace(/^ops-(?:pub|sentry)-/, "").replace(/\.conf$/, "");
+      const { managedFiles, externalSites, partial } = await readWebsiteInventory(runCommand);
+      const sites = managedFiles.map((fileName): ManagedSite => {
+        const domain = managedSiteDomain(fileName);
         return { id: fileName, configName: fileName, domain, docRoot: "配置文件已存在", type: "proxy", status: "running", port: 80, ssl: false, remark: "OpsPub 托管站点", websocket: true, spa: true };
       });
       setManagedSites(sites);
-    } catch {
-      // 没有权限读取配置目录时保留空状态，创建操作仍可正常使用。
-    }
-  }, [runCommand]);
-  const refreshPanelSites = useCallback(async () => {
-    try {
-      const result = await runCommand("(nginx -T 2>/dev/null || docker exec $(docker ps --format '{{.Names}}' | grep -m1 -i openresty) nginx -T 2>/dev/null) | sed -n 's/^[[:space:]]*server_name[[:space:]]\\+\\([^;]*\\);.*/\\1/p' | tr ' ' '\\n' | sort -u | head -100");
-      if (result.exitCode === 0) setPanelSites(result.stdout.split(/\r?\n/).map((site) => site.trim()).filter((site) => site && site !== "_"));
-    } catch {
-      setPanelSites([]);
+      setPanelSites(externalSites);
+      setInventoryReady(true);
+      if (partial) setInventoryNotice("部分站点未能读取，请检查 Nginx、OpenResty 或 Docker 的访问权限。");
+    } catch (error) {
+      setInventoryNotice(getErrorMessage(error));
+    } finally {
+      setInventoryBusy(false);
     }
   }, [runCommand]);
   useEffect(() => {
-    if (!connected) return;
     let active = true;
+    if (!supportsInventory) return;
     void (async () => {
+      await refreshSites();
+      if (!active) return;
       await refreshService();
-      if (active) await Promise.all([refreshManagedSites(), refreshPanelSites()]);
     })();
     return () => { active = false; };
-  }, [connected, refreshManagedSites, refreshPanelSites, refreshService]);
+  }, [supportsInventory, refreshSites, refreshService]);
 
   const serviceAction = async (action: "reload" | "restart" | "stop") => {
     setServiceBusy(true);
@@ -120,6 +124,7 @@ export const WebsiteView: React.FC = () => {
   };
   const deleteSite = async (site: ManagedSite) => { try { const configName = site.configName || `ops-pub-${site.domain.replace(/[^a-zA-Z0-9.-]/g, "-")}.conf`; await runChecked(`rm -f ${shellQuote(`/etc/nginx/conf.d/${configName}`)} && nginx -t && (systemctl reload openresty || systemctl reload nginx)`, "删除站点配置失败"); setManagedSites((current) => current.filter((item) => item.id !== site.id)); message.success(`已删除站点 ${site.domain}`); } catch (error) { message.error(getErrorMessage(error)); } };
   const filteredSites = useMemo(() => { const keyword = search.trim().toLowerCase(); return keyword ? managedSites.filter((site) => `${site.domain} ${site.remark}`.toLowerCase().includes(keyword)) : managedSites; }, [managedSites, search]);
+  const filteredPanelSites = panelSites.filter((site) => site.includes(search.trim().toLowerCase()));
 
   const applyCertificate = async (values: CertificateFormValues) => { const domain = values.domain.trim(); try { const san = (values.san || "").split(/[\s,，]+/).filter(Boolean); const names = [domain, ...san].map((name) => `-d ${shellQuote(name)}`).join(" "); await runChecked(`command -v certbot >/dev/null && certbot certonly --nginx --non-interactive --agree-tos --email ${shellQuote(values.email)} ${names}`, "certbot 未安装或证书申请失败"); const expiresAt = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10); setCertificates((current) => [{ id: crypto.randomUUID(), domain, san, algorithm: "EC 256", auth: "HTTP-01", issuer: "Let's Encrypt", expiresAt, daysLeft: 90 }, ...current]); setRenewalLogs((current) => [`[${new Date().toLocaleString()}] 已申请 ${domain} 证书`, ...current]); setCertificateDrawerOpen(false); certificateForm.resetFields(); message.success("SSL 证书申请成功"); } catch (error) { message.error(getErrorMessage(error)); } };
   const toggleOrCheckRenew = () => { if (autoRenew) { setRenewalLogs((current) => [`[${new Date().toLocaleString()}] 已完成证书有效期检查`, ...current]); message.success("证书检查完成"); } else { setAutoRenew(true); setRenewalLogs((current) => [`[${new Date().toLocaleString()}] 已开启每日自动续签巡检`, ...current]); message.success("已开启自动续签"); } };
@@ -158,8 +163,47 @@ export const WebsiteView: React.FC = () => {
 
   return <div className="space-y-4 pb-12 select-none">
     <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b" style={{ borderColor: "var(--border)" }}><div className="flex items-center gap-3"><div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-teal-400" /><h3 className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>网站</h3></div><Tag color={serviceState === "running" ? "success" : serviceState === "stopped" ? "default" : "warning"}>OpenResty 1.27.1.2 · {serviceState === "running" ? "运行中" : serviceState === "stopped" ? "已停止" : "未知"}</Tag><Button size="small" icon={<RefreshCw size={13} />} loading={serviceBusy} onClick={() => void serviceAction("reload")}>重载</Button><Button size="small" icon={<RotateCw size={13} />} loading={serviceBusy} onClick={() => void serviceAction("restart")}>重启</Button><Button size="small" danger icon={<Square size={12} />} loading={serviceBusy} onClick={() => void serviceAction("stop")}>停止</Button></div><div className="flex items-center gap-1 rounded-lg p-1" style={{ background: "var(--bg-secondary)" }}>{(["sites", "certs", "proxy4"] as const).map((key) => <Button key={key} size="small" type={tab === key ? "primary" : "text"} onClick={() => setTab(key)}>{key === "sites" ? "站点" : key === "certs" ? "证书" : "四层代理"}</Button>)}</div></div>
-    <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 flex items-center gap-2"><Info size={15} className="shrink-0 text-cyan-400" /><span>复用 1Panel 的 OpenResty，OpsPub 创建的配置与已有站点共存，互不覆盖。</span><code className="px-1.5 py-0.5 rounded bg-surface-900 font-mono text-[11px] text-slate-300">1panel-openresty-y3bX</code></div>
-    {tab === "sites" && <div className="space-y-4"><div className="flex items-center justify-between text-xs pt-1"><span className="text-slate-400">共 {managedSites.length} 个托管站点</span><div className="flex gap-2"><Input size="small" allowClear value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索域名或备注" style={{ width: 210 }} /><Button type="primary" size="small" icon={<Plus size={14} />} onClick={() => { resetSiteForm(); setSiteModalOpen(true); }}>新建站点</Button><Button size="small" icon={<RefreshCw size={13} />} loading={serviceBusy} onClick={() => void serviceAction("reload")}>刷新</Button></div></div>{filteredSites.length === 0 ? <div className="py-12 flex flex-col items-center justify-center gap-3 border border-dashed border-slate-800 rounded-xl bg-surface-950/40"><div className="w-12 h-12 rounded-2xl bg-surface-900 flex items-center justify-center text-slate-500"><FileCode2 size={25} /></div><div className="text-xs text-slate-400">还没有 OpsPub 托管站点，点击“新建站点”添加反向代理或静态站点</div></div> : <div className="rounded-xl border border-teal-500/30 overflow-hidden bg-surface-900/80"><div className="p-3 bg-surface-950/80 border-b border-slate-800 text-xs font-semibold text-white">OpsPub 管理的站点（{filteredSites.length}）</div><Table rowKey="id" size="small" pagination={false} columns={siteColumns} dataSource={filteredSites} className="ops-table text-xs" /></div>}<div className="rounded-xl border border-slate-800 overflow-hidden"><div className="p-3 bg-surface-900/80 border-b border-slate-800 text-xs flex items-center justify-between"><span className="font-semibold text-slate-200">1Panel 已有站点（{panelSites.length})</span><span className="text-slate-500">只读，在原面板管理</span></div>{panelSites.length === 0 ? <div className="p-8 text-center text-xs text-slate-500">未读取到 1Panel 站点，请确认已连接服务器</div> : <div className="divide-y divide-slate-800/40 text-xs font-mono">{panelSites.map((site) => <div key={site} className="p-3 flex items-center justify-between hover:bg-surface-850/40"><div className="flex items-center gap-3"><span className="text-slate-200 font-medium">{site}</span><Tag className="m-0">已有站点</Tag></div><span className="text-slate-500">{site}</span></div>)}</div>}</div></div>}
+    {tab === "sites" && (
+      <div className="space-y-4">
+        {!supportsInventory && <Alert type="info" showIcon title="网站扫描目前支持 Linux 主机" />}
+        {inventoryNotice && <Alert type="warning" showIcon title={inventoryNotice} />}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+          <span style={{ color: "var(--text-secondary)" }}>
+            {inventoryReady ? `共 ${managedSites.length} 个托管站点` : inventoryBusy ? "正在扫描站点…" : "等待扫描站点"}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Input size="small" allowClear value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索域名或备注" style={{ width: 210 }} />
+            <Button type="primary" size="small" disabled={!supportsInventory || inventoryBusy} icon={<Plus size={14} />} onClick={() => { resetSiteForm(); setSiteModalOpen(true); }}>新建站点</Button>
+            <Button size="small" disabled={!supportsInventory} loading={inventoryBusy} icon={<RefreshCw size={13} />} onClick={() => void refreshSites()}>刷新站点</Button>
+          </div>
+        </div>
+        {filteredSites.length > 0 ? (
+          <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-900)]">
+            <h4 className="border-b border-[var(--border)] p-3 text-xs font-semibold">OpsPub 管理的站点（{filteredSites.length}）</h4>
+            <Table rowKey="id" size="small" pagination={false} columns={siteColumns} dataSource={filteredSites} className="ops-table text-xs" />
+          </div>
+        ) : inventoryReady && (
+          <p className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center text-xs text-[var(--text-secondary)]">
+            {search.trim() ? "没有匹配的托管站点" : "暂无 OpsPub 托管站点"}
+          </p>
+        )}
+        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-900)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] p-3 text-xs">
+            <h4 className="font-semibold">已有站点{inventoryReady && `（${filteredPanelSites.length}）`}</h4>
+            <span className="text-[var(--text-secondary)]">只读 · 在原服务或面板管理</span>
+          </div>
+          {filteredPanelSites.length === 0 ? (
+            <p className="p-5 text-center text-xs text-[var(--text-secondary)]">
+              {inventoryBusy ? "正在读取网站配置…" : !inventoryReady ? "暂无扫描结果" : search.trim() ? "没有匹配的站点" : "未发现已有站点"}
+            </p>
+          ) : (
+            <ul className="divide-y divide-[var(--border)] text-xs">
+              {filteredPanelSites.map((site) => <li key={site} className="break-all p-3 font-mono">{site}</li>)}
+            </ul>
+          )}
+        </div>
+      </div>
+    )}
     {tab === "certs" && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 text-xs"><div className="flex items-center gap-2"><ShieldCheck size={16} className="text-emerald-400" /><span className="text-slate-300 font-medium">SSL 证书</span><span className="text-slate-500">共 {certificates.length}</span><Tag color={autoRenew ? "success" : "default"}>{autoRenew ? "自动续签已开启" : "自动续签未开启"}</Tag></div><div className="flex gap-2"><Button type="primary" size="small" icon={<Plus size={14} />} onClick={() => setCertificateDrawerOpen(true)}>申请证书</Button><Button size="small" icon={<Globe size={13} />} onClick={() => setDnsModalOpen(true)}>DNS 账户</Button><Button size="small" icon={<RotateCw size={13} />} onClick={toggleOrCheckRenew}>{autoRenew ? "立即检查续签" : "开启自动续签"}</Button><Button size="small" icon={<ScrollText size={13} />} onClick={() => setRenewalLogsOpen(true)}>续签日志</Button><Button size="small" icon={<RefreshCw size={13} />} onClick={() => void refreshService()}>刷新</Button></div></div>{certificates.length === 0 ? <div className="py-24 flex flex-col items-center justify-center gap-3 border border-dashed border-slate-800 rounded-xl bg-surface-950/40"><div className="w-14 h-14 rounded-2xl bg-surface-900 border border-slate-700/60 flex items-center justify-center text-slate-400"><FileText size={28} /></div><div className="text-xs text-slate-400 font-medium">未扫描到 SSL 证书（certbot / acme.sh / 上传）</div></div> : <Table rowKey="id" size="small" pagination={false} columns={certColumns} dataSource={certificates} className="ops-table text-xs" />}</div>}
     {tab === "proxy4" && <div className="space-y-4"><div className="p-3 rounded-lg bg-cyan-950/20 border border-cyan-500/25 text-xs text-slate-300 flex items-start gap-2.5"><Info size={16} className="text-cyan-400 shrink-0 mt-0.5" /><div className="leading-relaxed"><span className="font-bold text-slate-100">四层代理（TCP/UDP 端口转发）：</span>将本机端口原样转发到目标地址，适合 MySQL、Redis、SSH 等非 HTTP 服务。</div></div><div className="flex items-center justify-between text-xs"><span className="text-slate-400">共 {proxyRules.length} 条转发规则</span><div className="flex gap-2"><Button type="primary" size="small" icon={<Plus size={14} />} onClick={() => { proxyForm.resetFields(); setProxyProtocol("TCP"); setLoadBalance(false); setProxyModalOpen(true); }}>新建转发</Button><Button size="small" icon={<RefreshCw size={13} />} loading={serviceBusy} onClick={() => void serviceAction("reload")}>刷新</Button></div></div>{proxyRules.length === 0 ? <div className="py-24 flex flex-col items-center justify-center gap-3.5 border border-dashed border-slate-800/80 rounded-xl bg-surface-950/40"><div className="w-14 h-14 rounded-2xl bg-surface-900 border border-slate-800 flex items-center justify-center text-slate-500"><Inbox size={28} /></div><div className="text-xs text-slate-500">还没有四层转发，点击“新建转发”添加 TCP/UDP 端口转发</div></div> : <Table rowKey="id" size="small" pagination={false} columns={proxyColumns} dataSource={proxyRules} className="ops-table text-xs" />}</div>}
 

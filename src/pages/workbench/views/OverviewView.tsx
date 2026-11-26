@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Progress, Spin } from "antd";
 import {
-  Activity,
+  ArrowRight,
   Clock3,
   Database,
   Globe,
@@ -11,11 +11,12 @@ import {
   PackageCheck,
   RefreshCw,
   TrendingUp,
-  Wifi,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api/client";
 import type { Server } from "@/types";
 import { useWorkbenchRuntime } from "@/pages/workbench/context";
+import { readWebsiteInventory } from "@/pages/workbench/websiteInventory";
+import "./overview.css";
 
 type TrendMetric = "cpu" | "memory" | "network" | "disk" | "load";
 type TrendLayout = "single" | "grid4";
@@ -28,8 +29,7 @@ interface Metrics {
   cpuPercent: number;
   memoryUsed: number;
   memoryTotal: number;
-  diskUsed: number;
-  diskTotal: number;
+  cpuModel: string;
   load: number;
   loadText: string;
   uptime: string;
@@ -48,7 +48,6 @@ interface Metrics {
   appCount: number;
   dbCount: number;
   cronCount: number;
-  websiteCount: number;
   partitions: DiskPartition[];
 }
 
@@ -57,6 +56,7 @@ interface DiskPartition {
   device: string;
   used: number;
   total: number;
+  available: number;
 }
 
 interface Sample {
@@ -66,6 +66,10 @@ interface Sample {
   network: number;
   disk: number;
   load: number;
+  networkTx: number;
+  networkRx: number;
+  diskRead: number;
+  diskWrite: number;
 }
 
 const EMPTY_METRICS: Metrics = {
@@ -75,8 +79,7 @@ const EMPTY_METRICS: Metrics = {
   cpuPercent: 0,
   memoryUsed: 0,
   memoryTotal: 0,
-  diskUsed: 0,
-  diskTotal: 0,
+  cpuModel: "-",
   load: 0,
   loadText: "-",
   uptime: "-",
@@ -95,28 +98,39 @@ const EMPTY_METRICS: Metrics = {
   appCount: 0,
   dbCount: 0,
   cronCount: 0,
-  websiteCount: 0,
   partitions: [],
 };
 
+// POSIX df 的容量字段在中间定位，保留设备名和挂载路径里的空格。
+const PARTITION_COMMAND = String.raw`(LC_ALL=C df -kP -x tmpfs -x devtmpfs 2>/dev/null || LC_ALL=C df -kP 2>/dev/null) | awk '
+  NR > 1 && match($0, /[ \t]+[0-9]+[ \t]+[0-9]+[ \t]+-?[0-9]+[ \t]+[0-9]+%[ \t]+/) {
+    device = substr($0, 1, RSTART - 1)
+    mount = substr($0, RSTART + RLENGTH)
+    if (mount != "/" && (device == "tmpfs" || device == "devtmpfs" || device == "none" || device == "overlay")) next
+    if (device ~ /^[/]dev[/]loop[0-9]+$/ && mount ~ /^[/]snap[/]/) next
+    fields = substr($0, RSTART, RLENGTH)
+    sub(/^[ \t]+/, "", fields)
+    split(fields, capacity, /[ \t]+/)
+    printf "PART\t%s\t%s\t%s\t%s\t%s\n", mount, device, capacity[2], capacity[1], capacity[3]
+  }'`;
+
 const SAMPLE_COMMAND = [
   "printf 'CPU\\t%s\\n' \"$(nproc 2>/dev/null || echo 0)\"",
-  "printf 'CPUTICKS\\t'; awk '/^cpu / {print $2+$3+$4+$5+$6+$7+$8 \":\" $5+$6; exit}' /proc/stat",
+  "printf 'CPUTICKS\\t'; awk '/^cpu / {printf \"%.0f:%.0f\\n\", $2+$3+$4+$5+$6+$7+$8+$9, $5+$6; exit}' /proc/stat",
   "printf 'MEM\\t'; free -m 2>/dev/null | awk 'NR==2 {print $2 \":\" $7}'",
-  "printf 'DISK\\t'; df -Pm / 2>/dev/null | awk 'NR==2 {print $2 \":\" $3}'",
-  "df -Pm -x tmpfs -x devtmpfs 2>/dev/null | awk 'NR>1 && $6 !~ /^\/run/ {printf \"PART\\t%s\\t%s\\t%s\\t%s\\n\",$6,$1,$3,$2}'",
+  PARTITION_COMMAND,
+  "printf 'CPUMODEL\\t'; awk -F ': *' '/^model name[[:space:]]*:/ {model=$2; exit} END {print model}' /proc/cpuinfo 2>/dev/null",
   "printf 'LOAD\\t'; cut -d' ' -f1-3 /proc/loadavg 2>/dev/null",
   "printf 'UPTIME\\t'; uptime -p 2>/dev/null || uptime",
   "printf 'HOSTNAME\\t'; hostname 2>/dev/null",
-  "printf 'OS\\t'; . /etc/os-release 2>/dev/null && printf '%s' \"$PRETTY_NAME\" || uname -s",
+  "printf 'OS\\t'; . /etc/os-release 2>/dev/null && printf '%s\\n' \"$PRETTY_NAME\" || uname -s",
   "printf 'KERNEL\\t'; uname -r 2>/dev/null",
-  "printf 'IP\\t'; hostname -I 2>/dev/null | awk '{print $1}'",
-  "printf 'NET\\t'; awk 'NR>2 && $1 !~ /^lo:/ {rx+=$2; tx+=$10} END {printf \"%d:%d\",rx,tx}' /proc/net/dev 2>/dev/null",
-  "printf 'DIO\\t'; awk '{read += $6*512; write += $10*512} END {printf \"%d:%d\",read,write}' /proc/diskstats 2>/dev/null",
+  "printf 'IP\\t'; hostname -I 2>/dev/null | awk 'NR==1 {ip=$1} END {print ip}'",
+  "printf 'NET\\t'; awk 'NR>2 && $1 !~ /^lo:/ {rx+=$2; tx+=$10} END {printf \"%.0f:%.0f\\n\",rx,tx}' /proc/net/dev 2>/dev/null",
+  "printf 'DIO\\t'; awk '{read += $6*512; write += $10*512} END {printf \"%.0f:%.0f\\n\",read,write}' /proc/diskstats 2>/dev/null",
   "printf 'APP\\t'; docker ps -q 2>/dev/null | wc -l",
   "printf 'DB\\t'; systemctl list-units --type=service --state=running --no-legend 2>/dev/null | grep -Eic 'mysql|mariadb|postgres|redis|mongo' || true",
   "printf 'CRON\\t'; crontab -l 2>/dev/null | grep -Ev '^\\s*(#|$)' | wc -l",
-  "printf 'WEB\\t'; systemctl list-units --type=service --state=running --no-legend 2>/dev/null | grep -Eic 'nginx|openresty|apache|caddy' || true",
 ].join("; ");
 
 function number(value: string | undefined): number {
@@ -131,11 +145,13 @@ function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: 
     const [key, ...parts] = line.split("\t");
     const value = parts.join("\t").trim();
     if (!key) return;
-    if (key === "PART" && parts.length >= 4) {
-      const [mount, device, used, total] = parts;
+    if (key === "PART" && parts.length >= 5) {
+      const [mount, device, used, total, available] = parts;
       const parsedUsed = number(used);
       const parsedTotal = number(total);
-      if (mount && parsedTotal > 0) partitions.push({ mount, device, used: parsedUsed, total: parsedTotal });
+      if (mount && parsedTotal > 0) {
+        partitions.push({ mount, device, used: parsedUsed, total: parsedTotal, available: Math.max(0, number(available)) });
+      }
       return;
     }
     if (key === "CPU") result.cpuCores = number(value);
@@ -149,11 +165,7 @@ function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: 
       result.memoryTotal = number(total);
       result.memoryUsed = Math.max(0, result.memoryTotal - number(available));
     }
-    if (key === "DISK") {
-      const [total, used] = value.split(":");
-      result.diskTotal = number(total);
-      result.diskUsed = number(used);
-    }
+    if (key === "CPUMODEL") result.cpuModel = value || "-";
     if (key === "LOAD") {
       result.loadText = value || "-";
       result.load = number(value.split(" ")[0]);
@@ -176,24 +188,9 @@ function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: 
     if (key === "APP") result.appCount = Math.max(0, number(value));
     if (key === "DB") result.dbCount = Math.max(0, number(value));
     if (key === "CRON") result.cronCount = Math.max(0, number(value));
-    if (key === "WEB") result.websiteCount = Math.max(0, number(value));
   });
 
-  result.partitions = partitions.slice(0, 8);
-
-  // 资源圆环优先展示 /data（面板通常把业务数据盘作为主盘），没有时回退到根分区。
-  const primaryPartition = partitions.find((partition) => partition.mount === "/data")
-    ?? partitions.find((partition) => partition.mount === "/")
-    ?? partitions[0];
-  if (primaryPartition) {
-    result.diskUsed = primaryPartition.used;
-    result.diskTotal = primaryPartition.total;
-  }
-
-  result.memoryUsed = result.memoryUsed || 0;
-  result.memoryTotal = result.memoryTotal || 0;
-  result.diskUsed = result.diskUsed || 0;
-  result.diskTotal = result.diskTotal || 0;
+  result.partitions = partitions;
   if (previous) {
     const totalTicks = result.cpuTotalTicks - previous.cpuTotalTicks;
     const idleTicks = result.cpuIdleTicks - previous.cpuIdleTicks;
@@ -211,17 +208,16 @@ function parseMetrics(stdout: string, previous: Metrics | null, elapsedSeconds: 
   return result;
 }
 
-function formatBytes(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return "0 B/s";
-  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB/s`;
-  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB/s`;
-  return `${Math.round(value)} B/s`;
+function formatCapacity(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const value = Math.max(0, bytes);
+  const unit = value < 1024 ? 0 : Math.min(units.length - 1, Math.floor(Math.log2(value) / 10));
+  const scaled = value / (1024 ** unit);
+  return `${unit < 2 ? Math.round(scaled) : Number(scaled.toFixed(1))} ${units[unit]}`;
 }
 
-function formatMegabytes(value: number): string {
-  if (!value) return "-";
-  if (value >= 1024) return `${(value / 1024).toFixed(1)} GB`;
-  return `${Math.round(value)} MB`;
+function formatRate(value: number): string {
+  return `${formatCapacity(value)}/s`;
 }
 
 function percent(used: number, total: number): number {
@@ -241,7 +237,7 @@ function sampleValue(sample: Sample, metric: TrendMetric): number {
 }
 
 function formatTrendValue(value: number, metric: TrendMetric): string {
-  if (metric === "network" || metric === "disk") return formatBytes(value);
+  if (metric === "network" || metric === "disk") return formatRate(value);
   if (metric === "load") return value.toFixed(2);
   return `${value.toFixed(1)}%`;
 }
@@ -300,11 +296,14 @@ function TrendChart({ samples, metric, compact = false, onHover, hoveredIndex }:
 interface OverviewViewProps {
   server: Server;
   autoRefresh: boolean;
+  onOpenWebsites: () => void;
 }
 
-export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh }) => {
+export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh, onOpenWebsites }) => {
   const { runCommand } = useWorkbenchRuntime();
   const [metrics, setMetrics] = useState(EMPTY_METRICS);
+  const [websites, setWebsites] = useState<{ count: number; partial: boolean } | null>(null);
+  const [websiteScanFailed, setWebsiteScanFailed] = useState(false);
   const [samples, setSamples] = useState<Sample[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -324,6 +323,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh 
     try {
       const result = await runCommand(SAMPLE_COMMAND);
       if (result.exitCode !== 0 && !result.stdout.trim()) throw new Error(result.stderr || "远程概述指标采集失败");
+      const firstSample = previousMetrics.current === null;
       const now = Date.now();
       const elapsed = previousSampleAt.current ? (now - previousSampleAt.current) / 1000 : 0;
       const parsed = parseMetrics(result.stdout, previousMetrics.current, elapsed);
@@ -340,8 +340,21 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh 
           network: parsed.networkRxRate + parsed.networkTxRate,
           disk: parsed.diskReadRate + parsed.diskWriteRate,
           load: parsed.load,
+          networkTx: parsed.networkTxRate,
+          networkRx: parsed.networkRxRate,
+          diskRead: parsed.diskReadRate,
+          diskWrite: parsed.diskWriteRate,
         },
       ].slice(-300));
+      // 网站配置扫描成本比指标采样高，只在进入概览和手动刷新时读取。
+      if (!silent || firstSample) {
+        try {
+          setWebsites(await readWebsiteInventory(runCommand));
+          setWebsiteScanFailed(false);
+        } catch {
+          setWebsiteScanFailed(true);
+        }
+      }
     } catch (error) {
       const text = getErrorMessage(error);
       setLastError(text);
@@ -367,88 +380,135 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh 
   }, [samples, trendRange]);
   const selectedSample = hoveredIndex === null ? null : visibleSamples[hoveredIndex] ?? null;
   const latestSample = visibleSamples[visibleSamples.length - 1];
-  const showRate = (value: number) => latestSample ? formatBytes(value) : "—";
   const memoryPercent = percent(metrics.memoryUsed, metrics.memoryTotal);
-  const diskPercent = percent(metrics.diskUsed, metrics.diskTotal);
-  const displayPartitions = metrics.partitions.length > 0
-    ? metrics.partitions
-    : metrics.diskTotal > 0
-      ? [{ mount: "/", device: "-", used: metrics.diskUsed, total: metrics.diskTotal }]
-      : [];
+  // 圆环标明对应挂载点，所有已采集分区都在下方单独展示。
+  const primaryPartition = metrics.partitions.find(({ mount }) => mount === "/data")
+    ?? metrics.partitions.find(({ mount }) => mount === "/")
+    ?? metrics.partitions[0];
+  const diskPercent = primaryPartition ? percent(primaryPartition.used, primaryPartition.total) : 0;
+  const loadPercent = percent(metrics.load, metrics.cpuCores);
 
   const overviewCards = [
     { label: "运行容器", value: metrics.appCount, icon: <PackageCheck size={15} /> },
     { label: "数据库服务", value: metrics.dbCount, icon: <Database size={15} /> },
     { label: "用户计划任务", value: metrics.cronCount, icon: <Clock3 size={15} /> },
-    { label: "Web 服务", value: metrics.websiteCount, icon: <Globe size={15} /> },
   ];
   const resources = [
-    { label: "CPU", value: metrics.cpuPercent, detail: `${metrics.cpuCores || "-"} 核 · 负载 ${metrics.loadText}`, color: "#2dd4bf" },
-    { label: "内存", value: memoryPercent, detail: `${formatMegabytes(metrics.memoryUsed)} / ${formatMegabytes(metrics.memoryTotal)}`, color: "#a855f7" },
-    { label: "负载", value: metrics.load, detail: `${metrics.cpuCores || "-"} 核 · ${metrics.loadText}`, color: "#fb7185", raw: true },
-    { label: "磁盘", value: diskPercent, detail: `${formatMegabytes(metrics.diskUsed)} / ${formatMegabytes(metrics.diskTotal)}`, color: "#fbbf24" },
+    { label: "CPU", percent: metrics.cpuPercent, value: samples.length > 1 ? `${metrics.cpuPercent}%` : "—", detail: metrics.cpuCores > 0 ? `${samples.length > 1 ? (metrics.cpuPercent * metrics.cpuCores / 100).toFixed(1) : "—"} / ${metrics.cpuCores} 核` : "—" },
+    { label: "内存", percent: memoryPercent, value: metrics.memoryTotal > 0 ? `${memoryPercent}%` : "—", detail: metrics.memoryTotal > 0 ? `${formatCapacity(metrics.memoryUsed * 1024 ** 2)} / ${formatCapacity(metrics.memoryTotal * 1024 ** 2)}` : "—" },
+    { label: "负载", percent: loadPercent, value: metrics.loadText === "-" ? "—" : metrics.load.toFixed(2), detail: metrics.loadText === "-" ? "—" : `1 / 5 / 15 分钟 · ${metrics.loadText}` },
+    { label: "磁盘", percent: diskPercent, value: primaryPartition ? `${diskPercent}%` : "—", detail: primaryPartition ? `${primaryPartition.mount} · 可用 ${formatCapacity(primaryPartition.available * 1024)}` : "—" },
   ];
 
   return (
-    <div className="ops-workbench-overview pb-12 select-none">
+    <div className="ops-workbench-overview">
       <Spin spinning={loading}>
         <div className="ops-workbench-overview-sections">
         {lastError && <Alert type="warning" showIcon message="概览采样失败" description={lastError} />}
         {unsupported && <Alert type="info" showIcon message="资源概览目前支持 Linux 主机。" />}
-        <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-900)" }}>
+        <section className="workbench-overview-card">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-sm font-bold"><span className="h-3.5 w-1 rounded bg-[var(--nav-active-icon)]" />概览</h2>
+            <h2 className="workbench-overview-title">概览</h2>
             <Button size="small" type="text" disabled={unsupported} loading={loading} icon={<RefreshCw size={13} />} onClick={() => void refresh()}>刷新状态</Button>
           </div>
-          <div className="ops-overview-metric-grid grid grid-cols-[repeat(auto-fit,minmax(min(118px,100%),1fr))]">
+          <div className="workbench-overview-stats">
             {overviewCards.map((card) => (
-              <div key={card.label} className="space-y-1 px-2">
-                <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">{card.icon}{card.label}</div>
-                <div className="font-mono text-2xl font-bold text-[var(--nav-active-text)]">{latestSample ? card.value : "—"}</div>
+              <div key={card.label} className="workbench-overview-stat">
+                <div>{card.icon}{card.label}</div>
+                <strong data-empty={!latestSample || card.value === 0}>{latestSample ? card.value : "—"}</strong>
               </div>
             ))}
+            <button
+              type="button"
+              className="workbench-overview-stat workbench-overview-link"
+              onClick={onOpenWebsites}
+              aria-label="打开当前主机的网站"
+            >
+              <span><Globe size={15} aria-hidden />网站 <ArrowRight size={14} aria-hidden /></span>
+              <strong data-empty={websites == null || websites.count === 0}>
+                {websites ? `${websites.count}${websites.partial ? "+" : ""}` : "—"}
+              </strong>
+              {(websiteScanFailed || websites?.partial) && (
+                <small>{websiteScanFailed ? "扫描失败" : "部分站点未能读取"}</small>
+              )}
+            </button>
           </div>
         </section>
 
-        <section className="space-y-4 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
-          <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="h-3.5 w-1 rounded bg-teal-400" /><span className="font-bold text-sm">状态</span></div><span className="text-xs" style={{ color: "var(--text-muted)" }}>{server.hostname} · {metrics.uptime}</span></div>
-          <div className="ops-overview-resource-grid grid grid-cols-[repeat(auto-fit,minmax(min(124px,100%),1fr))]">
+        <section className="workbench-overview-card">
+          <h2 className="workbench-overview-title">状态</h2>
+          <div className="workbench-overview-resources">
             {resources.map((resource) => (
-              <div key={resource.label} className="flex flex-col items-center justify-center gap-2 rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-900)" }}>
-                <Progress type="circle" percent={resource.raw ? Math.min(100, Math.round(resource.value * 100 / Math.max(metrics.cpuCores, 1))) : resource.value} size={92} strokeColor={resource.color} format={() => <span className="font-mono text-sm font-bold">{latestSample ? (resource.raw ? resource.value.toFixed(2) : `${resource.value}%`) : "—"}</span>} />
-                <span className="flex items-center gap-1 text-xs font-medium"><Activity size={13} style={{ color: resource.color }} />{resource.label}</span>
-                <span className="text-center font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{latestSample ? resource.detail : "—"}</span>
+              <div key={resource.label} className="workbench-overview-resource">
+                <Progress
+                  type="circle"
+                  percent={resource.percent}
+                  size={112}
+                  strokeWidth={6}
+                  strokeColor="var(--workbench-meter)"
+                  trailColor="var(--workbench-track)"
+                  format={() => (
+                    <span className="workbench-overview-meter-label">
+                      <strong>{resource.value}</strong>
+                      <span>{resource.label}</span>
+                    </span>
+                  )}
+                />
+                <span>{resource.detail}</span>
               </div>
             ))}
           </div>
-          <div className="ops-overview-partitions rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}>
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}><HardDrive size={14} className="text-amber-400" />分区</div>
-            {displayPartitions.length > 0 ? <div className="grid grid-cols-1 gap-x-6 gap-y-3 lg:grid-cols-2">{displayPartitions.map((partition) => {
-              const usedPercent = percent(partition.used, partition.total);
-              const available = Math.max(0, partition.total - partition.used);
-              return <div key={`${partition.device}-${partition.mount}`} className="min-w-0">
-                <div className="mb-1 flex items-center justify-between gap-3 text-xs">
-                  <span className="flex min-w-0 items-center gap-2"><strong className="font-mono" style={{ color: "var(--text-primary)" }}>{partition.mount}</strong><span className="truncate font-mono" style={{ color: "var(--text-muted)" }}>{partition.device}</span></span>
-                  <span className="shrink-0 font-mono" style={{ color: usedPercent >= 85 ? "var(--warning)" : "var(--accent)" }}>{usedPercent}%</span>
-                </div>
-                <div className="mb-1.5 h-1.5 overflow-hidden rounded-full" style={{ background: "var(--border)" }}><div className="h-full rounded-full transition-all" style={{ width: `${usedPercent}%`, background: usedPercent >= 85 ? "var(--warning)" : "var(--accent)" }} /></div>
-                <div className="flex justify-between font-mono text-[11px]" style={{ color: "var(--text-muted)" }}><span>可用 {formatMegabytes(available)} / 共 {formatMegabytes(partition.total)}</span><span>已用 {formatMegabytes(partition.used)}</span></div>
-              </div>;
-            })}</div> : <div className="py-2 text-xs" style={{ color: "var(--text-muted)" }}>暂无分区数据</div>}
-          </div>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border p-2.5 font-mono text-[11px]" style={{ borderColor: "var(--border)", background: "var(--surface-950)", color: "var(--text-muted)" }}>
-            <span className="flex items-center gap-1.5"><Laptop size={13} />主机名 <strong style={{ color: "var(--text-primary)" }}>{metrics.hostname}</strong></span>
-            <span>系统 <strong style={{ color: "var(--text-primary)" }}>{metrics.os}</strong></span>
-            <span>内核 <strong style={{ color: "var(--text-primary)" }}>{metrics.kernel}</strong></span>
-            <span>内网 IP <strong style={{ color: "var(--text-primary)" }}>{metrics.ip}</strong></span>
+          <div className="workbench-overview-partitions">
+            <h3>各分区</h3>
+            {metrics.partitions.length > 0 ? (
+              <div className="workbench-overview-partition-grid">
+                {metrics.partitions.map((partition) => {
+                  const usage = percent(partition.used, partition.total);
+                  return (
+                    <div key={partition.mount} className="workbench-overview-partition" data-warning={usage >= 85}>
+                      <div className="workbench-overview-partition-label">
+                        <div><strong>{partition.mount}</strong> <span>{partition.device}</span></div>
+                        <span>可用 {formatCapacity(partition.available * 1024)} / 共 {formatCapacity(partition.total * 1024)}</span>
+                        <b>{usage}%</b>
+                      </div>
+                      <div className="workbench-overview-bar" aria-hidden>
+                        <div style={{ width: `${usage}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : <p>暂无分区数据</p>}
           </div>
         </section>
 
-        <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
-          <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="h-3.5 w-1 rounded bg-teal-400" /><span className="font-bold text-sm">监控</span></div><div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}><span className="flex items-center gap-1.5"><Network size={13} className="text-sky-400" />上行 {showRate(metrics.networkTxRate)}</span><span className="flex items-center gap-1.5"><Wifi size={13} className="text-teal-400" />下行 {showRate(metrics.networkRxRate)}</span><span className="flex items-center gap-1.5"><HardDrive size={13} className="text-amber-400" />读 {showRate(metrics.diskReadRate)} · 写 {showRate(metrics.diskWriteRate)}</span></div></div>
-          <div className="ops-overview-monitor-grid grid grid-cols-[repeat(auto-fit,minmax(min(250px,100%),1fr))]">
-            <MiniMetricChart title="网络流量" icon={<Network size={14} />} color="#38bdf8" samples={visibleSamples} metric="network" />
-            <MiniMetricChart title="磁盘 IO" icon={<HardDrive size={14} />} color="#fbbf24" samples={visibleSamples} metric="disk" />
+        <section className="workbench-overview-card workbench-overview-host" aria-label="主机信息">
+          <span><Laptop size={14} aria-hidden />主机名 <strong>{metrics.hostname}</strong></span>
+          <span>系统 <strong>{metrics.os}</strong></span>
+          <span>内核 <strong>{metrics.kernel}</strong></span>
+          <span><Clock3 size={14} aria-hidden />运行 <strong>{metrics.uptime}</strong></span>
+          <span>主机 IP <strong>{metrics.ip}</strong></span>
+          <span>处理器 <strong>{metrics.cpuModel}</strong></span>
+        </section>
+
+        <section className="workbench-overview-card">
+          <h2 className="workbench-overview-title">监控</h2>
+          <div className="workbench-overview-monitor-grid">
+            <MiniMetricChart
+              title="网络流量"
+              icon={<Network size={14} />}
+              samples={visibleSamples}
+              sampled={samples.length > 1}
+              series={[["↑ 上行", "networkTx"], ["↓ 下行", "networkRx"]]}
+              footer={latestSample ? `总发送 ${formatCapacity(metrics.networkTxTotal)} · 总接收 ${formatCapacity(metrics.networkRxTotal)}` : undefined}
+            />
+            <MiniMetricChart
+              title="磁盘 I/O"
+              icon={<HardDrive size={14} />}
+              samples={visibleSamples}
+              sampled={samples.length > 1}
+              series={[["↓ 读", "diskRead"], ["↑ 写", "diskWrite"]]}
+            />
           </div>
         </section>
 
@@ -470,7 +530,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh 
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{(Object.keys(TREND_META) as TrendMetric[]).filter((metric) => metric !== "load").map((metric) => <div key={metric} className="space-y-2 rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}><div className="flex items-center justify-between"><span className="flex items-center gap-2 text-xs font-semibold"><span className="h-2 w-2 rounded-full" style={{ background: TREND_META[metric].color }} />{TREND_META[metric].label}</span><span className="font-mono text-xs" style={{ color: TREND_META[metric].color }}>{latestSample ? formatTrendValue(sampleValue(latestSample, metric), metric) : "-"}</span></div><div className="h-24"><TrendChart samples={visibleSamples} metric={metric} compact /></div><div className="flex justify-between font-mono text-[11px]" style={{ color: "var(--text-muted)" }}><span>峰值 {visibleSamples.length ? formatTrendValue(Math.max(...visibleSamples.map((item) => sampleValue(item, metric))), metric) : "-"}</span><span>样本 {visibleSamples.length}</span></div></div>)}</div>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-1 font-mono text-[11px]" style={{ color: "var(--text-muted)" }}><span>{autoRefresh && !unsupported ? "每 5 秒刷新" : "自动刷新已关闭"} · 当前样本 {visibleSamples.length} · 范围 {trendRange}</span><span>网络为全网卡合计，磁盘 IO 为物理磁盘合计</span></div>
+          <div className="px-1 font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{autoRefresh && !unsupported ? "每 5 秒刷新" : "自动刷新已关闭"} · 当前样本 {visibleSamples.length} · 范围 {trendRange}</div>
         </section>
 
         <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
@@ -490,7 +550,48 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ server, autoRefresh 
   );
 };
 
-function MiniMetricChart({ title, icon, color, samples, metric }: { title: string; icon: React.ReactNode; color: string; samples: Sample[]; metric: TrendMetric }) {
+type MonitorMetric = "networkTx" | "networkRx" | "diskRead" | "diskWrite";
+
+interface MiniMetricChartProps {
+  title: string;
+  icon: React.ReactNode;
+  samples: Sample[];
+  sampled: boolean;
+  series: [string, MonitorMetric][];
+  footer?: string;
+}
+
+function MiniMetricChart({ title, icon, samples, sampled, series, footer }: MiniMetricChartProps) {
   const latestSample = samples[samples.length - 1];
-  return <div className="space-y-2"><div className="flex items-center justify-between text-xs"><span className="flex items-center gap-2 font-medium" style={{ color: "var(--text-secondary)" }}>{icon}{title}</span><span className="font-mono" style={{ color }}>{latestSample ? formatTrendValue(sampleValue(latestSample, metric), metric) : "-"}</span></div><div className="h-28 overflow-hidden rounded-lg border p-2" style={{ borderColor: "var(--border)", background: "var(--surface-950)" }}><TrendChart samples={samples} metric={metric} compact /></div></div>;
+  const maxValue = Math.max(1, ...samples.flatMap((sample) => series.map(([, metric]) => sample[metric])));
+  return (
+    <div className="workbench-overview-monitor">
+      <div className="workbench-overview-monitor-legend">
+        <h3>{icon}{title}</h3>
+        {series.map(([label, metric]) => (
+          <span key={metric} data-metric={metric}>{label} {sampled && latestSample ? formatRate(latestSample[metric]) : "—"}</span>
+        ))}
+      </div>
+      <div className="workbench-overview-chart">
+        {sampled && samples.length > 1 ? (
+          <svg viewBox="0 0 500 60" preserveAspectRatio="none" role="img" aria-label={`${title}趋势`}>
+            {series.map(([, metric]) => {
+              const points = samples.map((sample, index) => {
+                const x = (index / (samples.length - 1)) * 500;
+                const y = 58 - (sample[metric] / maxValue) * 55;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+              }).join(" ");
+              return (
+                <g key={metric} data-metric={metric}>
+                  <polygon fill="currentColor" opacity=".08" points={`0,60 ${points} 500,60`} />
+                  <polyline fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" points={points} />
+                </g>
+              );
+            })}
+          </svg>
+        ) : <span>等待采样数据</span>}
+      </div>
+      {footer && <p>{footer}</p>}
+    </div>
+  );
 }

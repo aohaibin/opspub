@@ -168,8 +168,22 @@
 }
 
 .ops-asset-details .ops-server-host-label {
-  flex: 0 1 auto;
-  max-width: 65%;
+  flex: 1 1 auto;
+  max-width: none;
+}
+
+/* 资产表首列预留完整的别名与主机信息，标签只在确实没有空间时收缩。 */
+.ops-asset-table-panel .ant-table-tbody > tr > td:nth-child(2) .ops-asset-details {
+  width: 100%;
+}
+
+.ops-asset-table-panel .ant-table-tbody > tr > td:nth-child(3) .ops-server-group-select {
+  max-width: 100%;
+}
+
+.ops-asset-table-panel .ant-table-tbody > tr > td:nth-child(4) > div {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .ops-asset-tag {

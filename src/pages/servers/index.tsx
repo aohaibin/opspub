@@ -85,8 +85,8 @@ const MAX_GROUP_WIDTH = 450;
 const GROUP_WIDTH_KEY = "ops_server_group_width";
 const GROUP_PANEL_KEY = "ops_content_group_panel_visible";
 const ACTION_LAYOUT_KEY = "ops_server_actions_layout_mode";
-const EXPANDED_TABLE_MIN_WIDTH = 888;
-const COMPACT_TABLE_MIN_WIDTH = 720;
+const EXPANDED_TABLE_MIN_WIDTH = 1014;
+const COMPACT_TABLE_MIN_WIDTH = 858;
 
 /**
  * SSH 身份认证状态。
@@ -679,6 +679,7 @@ export default function ServersPage() {
     {
       title: "别名 / 主机",
       key: "alias",
+      width: 260,
       sorter: (a, b) => a.alias.localeCompare(b.alias, "zh-CN"),
       render: (_: unknown, server: Server) => {
         const tags = parseTags(server.tags);
@@ -737,7 +738,7 @@ export default function ServersPage() {
     {
       title: "分组",
       key: "group",
-      width: 102,
+      width: 136,
       render: (_: unknown, server: Server) => {
         return (
           <select
@@ -758,7 +759,7 @@ export default function ServersPage() {
     {
       title: "AI 策略",
       key: "ai_policy",
-      width: 122,
+      width: 160,
       sorter: (a, b) => (a.ai_policy || "").localeCompare(b.ai_policy || ""),
       render: (_: unknown, server: Server) => (
         <div className="flex items-center gap-1.5">

@@ -72,7 +72,7 @@ export function SftpSidebar({ sessions, activeTab, pane, split, ready, onSelectS
         <h3 className={headingClass}>传输队列状态</h3>
         <button type="button" className={itemClass} disabled={!latest} onClick={() => showTransfers("expanded")}>
           <FileUp size={14} aria-hidden className="shrink-0" />
-          {latest ? `查看传输 · ${activeTasks.length} 项进行中` : "暂无上传任务"}
+          {latest ? `查看传输 · ${activeTasks.length} 项进行中` : "暂无传输任务"}
         </button>
         {latest && (
           <div className="space-y-1 rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs">

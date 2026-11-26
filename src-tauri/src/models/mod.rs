@@ -204,6 +204,35 @@ pub struct SftpTransferRequest {
     pub file_name: String,
     pub local_path: Option<String>,
     pub content: Option<Vec<u8>>,
+    pub staged: Option<bool>,
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "action", rename_all = "camelCase")]
+pub enum SftpStageDropAction {
+    Begin,
+    Directory { path: Vec<String> },
+    Chunk { path: Vec<String>, offset: u64, data: Vec<u8> },
+    Release,
+}
+
+/// 将远程文件或目录递归下载到用户选择的本地目录。
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpDownloadTransferRequest {
+    pub task_id: String,
+    pub request: SftpRequest,
+    pub remote_path: String,
+    pub local_dir: String,
+}
+
+/// 将远程文件暂存到本机临时目录，用于拖放到桌面文件管理器。
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpDragDownloadRequest {
+    pub task_id: String,
+    pub request: SftpRequest,
+    pub remote_paths: Vec<String>,
 }
 
 #[derive(Clone, Serialize)]

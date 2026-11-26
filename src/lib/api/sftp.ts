@@ -1,15 +1,38 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import type { SftpCredentials, SftpRemoteFile, SftpSessionInfo } from "@/pages/sftp/types";
 
+type StageDropAction =
+  | { action: "begin" | "release" }
+  | { action: "directory"; path: string[] }
+  | { action: "chunk"; path: string[]; offset: number; data: number[] };
+
 export const sftpApi = {
+  openDownloadFolder: () => invoke<void>("sftp_open_download_folder"),
+  stageUploadDrop: (taskId: string, input: StageDropAction) =>
+    invoke<void>("sftp_stage_upload_drop", { taskId, input }),
+
   uploadTransfer: (
-    input: { taskId: string; request: SftpCredentials; remoteDir: string; fileName: string; localPath?: string; content?: number[] },
+    input: { taskId: string; request: SftpCredentials; remoteDir: string; fileName: string; localPath?: string; staged?: boolean },
     onProgress: (progress: { loaded: number; total: number }) => void,
   ) => {
     const channel = new Channel<{ loaded: number; total: number }>();
     channel.onmessage = onProgress;
     return invoke<SftpRemoteFile>("sftp_upload_transfer", { input, onProgress: channel });
   },
+
+  downloadTransfer: (
+    input: { taskId: string; request: SftpCredentials; remotePath: string; localDir: string },
+    onProgress: (progress: { loaded: number; total: number }) => void,
+  ) => {
+    const channel = new Channel<{ loaded: number; total: number }>();
+    channel.onmessage = onProgress;
+    return invoke<void>("sftp_download_transfer", { input, onProgress: channel });
+  },
+
+  prepareDragDownload: (input: { taskId: string; request: SftpCredentials; remotePaths: string[] }) =>
+    invoke<string[]>("sftp_prepare_drag_download", { input }),
+
+  releaseDragDownload: (taskId: string) => invoke<void>("sftp_release_drag_download", { taskId }),
 
   cancelTransfer: (taskId: string) => invoke<void>("sftp_cancel_transfer", { taskId }),
 

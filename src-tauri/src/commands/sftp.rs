@@ -1,11 +1,43 @@
-use crate::error::CommandError;
+use crate::error::{AppError, CommandError};
 use crate::models::{
-    SftpArchiveRequest, SftpChmodRequest, SftpCopyRequest, SftpFileEntry, SftpPathRequest,
-    SftpRenameRequest, SftpRequest, SftpSessionInfo, SftpTransferProgress, SftpTransferRequest,
-    SftpUploadRequest,
+    SftpArchiveRequest, SftpChmodRequest, SftpCopyRequest, SftpDownloadTransferRequest,
+    SftpDragDownloadRequest, SftpFileEntry, SftpPathRequest, SftpRenameRequest, SftpRequest,
+    SftpSessionInfo, SftpTransferProgress, SftpTransferRequest, SftpUploadRequest,
 };
 use crate::state::AppState;
 use tauri::Manager;
+use tauri_plugin_opener::OpenerExt;
+
+#[tauri::command]
+pub fn sftp_open_download_folder(app: tauri::AppHandle) -> Result<(), CommandError> {
+    let state = app.state::<AppState>();
+    let path = match state.db.get_config("sftp.download_dir")? {
+        Some(value) if !value.is_empty() => std::path::PathBuf::from(value),
+        _ => app
+            .path()
+            .download_dir()
+            .map_err(|error| AppError::Custom(error.to_string()))?,
+    };
+    // 只允许在文件管理器中打开下载目录，避免把任意文件交给系统执行。
+    if !path.is_absolute() || !path.is_dir() {
+        return Err(AppError::InvalidInput("下载目录不存在，请在设置中重新选择".into()).into());
+    }
+    app.opener()
+        .open_path(path.to_string_lossy().into_owned(), None::<&str>)
+        .map_err(|error| AppError::Custom(format!("打开下载目录失败: {error}")).into())
+}
+
+#[tauri::command]
+pub async fn sftp_stage_upload_drop(
+    app: tauri::AppHandle,
+    task_id: String,
+    input: crate::models::SftpStageDropAction,
+) -> Result<(), CommandError> {
+    run_unit(app, move |state| {
+        state.sftps.stage_upload_drop(&task_id, input)
+    })
+    .await
+}
 
 /// Channel 随任务存活，不依赖 SFTP 页面是否仍然挂载。
 #[tauri::command]
@@ -37,6 +69,65 @@ pub async fn sftp_upload_transfer(
     });
     app.state::<AppState>().sftps.finish_transfer(&id);
     result?
+}
+
+#[tauri::command]
+pub async fn sftp_download_transfer(
+    app: tauri::AppHandle,
+    input: SftpDownloadTransferRequest,
+    on_progress: tauri::ipc::Channel<SftpTransferProgress>,
+) -> Result<(), CommandError> {
+    let id = input.task_id.clone();
+    let cancelled = app
+        .state::<AppState>()
+        .sftps
+        .reserve_transfer(&id)
+        .map_err(CommandError::from)?;
+    let worker_app = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let state = worker_app.state::<AppState>();
+        state
+            .sftps
+            .download_transfer(&state.db, input, &cancelled, |event| {
+                let _ = on_progress.send(event);
+            })
+            .map_err(CommandError::from)
+    })
+    .await
+    .map_err(|error| CommandError {
+        code: "INTERNAL".into(),
+        message: format!("下载后台任务异常终止: {error}"),
+    });
+    app.state::<AppState>().sftps.finish_transfer(&id);
+    result?
+}
+
+#[tauri::command]
+pub async fn sftp_prepare_drag_download(
+    app: tauri::AppHandle,
+    input: SftpDragDownloadRequest,
+) -> Result<Vec<String>, CommandError> {
+    let worker_app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = worker_app.state::<AppState>();
+        state
+            .sftps
+            .prepare_drag_download(&state.db, input)
+            .map_err(CommandError::from)
+    })
+    .await
+    .map_err(|error| CommandError {
+        code: "INTERNAL".into(),
+        message: format!("准备拖放文件异常终止: {error}"),
+    })?
+}
+
+#[tauri::command]
+pub fn sftp_release_drag_download(
+    state: tauri::State<'_, AppState>,
+    task_id: String,
+) {
+    state.sftps.release_drag_download(&task_id);
 }
 
 #[tauri::command]

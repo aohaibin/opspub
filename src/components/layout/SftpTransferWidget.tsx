@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, FileUp, LoaderCircle, RotateCw, Square, Trash2, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronDown, Download, FileUp, GripVertical, LoaderCircle, RotateCw, Square, Trash2, TriangleAlert, X } from "lucide-react";
 import { isTransferActive, useSftpTransferStore } from "@/store/sftp-transfers";
+import { useSettingsStore } from "@/store/settings";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -19,6 +20,7 @@ export function SftpTransferWidget() {
   const tasks = useSftpTransferStore((state) => state.tasks);
   const display = useSftpTransferStore((state) => state.display);
   const setDisplay = useSftpTransferStore((state) => state.setDisplay);
+  const autoCollapse = useSettingsStore((state) => state.sftpAutoCollapse);
   const cancel = useSftpTransferStore((state) => state.cancel);
   const retry = useSftpTransferStore((state) => state.retry);
   const remove = useSftpTransferStore((state) => state.remove);
@@ -33,18 +35,20 @@ export function SftpTransferWidget() {
   const failedCount = tasks.filter((task) => task.status === "failed").length;
   const cancelledCount = tasks.filter((task) => task.status === "cancelled").length;
   const allCompleted = tasks.length > 0 && activeCount === 0 && failedCount === 0 && cancelledCount === 0;
-  const title = activeCount > 0 ? `正在上传 ${activeCount} 个文件` :
-    failedCount > 0 ? `${failedCount} 项上传失败` :
-    cancelledCount > 0 ? `${cancelledCount} 项上传已取消` : "上传已完成";
+  const uploadCount = activeTasks.filter((task) => task.direction === "upload").length;
+  const downloadCount = activeTasks.filter((task) => task.direction === "download").length;
+  const title = activeCount > 0 ? `${uploadCount > 0 ? `上传 ${uploadCount} 项` : ""}${uploadCount > 0 && downloadCount > 0 ? "，" : ""}${downloadCount > 0 ? `下载 ${downloadCount} 项` : ""}` :
+    failedCount > 0 ? `${failedCount} 项传输失败` :
+    cancelledCount > 0 ? `${cancelledCount} 项传输已取消` : "传输已完成";
 
   useEffect(() => {
-    if (!allCompleted) return;
+    if (!allCompleted || !autoCollapse) return;
     // 完成时自动收起一次。用户从二级栏重新展开后可继续查看任务。
     const timer = window.setTimeout(() => {
       if (useSftpTransferStore.getState().display === "expanded") setDisplay("collapsed");
     }, 5000);
     return () => window.clearTimeout(timer);
-  }, [allCompleted, setDisplay]);
+  }, [allCompleted, autoCollapse, setDisplay]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -110,6 +114,7 @@ export function SftpTransferWidget() {
         style={{ background: "var(--surface-900)", borderColor: "var(--border)" }}
       >
         <div className="flex min-w-0 items-center gap-2 text-sm">
+          <GripVertical size={15} className="shrink-0 text-[var(--text-muted)]" aria-hidden />
           {activeCount > 0 && <RotateCw size={16} className="shrink-0 animate-spin" style={{ color: "var(--accent)" }} />}
           {allCompleted && <Check size={16} className="shrink-0 text-emerald-500" />}
           {activeCount === 0 && failedCount > 0 && <TriangleAlert size={16} className="shrink-0 text-red-500" />}
@@ -131,17 +136,17 @@ export function SftpTransferWidget() {
             <article key={task.id} className="rounded-lg border p-3 shadow-md" style={{ background: "var(--surface-900)", borderColor: "var(--border)" }}>
               <div className="flex items-start gap-2">
                 <div className="mt-0.5 shrink-0" style={{ color: task.status === "completed" ? "var(--success)" : task.status === "failed" ? "var(--danger)" : "var(--accent)" }}>
-                  {active ? <LoaderCircle size={16} className={task.status === "connecting" || task.status === "uploading" ? "animate-spin" : ""} /> : task.status === "completed" ? <Check size={16} /> : <FileUp size={16} />}
+                  {active ? <LoaderCircle size={16} className={task.status === "connecting" || task.status === "transferring" ? "animate-spin" : ""} /> : task.status === "completed" ? <Check size={16} /> : task.direction === "download" ? <Download size={16} /> : <FileUp size={16} />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium" title={task.name}>{task.name}</div>
-                  <div className="mt-0.5 truncate text-xs" style={{ color: "var(--text-secondary)" }} title={`${task.serverName} · ${task.remoteDir}`}>{task.serverName} · {task.remoteDir}</div>
+                  <div className="truncate text-sm font-medium" title={task.name}>{task.direction === "download" ? "下载 · " : "上传 · "}{task.name}</div>
+                  <div className="mt-0.5 truncate text-xs" style={{ color: "var(--text-secondary)" }} title={task.localDir ?? task.remoteDir}>{task.serverName} · {task.localDir ?? task.remoteDir}</div>
                 </div>
                 {active ? (
-                  <button type="button" title="取消上传" aria-label={`取消上传 ${task.name}`} onClick={() => void cancel(task.id)} disabled={task.status === "cancelling"} className="rounded p-1.5 hover:bg-red-500/10 disabled:opacity-50"><Square size={14} /></button>
+                  <button type="button" title="取消传输" aria-label={`取消传输 ${task.name}`} onClick={() => void cancel(task.id)} disabled={task.status === "cancelling"} className="rounded p-1.5 hover:bg-red-500/10 disabled:opacity-50"><Square size={14} /></button>
                 ) : (
                   <div className="flex shrink-0 items-center gap-1">
-                    {task.status === "failed" && <button type="button" title="重试上传" aria-label={`重试上传 ${task.name}`} onClick={() => retry(task.id)} className="rounded p-1.5 hover:bg-black/10"><RotateCw size={14} /></button>}
+                    {task.status === "failed" && <button type="button" title="重试传输" aria-label={`重试传输 ${task.name}`} onClick={() => retry(task.id)} className="rounded p-1.5 hover:bg-black/10"><RotateCw size={14} /></button>}
                     <button type="button" title="移除记录" aria-label={`移除 ${task.name}`} onClick={() => remove(task.id)} className="rounded p-1.5 hover:bg-black/10"><Trash2 size={14} /></button>
                   </div>
                 )}
@@ -151,7 +156,7 @@ export function SftpTransferWidget() {
               </div>
               <div className="mt-1.5 flex items-center justify-between gap-2 text-xs tabular-nums" style={{ color: "var(--text-secondary)" }}>
                 <span>{formatBytes(task.loaded)} / {formatBytes(task.total)}</span>
-                <span>{task.status === "queued" ? "等待中" : task.status === "connecting" ? "正在建立连接" : task.status === "cancelling" ? "正在取消" : task.status === "uploading" ? `${formatBytes(task.speed)}/s · 剩余 ${eta}` : task.status === "completed" ? "已就绪" : task.status === "failed" ? "上传失败" : "已取消"}</span>
+                <span>{task.status === "queued" ? "等待中" : task.status === "connecting" ? "准备传输" : task.status === "cancelling" ? "正在取消" : task.status === "transferring" ? `${formatBytes(task.speed)}/s · 剩余 ${eta}` : task.status === "completed" ? "已完成" : task.status === "failed" ? "传输失败" : "已取消"}</span>
               </div>
               {task.error && <p className="mt-1 break-words text-xs" style={{ color: "var(--danger)" }}>{task.error}</p>}
             </article>

@@ -32,6 +32,16 @@ interface SettingsStore {
   setTerminalCursorStyle: (cursorStyle: TerminalCursorStyle) => void;
   logoColor: LogoColor;
   setLogoColor: (color: LogoColor) => void;
+  sftpDownloadDir: string;
+  setSftpDownloadDir: (directory: string) => void;
+  sftpMaxConcurrency: number;
+  setSftpMaxConcurrency: (value: number) => void;
+  sftpAutoCollapse: boolean;
+  setSftpAutoCollapse: (enabled: boolean) => void;
+  sftpDragRecursive: boolean;
+  setSftpDragRecursive: (enabled: boolean) => void;
+  sftpShowHidden: boolean;
+  setSftpShowHidden: (enabled: boolean) => void;
   proxyAddress: string;
   setProxyAddress: (address: string) => void;
   outboundHosts: string[];
@@ -51,6 +61,11 @@ export const SETTINGS_KEYS = {
   terminalLineHeight: "ui.terminal_line_height",
   terminalCursorStyle: "ui.terminal_cursor_style",
   logoColor: "ui.logo_color",
+  sftpDownloadDir: "sftp.download_dir",
+  sftpMaxConcurrency: "sftp.max_concurrency",
+  sftpAutoCollapse: "sftp.auto_collapse",
+  sftpDragRecursive: "sftp.drag_recursive",
+  sftpShowHidden: "sftp.show_hidden",
   proxyAddress: "network.proxy_address",
   outboundHosts: "network.outbound_hosts",
   outboundEnabled: "network.outbound_enabled",
@@ -130,6 +145,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   setTerminalCursorStyle: (terminalCursorStyle) => set({ terminalCursorStyle }),
   logoColor: DEFAULT_LOGO_COLOR,
   setLogoColor: (logoColor) => set({ logoColor }),
+  sftpDownloadDir: "",
+  setSftpDownloadDir: (sftpDownloadDir) => set({ sftpDownloadDir }),
+  sftpMaxConcurrency: 4,
+  setSftpMaxConcurrency: (sftpMaxConcurrency) => set({ sftpMaxConcurrency }),
+  sftpAutoCollapse: true,
+  setSftpAutoCollapse: (sftpAutoCollapse) => set({ sftpAutoCollapse }),
+  sftpDragRecursive: true,
+  setSftpDragRecursive: (sftpDragRecursive) => set({ sftpDragRecursive }),
+  sftpShowHidden: true,
+  setSftpShowHidden: (sftpShowHidden) => set({ sftpShowHidden }),
   proxyAddress: "",
   setProxyAddress: (proxyAddress) => set({ proxyAddress }),
   outboundHosts: [],
@@ -160,6 +185,14 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     terminalCursorStyle: values[SETTINGS_KEYS.terminalCursorStyle] === "bar" || values[SETTINGS_KEYS.terminalCursorStyle] === "underline"
       ? values[SETTINGS_KEYS.terminalCursorStyle] as TerminalCursorStyle
       : "block",
+    sftpDownloadDir: values[SETTINGS_KEYS.sftpDownloadDir] ?? "",
+    sftpMaxConcurrency: (() => {
+      const parsed = Number(values[SETTINGS_KEYS.sftpMaxConcurrency]);
+      return [2, 4, 6, 8].includes(parsed) ? parsed : 4;
+    })(),
+    sftpAutoCollapse: values[SETTINGS_KEYS.sftpAutoCollapse] !== "false",
+    sftpDragRecursive: values[SETTINGS_KEYS.sftpDragRecursive] !== "false",
+    sftpShowHidden: values[SETTINGS_KEYS.sftpShowHidden] !== "false",
     proxyAddress: values[SETTINGS_KEYS.proxyAddress] ?? "",
     outboundHosts: (() => {
       try {

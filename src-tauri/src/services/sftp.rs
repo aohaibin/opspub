@@ -81,6 +81,8 @@ pub struct SftpManager {
     // 建连过程跨越 TCP、SSH 握手和凭据认证，需保证同一服务器不会并发创建并覆盖会话。
     connect_lock: Mutex<()>,
     transfers: DashMap<String, Arc<std::sync::atomic::AtomicBool>>,
+    upload_staging: DashMap<String, tempfile::TempDir>,
+    download_staging: DashMap<String, tempfile::TempDir>,
 }
 
 impl Default for SftpManager {
@@ -91,6 +93,8 @@ impl Default for SftpManager {
             sequence: AtomicU64::new(1),
             connect_lock: Mutex::new(()),
             transfers: DashMap::new(),
+            upload_staging: DashMap::new(),
+            download_staging: DashMap::new(),
         }
     }
 }

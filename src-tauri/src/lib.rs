@@ -75,6 +75,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_drag::init())
         // ─── 应用初始化 ─────────────────────────────
         .setup(|app| {
             // 初始化数据库（存放在应用数据目录）
@@ -232,6 +233,11 @@ pub fn run() {
             commands::sftp::sftp_list,
             commands::sftp::sftp_upload,
             commands::sftp::sftp_upload_transfer,
+            commands::sftp::sftp_stage_upload_drop,
+            commands::sftp::sftp_download_transfer,
+            commands::sftp::sftp_open_download_folder,
+            commands::sftp::sftp_prepare_drag_download,
+            commands::sftp::sftp_release_drag_download,
             commands::sftp::sftp_cancel_transfer,
             commands::sftp::sftp_download,
             commands::sftp::sftp_mkdir,

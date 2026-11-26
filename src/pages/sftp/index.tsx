@@ -15,7 +15,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox, Dropdown, Input, Modal, Spin, Tooltip, message } from "antd";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
+import { startDrag } from "@crabnebula/tauri-plugin-drag";
+import { downloadDir } from "@tauri-apps/api/path";
 import { useLocation } from "react-router-dom";
+import { useSettingsStore } from "@/store/settings";
+import { SETTINGS_KEYS } from "@/store/settings";
+import { configApi } from "@/lib/api";
 import type { MenuProps } from "antd";
 import {
   AlertTriangle,
@@ -36,6 +41,7 @@ import {
   Folder,
   FolderOpen,
   FolderPlus,
+  FolderUp,
   FolderSync,
   FolderTree,
   HelpCircle,
@@ -62,7 +68,7 @@ import { serverApi } from "@/lib/api/server";
 import { sftpApi } from "@/lib/api/sftp";
 import { getErrorMessage } from "@/lib/api/client";
 import { useSshSessionStore } from "@/store/ssh";
-import { isTransferActive, transferDirectoryKey, useSftpTransferStore } from "@/store/sftp-transfers";
+import { isTransferActive, transferDirectoryKey, useSftpTransferStore, type UploadSource } from "@/store/sftp-transfers";
 import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import { ServerFormModal } from "@/pages/servers/components/ServerFormModal";
 import { AI_POLICY_META, normalizeAIPolicy } from "@/pages/servers/lib/serverMeta";
@@ -140,6 +146,9 @@ function normalizeRemotePath(path: string): string {
 
 export default function SftpPage() {
   const location = useLocation();
+  const configuredDownloadDir = useSettingsStore((state) => state.sftpDownloadDir);
+  const allowRecursiveDrag = useSettingsStore((state) => state.sftpDragRecursive);
+  const showHiddenFiles = useSettingsStore((state) => state.sftpShowHidden);
   const routeServerId =
     (location.state as { serverId?: number } | null)?.serverId ?? null;
   // 服务器资产列表
@@ -157,6 +166,7 @@ export default function SftpPage() {
   const sshTarget = useRef<{ pane: SftpPane; originTabId: string | null }>({ pane: "left", originTabId: null });
   const sharedCredentials = useSshSessionStore((state) => state.credentialsByServer);
   const enqueueUpload = useSftpTransferStore((state) => state.enqueue);
+  const enqueueDownload = useSftpTransferStore((state) => state.enqueueDownload);
   const showTransfers = useSftpTransferStore((state) => state.setDisplay);
   const hasTransfers = useSftpTransferStore((state) => state.tasks.length > 0);
   const transferDirectoryVersions = useSftpTransferStore((state) => state.directoryVersions);
@@ -209,6 +219,14 @@ export default function SftpPage() {
   const leftDragCounter = useRef(0);
   const [rightDraggingOver, setRightDraggingOver] = useState(false);
   const rightDragCounter = useRef(0);
+  const [localDownloadDir, setLocalDownloadDir] = useState<string>();
+  useEffect(() => {
+    let active = true;
+    void downloadDir().then((path) => {
+      if (active) setLocalDownloadDir((current) => configuredDownloadDir || current || path);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [configuredDownloadDir]);
 
   // 新建文件夹弹窗
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
@@ -652,10 +670,10 @@ export default function SftpPage() {
   };
 
   // 上传任务脱离 SFTP 页面生命周期，浮窗由应用外壳持续显示真实传输进度。
-  const queueUploadSources = (tab: SftpSessionTab, sources: (File | string)[]) => {
+  const queueUploadSources = (tab: SftpSessionTab, sources: UploadSource[]) => {
     if (sources.length === 0) return;
     const serverId = tab.serverId;
-    if (serverId === null || !useSshSessionStore.getState().getCredentials(serverId)) {
+    if (serverId === null) {
       message.warning("SFTP 会话凭据已失效，请重新连接服务器");
       return;
     }
@@ -664,11 +682,7 @@ export default function SftpPage() {
       serverName: tab.serverName,
       remoteDir: tab.currentPath,
     }, sources);
-    message.success(`${sources.length} 个文件已加入后台上传队列`);
-  };
-
-  const executeUploadFiles = (tab: SftpSessionTab, fileList: FileList | File[]) => {
-    queueUploadSources(tab, Array.from(fileList));
+    message.success(`${sources.length} 项已加入后台上传队列`);
   };
 
   const selectUploadFiles = async (tab: SftpSessionTab) => {
@@ -678,6 +692,15 @@ export default function SftpPage() {
       queueUploadSources(tab, Array.isArray(selected) ? selected : [selected]);
     } catch (error) {
       message.error(`打开本地文件失败：${getErrorMessage(error)}`);
+    }
+  };
+
+  const selectUploadFolder = async (tab: SftpSessionTab) => {
+    try {
+      const selected = await openFileDialog({ directory: true, multiple: false });
+      if (typeof selected === "string") queueUploadSources(tab, [selected]);
+    } catch (error) {
+      message.error(`打开本地文件夹失败：${getErrorMessage(error)}`);
     }
   };
 
@@ -793,6 +816,71 @@ export default function SftpPage() {
     }
   };
 
+  const selectLocalDownloadDir = async () => {
+    const selected = await openFileDialog({
+      directory: true, multiple: false, title: "选择下载保存位置", defaultPath: localDownloadDir,
+    });
+    if (typeof selected !== "string") return;
+    setLocalDownloadDir(selected);
+    useSettingsStore.getState().setSftpDownloadDir(selected);
+    void configApi.set(SETTINGS_KEYS.sftpDownloadDir, selected).catch((error) => message.error(`保存默认下载目录失败：${getErrorMessage(error)}`));
+    return selected;
+  };
+
+  const downloadToLocalFolder = async (tab: SftpSessionTab, items: RemoteFileItem[], destination?: string) => {
+    if (tab.serverId === null || items.length === 0) return;
+    try {
+      const localDir = destination ?? await selectLocalDownloadDir();
+      if (!localDir) return;
+      const target = { serverId: tab.serverId, serverName: tab.serverName, remoteDir: tab.currentPath };
+      for (const item of items) {
+        enqueueDownload(target, `${tab.currentPath.replace(/\/$/, "")}/${item.name}`, localDir, item.name);
+      }
+      message.success(`${items.length} 项已加入后台下载队列`);
+    } catch (error) {
+      message.error(getErrorMessage(error));
+    }
+  };
+
+  const startNativeDownloadDrag = async (tab: SftpSessionTab, items: RemoteFileItem[]) => {
+    if (tab.serverId === null || items.length === 0) return;
+    const taskId = crypto.randomUUID();
+    const credentials = credentialsByServer[tab.serverId] ?? { serverId: tab.serverId };
+    const remotePaths = items.map((item) => `${tab.currentPath.replace(/\/$/, "")}/${item.name}`);
+    const loadingKey = `sftp-drag-${taskId}`;
+    let prepared = false;
+    let dropped = false;
+    message.loading({ content: `正在准备 ${items.length} 个下载项…`, key: loadingKey, duration: 0 });
+    try {
+      const localPaths = await sftpApi.prepareDragDownload({ taskId, request: credentials, remotePaths });
+      prepared = true;
+      const canvas = document.createElement("canvas");
+      canvas.width = 48;
+      canvas.height = 48;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("无法创建拖放预览图标");
+      context.fillStyle = "#0d9488";
+      context.beginPath();
+      context.roundRect(4, 4, 40, 40, 10);
+      context.fill();
+      context.fillStyle = "#ffffff";
+      context.font = "bold 28px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("↓", 24, 24);
+      message.destroy(loadingKey);
+      await startDrag({ item: localPaths, icon: canvas.toDataURL("image/png"), mode: "copy" }, (result) => {
+        dropped = result.result === "Dropped";
+      });
+      if (dropped) message.success(`${items.length} 个项目已拖放到目标文件夹`);
+    } catch (error) {
+      message.error({ content: `拖拽下载失败：${getErrorMessage(error)}`, key: loadingKey });
+    } finally {
+      message.destroy(loadingKey);
+      if (prepared) await sftpApi.releaseDragDownload(taskId).catch(() => undefined);
+    }
+  };
+
   // 构建远程文件操作菜单，所有会改变远程状态的操作都通过 SFTP Command 执行。
   const getFileRowMenu = (tab: SftpSessionTab, item: RemoteFileItem): MenuProps => {
     const fullPath = `${tab.currentPath}/${item.name}`.replace(/\/+/g, "/");
@@ -813,13 +901,18 @@ export default function SftpPage() {
             }
           },
         },
-        // 2. 下载 (打包)
         {
-          key: "downloadPack",
-          label: item.isDir ? "下载 (打包)" : "下载",
+          key: "download",
+          label: item.isDir ? "下载文件夹…" : "下载文件…",
           icon: <Download size={14} className="text-slate-400" />,
-          onClick: () => void handleDownload(tab, item),
+          onClick: () => void downloadToLocalFolder(tab, [item]),
         },
+        ...(item.isDir ? [{
+          key: "downloadPack",
+          label: "打包下载",
+          icon: <Archive size={14} className="text-slate-400" />,
+          onClick: () => void handleDownload(tab, item),
+        }] : []),
         // 3. 在终端 cd 此目录
         {
           key: "terminalCd",
@@ -1218,12 +1311,14 @@ export default function SftpPage() {
     const directory = directoryByTab[tab.id];
     const currentDirectory = directory?.path === tab.currentPath ? directory : undefined;
     const allFiles = currentDirectory?.files ?? [];
+    const visibleFiles = showHiddenFiles ? allFiles : allFiles.filter((file) => !file.name.startsWith("."));
     const displayFiles = filterKw
-      ? allFiles.filter((f) => f.name.toLowerCase().includes(filterKw))
-      : allFiles;
+      ? visibleFiles.filter((f) => f.name.toLowerCase().includes(filterKw))
+      : visibleFiles;
 
     const visibleSelected = displayFiles.filter((file) => selectedNames.includes(file.name)).length;
     const isAllSelected = displayFiles.length > 0 && visibleSelected === displayFiles.length;
+    const selectedItems = allFiles.filter((item) => selectedNames.includes(item.name));
 
     // 拖拽事件监听
     const handleDragEnter = (e: React.DragEvent) => {
@@ -1266,6 +1361,7 @@ export default function SftpPage() {
     };
 
     const handleDrop = (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
       e.preventDefault();
       e.stopPropagation();
       if (isLeft) {
@@ -1275,9 +1371,18 @@ export default function SftpPage() {
         rightDragCounter.current = 0;
         setRightDraggingOver(false);
       }
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        executeUploadFiles(tab, e.dataTransfer.files);
+      // 目录条目只能在 drop 回调期间从 DataTransfer 取出。
+      const sources: UploadSource[] = [];
+      for (const item of Array.from(e.dataTransfer.items)) {
+        if (item.kind !== "file") continue;
+        const source = item.webkitGetAsEntry?.() ?? item.getAsFile();
+        if (source) sources.push(source);
       }
+      if (!allowRecursiveDrag && sources.some((source) => typeof source !== "string" && "isDirectory" in source && source.isDirectory)) {
+        message.info("已在设置中关闭文件夹递归拖拽上传");
+        return;
+      }
+      queueUploadSources(tab, sources.length > 0 ? sources : Array.from(e.dataTransfer.files));
     };
 
     return (
@@ -1295,7 +1400,7 @@ export default function SftpPage() {
               <Upload size={32} />
             </div>
             <h3 className="text-base font-bold text-white mb-1">
-              松开鼠标以上传文件
+              松开鼠标以上传文件或文件夹
             </h3>
             <p className="text-xs text-[var(--accent-hover,#2dd4bf)] font-mono">
               上传至 {tab.serverName} ·{" "}
@@ -1470,8 +1575,10 @@ export default function SftpPage() {
                 trigger={["click"]}
                 menu={{
                   items: [
-                    { key: "upload", label: "选择本地文件…", onClick: () => void selectUploadFiles(tab) },
-                    { key: "transfers", label: "打开传输任务", disabled: !hasTransfers, onClick: () => showTransfers("expanded") },
+                    { key: "upload", label: "选择本地文件…", icon: <Upload size={14} />, onClick: () => void selectUploadFiles(tab) },
+                    { key: "upload-folder", label: "选择本地文件夹…", icon: <FolderUp size={14} />, onClick: () => void selectUploadFolder(tab) },
+                    { type: "divider" },
+                    { key: "transfers", label: "打开传输任务", icon: <List size={14} />, disabled: !hasTransfers, onClick: () => showTransfers("expanded") },
                   ],
                 }}
               >
@@ -1483,6 +1590,19 @@ export default function SftpPage() {
 
             {/* 紧接着右侧的 4 个精巧工具图标按钮 (截图 1 / 截图 2) */}
             <div className="flex items-center space-x-1">
+              <Tooltip title="上传本地文件夹">
+                <button type="button" aria-label="上传本地文件夹" onClick={() => void selectUploadFolder(tab)}
+                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)]">
+                  <FolderUp size={14} />
+                </button>
+              </Tooltip>
+              <Tooltip title="下载选中的文件和文件夹">
+                <button type="button" aria-label="下载选中项" disabled={selectedItems.length === 0}
+                  onClick={() => void downloadToLocalFolder(tab, selectedItems)}
+                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] disabled:opacity-40">
+                  <Download size={14} />
+                </button>
+              </Tooltip>
               <Tooltip title="新建文件夹">
                 <button
                   type="button"
@@ -1527,7 +1647,7 @@ export default function SftpPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="relative w-40 sm:w-48">
               <Input
                 value={filterInput}
@@ -1591,6 +1711,11 @@ export default function SftpPage() {
                   return (
                     <tr
                       key={item.name}
+                      draggable
+                      onDragStart={(event) => {
+                        event.preventDefault();
+                        void startNativeDownloadDrag(tab, isSelected ? selectedItems : [item]);
+                      }}
                       onDoubleClick={() => {
                         if (item.isDir) {
                           handleNavigateToPath(tab.id, fullItemPath);
@@ -1664,7 +1789,7 @@ export default function SftpPage() {
                           <Tooltip title="下载">
                             <button
                               type="button"
-                              onClick={() => void handleDownload(tab, item)}
+                              onClick={() => void downloadToLocalFolder(tab, [item])}
                               aria-label={`下载 ${item.name}`}
                               className="p-1 rounded hover:bg-surface-800 text-slate-400 hover:text-[var(--accent,#0d9488)] transition cursor-pointer"
                             >
@@ -1704,7 +1829,11 @@ export default function SftpPage() {
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <span>拖拽外部文件可直接上传</span>
+            <button type="button" className="min-w-0 truncate hover:text-[var(--accent)]"
+              title={localDownloadDir ?? "选择下载目录"}
+              onClick={() => void selectLocalDownloadDir().catch((error: unknown) => message.error(getErrorMessage(error)))}>
+              本地目录 · {localDownloadDir?.split(/[\\/]/).filter(Boolean).pop() ?? "选择"}
+            </button>
           </div>
         </div>
       </div>
@@ -1932,7 +2061,7 @@ export default function SftpPage() {
         <div className="py-2 text-slate-300 text-xs leading-relaxed">
           确定要关闭所有当前已建立的 SFTP 文件传输会话吗？
           <br />
-          关闭后将断开所有主机会话，并取消正在进行的后台上传。
+          关闭后将断开所有主机会话，并取消正在进行的后台传输。
         </div>
       </Modal>
 

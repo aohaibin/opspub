@@ -52,6 +52,7 @@ import { backupApi, configApi, getErrorMessage } from "@/lib/api";
 import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import type { BackupStorageEndpoint, BackupStorageInput } from "@/lib/api/backup";
 import { DeviceChannelSettings, MobilePairingSettings } from "./DeviceSettings";
+import { LogoColorSettings } from "./LogoColorSettings";
 import { loadSettings, SETTINGS_KEYS, useSettingsStore, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme } from "@/store/settings";
 import { TERMINAL_CURSOR_OPTIONS, TERMINAL_FONT_SIZE_OPTIONS, TERMINAL_LINE_HEIGHT_OPTIONS, TERMINAL_THEME_OPTIONS } from "@/components/terminal/terminal-themes";
 import { SKINS, useAppStore, type SkinId, type ThemeMode } from "@/store/app";
@@ -461,6 +462,7 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+          <LogoColorSettings disabled={settingsLoading} />
         </SettingCard>
 
         <SettingCard id="terminal-theme" icon={<Terminal size={15} />} title="终端主题与渲染" desc="控制内嵌 SSH 终端的配色方案、字号与光标渲染样式。更改会立即应用到已连接的终端。">

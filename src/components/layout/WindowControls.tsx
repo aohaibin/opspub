@@ -8,6 +8,7 @@ import { terminalApi } from "@/lib/api/terminal";
 import { sftpApi } from "@/lib/api/sftp";
 import { useSettingsStore } from "@/store";
 import { SETTINGS_KEYS } from "@/store/settings";
+import { BrandLogo } from "./BrandLogo";
 import "./window-controls.css";
 
 type CloseBehavior = "ask" | "minimize" | "exit";
@@ -136,7 +137,7 @@ export function WindowControls() {
         cancelButtonProps={{ className: "ops-close-modal__button" }}
         title={
           <div className="ops-close-modal__heading">
-            <img className="ops-close-modal__logo" src="/logo.png" alt="" />
+            <BrandLogo className="ops-close-modal__logo" size={36} />
             <div>
               <span className="ops-close-modal__title">关闭客户端确认</span>
               <span className="ops-close-modal__subtitle">请选择您希望执行的关闭操作</span>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { disable as disableAutoStart, enable as enableAutoStart, isEnabled as isAutoStartEnabled } from "@tauri-apps/plugin-autostart";
 import { configApi } from "@/lib/api/config";
+import { DEFAULT_LOGO_COLOR, parseLogoColor, type LogoColor } from "@/lib/logo";
 import type { TerminalCursorStyle, TerminalFontSize, TerminalLineHeight, TerminalTheme } from "@/components/terminal/terminal-themes";
 
 export type CloseBehavior = "ask" | "minimize" | "exit";
@@ -29,6 +30,8 @@ interface SettingsStore {
   setTerminalLineHeight: (lineHeight: TerminalLineHeight) => void;
   terminalCursorStyle: TerminalCursorStyle;
   setTerminalCursorStyle: (cursorStyle: TerminalCursorStyle) => void;
+  logoColor: LogoColor;
+  setLogoColor: (color: LogoColor) => void;
   proxyAddress: string;
   setProxyAddress: (address: string) => void;
   outboundHosts: string[];
@@ -47,6 +50,7 @@ export const SETTINGS_KEYS = {
   terminalFontSize: "ui.terminal_font_size",
   terminalLineHeight: "ui.terminal_line_height",
   terminalCursorStyle: "ui.terminal_cursor_style",
+  logoColor: "ui.logo_color",
   proxyAddress: "network.proxy_address",
   outboundHosts: "network.outbound_hosts",
   outboundEnabled: "network.outbound_enabled",
@@ -124,6 +128,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   setTerminalLineHeight: (terminalLineHeight) => set({ terminalLineHeight }),
   terminalCursorStyle: "block",
   setTerminalCursorStyle: (terminalCursorStyle) => set({ terminalCursorStyle }),
+  logoColor: DEFAULT_LOGO_COLOR,
+  setLogoColor: (logoColor) => set({ logoColor }),
   proxyAddress: "",
   setProxyAddress: (proxyAddress) => set({ proxyAddress }),
   outboundHosts: [],
@@ -131,6 +137,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   outboundEnabled: false,
   setOutboundEnabled: (outboundEnabled) => set({ outboundEnabled }),
   hydrate: (values) => set({
+    logoColor: parseLogoColor(values[SETTINGS_KEYS.logoColor]),
     language: values[SETTINGS_KEYS.language] === "en-US" ? "en-US" : "zh-CN",
     storedAutoStart: values[SETTINGS_KEYS.autoStart] === "true",
     startMinimized: values[SETTINGS_KEYS.startMinimized] === "true",

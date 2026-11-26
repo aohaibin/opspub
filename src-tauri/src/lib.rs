@@ -138,6 +138,7 @@ pub fn run() {
 
             // 初始化系统托盘
             tray::setup_tray(app)?;
+            services::app_logo::restore(app.handle());
             log::info!("系统托盘初始化完成");
 
             // 开发模式下给窗口标题加 [DEV] 后缀，避免与生产版本混淆
@@ -176,6 +177,7 @@ pub fn run() {
             commands::config::get_config,
             commands::config::set_config,
             commands::config::delete_config,
+            commands::config::save_logo_color,
             commands::model_service::list_model_vendors,
             commands::model_service::get_model_preset,
             commands::model_service::list_model_profiles,

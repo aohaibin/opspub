@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="opspubRing_mint_light" x1="120" y1="68" x2="360" y2="444" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="48%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+  <path d="M 310.4 423.4 A 176 176 0 1 1 431.6 243.7" fill="none" stroke="url(#opspubRing_mint_light)" stroke-width="72" stroke-linecap="round"/>
+  <path d="M 186 200 L 248 252 L 186 304" fill="none" stroke="#0f172a" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="266" y="294" width="90" height="36" rx="18" fill="#0f172a"/>
+</svg>

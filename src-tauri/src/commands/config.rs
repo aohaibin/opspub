@@ -1,5 +1,6 @@
 use crate::error::CommandError;
 use crate::models::AppConfig;
+use crate::services::app_logo::{self, LogoColor, LogoSyncResult};
 use crate::services::config::ConfigService;
 use crate::state::AppState;
 
@@ -29,4 +30,13 @@ pub fn set_config(
 #[tauri::command]
 pub fn delete_config(state: tauri::State<'_, AppState>, key: String) -> Result<(), CommandError> {
     ConfigService::delete(&state.db, &key).map_err(|e| e.into())
+}
+
+/// 保存 Logo 配色并同步可更新的系统图标。
+#[tauri::command]
+pub async fn save_logo_color(
+    app: tauri::AppHandle,
+    color: LogoColor,
+) -> Result<LogoSyncResult, CommandError> {
+    app_logo::save(app, color).await.map_err(Into::into)
 }

@@ -25,6 +25,15 @@
 
 .workspace-brand,
 .workspace-header-controls,
+.opspub-logo-light,
+:root[data-theme="light"] .opspub-logo-dark {
+  display: none;
+}
+
+:root[data-theme="light"] .opspub-logo-light {
+  display: block;
+}
+
 .workspace-window-controls {
   display: flex;
   flex: 0 0 auto;

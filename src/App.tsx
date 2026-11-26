@@ -9,6 +9,7 @@ import { useAppStore } from "@/store";
 import { useSshSessionStore } from "@/store/ssh";
 import { getAntdTheme } from "@/theme/antdTheme";
 import { AppRouter } from "@/Router";
+import { logoUrl } from "@/lib/logo";
 import { loadSettings, useSettingsStore } from "@/store/settings";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
   const skin = useAppStore((s) => s.skin);
   const hydrateCredentials = useSshSessionStore((s) => s.hydrateCredentials);
   const language = useSettingsStore((s) => s.language);
+  const logoColor = useSettingsStore((s) => s.logoColor);
   const [credentialsReady, setCredentialsReady] = useState(false);
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() =>
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
@@ -65,6 +67,11 @@ function App() {
   useLayoutEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+
+  useLayoutEffect(() => {
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (favicon) favicon.href = logoUrl.app(logoColor);
+  }, [logoColor]);
 
   const antdTheme = useMemo(
     () => getAntdTheme(resolved, skin),

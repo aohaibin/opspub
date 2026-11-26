@@ -6,6 +6,8 @@ use tauri::{
 
 use crate::state::AppState;
 
+pub(crate) const TRAY_ID: &str = "opspub-main";
+
 pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let show = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
@@ -25,12 +27,12 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     // tooltip 同步带 [DEV] 后缀，与角标呼应
     let tooltip = if cfg!(debug_assertions) {
-        "OpsPub AI [DEV]"
+        "OpsPub [DEV]"
     } else {
-        "OpsPub AI"
+        "OpsPub"
     };
 
-    TrayIconBuilder::new()
+    TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .tooltip(tooltip)
         .menu(&menu)
@@ -75,7 +77,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 /// 直接在图标 RGBA 像素上画一个小实心圆 + 一圈深橙描边（保证任何底色都看得清），
 /// 不做半透明混合，省掉再单独维护一套 dev 图标资源。
 /// 半径取短边的 0.18，圆心落在右下角内缩 1px 处；数据异常时原样返回（不越界乱画）。
-fn add_dev_badge(icon: &tauri::image::Image<'_>) -> tauri::image::Image<'static> {
+pub(crate) fn add_dev_badge(icon: &tauri::image::Image<'_>) -> tauri::image::Image<'static> {
     let w = icon.width();
     let h = icon.height();
     let mut rgba = icon.rgba().to_vec();

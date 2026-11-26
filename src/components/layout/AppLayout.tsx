@@ -19,6 +19,7 @@ import {
   workspaceDomainLabel,
 } from "./WorkspaceNavigation";
 import { WindowControls } from "./WindowControls";
+import { BrandLogo } from "./BrandLogo";
 import { AiLockControl } from "./header/AiLockControl";
 import { McpAiUnlockModal } from "./header/McpAiUnlockModal";
 import { SkinSwitcher } from "./header/SkinSwitcher";
@@ -126,7 +127,7 @@ export function AppLayout() {
     <div className="workspace-shell">
       <header className="workspace-header glass-nav">
         <div className="workspace-brand">
-          <img src="/logo.png" alt="" width={24} height={24} draggable={false} />
+          <BrandLogo size={24} />
           <span>OpsPub</span>
         </div>
         <button

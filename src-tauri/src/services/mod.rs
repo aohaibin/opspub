@@ -1,4 +1,5 @@
 pub mod alerts;
+pub mod app_logo;
 pub mod audit;
 pub mod backup;
 pub mod batch;

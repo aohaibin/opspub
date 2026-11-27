@@ -2339,6 +2339,74 @@
     html:not(.dark) #modalToolbarConfigCard .bg-slate-800\/80 {
       background-color: #e2e8f0 !important;
     }
+    html:not(.dark) #modalSftpConflictCard {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #1e293b !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .text-white:not(#btnSftpConflictOverwrite):not(#btnSftpConflictApplyCustom):not(.bg-teal-600):not(.bg-brand-600):not(.bg-slate-600) {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalSftpConflictCard #btnSftpConflictOverwrite,
+    html:not(.dark) #modalSftpConflictCard #btnSftpConflictApplyCustom,
+    html:not(.dark) #modalSftpConflictCard .sftp-row-tray button.bg-teal-600,
+    html:not(.dark) #modalSftpConflictCard .sftp-row-tray button.bg-brand-600,
+    html:not(.dark) #modalSftpConflictCard .sftp-row-tray button.bg-slate-600 {
+      color: #ffffff !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .text-slate-200,
+    html:not(.dark) #modalSftpConflictCard .text-slate-300 {
+      color: #334155 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .text-slate-400,
+    html:not(.dark) #modalSftpConflictCard .text-slate-500 {
+      color: #64748b !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .sftp-conflict-surface {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .sftp-conflict-row {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .sftp-conflict-header-bar,
+    html:not(.dark) #modalSftpConflictCard .sftp-conflict-footer-bar {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .sftp-conflict-sec-btn {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .sftp-conflict-sec-btn:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .sftp-row-tray {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .text-amber-300,
+    html:not(.dark) #modalSftpConflictCard .text-amber-400 {
+      color: #b45309 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .text-teal-300 {
+      color: #0f766e !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .text-rose-300,
+    html:not(.dark) #modalSftpConflictCard .text-rose-400 {
+      color: #be123c !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .text-cyan-300,
+    html:not(.dark) #modalSftpConflictCard .text-brand-400 {
+      color: #0e7490 !important;
+    }
+    html:not(.dark) #modalSftpConflictCard .bg-surface-900 {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+    }
     html:not(.dark) #modalLegalAgreementCard {
       background-color: #ffffff !important;
       border-color: #cbd5e1 !important;
@@ -2591,6 +2659,203 @@
     html:not(.dark) .header-tool-tooltip::before {
       background-color: #1e293b;
     }
+    /* 顶栏按钮名称逐项独立控制：默认仅显示纯图标；单个按钮开启 .header-btn-with-label 时呈现独立胶囊按键与清晰状态点 */
+    .header-tool-label {
+      display: none;
+    }
+    #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn) {
+      width: auto !important;
+      min-width: 30px;
+      height: 28px;
+      padding: 0 9px;
+      margin: 0 2px;
+      gap: 5px;
+      border-radius: 7px;
+      background-color: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      color: #cbd5e1;
+    }
+    #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn):hover {
+      background-color: rgba(255, 255, 255, 0.11);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #f8fafc;
+    }
+    #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn).is-active {
+      background-color: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.36);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.22);
+      color: #ffffff;
+    }
+    /* 带名称模式下的 AI 锁定警戒态与待更新强调胶囊（放行态保持独立磨砂亮边胶囊，避免与绿色「待更新」撞色） */
+    #appHeader button#btnAiLockSwitch.header-tool-btn.header-btn-with-label.text-rose-400 {
+      background-color: rgba(244, 63, 94, 0.13);
+      border-color: rgba(251, 113, 133, 0.45);
+      color: #fda4af;
+    }
+    #appHeader button#btnAiLockSwitch.header-tool-btn.header-btn-with-label.text-rose-400:hover {
+      background-color: rgba(244, 63, 94, 0.22);
+      border-color: rgba(251, 113, 133, 0.65);
+      color: #fff1f2;
+    }
+    #appHeader #headerItemUpdate .header-tool-btn.header-btn-with-label {
+      border-color: rgba(52, 211, 153, 0.34);
+      background-color: rgba(16, 185, 129, 0.1);
+      color: #6ee7b7;
+    }
+    #appHeader #headerItemUpdate .header-tool-btn.header-btn-with-label:hover {
+      border-color: rgba(52, 211, 153, 0.56);
+      background-color: rgba(16, 185, 129, 0.18);
+      color: #a7f3d0;
+    }
+    /* 亮色皮肤下带名称胶囊按键的清晰边界与高对比文本 */
+    html:not(.dark) #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn) {
+      background-color: #ffffff;
+      border-color: rgba(148, 163, 184, 0.52);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      color: #334155;
+    }
+    html:not(.dark) #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn):hover {
+      background-color: #f1f5f9;
+      border-color: #64748b;
+      color: #0f172a;
+    }
+    html:not(.dark) #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn).is-active {
+      background-color: #e2e8f0;
+      border-color: rgba(100, 116, 139, 0.65);
+      color: #0f172a;
+    }
+    html:not(.dark) #appHeader #btnAiLockSwitch.text-emerald-300 {
+      color: #047857;
+    }
+    html:not(.dark) #appHeader #btnAiLockSwitch.text-rose-400 {
+      color: #be123c;
+    }
+    html:not(.dark) #appHeader .header-btn-with-label #aiLockStatusDot.bg-emerald-400 {
+      background-color: #10b981;
+    }
+    html:not(.dark) #appHeader button#btnAiLockSwitch.header-tool-btn.header-btn-with-label.text-rose-400 {
+      background-color: rgba(244, 63, 94, 0.1);
+      border-color: rgba(225, 29, 72, 0.42);
+      color: #be123c;
+    }
+    html:not(.dark) #appHeader #headerItemUpdate .header-tool-btn.header-btn-with-label {
+      background-color: rgba(16, 185, 129, 0.1);
+      border-color: rgba(5, 150, 105, 0.38);
+      color: #047857;
+    }
+    html:not(.dark) #appHeader #headerItemUpdate .header-tool-btn.header-btn-with-label:hover {
+      background-color: rgba(16, 185, 129, 0.18);
+      border-color: rgba(5, 150, 105, 0.58);
+      color: #065f46;
+    }
+    #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn) > svg,
+    #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn) > i {
+      order: 1;
+      flex-shrink: 0;
+    }
+    #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn) .header-tool-label {
+      display: inline-block;
+      order: 2;
+      font-size: calc(11.5px * var(--ui-font-scale, 1));
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+    /* AI 放行名称开启时，以细分隔线自然衔接等宽防抖动倒计时（取消嵌套方框，保持与邻近胶囊一致的视觉轻量感）；锁定或纯图标模式下自动隐藏 */
+    .header-ai-time {
+      display: none;
+    }
+    #appHeader #btnAiLockSwitch.header-btn-with-label:not(.text-rose-400) .header-ai-time:not(.hidden) {
+      display: inline-flex;
+      align-items: center;
+      order: 3;
+      flex-shrink: 0;
+      padding: 1px 0 1px 6px;
+      margin-left: 1px;
+      border-left: 1px solid rgba(148, 163, 184, 0.28);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: calc(11px * var(--ui-font-scale, 1));
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      color: #cbd5e1;
+      background: transparent;
+      border-top: 0;
+      border-right: 0;
+      border-bottom: 0;
+      border-radius: 0;
+    }
+    html:not(.dark) #appHeader #btnAiLockSwitch.header-btn-with-label:not(.text-rose-400) .header-ai-time:not(.hidden) {
+      border-left-color: rgba(100, 116, 139, 0.32);
+      color: #475569;
+      background: transparent;
+    }
+    #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn) > span.absolute {
+      position: static !important;
+      inset: auto !important;
+      order: 4;
+      flex-shrink: 0;
+      width: 6px !important;
+      height: 6px !important;
+      margin-left: 1px;
+      box-shadow: none !important;
+      --tw-ring-shadow: 0 0 #0000 !important;
+    }
+    html:not(.dark) #settingWindowShowLabelsBar,
+    html:not(.dark) #modalWindowShowLabelsRow {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #settingWindowShowLabelsBar .text-slate-200,
+    html:not(.dark) #modalWindowShowLabelsRow .text-slate-200 {
+      color: #1e293b !important;
+    }
+    html:not(.dark) #settingWindowShowLabelsBar .text-slate-400,
+    html:not(.dark) #modalWindowShowLabelsRow .text-slate-400 {
+      color: #64748b !important;
+    }
+    html:not(.dark) #settingWindowShowLabelsBar .bg-slate-700,
+    html:not(.dark) #modalWindowShowLabelsRow .bg-slate-700 {
+      background-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #badgeWindowShowLabels.bg-surface-900 {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    html:not(.dark) #badgeWindowShowLabels.text-brand-300 {
+      background-color: rgb(var(--brand-500-rgb) / 0.14) !important;
+      border-color: rgb(var(--brand-500-rgb) / 0.35) !important;
+      color: var(--brand-700) !important;
+    }
+    html:not(.dark) .window-label-chip {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    html:not(.dark) .window-label-chip:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) .window-label-chip.window-label-chip-on {
+      background-color: rgb(var(--brand-500-rgb) / 0.14) !important;
+      border-color: rgb(var(--brand-500-rgb) / 0.45) !important;
+      color: var(--brand-700) !important;
+    }
+    html:not(.dark) .toolbar-row-label-btn {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+    }
+    html:not(.dark) .toolbar-row-label-btn.toolbar-row-label-active {
+      background-color: rgb(var(--brand-500-rgb) / 0.14) !important;
+      border-color: rgb(var(--brand-500-rgb) / 0.45) !important;
+      color: var(--brand-700) !important;
+    }
 
     /* ==========================================================================
        P0 全系统亮色皮肤深色残留修复与高对比度文本守护 (消除暗底黑字与浮窗反差异常)
@@ -2825,12 +3090,12 @@
     .header-group-divider {
       width: 1px;
       height: 16px;
-      background-color: rgba(100, 116, 139, 0.35);
-      margin: 0 4px;
+      background-color: rgba(148, 163, 184, 0.38);
+      margin: 0 5px;
       flex-shrink: 0;
     }
     html:not(.dark) .header-group-divider {
-      background-color: rgba(148, 163, 184, 0.55);
+      background-color: rgba(100, 116, 139, 0.42);
     }
     html:not(.dark) #headerToolbarOverflowMenu {
       background-color: #ffffff !important;
@@ -3095,6 +3360,60 @@
     }
     html:not(.dark) #headerSkinActiveDot {
       --tw-ring-color: #ffffff;
+    }
+    /* 右上角 AI 放行/时长选择浮层（1:1 对齐 Copilot 浮层样式并完整适配暗色/亮色主题，固定在最高顶层避免被提示条遮挡） */
+    #aiLockDropdown {
+      background-color: #0f141c !important;
+      opacity: 1 !important;
+      border-color: rgba(71, 85, 105, 0.75) !important;
+      box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(51, 65, 85, 0.45) !important;
+      color: #e2e8f0;
+      z-index: 10006 !important;
+    }
+    html:not(.dark) #aiLockDropdown {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14) !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #aiLockDropdown .border-slate-800,
+    html:not(.dark) #aiLockDropdown .border-slate-800\/80 {
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #aiLockDropdown .text-white {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #aiLockDropdown .text-slate-400,
+    html:not(.dark) #copilotLockDropdown .text-slate-400 {
+      color: #64748b !important;
+    }
+    html:not(.dark) #aiLockDropdown .ai-dur-tray,
+    html:not(.dark) #copilotLockDropdown .bg-surface-950 {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #aiLockDropdown .dur-opt-btn,
+    html:not(.dark) #copilotLockDropdown .dur-opt-btn {
+      color: #64748b !important;
+    }
+    html:not(.dark) #aiLockDropdown .dur-opt-btn:hover,
+    html:not(.dark) #copilotLockDropdown .dur-opt-btn:hover {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #aiLockDropdown .dur-opt-btn.dur-opt-active,
+    html:not(.dark) #copilotLockDropdown .dur-opt-btn.dur-opt-active {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08) !important;
+    }
+    html:not(.dark) #aiLockDropdown .text-emerald-400,
+    html:not(.dark) #copilotLockDropdown .text-emerald-400 {
+      color: #059669 !important;
+    }
+    #headerItemAiLock.dropdown-open .header-tool-tooltip {
+      opacity: 0 !important;
+      pointer-events: none !important;
     }
     /* 品牌内嵌 SVG 自适应明暗主题对比：暗色背景用纯白 >_，亮色白色背景自动切为锐利深黑 >_ */
     .opspub-logo-inapp .opspub-term-chevron {
@@ -3364,11 +3683,12 @@
       <!-- ===== 系统控制与全局状态纯图标 ===== -->
       <!-- AI 操作放行与熔断 -->
       <div id="headerItemAiLock" class="header-tool-wrapper">
-        <button id="btnAiLockSwitch" onclick="toggleAILockSwitch()" class="header-tool-btn is-active text-emerald-300" aria-label="AI 操作放行与熔断">
+        <button id="btnAiLockSwitch" onclick="toggleAILockDropdown(event)" class="header-tool-btn is-active text-emerald-300" aria-label="AI 操作放行与熔断">
           <i data-lucide="bot" class="w-4 h-4"></i>
+          <span id="aiLockHeaderTime" class="header-ai-time">29:48</span>
           <span id="aiLockStatusDot" class="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0a0e16]"></span>
         </button>
-        <div id="aiLockTooltipText" class="header-tool-tooltip">AI 操作已放行 (29:44)</div>
+        <div id="aiLockTooltipText" class="header-tool-tooltip">AI 操作已放行 (29:44) · 点击选择开放时间</div>
       </div>
 
       <!-- 外观主题与按钮配色选择器 -->
@@ -7130,6 +7450,13 @@
                       <div>
                         <div class="font-medium text-cyan-300">模拟拖拽本地文件夹 (dist-web/)</div>
                         <div class="text-[10px] text-slate-400">一键体验文件夹拖入递归上传效果</div>
+                      </div>
+                    </div>
+                    <div id="sftpBtnSimConflictDrop" onclick="simulateSftpConflictDropDemo(); toggleSftpUploadQuickMenu(event);" class="flex items-center space-x-2.5 px-2.5 py-2 rounded-lg hover:bg-surface-800 cursor-pointer text-amber-300">
+                      <i data-lucide="file-warning" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                      <div>
+                        <div class="font-medium text-amber-300">模拟拖拽同名文件冲突 (3 项)</div>
+                        <div class="text-[10px] text-slate-400">体验覆盖、重命名保留或取消同名项交互</div>
                       </div>
                     </div>
                     <div onclick="addMockSftpUploadTask('multi'); toggleSftpUploadQuickMenu(event);" class="flex items-center space-x-2.5 px-2.5 py-2 rounded-lg hover:bg-surface-800 cursor-pointer text-emerald-400">
@@ -13687,6 +14014,27 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
                     <!-- 由 renderToolbarOrderPreviewStrips 动态填充可拖拽按钮胶囊 -->
                   </div>
                 </div>
+                <!-- 升级：顶栏按钮名称单独配置区（默认全仅图标；支持点选下方单个图标胶囊独立显名 + 右侧一键全显/仅图标） -->
+                <div id="settingWindowShowLabelsBar" class="p-2.5 px-3 rounded-xl bg-[#090d14] border border-slate-800/80 space-y-2.5">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0 space-y-0.5">
+                      <div class="text-xs font-medium text-slate-200 flex items-center space-x-2">
+                        <span>显示按钮名称</span>
+                        <span id="badgeWindowShowLabels" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-900 text-slate-400 border border-slate-700/70">仅图标（默认）</span>
+                      </div>
+                      <p class="text-[11px] text-slate-400 leading-relaxed">支持点击下方单个菜单单独开启/关闭名称显示（其余保持纯图标），或用右侧总开关一键全切</p>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0">
+                      <button type="button" id="btnResetWindowLabelsQuick" onclick="toggleWindowShowLabels(false)" class="hidden px-2 py-0.5 rounded-md text-[10.5px] text-slate-400 hover:text-white hover:bg-surface-800 border border-slate-700/60 transition cursor-pointer" title="全部恢复为仅显示图标">全部仅图标</button>
+                      <button type="button" id="switchWindowShowLabels" role="switch" aria-checked="false" onclick="toggleWindowShowLabels()" class="w-9 h-5 rounded-full bg-slate-700 transition-colors relative cursor-pointer shrink-0" title="一键全部开启 / 关闭按钮名称">
+                        <span class="w-3.5 h-3.5 rounded-full bg-white absolute top-[3px] left-[3px] transition-all shadow-sm"></span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="settingWindowLabelChips" class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <!-- 由 renderWindowLabelChips 动态渲染已开启窗口按钮的独立名称开关胶囊 -->
+                  </div>
+                </div>
               </div>
 
               <!-- 2. 终端工具栏 -->
@@ -19678,6 +20026,107 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
     </div>
   </div>
 
+  <!-- SFTP 同名文件冲突决策弹窗（支持覆盖替换、重命名保留、取消/跳过同名、取消全部，支持多文件逐项裁决与记住策略） -->
+  <div id="modalSftpConflict" onclick="if(event.target===this) cancelSftpConflictModal()" class="hidden fixed inset-0 z-[10003] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 font-sans select-none animate-in fade-in duration-150">
+    <div id="modalSftpConflictCard" class="w-full max-w-[560px] bg-[#141820] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200">
+      <div class="sftp-conflict-header-bar px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between bg-surface-950/60">
+        <div class="flex items-center space-x-2.5 min-w-0">
+          <span class="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/35 text-amber-400 flex items-center justify-center shrink-0">
+            <i data-lucide="file-warning" class="w-4 h-4"></i>
+          </span>
+          <div class="min-w-0">
+            <h3 id="sftpConflictModalTitle" class="text-sm font-bold text-white truncate">发现同名文件冲突</h3>
+            <p id="sftpConflictModalTarget" class="text-[11px] text-slate-400 font-mono truncate">目标路径: /root</p>
+          </div>
+        </div>
+        <button type="button" onclick="cancelSftpConflictModal()" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer shrink-0" title="取消上传 (Esc)">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-3 text-xs">
+        <div id="sftpConflictBatchSummary" class="sftp-conflict-surface px-3 py-2 rounded-xl bg-[#0c1017] border border-slate-800/80 text-[11px] text-slate-300 leading-relaxed">
+          目标目录中存在同名文件或目录，请选择处理方式。
+        </div>
+
+        <!-- 多冲突快捷批量切换栏（冲突数 >= 2 时展示） -->
+        <div id="sftpConflictMultiBar" class="hidden flex flex-wrap items-center justify-between gap-2 px-1">
+          <div id="sftpConflictLiveCounts" class="text-[11px] text-slate-400 font-mono">待确认 2 项</div>
+          <div class="flex items-center space-x-1 text-[11px]">
+            <span class="text-slate-500 mr-0.5">批量设为:</span>
+            <button type="button" onclick="setAllSftpConflictRowActions('overwrite')" class="sftp-conflict-sec-btn px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700/70 transition cursor-pointer">全部覆盖</button>
+            <button type="button" onclick="setAllSftpConflictRowActions('rename')" class="sftp-conflict-sec-btn px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700/70 transition cursor-pointer">全部重命名</button>
+            <button type="button" onclick="setAllSftpConflictRowActions('skip')" class="sftp-conflict-sec-btn px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-slate-300 border border-slate-700/70 transition cursor-pointer">全部跳过</button>
+          </div>
+        </div>
+
+        <!-- 冲突项对比列表 -->
+        <div id="sftpConflictListBody" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-0.5">
+          <!-- 动态生成冲突对比卡片 -->
+        </div>
+
+        <!-- 记住策略勾选项 -->
+        <label class="flex items-center space-x-2 pt-1 text-[11px] text-slate-400 cursor-pointer select-none">
+          <input id="sftpConflictRememberChk" type="checkbox" class="rounded bg-surface-800 border-slate-600 text-teal-500 focus:ring-0 cursor-pointer">
+          <span>记住我的选择（同步至「设置 → SFTP → 同名文件冲突策略」，后续不再询问）</span>
+        </label>
+      </div>
+
+      <div class="sftp-conflict-footer-bar px-5 py-3 border-t border-slate-800/80 bg-surface-950/50 flex flex-wrap items-center justify-between gap-2">
+        <button id="btnSftpConflictCancelAll" type="button" onclick="cancelSftpConflictModal()" class="sftp-conflict-sec-btn px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 hover:text-white text-xs border border-slate-700/60 transition cursor-pointer">
+          取消本次上传
+        </button>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <button id="btnSftpConflictSkip" type="button" onclick="applyBatchSftpConflictAction('skip')" class="sftp-conflict-sec-btn px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 hover:text-white text-xs border border-slate-700/60 transition cursor-pointer">
+            跳过同名
+          </button>
+          <button id="btnSftpConflictRename" type="button" onclick="applyBatchSftpConflictAction('rename')" class="sftp-conflict-sec-btn px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-200 hover:text-white text-xs border border-slate-700/60 transition cursor-pointer">
+            重命名保留
+          </button>
+          <button id="btnSftpConflictOverwrite" type="button" onclick="applyBatchSftpConflictAction('overwrite')" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer">
+            覆盖替换
+          </button>
+          <button id="btnSftpConflictApplyCustom" type="button" onclick="confirmCustomSftpConflictDecisions()" class="hidden px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer">
+            确认按以上选择处理
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右上角 AI 操作放行与开放时长选择下拉面板 (置于顶层视口以完全避开 Toast 遮挡，并与 AI 助手页开关/时长双向同步) -->
+  <div id="aiLockDropdown" onclick="event.stopPropagation()" class="hidden fixed right-4 top-12 z-[10006] w-80 p-4 rounded-2xl bg-[#0f141c] border border-slate-700 shadow-2xl text-xs space-y-3.5 font-sans select-none animate-in fade-in zoom-in-95">
+    <!-- 顶部总开关行 -->
+    <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="power" class="w-4 h-4 text-slate-400"></i>
+        <span id="topAiLockSwitchLabel" class="font-bold text-white text-xs">AI 操作已放行</span>
+      </div>
+      <button type="button" onclick="toggleAILockSwitch()" id="topAiLockToggleSwitch" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-600 transition-colors duration-200 ease-in-out focus:outline-none" title="点击开启或锁定 AI 改动权限">
+        <span id="topAiLockToggleDot" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-5"></span>
+      </button>
+    </div>
+
+    <!-- 限时放行时长选择栏 (30m / 2h / 1d / 永久) -->
+    <div class="space-y-1.5">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="text-slate-400 font-medium">限时放行</span>
+        <span id="topAiUnlockCountdownText" class="text-[10px] text-emerald-400 font-mono">倒计时: 29:48</span>
+      </div>
+      <div class="ai-dur-tray grid grid-cols-4 gap-1 p-1 bg-surface-950 rounded-xl border border-slate-800 text-center font-mono text-xs">
+        <button type="button" onclick="selectUnlockDuration('30m', true)" id="dur-btn-30m" class="dur-opt-btn dur-opt-active py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition cursor-pointer">30m</button>
+        <button type="button" onclick="selectUnlockDuration('2h', true)" id="dur-btn-2h" class="dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">2h</button>
+        <button type="button" onclick="selectUnlockDuration('1d', true)" id="dur-btn-1d" class="dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">1d</button>
+        <button type="button" onclick="selectUnlockDuration('forever', true)" id="dur-btn-forever" class="dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">永久</button>
+      </div>
+    </div>
+
+    <!-- 说明文案 -->
+    <p class="text-[11px] text-slate-400 leading-relaxed font-sans pt-1 border-t border-slate-800/80">
+      「AI 操作」总开关：关闭时 AI 的一切改动型工具直接拒绝，只读工具仍可用。到点自动回归锁定。
+    </p>
+  </div>
+
   <!-- 全局 Toast 提示容器 -->
   <div id="toastNotification" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-[10005] px-4 py-2 rounded-xl bg-surface-900/95 backdrop-blur-md border border-emerald-500/50 shadow-2xl flex items-center space-x-2.5 text-xs text-emerald-300 animate-in fade-in slide-in-from-top-2 duration-200 max-w-lg">
     <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
@@ -21865,35 +22314,35 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       }
     }
 
-    function handleRightSftpDrop(e) {
+    async function handleRightSftpDrop(e) {
       e.preventDefault();
       e.stopPropagation();
       rightSftpDragCounter = 0;
       const overlay = document.getElementById('sftpRightDragDropOverlay');
       if (overlay) overlay.classList.add('hidden');
 
-      const files = e.dataTransfer.files;
-      if (!files || files.length === 0) return;
-
-      const uploadedNames = [];
-      const now = new Date();
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        uploadedNames.push(f.name);
-        rightSftpFiles.unshift({
-          name: f.name,
-          type: 'file',
-          size: f.size || 2048,
-          mtime: timeStr,
-          mode: '-rw-r--r--',
-          owner: 'ubuntu'
-        });
+      let items = [];
+      if (window.sftpDraggingRemotePayload && window.sftpDraggingRemotePayload.sourcePane === 'right') {
+        handleRemoteSftpDragEnd(e);
+        return;
       }
+      if (window.sftpDraggingRemotePayload && window.sftpDraggingRemotePayload.sourcePane === 'left') {
+        items = window.sftpDraggingRemotePayload.items || [];
+        handleRemoteSftpDragEnd(e);
+      } else {
+        items = await extractItemsFromDropEvent(e.dataTransfer);
+      }
+      if (!items || items.length === 0) return;
 
-      renderRightSftpFilesTable();
-      showToast(`🚀 已成功将 [${uploadedNames.join(', ')}] 拖拽上传至右窗格 ${rightSftpCurrentPath} (256KiB 分块流传输完成)`);
+      applyImmediateSftpUploadList({
+        targetList: rightSftpFiles,
+        items,
+        targetPath: rightSftpCurrentPath,
+        hostLabel: '右窗格',
+        owner: 'ubuntu',
+        renderFn: renderRightSftpFilesTable,
+        shortTime: true
+      });
     }
 
     function renderSftpFilesTable() {
@@ -22680,6 +23129,376 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
       enqueueSftpFolderAndFileUploads(items);
     }
 
+    // ---------- SFTP 同名文件冲突检测与逐项决策引擎 ----------
+    let __sftpConflictSession = null;
+
+    function buildUniqueSftpCopyName(rawName, isFolder, usedNamesSet) {
+      const dot = !isFolder ? rawName.lastIndexOf('.') : -1;
+      const base = dot > 0 ? rawName.slice(0, dot) : rawName;
+      const ext = dot > 0 ? rawName.slice(dot) : '';
+      let idx = 1;
+      let candidate = base + '_copy' + ext;
+      while (usedNamesSet.has(candidate)) {
+        idx++;
+        candidate = base + '_copy_' + idx + ext;
+      }
+      usedNamesSet.add(candidate);
+      return candidate;
+    }
+
+    function escapeConflictHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function cancelSftpConflictModal() {
+      const m = document.getElementById('modalSftpConflict');
+      if (m) m.classList.add('hidden');
+      const session = __sftpConflictSession;
+      __sftpConflictSession = null;
+      if (session && typeof showToast === 'function' && session.conflicts && session.conflicts.length > 0) {
+        showToast('✕ 已取消本次 SFTP 上传（未传输冲突或待传文件）');
+      }
+    }
+
+    function setSftpConflictRowAction(idx, action) {
+      if (!__sftpConflictSession) return;
+      __sftpConflictSession.rowDecisions[idx] = action;
+      __sftpConflictSession.hasCustomRowEdit = true;
+      renderSftpConflictRows();
+      syncSftpConflictFooterMode();
+    }
+
+    function setAllSftpConflictRowActions(action) {
+      if (!__sftpConflictSession) return;
+      __sftpConflictSession.conflicts.forEach(c => {
+        __sftpConflictSession.rowDecisions[c.idx] = action;
+      });
+      __sftpConflictSession.hasCustomRowEdit = true;
+      renderSftpConflictRows();
+      syncSftpConflictFooterMode();
+    }
+
+    function renderSftpConflictRows() {
+      const listEl = document.getElementById('sftpConflictListBody');
+      if (!listEl || !__sftpConflictSession) return;
+      const multi = __sftpConflictSession.conflicts.length > 1;
+      listEl.innerHTML = __sftpConflictSession.conflicts.map(c => {
+        const dec = __sftpConflictSession.rowDecisions[c.idx] || 'skip';
+        const isDir = !!c.incoming.isFolder;
+        const incSizeText = isDir
+          ? `${c.incoming.itemCount || 1} 项 (${formatFileSize(c.incoming.size || 4096)})`
+          : formatFileSize(c.incoming.size || 0);
+        const remSizeText = c.existing.displaySize || formatFileSize(c.existing.size || 0);
+        const remTimeText = c.existing.mtime ? (' · ' + c.existing.mtime) : '';
+        let typeBadge = '';
+        if (c.isTypeMismatch) {
+          typeBadge = '<span class="px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-300 border border-rose-500/35 text-[10px] shrink-0">目录/文件类型冲突</span>';
+        } else if (isDir) {
+          typeBadge = '<span class="px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[10px] shrink-0">同名目录</span>';
+        } else if (c.existing.size && c.incoming.size && Number(c.existing.size) !== Number(c.incoming.size)) {
+          typeBadge = '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] shrink-0">体积不同</span>';
+        } else {
+          typeBadge = '<span class="px-1.5 py-0.2 rounded bg-slate-500/15 text-slate-300 border border-slate-600/40 text-[10px] shrink-0">同名已存在</span>';
+        }
+
+        const pillHtml = multi ? `
+          <div class="sftp-row-tray inline-flex items-center p-0.5 rounded-lg bg-[#0c1017] border border-slate-800 shrink-0 text-[10px]">
+            <button type="button" data-conflict-row="${c.idx}" data-conflict-act="overwrite" onclick="setSftpConflictRowAction(${c.idx}, 'overwrite')" class="px-2 py-0.5 rounded transition cursor-pointer ${dec === 'overwrite' ? 'bg-teal-600 text-white font-semibold' : 'text-slate-400 hover:text-white'}">覆盖</button>
+            <button type="button" data-conflict-row="${c.idx}" data-conflict-act="rename" onclick="setSftpConflictRowAction(${c.idx}, 'rename')" class="px-2 py-0.5 rounded transition cursor-pointer ${dec === 'rename' ? 'bg-brand-600 text-white font-semibold' : 'text-slate-400 hover:text-white'}">重命名</button>
+            <button type="button" data-conflict-row="${c.idx}" data-conflict-act="skip" onclick="setSftpConflictRowAction(${c.idx}, 'skip')" class="px-2 py-0.5 rounded transition cursor-pointer ${dec === 'skip' ? 'bg-slate-600 text-white font-semibold' : 'text-slate-400 hover:text-white'}">跳过</button>
+          </div>` : '';
+
+        return `
+          <div class="sftp-conflict-row p-2.5 rounded-xl bg-[#0c1017] border border-slate-800/80 flex items-center justify-between gap-3">
+            <div class="flex items-start space-x-2.5 min-w-0 flex-1">
+              <div class="p-1.5 rounded-lg bg-surface-900 border border-slate-800 shrink-0 mt-0.5">
+                <i data-lucide="${isDir ? 'folder' : 'file-text'}" class="w-3.5 h-3.5 ${isDir ? 'text-brand-400' : 'text-amber-400'}"></i>
+              </div>
+              <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex items-center space-x-1.5 min-w-0">
+                  <span class="font-mono font-semibold text-white truncate">${escapeConflictHtml(c.incoming.name)}</span>
+                  ${typeBadge}
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                  <span>新传入: <strong class="text-teal-300 font-medium">${escapeConflictHtml(incSizeText)}</strong></span>
+                  <span>远程现有: <strong class="text-slate-300 font-medium">${escapeConflictHtml(remSizeText + remTimeText)}</strong></span>
+                </div>
+              </div>
+            </div>
+            ${pillHtml}
+          </div>`;
+      }).join('');
+      if (window.lucide && window.lucide.createIcons) lucide.createIcons();
+    }
+
+    function syncSftpConflictFooterMode() {
+      const s = __sftpConflictSession;
+      if (!s) return;
+      const multi = s.conflicts.length > 1;
+      const multiBar = document.getElementById('sftpConflictMultiBar');
+      const liveCounts = document.getElementById('sftpConflictLiveCounts');
+      const btnCancel = document.getElementById('btnSftpConflictCancelAll');
+      const btnSkip = document.getElementById('btnSftpConflictSkip');
+      const btnRename = document.getElementById('btnSftpConflictRename');
+      const btnOver = document.getElementById('btnSftpConflictOverwrite');
+      const btnApplyCustom = document.getElementById('btnSftpConflictApplyCustom');
+
+      let cover = 0, ren = 0, skip = 0;
+      s.conflicts.forEach(c => {
+        const d = s.rowDecisions[c.idx] || 'skip';
+        if (d === 'overwrite') cover++;
+        else if (d === 'rename') ren++;
+        else skip++;
+      });
+
+      if (multiBar) multiBar.classList.toggle('hidden', !multi);
+      if (liveCounts) liveCounts.textContent = `已选: ${cover} 覆盖 · ${ren} 重命名 · ${skip} 跳过`;
+
+      if (!multi) {
+        if (btnCancel) btnCancel.textContent = s.nonConflicts.length > 0 ? '取消全部' : '取消同名上传';
+        if (btnSkip) {
+          btnSkip.classList.toggle('hidden', s.nonConflicts.length === 0);
+          btnSkip.textContent = `跳过同名（仅传其余 ${s.nonConflicts.length} 项）`;
+        }
+        if (btnRename) { btnRename.classList.remove('hidden'); btnRename.textContent = '重命名保留'; }
+        if (btnOver) { btnOver.classList.remove('hidden'); btnOver.textContent = '覆盖替换'; }
+        if (btnApplyCustom) btnApplyCustom.classList.add('hidden');
+      } else {
+        if (btnCancel) btnCancel.textContent = '取消全部';
+        if (s.hasCustomRowEdit) {
+          if (btnSkip) { btnSkip.classList.remove('hidden'); btnSkip.textContent = '全部跳过同名'; }
+          if (btnRename) btnRename.classList.add('hidden');
+          if (btnOver) btnOver.classList.add('hidden');
+          if (btnApplyCustom) {
+            btnApplyCustom.classList.remove('hidden');
+            btnApplyCustom.textContent = `确认执行 (${cover} 覆盖 / ${ren} 重命名 / ${skip} 跳过)`;
+          }
+        } else {
+          if (btnSkip) { btnSkip.classList.remove('hidden'); btnSkip.textContent = '全部跳过同名'; }
+          if (btnRename) { btnRename.classList.remove('hidden'); btnRename.textContent = '全部重命名'; }
+          if (btnOver) { btnOver.classList.remove('hidden'); btnOver.textContent = '全部覆盖替换'; }
+          if (btnApplyCustom) btnApplyCustom.classList.add('hidden');
+        }
+      }
+    }
+
+    function applyBatchSftpConflictAction(action) {
+      if (!__sftpConflictSession) return;
+      const decisionMap = {};
+      __sftpConflictSession.conflicts.forEach(c => { decisionMap[c.idx] = action; });
+      finalizeSftpConflictResolution(decisionMap, action);
+    }
+
+    function confirmCustomSftpConflictDecisions() {
+      if (!__sftpConflictSession) return;
+      const vals = __sftpConflictSession.conflicts.map(c => __sftpConflictSession.rowDecisions[c.idx] || 'skip');
+      const allSame = vals.length > 0 && vals.every(v => v === vals[0]);
+      finalizeSftpConflictResolution(__sftpConflictSession.rowDecisions, allSame ? vals[0] : null);
+    }
+
+    function finalizeSftpConflictResolution(decisionMap, uniformAction) {
+      const s = __sftpConflictSession;
+      const m = document.getElementById('modalSftpConflict');
+      const remember = !!document.getElementById('sftpConflictRememberChk')?.checked;
+      if (m) m.classList.add('hidden');
+      __sftpConflictSession = null;
+      if (!s) return;
+
+      if (remember && uniformAction && typeof opspubPrefs !== 'undefined' && opspubPrefs.sftp) {
+        opspubPrefs.sftp.conflictPolicy = uniformAction;
+        if (typeof saveFeaturePrefs === 'function') saveFeaturePrefs();
+        if (typeof syncFeaturePrefsToSettingsUI === 'function') syncFeaturePrefsToSettingsUI();
+      }
+
+      const usedNames = new Set(Array.from(s.existingMap.keys()));
+      const finalItems = [];
+      const skippedItems = [];
+
+      s.items.forEach((rawItem, idx) => {
+        const conflict = s.conflicts.find(c => c.idx === idx);
+        if (!conflict) {
+          usedNames.add(rawItem.name);
+          finalItems.push(Object.assign({}, rawItem, { conflictAction: 'new' }));
+          return;
+        }
+        const act = decisionMap[idx] || 'skip';
+        if (act === 'skip') {
+          skippedItems.push(rawItem);
+        } else if (act === 'rename') {
+          const copyName = buildUniqueSftpCopyName(rawItem.name, !!rawItem.isFolder, usedNames);
+          finalItems.push(Object.assign({}, rawItem, { name: copyName, originalName: rawItem.name, conflictAction: 'rename' }));
+        } else {
+          finalItems.push(Object.assign({}, rawItem, { conflictAction: 'overwrite' }));
+        }
+      });
+
+      s.onResolved({ finalItems, skippedItems, policyApplied: uniformAction || 'custom' });
+    }
+
+    function resolveSftpUploadConflicts({ items, existingItems, targetPath, hostLabel, onResolved }) {
+      const list = Array.isArray(items) ? items : [];
+      const existingMap = new Map();
+      (existingItems || []).forEach(it => {
+        if (it && it.name) existingMap.set(it.name, it);
+      });
+
+      const nonConflicts = [];
+      const conflicts = [];
+      list.forEach((item, idx) => {
+        const existing = existingMap.get(item.name);
+        if (existing) {
+          const isTypeMismatch = (!!item.isFolder) !== (existing.type === 'dir');
+          conflicts.push({ idx, incoming: item, existing, isTypeMismatch });
+        } else {
+          nonConflicts.push({ idx, incoming: item });
+        }
+      });
+
+      if (conflicts.length === 0) {
+        onResolved({
+          finalItems: list.map(it => Object.assign({}, it, { conflictAction: 'new' })),
+          skippedItems: [],
+          policyApplied: 'none'
+        });
+        return;
+      }
+
+      const policy = (typeof opspubPrefs !== 'undefined' && opspubPrefs.sftp && opspubPrefs.sftp.conflictPolicy) || 'ask';
+      if (policy === 'overwrite' || policy === 'skip' || policy === 'rename') {
+        const usedNames = new Set(existingMap.keys());
+        const finalItems = [];
+        const skippedItems = [];
+        list.forEach(item => {
+          if (!existingMap.has(item.name)) {
+            usedNames.add(item.name);
+            finalItems.push(Object.assign({}, item, { conflictAction: 'new' }));
+            return;
+          }
+          if (policy === 'skip') {
+            skippedItems.push(item);
+          } else if (policy === 'rename') {
+            const copyName = buildUniqueSftpCopyName(item.name, !!item.isFolder, usedNames);
+            finalItems.push(Object.assign({}, item, { name: copyName, originalName: item.name, conflictAction: 'rename' }));
+          } else {
+            finalItems.push(Object.assign({}, item, { conflictAction: 'overwrite' }));
+          }
+        });
+        onResolved({ finalItems, skippedItems, policyApplied: policy });
+        return;
+      }
+
+      const rowDecisions = {};
+      conflicts.forEach(c => { rowDecisions[c.idx] = 'skip'; });
+      __sftpConflictSession = {
+        items: list,
+        existingMap,
+        targetPath: targetPath || '/root',
+        hostLabel: hostLabel || '',
+        nonConflicts,
+        conflicts,
+        rowDecisions,
+        hasCustomRowEdit: false,
+        onResolved
+      };
+
+      const titleEl = document.getElementById('sftpConflictModalTitle');
+      const targetEl = document.getElementById('sftpConflictModalTarget');
+      const sumEl = document.getElementById('sftpConflictBatchSummary');
+      const remChk = document.getElementById('sftpConflictRememberChk');
+      if (titleEl) titleEl.textContent = `发现 ${conflicts.length} 项同名文件冲突`;
+      if (targetEl) targetEl.textContent = `目标目录: ${targetPath || '/root'}${hostLabel ? ' · ' + hostLabel : ''}`;
+      if (sumEl) {
+        sumEl.textContent = nonConflicts.length > 0
+          ? `本次共拖入 ${list.length} 项：其中 ${nonConflicts.length} 个新项目将正常上传；以下 ${conflicts.length} 项在目标目录已存在同名项，请确认是否覆盖或跳过：`
+          : `目标目录中已存在 ${conflicts.length} 个同名${conflicts.length === 1 && conflicts[0].incoming.isFolder ? '目录' : '文件'}，请选择覆盖替换、重命名保留或取消同名项上传：`;
+      }
+      if (remChk) remChk.checked = false;
+
+      renderSftpConflictRows();
+      syncSftpConflictFooterMode();
+      const modal = document.getElementById('modalSftpConflict');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide && window.lucide.createIcons) lucide.createIcons();
+    }
+
+    // 供右栏双窗格与工作台侧栏文件表复用的同步写入辅助函数
+    function applyImmediateSftpUploadList({ targetList, items, targetPath, hostLabel, owner, renderFn, shortTime }) {
+      resolveSftpUploadConflicts({
+        items,
+        existingItems: targetList,
+        targetPath,
+        hostLabel,
+        onResolved: ({ finalItems, skippedItems }) => {
+          if (!finalItems || finalItems.length === 0) {
+            if (skippedItems && skippedItems.length > 0) {
+              showToast(`⏭️ 已跳过 ${skippedItems.length} 个同名文件`);
+            }
+            return;
+          }
+          const now = new Date();
+          const hhmmss = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+          const timeStr = shortTime
+            ? hhmmss
+            : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${hhmmss}`;
+          const uploadedNames = [];
+          let overCount = 0, renCount = 0;
+
+          finalItems.forEach(it => {
+            if (it.conflictAction === 'overwrite') overCount++;
+            if (it.conflictAction === 'rename') renCount++;
+            uploadedNames.push(it.name);
+            const isDir = !!it.isFolder;
+            const entry = {
+              name: it.name,
+              type: isDir ? 'dir' : 'file',
+              itemCount: isDir ? (it.itemCount || 1) : undefined,
+              size: isDir ? 4096 : (it.size || 2048),
+              displaySize: isDir ? ((it.itemCount || 1) + ' 项') : undefined,
+              mtime: timeStr,
+              mode: isDir ? 'drwxr-xr-x' : '-rw-r--r--',
+              owner: owner || 'root:root'
+            };
+            const existingIdx = targetList.findIndex(f => f.name === it.name);
+            if (existingIdx >= 0) {
+              targetList[existingIdx] = entry;
+            } else {
+              targetList.unshift(entry);
+            }
+          });
+
+          if (typeof renderFn === 'function') renderFn();
+          const tags = [];
+          if (overCount > 0) tags.push(`覆盖 ${overCount} 项`);
+          if (renCount > 0) tags.push(`重命名 ${renCount} 项`);
+          if (skippedItems && skippedItems.length > 0) tags.push(`跳过同名 ${skippedItems.length} 项`);
+          const extra = tags.length > 0 ? `（${tags.join(' · ')}）` : ' (256KiB 分块流传输完成)';
+          showToast(`🚀 已上传 [${uploadedNames.join(', ')}] 至 ${hostLabel} ${targetPath}${extra}`);
+        }
+      });
+    }
+
+    function simulateSftpConflictDropDemo() {
+      const activeTab = sftpTabs.find(t => t.id === activeSftpTabId);
+      if (!activeTab || activeTab.isPicker) {
+        showToast('⚠️ 请先连接一台服务器后再演示同名冲突上传');
+        return;
+      }
+      const overlay = document.getElementById('sftpDragDropOverlay');
+      if (overlay) overlay.classList.remove('hidden');
+      setTimeout(() => {
+        if (overlay) overlay.classList.add('hidden');
+        enqueueSftpFolderAndFileUploads([
+          { name: 'docker-compose.yml', isFolder: false, size: 4680, itemCount: 1 },
+          { name: 'dist-web', isFolder: true, size: 22.4 * 1024 * 1024, itemCount: 48 },
+          { name: 'hotfix-patch.sql', isFolder: false, size: 128 * 1024, itemCount: 1 }
+        ]);
+      }, 650);
+    }
+
     function enqueueSftpFolderAndFileUploads(items, customHostPrefix) {
       const activeTab = sftpTabs.find(t => t.id === activeSftpTabId);
       if (!activeTab || activeTab.isPicker) {
@@ -22687,43 +23506,40 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
         return;
       }
 
-      sftpAllFinishedNotified = false;
-      if (sftpAutoCloseTimer) {
-        clearInterval(sftpAutoCloseTimer);
-        sftpAutoCloseTimer = null;
-      }
-
       const maxConc = (typeof opspubPrefs !== 'undefined' && opspubPrefs.sftp && opspubPrefs.sftp.maxConcurrency) || 4;
       const targetDir = activeTab.currentPath || '/root';
       const isSensitivePath = /^\/(etc|boot|usr\/sbin|root\/\.ssh)/.test(targetDir);
       const guardOn = (typeof opspubPrefs !== 'undefined' && opspubPrefs.sftp) ? !!opspubPrefs.sftp.sensitiveGuard : true;
 
-      const doEnqueue = () => {
-        const existingNames = new Set((activeTab.files || []).map(f => f.name));
-        const conflictPolicy = (typeof opspubPrefs !== 'undefined' && opspubPrefs.sftp && opspubPrefs.sftp.conflictPolicy) || 'ask';
-        let skipped = 0;
-
-        items.forEach((item, i) => {
-          let finalName = item.name;
-          if (existingNames.has(finalName)) {
-            if (conflictPolicy === 'skip') {
-              skipped++;
-              return;
-            } else if (conflictPolicy === 'rename') {
-              const dot = finalName.lastIndexOf('.');
-              finalName = dot > 0 ? (finalName.slice(0, dot) + '_copy' + finalName.slice(dot)) : (finalName + '_copy');
-            }
+      const commitEnqueue = (finalItems, skippedItems) => {
+        if (!finalItems || finalItems.length === 0) {
+          if (skippedItems && skippedItems.length > 0) {
+            showToast(`⏭️ 已跳过 ${skippedItems.length} 个同名文件，未创建重复传输任务`);
           }
+          return;
+        }
+
+        sftpAllFinishedNotified = false;
+        if (sftpAutoCloseTimer) {
+          clearInterval(sftpAutoCloseTimer);
+          sftpAutoCloseTimer = null;
+        }
+
+        let overCount = 0, renCount = 0;
+        finalItems.forEach((item, i) => {
+          if (item.conflictAction === 'overwrite') overCount++;
+          if (item.conflictAction === 'rename') renCount++;
           const totalBytes = item.size > 512 ? item.size : (item.isFolder ? 18.6 * 1024 * 1024 : 8.5 * 1024 * 1024);
           const totalStr = formatFileSize(totalBytes);
           const curUploading = sftpUploadTasks.filter(t => t.status === 'uploading').length;
           const initStatus = curUploading >= maxConc ? 'queued' : 'uploading';
-          const newTask = {
+          sftpUploadTasks.push({
             id: 'task-upload-' + Date.now() + '-' + i,
             direction: 'upload',
+            conflictAction: item.conflictAction || 'new',
             isFolder: !!item.isFolder,
             itemCount: item.itemCount || 1,
-            name: finalName,
+            name: item.name,
             host: customHostPrefix || activeTab.title || '我的服务器',
             tabId: activeTab.id,
             targetPath: targetDir,
@@ -22735,36 +23551,43 @@ free -h: Mem: 7.8Gi total, 2.1Gi used, 4.2Gi free, 1.5Gi buff/cache`;
             eta: initStatus === 'queued' ? '等待并发位' : ('0:0' + (5 + (i * 2))),
             percent: initStatus === 'queued' ? 0 : 6,
             status: initStatus,
-            stepText: (curUploading + 1) + '/' + Math.max(sftpUploadTasks.length + items.length, curUploading + 1)
-          };
-          sftpUploadTasks.push(newTask);
+            stepText: (curUploading + 1) + '/' + Math.max(sftpUploadTasks.length + finalItems.length, curUploading + 1)
+          });
         });
-        if (skipped > 0) showToast('⏭️ 按冲突策略跳过 ' + skipped + ' 个同名文件');
+
         renderSftpTasks();
         expandSftpTransferWidget();
         startSftpTransferEngine();
+
+        const parts = [`📤 已将 ${finalItems.length} 项加入上传队列`];
+        if (overCount > 0) parts.push(`覆盖 ${overCount} 项`);
+        if (renCount > 0) parts.push(`重命名保留 ${renCount} 项`);
+        if (skippedItems && skippedItems.length > 0) parts.push(`跳过同名 ${skippedItems.length} 项`);
+        showToast(parts.join(' · '));
       };
 
-      if (guardOn && isSensitivePath && typeof openProtoConfirm === 'function') {
-        openProtoConfirm({
-          title: '敏感系统路径写入拦截',
-          message: '当前目标目录 [' + targetDir + '] 属于高危系统保护目录，确认按 [' + ((opspubPrefs.sftp.chunkSize) || '256 KiB') + '] 分块策略写入 ' + items.length + ' 项文件？',
-          confirmText: '确认放行写入',
-          onConfirm: doEnqueue
-        });
-        return;
-      }
-      doEnqueue();
-
-      renderSftpTasks();
-      expandSftpTransferWidget();
-      startSftpTransferEngine();
-
-      const folderCount = items.filter(x => x.isFolder).length;
-      const tip = folderCount > 0
-        ? `📤 已将 ${folderCount} 个文件夹（含全部子目录）共 ${items.length} 项加入并发上传队列`
-        : `📤 已成功加入 ${items.length} 个文件至后台并发上传队列`;
-      showToast(tip);
+      resolveSftpUploadConflicts({
+        items,
+        existingItems: activeTab.files || [],
+        targetPath: targetDir,
+        hostLabel: customHostPrefix || activeTab.title || '远程主机',
+        onResolved: ({ finalItems, skippedItems }) => {
+          if (!finalItems || finalItems.length === 0) {
+            commitEnqueue(finalItems, skippedItems);
+            return;
+          }
+          if (guardOn && isSensitivePath && typeof openProtoConfirm === 'function') {
+            openProtoConfirm({
+              title: '敏感系统路径写入拦截',
+              message: '当前目标目录 [' + targetDir + '] 属于高危系统保护目录，确认按 [' + ((opspubPrefs.sftp.chunkSize) || '256 KiB') + '] 分块策略写入 ' + finalItems.length + ' 项文件？',
+              confirmText: '确认放行写入',
+              onConfirm: () => commitEnqueue(finalItems, skippedItems)
+            });
+            return;
+          }
+          commitEnqueue(finalItems, skippedItems);
+        }
+      });
     }
 
     // 路径与历史导航
@@ -31322,11 +32145,20 @@ ${resultText}
     const _defBell = DEFAULT_TOOLBAR_CONFIG_DATA.terminal.items.find(i => i.id === 't_bell');
     if (_defBell) _defBell.enabled = false;
 
+    // 确保 window 项默认显名属性为 false（默认只显示图标）
+    (DEFAULT_TOOLBAR_CONFIG_DATA.window.items || []).forEach(i => { if (typeof i.showLabel !== 'boolean') i.showLabel = false; });
+    (TOOLBAR_CONFIG_DATA.window.items || []).forEach(i => { if (typeof i.showLabel !== 'boolean') i.showLabel = false; });
+
     function persistToolbarConfig() {
       try {
         const snapshot = {};
         Object.keys(TOOLBAR_CONFIG_DATA).forEach(cat => {
-          snapshot[cat] = TOOLBAR_CONFIG_DATA[cat].items.map(i => ({ id: i.id, enabled: !!i.enabled, pos: i.pos }));
+          snapshot[cat] = TOOLBAR_CONFIG_DATA[cat].items.map(i => ({
+            id: i.id,
+            enabled: !!i.enabled,
+            pos: i.pos,
+            showLabel: !!i.showLabel
+          }));
         });
         localStorage.setItem(TOOLBAR_STORAGE_KEY, JSON.stringify(snapshot));
       } catch (e) {}
@@ -31347,11 +32179,12 @@ ${resultText}
             if (found) {
               found.enabled = !!s.enabled;
               if (s.pos) found.pos = s.pos;
+              found.showLabel = !!s.showLabel;
               nextItems.push(found);
               delete byId[s.id];
             }
           });
-          Object.values(byId).forEach(rest => nextItems.push(rest));
+          Object.values(byId).forEach(rest => { rest.showLabel = !!rest.showLabel; nextItems.push(rest); });
           TOOLBAR_CONFIG_DATA[cat].items = nextItems;
         });
       } catch (e) {}
@@ -31370,8 +32203,11 @@ ${resultText}
       const descEl = document.getElementById('toolbarModalDesc');
       if (titleEl) titleEl.textContent = data.title;
       if (descEl) descEl.textContent = data.desc;
+      const modalLabelsRow = document.getElementById('modalWindowShowLabelsRow');
+      if (modalLabelsRow) modalLabelsRow.classList.toggle('hidden', category !== 'window');
 
       renderToolbarItems();
+      if (typeof syncWindowButtonLabelsDOM === 'function') syncWindowButtonLabelsDOM(true);
       if (modal) modal.classList.remove('hidden');
     }
 
@@ -31524,6 +32360,11 @@ ${resultText}
         const isFirst = idx === 0;
         const isLast = idx === data.items.length - 1;
         const shortGroup = (!showGroupHeaders && item.group) ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-surface-900 text-slate-400 border border-slate-800 shrink-0">${item.group.split(' · ')[0]}</span>` : '';
+        const isEnToolbar = typeof settingLanguage !== 'undefined' && settingLanguage === 'en';
+        const hasLabelSetting = activeToolbarCategory === 'window' && !!WINDOW_TOOL_SHORT_LABELS[item.id];
+        const labelToggleBtnHtml = hasLabelSetting
+          ? `<button type="button" data-toolbar-label-btn="${item.id}" onclick="toggleToolbarItemLabel('${item.id}')" class="toolbar-row-label-btn px-2 py-0.5 rounded border text-[10.5px] font-medium inline-flex items-center space-x-1 transition cursor-pointer ${item.showLabel ? 'toolbar-row-label-active bg-brand-500/15 border-brand-500/45 text-brand-300' : 'bg-surface-900 border-slate-700/70 text-slate-400 hover:text-slate-200'}" title="${item.showLabel ? '顶栏显示：图标 + 名称（点击切为仅图标）' : '顶栏显示：仅图标（点击开启显示名称）'}"><i data-lucide="type" class="w-2.5 h-2.5"></i><span>${isEnToolbar ? (item.showLabel ? 'Labeled' : 'Icon Only') : (item.showLabel ? '显名' : '仅图标')}</span></button>`
+          : '';
 
         html += `
           <div data-toolbar-item-id="${item.id}"
@@ -31552,6 +32393,7 @@ ${resultText}
                   <i data-lucide="chevron-down" class="w-3 h-3"></i>
                 </button>
               </div>
+              ${labelToggleBtnHtml}
               <button type="button" onclick="cycleItemPosition('${item.id}')" class="px-2 py-0.5 rounded bg-surface-900 hover:bg-surface-800 border border-slate-700/80 text-slate-300 hover:text-white text-[11px] font-mono cursor-pointer transition" title="点击切换停靠区域">
                 ${item.pos}
               </button>
@@ -31810,6 +32652,9 @@ ${resultText}
       if (category === 'window' || category === activeToolbarCategory) {
         renderToolbarOrderPreviewStrips();
       }
+      if (category === 'window' && typeof renderWindowLabelChips === 'function') {
+        renderWindowLabelChips();
+      }
     }
 
     // 执行 14 个扩展终端动作（清屏/复制/粘贴/查找/重连/跳转SFTP/AI诊断/代码片段/指标/录制/全屏/UTF8/铃声/锁定）
@@ -32001,7 +32846,216 @@ ${resultText}
         }
       });
 
+      if (typeof syncWindowButtonLabelsDOM === 'function') syncWindowButtonLabelsDOM(true);
       layoutHeaderResponsiveToolbar();
+    }
+
+    const WINDOW_SHOW_LABELS_KEY = 'opspub_window_show_labels';
+    let isWindowButtonLabelsVisible = false;
+    const WINDOW_TOOL_SHORT_LABELS = {
+      sidebar: { zh: '侧栏', en: 'Sidebar' },
+      nav_servers: { zh: '服务器', en: 'Servers' },
+      nav_terminal: { zh: '终端', en: 'Terminal' },
+      nav_workbench: { zh: '工作台', en: 'Workbench' },
+      nav_sftp: { zh: 'SFTP', en: 'SFTP' },
+      nav_database: { zh: '数据库', en: 'DB' },
+      nav_batch: { zh: '批量', en: 'Batch' },
+      nav_deploy: { zh: '部署', en: 'Deploy' },
+      nav_copilot: { zh: 'AI 助理', en: 'Copilot' },
+      nav_skills: { zh: '技能库', en: 'Skills' },
+      nav_mcp: { zh: 'MCP', en: 'MCP' },
+      nav_inspector: { zh: '巡检', en: 'Inspect' },
+      nav_credentials: { zh: '凭据', en: 'Vault' },
+      nav_sensitive: { zh: '敏感库', en: 'Secret' },
+      nav_security: { zh: '闸门', en: 'Guard' },
+      nav_audit: { zh: '审计', en: 'Audit' },
+      ai_lock: { zh: 'AI 放行', en: 'AI' },
+      update: { zh: '待更新', en: 'Update' },
+      theme: { zh: '主题', en: 'Theme' },
+      notif: { zh: '通知', en: 'Alerts' }
+    };
+
+    function getWindowLabelStats() {
+      const winItems = TOOLBAR_CONFIG_DATA.window?.items || [];
+      const labelable = winItems.filter(i => !!WINDOW_TOOL_SHORT_LABELS[i.id]);
+      const visibleLabelable = labelable.filter(i => i.enabled && i.pos !== '隐藏');
+      const allActiveLabels = labelable.filter(i => !!i.showLabel);
+      const visibleOnCount = visibleLabelable.filter(i => !!i.showLabel).length;
+      return {
+        totalVisible: visibleLabelable.length,
+        visibleOnCount,
+        totalOnCount: allActiveLabels.length,
+        allVisibleOn: visibleLabelable.length > 0 && visibleOnCount === visibleLabelable.length,
+        anyOn: allActiveLabels.length > 0,
+        visibleLabelable
+      };
+    }
+
+    function renderWindowLabelChips() {
+      const box = document.getElementById('settingWindowLabelChips');
+      if (!box) return;
+      const isEn = typeof settingLanguage !== 'undefined' && settingLanguage === 'en';
+      const stats = getWindowLabelStats();
+      if (stats.visibleLabelable.length === 0) {
+        box.innerHTML = '<span class="text-[11px] text-slate-500">当前顶栏未开启功能图标按钮</span>';
+        return;
+      }
+      box.innerHTML = stats.visibleLabelable.map(item => {
+        const meta = WINDOW_TOOL_SHORT_LABELS[item.id];
+        let shortTxt = isEn ? meta.en : meta.zh;
+        if (item.id === 'ai_lock' && typeof isAIOpLocked !== 'undefined') {
+          shortTxt = isEn ? (isAIOpLocked ? 'AI Locked' : 'AI Ready') : (isAIOpLocked ? 'AI已锁' : 'AI放行');
+        }
+        const on = !!item.showLabel;
+        const cls = on
+          ? 'window-label-chip window-label-chip-on inline-flex items-center space-x-1 px-2 py-1 rounded-lg bg-brand-500/15 border border-brand-500/45 text-brand-300 text-[11px] font-medium cursor-pointer select-none transition'
+          : 'window-label-chip inline-flex items-center space-x-1 px-2 py-1 rounded-lg bg-[#141a24] border border-slate-700/80 hover:border-slate-600 text-slate-400 hover:text-slate-200 text-[11px] cursor-pointer select-none transition';
+        return `<button type="button" data-label-chip-id="${item.id}" onclick="toggleToolbarItemLabel('${item.id}')" class="${cls}" title="${item.name} — 点击单独${on ? '关闭名称（切为仅图标）' : '开启显示名称'}"><span class="w-1.5 h-1.5 rounded-full shrink-0 ${on ? 'bg-brand-400' : 'bg-slate-500/60'}"></span><i data-lucide="${item.icon}" class="w-3 h-3 shrink-0 ${on ? 'text-brand-400' : 'text-slate-500'}"></i><span>${shortTxt}</span></button>`;
+      }).join('');
+      if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    }
+
+    function syncWindowButtonLabelsDOM(skipLayout) {
+      const isEn = typeof settingLanguage !== 'undefined' && settingLanguage === 'en';
+      const wrapperIdByTool = {
+        sidebar: 'headerItemSidebar',
+        nav_servers: 'headerItemNavServers',
+        nav_terminal: 'headerItemNavTerminal',
+        nav_workbench: 'headerItemNavWorkbench',
+        nav_sftp: 'headerItemNavSftp',
+        nav_database: 'headerItemNavDatabase',
+        nav_batch: 'headerItemNavBatch',
+        nav_deploy: 'headerItemNavDeploy',
+        nav_copilot: 'headerItemNavCopilot',
+        nav_skills: 'headerItemNavSkills',
+        nav_mcp: 'headerItemNavMcp',
+        nav_inspector: 'headerItemNavInspector',
+        nav_credentials: 'headerItemNavCredentials',
+        nav_sensitive: 'headerItemNavSensitive',
+        nav_security: 'headerItemNavSecurity',
+        nav_audit: 'headerItemNavAudit',
+        ai_lock: 'headerItemAiLock',
+        update: 'headerItemUpdate',
+        theme: 'headerItemTheme',
+        notif: 'headerItemNotif'
+      };
+
+      const itemById = {};
+      (TOOLBAR_CONFIG_DATA.window?.items || []).forEach(i => { itemById[i.id] = i; });
+
+      Object.keys(WINDOW_TOOL_SHORT_LABELS).forEach(toolId => {
+        const wrap = document.getElementById(wrapperIdByTool[toolId]);
+        const btn = wrap ? wrap.querySelector('button.header-tool-btn') : null;
+        if (!btn) return;
+        let lbl = btn.querySelector('.header-tool-label');
+        if (!lbl) {
+          lbl = document.createElement('span');
+          lbl.className = 'header-tool-label';
+          btn.appendChild(lbl);
+        }
+        const meta = WINDOW_TOOL_SHORT_LABELS[toolId];
+        if (toolId === 'ai_lock' && typeof isAIOpLocked !== 'undefined') {
+          lbl.textContent = isEn ? (isAIOpLocked ? 'AI Locked' : 'AI Ready') : (isAIOpLocked ? 'AI已锁' : 'AI放行');
+        } else {
+          lbl.textContent = isEn ? meta.en : meta.zh;
+        }
+        const isShownWrap = !wrap.classList.contains('hidden') && wrap.style.display !== 'none';
+        const showThisLabel = !!(itemById[toolId] && itemById[toolId].showLabel);
+        btn.classList.toggle('header-btn-with-label', showThisLabel && isShownWrap);
+        if (toolId === 'ai_lock' && typeof syncAiLockHeaderCountdownDOM === 'function') {
+          syncAiLockHeaderCountdownDOM();
+        }
+      });
+
+      const stats = getWindowLabelStats();
+      isWindowButtonLabelsVisible = stats.anyOn;
+
+      const swMain = document.getElementById('switchWindowShowLabels');
+      const swModal = document.getElementById('switchModalWindowShowLabels');
+      if (typeof syncSwitchVisual === 'function') {
+        syncSwitchVisual(swMain, stats.anyOn);
+        syncSwitchVisual(swModal, stats.anyOn);
+      }
+      if (swMain) swMain.setAttribute('aria-checked', stats.anyOn ? 'true' : 'false');
+      if (swModal) swModal.setAttribute('aria-checked', stats.anyOn ? 'true' : 'false');
+
+      const badge = document.getElementById('badgeWindowShowLabels');
+      if (badge) {
+        if (!stats.anyOn) {
+          badge.textContent = isEn ? 'Icons Only (Default)' : '仅图标（默认）';
+          badge.className = 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-900 text-slate-400 border border-slate-700/70';
+        } else if (stats.allVisibleOn) {
+          badge.textContent = isEn ? ('All Shown · ' + stats.visibleOnCount) : ('全部显名 · ' + stats.visibleOnCount + ' 项');
+          badge.className = 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-brand-500/15 text-brand-300 border border-brand-500/30';
+        } else {
+          badge.textContent = isEn ? ('Custom · ' + stats.visibleOnCount + '/' + stats.totalVisible) : ('单独开启 · ' + stats.visibleOnCount + '/' + stats.totalVisible + ' 项');
+          badge.className = 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-brand-500/15 text-brand-300 border border-brand-500/30';
+        }
+      }
+      const modalBadge = document.getElementById('badgeModalWindowShowLabels');
+      if (modalBadge) {
+        modalBadge.textContent = !stats.anyOn
+          ? (isEn ? '(Icons Only)' : '(当前仅图标)')
+          : (stats.allVisibleOn ? (isEn ? '(All Shown)' : '(全部显名)') : (isEn ? ('(' + stats.totalOnCount + ' Shown)') : '(已单选 ' + stats.totalOnCount + ' 项显名)'));
+      }
+      const quickResetBtn = document.getElementById('btnResetWindowLabelsQuick');
+      if (quickResetBtn) quickResetBtn.classList.toggle('hidden', !stats.anyOn);
+
+      renderWindowLabelChips();
+
+      if (!skipLayout && typeof layoutHeaderResponsiveToolbar === 'function') {
+        layoutHeaderResponsiveToolbar();
+      }
+    }
+
+    function toggleToolbarItemLabel(itemId) {
+      const items = TOOLBAR_CONFIG_DATA.window?.items || [];
+      const item = items.find(i => i.id === itemId);
+      if (!item || !WINDOW_TOOL_SHORT_LABELS[itemId]) return;
+      item.showLabel = !item.showLabel;
+      persistToolbarConfig();
+      syncWindowButtonLabelsDOM(false);
+      if (activeToolbarCategory === 'window' && !document.getElementById('modalToolbarConfig')?.classList.contains('hidden')) {
+        renderToolbarItems();
+      }
+      if (typeof showToast === 'function') {
+        showToast('✓ 「' + item.name + '」顶栏已设为：' + (item.showLabel ? '图标 + 名称' : '仅显示图标'));
+      }
+    }
+
+    function toggleWindowShowLabels(forceState) {
+      const stats = getWindowLabelStats();
+      const targetVal = typeof forceState === 'boolean' ? forceState : !stats.anyOn;
+      (TOOLBAR_CONFIG_DATA.window?.items || []).forEach(item => {
+        if (WINDOW_TOOL_SHORT_LABELS[item.id]) {
+          item.showLabel = targetVal;
+        }
+      });
+      persistToolbarConfig();
+      try { localStorage.setItem(WINDOW_SHOW_LABELS_KEY, targetVal ? '1' : '0'); } catch (e) {}
+      syncWindowButtonLabelsDOM(false);
+      if (activeToolbarCategory === 'window' && !document.getElementById('modalToolbarConfig')?.classList.contains('hidden')) {
+        renderToolbarItems();
+      }
+      if (typeof showToast === 'function') {
+        showToast(targetVal
+          ? '✓ 已为全部窗口按钮开启「显示按钮名称」'
+          : '✓ 已将全部窗口按钮恢复为「仅显示图标」');
+      }
+    }
+
+    function restoreWindowShowLabels() {
+      try {
+        const rawCfg = JSON.parse(localStorage.getItem(TOOLBAR_STORAGE_KEY) || 'null');
+        const savedGlobal = localStorage.getItem(WINDOW_SHOW_LABELS_KEY);
+        const hasAnySavedLabelField = rawCfg && Array.isArray(rawCfg.window) && rawCfg.window.some(i => typeof i.showLabel === 'boolean');
+        if (!hasAnySavedLabelField && savedGlobal === '1') {
+          (TOOLBAR_CONFIG_DATA.window?.items || []).forEach(i => {
+            if (WINDOW_TOOL_SHORT_LABELS[i.id]) i.showLabel = true;
+          });
+        }
+      } catch (e) {}
+      syncWindowButtonLabelsDOM(true);
     }
 
     function applySftpToolbarLayoutAndVisibility() {
@@ -32174,7 +33228,8 @@ ${resultText}
           const menuBtn = document.createElement('button');
           menuBtn.type = 'button';
           menuBtn.className = 'w-full px-2.5 py-1.5 rounded-lg flex items-center space-x-2.5 text-slate-300 hover:text-white hover:bg-surface-800 transition cursor-pointer text-left';
-          menuBtn.onclick = () => {
+          menuBtn.onclick = (ev) => {
+            if (ev) ev.stopPropagation();
             closeHeaderOverflowMenu();
             if (origBtn) origBtn.click();
           };
@@ -32726,6 +33781,12 @@ ${resultText}
         'SFTP 传输': 'SFTP Transfer',
         '终端': 'Terminal',
         '窗口工具栏': 'Window Toolbar',
+        '显示按钮名称': 'Show Button Labels',
+        '仅图标（默认）': 'Icons Only (Default)',
+        '全部仅图标': 'All Icons Only',
+        '显名': 'Labeled',
+        '仅图标': 'Icon Only',
+        '支持点击下方单个菜单单独开启/关闭名称显示（其余保持纯图标），或用右侧总开关一键全切': 'Click any item below to toggle its label individually, or use the master switch to toggle all',
         '终端工具栏': 'Terminal Toolbar',
         'SFTP 工具栏': 'SFTP Toolbar',
         '侧边栏': 'Sidebar Navigation',
@@ -32894,7 +33955,8 @@ ${resultText}
       if (I18N_TRANSLATIONS.commonTexts) {
         const textElements = document.querySelectorAll('#tab-settings button, #tab-settings span, #tab-settings label, #tab-settings p, #tab-settings div, #appHeader span, #appHeader button, #modalToolbarConfig button, #modalToolbarConfig span, #modalLegalAgreement h3, #modalLegalAgreement button, #modalLegalAgreement div.font-mono, #sftpTransferFloatPanel span');
         textElements.forEach(el => {
-          // 跳过包含多个复杂子标签的容器，仅处理叶子文本节点或纯文本
+          // 跳过包含多个复杂子标签的容器，及顶栏动态按钮短标签
+          if (el.classList.contains('header-tool-label')) return;
           if (el.children.length > 0 && !el.classList.contains('set-subnav-btn')) return;
           const currentTxt = (el.textContent || '').trim();
           
@@ -32924,6 +33986,7 @@ ${resultText}
           }
         });
       }
+      if (typeof syncWindowButtonLabelsDOM === 'function') syncWindowButtonLabelsDOM(true);
       if (typeof layoutHeaderResponsiveToolbar === 'function') layoutHeaderResponsiveToolbar();
 
       // 6. 顶栏安全模式与输入框占位符
@@ -33274,9 +34337,79 @@ ${resultText}
     let unlockTimerInterval = null;
     let unlockSecondsRemaining = 29 * 60 + 48; // 29:48 matching screenshot 1
 
+    let lastUnlockTimeStr = '29:48';
+
+    function formatUnlockCountdownStr(sec, isEn) {
+      if (sec === -1) return isEn ? '∞' : '永久';
+      const safeSec = Math.max(0, Math.floor(sec));
+      if (safeSec >= 3600) {
+        const h = Math.floor(safeSec / 3600);
+        const m = Math.floor((safeSec % 3600) / 60);
+        const s = safeSec % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      }
+      const m = Math.floor(safeSec / 60);
+      const s = safeSec % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function syncAiLockHeaderCountdownDOM() {
+      const timeEl = document.getElementById('aiLockHeaderTime');
+      if (!timeEl) return;
+      if (isAIOpLocked) {
+        timeEl.classList.add('hidden');
+        return;
+      }
+      const isEn = typeof settingLanguage !== 'undefined' && settingLanguage === 'en';
+      timeEl.textContent = unlockSecondsRemaining === -1 ? (isEn ? '∞' : '永久') : lastUnlockTimeStr;
+      timeEl.classList.remove('hidden');
+    }
+
+    function anchorHeaderDropdownToItem(dd, wrapperId, btnId) {
+      const zone = document.getElementById('headerZoneRight');
+      const btn = document.getElementById(btnId);
+      if (!dd || !zone) return;
+      const itemWrap = document.getElementById(wrapperId);
+      const moreBtn = document.getElementById('headerToolbarMoreBtn');
+      const anchorBtn = (itemWrap && !itemWrap.classList.contains('header-overflowed-item') && !itemWrap.classList.contains('hidden')) ? btn : (moreBtn || btn);
+      if (!anchorBtn) return;
+      const zRect = zone.getBoundingClientRect();
+      const aRect = anchorBtn.getBoundingClientRect();
+      const scale = Math.max(0.5, zRect.width / (zone.offsetWidth || zRect.width || 1));
+      const rightPx = Math.max(4, Math.round((zRect.right - aRect.right) / scale));
+      dd.style.right = rightPx + 'px';
+    }
+
+    function closeAILockDropdown() {
+      const dd = document.getElementById('aiLockDropdown');
+      if (dd) dd.classList.add('hidden');
+      const wrap = document.getElementById('headerItemAiLock');
+      if (wrap) wrap.classList.remove('dropdown-open');
+    }
+
     function toggleAILockDropdown(e) {
       if (e) e.stopPropagation();
-      toggleAILockSwitch();
+      const dd = document.getElementById('aiLockDropdown');
+      if (!dd) return;
+      const willOpen = dd.classList.contains('hidden');
+      if (typeof closeHeaderOverflowMenu === 'function') closeHeaderOverflowMenu();
+      if (typeof closeSkinDropdown === 'function') closeSkinDropdown();
+      if (!willOpen) {
+        closeAILockDropdown();
+        return;
+      }
+      const itemWrap = document.getElementById('headerItemAiLock');
+      const btn = document.getElementById('btnAiLockSwitch');
+      const moreBtn = document.getElementById('headerToolbarMoreBtn');
+      const anchorBtn = (itemWrap && !itemWrap.classList.contains('header-overflowed-item') && !itemWrap.classList.contains('hidden')) ? btn : (moreBtn || btn);
+      if (anchorBtn) {
+        const r = anchorBtn.getBoundingClientRect();
+        dd.style.top = Math.round(r.bottom + 6) + 'px';
+        dd.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+      }
+      dd.classList.remove('hidden');
+      if (itemWrap) itemWrap.classList.add('dropdown-open');
+      if (window.lucide) lucide.createIcons();
     }
 
     function toggleCopilotAILockDropdown(e) {
@@ -33294,15 +34427,15 @@ ${resultText}
       applyAILockState();
     }
 
-    function selectUnlockDuration(dur) {
+    function selectUnlockDuration(dur, showNotice) {
       unlockDuration = dur;
-      document.querySelectorAll('.dur-opt-btn').forEach(btn => {
-        btn.className = 'dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition';
-      });
+      const inactiveCls = 'dur-opt-btn py-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer';
+      const activeCls = 'dur-opt-btn dur-opt-active py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition cursor-pointer';
+      document.querySelectorAll('.dur-opt-btn').forEach(btn => { btn.className = inactiveCls; });
       const topBtn = document.getElementById('dur-btn-' + dur);
-      if (topBtn) topBtn.className = 'dur-opt-btn py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition';
+      if (topBtn) topBtn.className = activeCls;
       const copilotBtn = document.getElementById('copilot-dur-btn-' + dur);
-      if (copilotBtn) copilotBtn.className = 'dur-opt-btn py-1 rounded-lg bg-surface-800 text-white font-bold border border-slate-700 transition';
+      if (copilotBtn) copilotBtn.className = activeCls;
 
       if (dur === '30m') unlockSecondsRemaining = 30 * 60;
       else if (dur === '2h') unlockSecondsRemaining = 2 * 3600;
@@ -33312,60 +34445,87 @@ ${resultText}
       if (!isAIOpLocked) {
         startUnlockCountdown();
       }
+      if (showNotice && typeof showToast === 'function') {
+        const labelMap = { '30m': '30 分钟', '2h': '2 小时', '1d': '1 天', 'forever': '永久放行' };
+        const txt = labelMap[dur] || dur;
+        showToast(isAIOpLocked
+          ? ('⏱️ 已预设 AI 放行时长为 ' + txt + '（开启总开关后生效）')
+          : ('⏱️ AI 放行时长已更新为 ' + txt));
+      }
+    }
+
+    function syncAiLockPopoversDOM(opts) {
+      ['topAiLock', 'copilotLock'].forEach(prefix => {
+        const lbl = document.getElementById(prefix + 'SwitchLabel');
+        const sw = document.getElementById(prefix + 'ToggleSwitch');
+        const dot = document.getElementById(prefix + 'ToggleDot');
+        if (lbl && typeof opts.switchLabel === 'string') lbl.innerText = opts.switchLabel;
+        if (sw && typeof opts.locked === 'boolean') {
+          sw.className = opts.locked
+            ? 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out focus:outline-none'
+            : 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-600 transition-colors duration-200 ease-in-out focus:outline-none';
+        }
+        if (dot && typeof opts.locked === 'boolean') {
+          dot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ' + (opts.locked ? 'translate-x-0' : 'translate-x-5');
+        }
+      });
+      ['topAiUnlockCountdownText', 'copilotUnlockCountdownText'].forEach(cid => {
+        const el = document.getElementById(cid);
+        if (!el) return;
+        if (typeof opts.showCountdown === 'boolean') el.classList.toggle('hidden', !opts.showCountdown);
+        if (typeof opts.countdownText === 'string') el.innerText = opts.countdownText;
+      });
     }
 
     function applyAILockState() {
       const copilotBtn = document.getElementById('copilotLockBtn');
       const copilotText = document.getElementById('copilotLockText');
       const copilotIcon = document.getElementById('copilotLockIcon');
-      const copilotSwitchLabel = document.getElementById('copilotLockSwitchLabel');
-      const copilotSwitchToggle = document.getElementById('copilotLockToggleSwitch');
-      const copilotSwitchDot = document.getElementById('copilotLockToggleDot');
-      const copilotCountdown = document.getElementById('copilotUnlockCountdownText');
       const topAiBtn = document.getElementById('btnAiLockSwitch');
       const topAiDot = document.getElementById('aiLockStatusDot');
       const topAiTip = document.getElementById('aiLockTooltipText');
 
       if (isAIOpLocked) {
         if (unlockTimerInterval) clearInterval(unlockTimerInterval);
-        if (copilotSwitchLabel) copilotSwitchLabel.innerText = 'AI 操作已锁定';
-        if (copilotSwitchToggle) copilotSwitchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out focus:outline-none';
-        if (copilotSwitchDot) copilotSwitchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-0';
+        syncAiLockPopoversDOM({ locked: true, switchLabel: 'AI 操作已锁定', showCountdown: false });
         if (topAiBtn) { topAiBtn.classList.remove('is-active', 'text-emerald-300'); topAiBtn.classList.add('text-rose-400'); }
         if (topAiDot) topAiDot.className = 'absolute bottom-1 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0a0e16]';
-        if (topAiTip) topAiTip.innerText = 'AI 操作已锁定 (点击放行)';
+        if (topAiTip) topAiTip.innerText = 'AI 操作已锁定 · 点击选择开放时间';
         if (copilotBtn) copilotBtn.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 transition cursor-pointer shadow-sm select-none active:scale-95';
         if (copilotIcon) copilotIcon.className = 'w-3.5 h-3.5 text-rose-400 pointer-events-none';
         if (copilotText) copilotText.innerText = 'AI 操作已锁定';
-        if (copilotCountdown) copilotCountdown.classList.add('hidden');
+        syncAiLockHeaderCountdownDOM();
         showToast('🔒 AI 操作已锁定：改动类命令已被严格禁止。');
       } else {
-        if (copilotSwitchLabel) copilotSwitchLabel.innerText = 'AI 操作已放行';
-        if (copilotSwitchToggle) copilotSwitchToggle.className = 'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-emerald-600 transition-colors duration-200 ease-in-out focus:outline-none';
-        if (copilotSwitchDot) copilotSwitchDot.className = 'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out translate-x-5';
+        syncAiLockPopoversDOM({ locked: false, switchLabel: 'AI 操作已放行', showCountdown: true });
         if (copilotBtn) copilotBtn.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition cursor-pointer shadow-sm select-none active:scale-95';
         if (copilotIcon) copilotIcon.className = 'w-3.5 h-3.5 text-emerald-400 pointer-events-none';
-        if (copilotCountdown) copilotCountdown.classList.remove('hidden');
         startUnlockCountdown();
         showToast('🔓 AI 操作已放行：已开启限时执行权限 (' + unlockDuration + ')。');
       }
+      const skipHdrLayout = !(topAiBtn && topAiBtn.classList.contains('header-btn-with-label'));
+      if (typeof syncWindowButtonLabelsDOM === 'function') syncWindowButtonLabelsDOM(skipHdrLayout);
       if (window.lucide) lucide.createIcons();
     }
 
     function startUnlockCountdown() {
       if (unlockTimerInterval) clearInterval(unlockTimerInterval);
       const copilotText = document.getElementById('copilotLockText');
-      const copilotCountdown = document.getElementById('copilotUnlockCountdownText');
       const topAiBtn = document.getElementById('btnAiLockSwitch');
       const topAiDot = document.getElementById('aiLockStatusDot');
       const topAiTip = document.getElementById('aiLockTooltipText');
 
       if (unlockSecondsRemaining === -1) {
+        lastUnlockTimeStr = '永久';
         if (topAiBtn) { topAiBtn.classList.add('is-active', 'text-emerald-300'); topAiBtn.classList.remove('text-rose-400'); }
         if (topAiDot) topAiDot.className = 'absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0a0e16]';
-        if (topAiTip) topAiTip.innerText = 'AI 操作已放行 (永久)';
+        if (topAiTip) topAiTip.innerText = 'AI 操作已放行 (永久) · 点击选择开放时间';
         if (copilotText) copilotText.innerText = 'AI 操作放行中 (永久)';
-        if (copilotCountdown) copilotCountdown.innerText = '放行模式: 永久不过期';
+        syncAiLockPopoversDOM({ countdownText: '放行模式: 永久不过期', showCountdown: true });
+        syncAiLockHeaderCountdownDOM();
+        if (topAiBtn && topAiBtn.classList.contains('header-btn-with-label') && typeof layoutHeaderResponsiveToolbar === 'function') {
+          layoutHeaderResponsiveToolbar();
+        }
         return;
       }
 
@@ -33377,23 +34537,31 @@ ${resultText}
           showToast('⏰ 限时放行时间已到，AI 操作已自动回归锁定状态！');
           return;
         }
-        const m = Math.floor(unlockSecondsRemaining / 60);
-        const s = unlockSecondsRemaining % 60;
-        const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        const timeStr = formatUnlockCountdownStr(unlockSecondsRemaining, false);
+        lastUnlockTimeStr = timeStr;
         if (topAiBtn) { topAiBtn.classList.add('is-active', 'text-emerald-300'); topAiBtn.classList.remove('text-rose-400'); }
         if (topAiDot) topAiDot.className = 'absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0a0e16]';
-        if (topAiTip) topAiTip.innerText = `AI 操作已放行 (${timeStr})`;
+        if (topAiTip) topAiTip.innerText = `AI 操作已放行 (${timeStr}) · 点击选择开放时间`;
         if (copilotText) copilotText.innerText = `AI 操作放行中 剩 ${timeStr}`;
-        if (copilotCountdown) copilotCountdown.innerText = `倒计时: ${timeStr}`;
+        syncAiLockPopoversDOM({ countdownText: `倒计时: ${timeStr}`, showCountdown: true });
+        syncAiLockHeaderCountdownDOM();
         unlockSecondsRemaining--;
       }
 
       updateClock();
+      if (topAiBtn && topAiBtn.classList.contains('header-btn-with-label') && typeof layoutHeaderResponsiveToolbar === 'function') {
+        layoutHeaderResponsiveToolbar();
+      }
       unlockTimerInterval = setInterval(updateClock, 1000);
     }
 
-    // 点击遮罩关闭 Copilot AI 操作时长浮层
+    // 点击遮罩关闭顶栏与 Copilot AI 操作时长浮层
     document.addEventListener('click', (e) => {
+      const topDd = document.getElementById('aiLockDropdown');
+      const topBtn = document.getElementById('btnAiLockSwitch');
+      if (topDd && !topDd.classList.contains('hidden') && (!topBtn || !topBtn.contains(e.target)) && !topDd.contains(e.target)) {
+        closeAILockDropdown();
+      }
       const copilotDd = document.getElementById('copilotLockDropdown');
       const copilotBtn = document.getElementById('copilotLockBtn');
       if (copilotDd && !copilotDd.classList.contains('hidden') && copilotBtn && !copilotBtn.contains(e.target) && !copilotDd.contains(e.target)) {
@@ -33403,6 +34571,7 @@ ${resultText}
 
     // 暴露全局方法
     window.toggleAILockDropdown = toggleAILockDropdown;
+    window.closeAILockDropdown = closeAILockDropdown;
     window.toggleCopilotAILockDropdown = toggleCopilotAILockDropdown;
     window.toggleAILockSwitch = toggleAILockSwitch;
     window.selectUnlockDuration = selectUnlockDuration;
@@ -33502,22 +34671,13 @@ ${resultText}
       if (!dd) return;
       const willOpen = dd.classList.contains('hidden');
       if (typeof closeHeaderOverflowMenu === 'function') closeHeaderOverflowMenu();
+      if (typeof closeAILockDropdown === 'function') closeAILockDropdown();
       if (!willOpen) {
         closeSkinDropdown();
         return;
       }
-      if (zone) {
-        // 锚定在调色板图标按钮正下方；若窄屏下按钮被折叠进「...」，则锚定到「...」按钮正下方
-        const itemWrap = document.getElementById('headerItemTheme');
-        const moreBtn = document.getElementById('headerToolbarMoreBtn');
-        const anchorBtn = (itemWrap && !itemWrap.classList.contains('header-overflowed-item') && !itemWrap.classList.contains('hidden')) ? btn : (moreBtn || btn);
-        if (anchorBtn) {
-          const zRect = zone.getBoundingClientRect();
-          const aRect = anchorBtn.getBoundingClientRect();
-          const scale = Math.max(0.5, zRect.width / (zone.offsetWidth || zRect.width || 1));
-          const rightPx = Math.max(4, Math.round((zRect.right - aRect.right) / scale));
-          dd.style.right = rightPx + 'px';
-        }
+      if (typeof anchorHeaderDropdownToItem === 'function') {
+        anchorHeaderDropdownToItem(dd, 'headerItemTheme', 'btnHeaderSkinToggle');
       }
       dd.classList.remove('hidden');
       if (btn) btn.classList.add('is-active');
@@ -39628,31 +40788,27 @@ LIMIT 100;`;
 
     function processWbUploadedFiles(fileList) {
       const currentList = getWbCurrentFileList();
-      const uploadedNames = [];
-      const now = new Date();
-      const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-
+      const items = [];
       for (let i = 0; i < fileList.length; i++) {
         const f = fileList[i];
-        uploadedNames.push(f.name);
-        const existingIdx = currentList.findIndex(item => item.name === f.name);
-        const newItem = {
+        items.push({
           name: f.name,
-          type: 'file',
+          isFolder: !!f.isFolder,
           size: f.size || 1024,
-          mtime: timeStr,
-          mode: '-rw-r--r--',
-          owner: 'root:root'
-        };
-        if (existingIdx >= 0) {
-          currentList[existingIdx] = newItem;
-        } else {
-          currentList.unshift(newItem);
-        }
+          itemCount: f.itemCount || 1
+        });
       }
+      if (items.length === 0) return;
 
-      renderWbFilesTable();
-      showToast(`🚀 已成功将 [${uploadedNames.join(', ')}] 上传至当前目录 ${currentWbFilePath} (256KiB 分块流传输完成)`);
+      applyImmediateSftpUploadList({
+        targetList: currentList,
+        items,
+        targetPath: currentWbFilePath,
+        hostLabel: '工作台目录',
+        owner: 'root:root',
+        renderFn: renderWbFilesTable,
+        shortTime: false
+      });
     }
 
     // 选中与批量操作
@@ -42874,7 +44030,9 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     // 文件上传完成同步入 SFTP 当前视图
     function syncCompletedFileToSftp(task) {
       if (task.direction === 'download') return;
-      const activeTab = (typeof sftpTabs !== 'undefined') ? sftpTabs.find(t => t.title === task.host || t.id === activeSftpTabId) : null;
+      const activeTab = (typeof sftpTabs !== 'undefined')
+        ? (sftpTabs.find(t => task.tabId && t.id === task.tabId) || sftpTabs.find(t => t.title === task.host || t.id === activeSftpTabId))
+        : null;
       if (activeTab && activeTab.files) {
         const existingIdx = activeTab.files.findIndex(f => f.name === task.name);
         const now = new Date();
@@ -43408,6 +44566,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     // 全局统一 Escape 关闭任意顶层打开的弹窗/抽屉 + 自动绑定点击空白蒙层关闭 (P1-8)
     function closeTopmostModalOrDrawer() {
       const specialClosers = [
+        { id: 'aiLockDropdown', close: closeAILockDropdown },
         { id: 'headerSkinDropdown', close: closeSkinDropdown },
         { id: 'headerToolbarOverflowMenu', close: closeHeaderOverflowMenu },
         { id: 'modalCommandPalette', close: () => typeof closeCommandPalette === 'function' ? closeCommandPalette() : null },
@@ -43416,6 +44575,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         { id: 'modalLegalAgreement', close: () => typeof closeLegalAgreementModal === 'function' ? closeLegalAgreementModal() : null },
         { id: 'modalFontPicker', close: () => typeof closeFontPickerModal === 'function' ? closeFontPickerModal() : null },
         { id: 'modalWorkspaceSwitcher', close: closeWorkspaceSwitcherModal },
+        { id: 'modalSftpConflict', close: cancelSftpConflictModal },
         { id: 'modalProtoDialog', close: () => typeof closeProtoDialog === 'function' ? closeProtoDialog(false) : null },
         { id: 'modalDeployTarget', close: closeDeployTargetModal },
         { id: 'drawerSkillEditor', close: () => typeof closeSkillEditorDrawer === 'function' ? closeSkillEditorDrawer() : null },
@@ -43490,6 +44650,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
 
       restoreToolbarConfig();
       if (typeof restoreLogoColorPreset === 'function') restoreLogoColorPreset();
+      if (typeof restoreWindowShowLabels === 'function') restoreWindowShowLabels();
       ['window', 'terminal', 'sftp', 'sidebar'].forEach(c => applyAllToolbarVisibility(c));
 
       syncFeaturePrefsToSettingsUI();
@@ -45042,7 +46203,7 @@ triggers: <span id="rfmTriggers" class="text-slate-300">关键词1, 关键词2</
   <!-- 模态弹窗: 窗口与工具栏配置自定义 (1:1 严格对齐用户需求截图 2: 拖动手柄、排序、停靠区域、Switch 开关、全选/全关/恢复默认/完成) -->
   <!-- =================================================================================== -->
   <div id="modalToolbarConfig" onclick="if(event.target===this)closeToolbarConfigModal()" class="hidden fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 font-sans select-none animate-in fade-in duration-150">
-    <div id="modalToolbarConfigCard" class="w-full max-w-[500px] bg-[#141820] border border-slate-700/80 rounded-2xl shadow-2xl p-5 flex flex-col text-slate-200 transition-all duration-200">
+    <div id="modalToolbarConfigCard" class="w-full max-w-[560px] bg-[#141820] border border-slate-700/80 rounded-2xl shadow-2xl p-5 flex flex-col text-slate-200 transition-all duration-200">
       
       <!-- 弹窗顶栏 (标题 + 关闭按钮) -->
       <div class="flex items-center justify-between pb-2 mb-2">
@@ -45054,6 +46215,21 @@ triggers: <span id="rfmTriggers" class="text-slate-300">关键词1, 关键词2</
 
       <!-- 提示文案 -->
       <p id="toolbarModalDesc" class="text-slate-400 text-xs mb-2.5 leading-relaxed">上方横向条可直接左右拖拽图标排序；下方列表支持上下拖拽、↑↓ 按钮与键盘方向键精确微调，修改即时生效。</p>
+
+      <!-- 窗口工具栏名称显示快速总开关（支持下方逐项单独切换「显名/仅图标」，与设置卡片实时双向联动） -->
+      <div id="modalWindowShowLabelsRow" class="mb-2.5 px-3 py-2 rounded-xl bg-[#0c1016] border border-slate-800/80 flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <div class="text-xs font-medium text-slate-200 flex items-center space-x-1.5">
+            <i data-lucide="type" class="w-3.5 h-3.5 text-teal-400 shrink-0"></i>
+            <span>显示按钮名称</span>
+            <span id="badgeModalWindowShowLabels" class="text-[10px] font-mono text-slate-400">(默认仅图标)</span>
+          </div>
+          <p class="text-[10.5px] text-slate-400 truncate">可在下方每一行单独切换「仅图标 / 显名」，右侧开关可一键全开或全关</p>
+        </div>
+        <button type="button" id="switchModalWindowShowLabels" role="switch" aria-checked="false" onclick="toggleWindowShowLabels()" class="w-9 h-5 rounded-full bg-slate-700 transition-colors relative cursor-pointer shrink-0" title="一键全部开启 / 关闭按钮名称">
+          <span class="w-3.5 h-3.5 rounded-full bg-white absolute top-[3px] left-[3px] transition-all shadow-sm"></span>
+        </button>
+      </div>
 
       <!-- 所见即所得：当前已显示按钮横向拖拽顺序预览条 -->
       <div id="modalToolbarLiveStripWrap" class="mb-3 p-2.5 rounded-xl bg-[#0c1016] border border-slate-800/80 space-y-1.5">

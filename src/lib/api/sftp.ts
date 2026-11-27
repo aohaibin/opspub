@@ -7,12 +7,14 @@ type StageDropAction =
   | { action: "chunk"; path: string[]; offset: number; data: number[] };
 
 export const sftpApi = {
+  inspectLocalUpload: (path: string) =>
+    invoke<Array<{ path: string[]; isDir: boolean; size: number }>>("sftp_inspect_local_upload", { path }),
   openDownloadFolder: () => invoke<void>("sftp_open_download_folder"),
   stageUploadDrop: (taskId: string, input: StageDropAction) =>
     invoke<void>("sftp_stage_upload_drop", { taskId, input }),
 
   uploadTransfer: (
-    input: { taskId: string; request: SftpCredentials; remoteDir: string; fileName: string; localPath?: string; staged?: boolean },
+    input: { taskId: string; request: SftpCredentials; remoteDir: string; fileName: string; localPath?: string; staged?: boolean; overwrite?: boolean },
     onProgress: (progress: { loaded: number; total: number }) => void,
   ) => {
     const channel = new Channel<{ loaded: number; total: number }>();

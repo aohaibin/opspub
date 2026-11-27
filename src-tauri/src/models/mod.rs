@@ -205,6 +205,16 @@ pub struct SftpTransferRequest {
     pub local_path: Option<String>,
     pub content: Option<Vec<u8>>,
     pub staged: Option<bool>,
+    #[serde(default)]
+    pub overwrite: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SftpLocalUploadEntry {
+    pub path: Vec<String>,
+    pub is_dir: bool,
+    pub size: u64,
 }
 
 #[derive(Deserialize)]

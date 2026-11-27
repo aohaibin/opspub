@@ -6,6 +6,7 @@ import { TERMINAL_SCROLLBACK_OPTIONS, type TerminalCursorStyle, type TerminalFon
 
 export type CloseBehavior = "ask" | "minimize" | "exit";
 export type UiFontFamily = "system" | "rounded" | "inter";
+export type SftpConflictPolicy = "ask" | "overwrite" | "rename" | "skip";
 export type { TerminalCursorStyle, TerminalFontSize, TerminalLineHeight, TerminalTheme } from "@/components/terminal/terminal-themes";
 
 type AutoStartStatus = "loading" | "ready" | "saving" | "unavailable";
@@ -55,6 +56,8 @@ interface SettingsStore {
   setSftpAutoCollapse: (enabled: boolean) => void;
   sftpDragRecursive: boolean;
   setSftpDragRecursive: (enabled: boolean) => void;
+  sftpConflictPolicy: SftpConflictPolicy;
+  setSftpConflictPolicy: (policy: SftpConflictPolicy) => void;
   sftpShowHidden: boolean;
   setSftpShowHidden: (enabled: boolean) => void;
   proxyAddress: string;
@@ -89,6 +92,7 @@ export const SETTINGS_KEYS = {
   sftpMaxConcurrency: "sftp.max_concurrency",
   sftpAutoCollapse: "sftp.auto_collapse",
   sftpDragRecursive: "sftp.drag_recursive",
+  sftpConflictPolicy: "sftp.conflict_policy",
   sftpShowHidden: "sftp.show_hidden",
   proxyAddress: "network.proxy_address",
   outboundHosts: "network.outbound_hosts",
@@ -192,6 +196,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   setSftpAutoCollapse: (sftpAutoCollapse) => set({ sftpAutoCollapse }),
   sftpDragRecursive: true,
   setSftpDragRecursive: (sftpDragRecursive) => set({ sftpDragRecursive }),
+  sftpConflictPolicy: "ask",
+  setSftpConflictPolicy: (sftpConflictPolicy) => set({ sftpConflictPolicy }),
   sftpShowHidden: true,
   setSftpShowHidden: (sftpShowHidden) => set({ sftpShowHidden }),
   proxyAddress: "",
@@ -254,6 +260,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     })(),
     sftpAutoCollapse: values[SETTINGS_KEYS.sftpAutoCollapse] !== "false",
     sftpDragRecursive: values[SETTINGS_KEYS.sftpDragRecursive] !== "false",
+    sftpConflictPolicy: (() => {
+      const policy = values[SETTINGS_KEYS.sftpConflictPolicy];
+      return policy === "overwrite" || policy === "rename" || policy === "skip" ? policy : "ask";
+    })(),
     sftpShowHidden: values[SETTINGS_KEYS.sftpShowHidden] !== "false",
     proxyAddress: values[SETTINGS_KEYS.proxyAddress] ?? "",
     outboundHosts: (() => {

@@ -146,7 +146,7 @@ export function SftpTransferWidget() {
                   <button type="button" title="取消传输" aria-label={`取消传输 ${task.name}`} onClick={() => void cancel(task.id)} disabled={task.status === "cancelling"} className="rounded p-1.5 hover:bg-red-500/10 disabled:opacity-50"><Square size={14} /></button>
                 ) : (
                   <div className="flex shrink-0 items-center gap-1">
-                    {task.status === "failed" && <button type="button" title="重试传输" aria-label={`重试传输 ${task.name}`} onClick={() => retry(task.id)} className="rounded p-1.5 hover:bg-black/10"><RotateCw size={14} /></button>}
+                    {task.status === "failed" && !task.needsOverwriteDecision && <button type="button" title="重试传输" aria-label={`重试传输 ${task.name}`} onClick={() => retry(task.id)} className="rounded p-1.5 hover:bg-black/10"><RotateCw size={14} /></button>}
                     <button type="button" title="移除记录" aria-label={`移除 ${task.name}`} onClick={() => remove(task.id)} className="rounded p-1.5 hover:bg-black/10"><Trash2 size={14} /></button>
                   </div>
                 )}

@@ -19,6 +19,9 @@ pub enum AppError {
     #[error("参数无效: {0}")]
     InvalidInput(String),
 
+    #[error("远程上传目标已存在：{0}")]
+    SftpUploadConflict(String),
+
     #[error("{0}")]
     Custom(String),
 }
@@ -49,6 +52,7 @@ impl From<AppError> for CommandError {
             AppError::Json(_) => "JSON_ERROR",
             AppError::NotFound(_) => "NOT_FOUND",
             AppError::InvalidInput(_) => "INVALID_INPUT",
+            AppError::SftpUploadConflict(_) => "SFTP_UPLOAD_CONFLICT",
             AppError::Custom(_) => "INTERNAL",
         };
         CommandError {

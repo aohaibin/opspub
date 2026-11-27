@@ -34,7 +34,7 @@ import {
   Download,
   Edit2,
   Edit3,
-  File,
+  File as FileIcon,
   FileCode,
   FileKey,
   FileText,
@@ -75,6 +75,7 @@ import { AI_POLICY_META, normalizeAIPolicy } from "@/pages/servers/lib/serverMet
 import { SshConnectModal } from "@/components/server/SshConnectModal";
 import type { Server, SshCredentials, SshProbeResult } from "@/types";
 import { SftpSidebar } from "./SftpSidebar";
+import { UploadConflictModal, type UploadConflict, type UploadConflictAction } from "./UploadConflictModal";
 import { useSftpWorkspaceStore, type SftpPane } from "./workspace-state";
 import {
   type RemoteFileItem,
@@ -94,6 +95,23 @@ interface DirectoryView {
 interface FileSelection {
   directory: string;
   names: string[];
+}
+
+interface UploadCandidate {
+  source: UploadSource;
+  name: string;
+  isDir: boolean;
+  size: number;
+  itemCount: number;
+}
+interface PendingUpload {
+  id: string;
+  target: { serverId: number; serverName: string; remoteDir: string };
+  candidates: UploadCandidate[];
+  conflicts: UploadConflict[];
+  existingNames: Set<string>;
+  ignoreCase: boolean;
+  recoveryTaskId?: string;
 }
 
 // 跨菜单返回时，同一主机仍可能在建立连接。
@@ -131,7 +149,7 @@ function getFileIcon(item: RemoteFileItem) {
   if (name.endsWith(".json") || name.endsWith(".yml") || name.endsWith(".yaml") || name.endsWith(".cfg") || name.startsWith(".")) {
     return <FileText size={17} className="text-slate-400 shrink-0" />;
   }
-  return <File size={17} className="text-slate-400 shrink-0" />;
+  return <FileIcon size={17} className="text-slate-400 shrink-0" />;
 }
 
 /** 统一远程路径格式，确保根目录始终显示为 `/`，并避免重复或尾部斜杠。 */
@@ -142,6 +160,45 @@ function normalizeRemotePath(path: string): string {
   const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
   const normalized = withLeadingSlash.replace(/\/+/g, "/");
   return normalized.length > 1 ? normalized.replace(/\/+$/, "") : "/";
+}
+
+async function inspectDroppedEntry(entry: FileSystemEntry, depth = 0): Promise<{ count: number; size: number }> {
+  if (depth > 128) throw new Error("目录层级超过 128 层");
+  if (entry.isDirectory) {
+    const directory = entry as FileSystemDirectoryEntry;
+    const reader = directory.createReader();
+    let count = 1;
+    let size = 0;
+    for (;;) {
+      const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => reader.readEntries(resolve, reject));
+      if (batch.length === 0) return { count, size };
+      for (const child of batch) {
+        const nested = await inspectDroppedEntry(child, depth + 1);
+        count += nested.count;
+        size += nested.size;
+      }
+    }
+  }
+  const file = await new Promise<File>((resolve, reject) => (entry as FileSystemFileEntry).file(resolve, reject));
+  return { count: 1, size: file.size };
+}
+
+async function describeUploadSource(source: UploadSource): Promise<UploadCandidate> {
+  if (typeof source === "string") {
+    const manifest = await sftpApi.inspectLocalUpload(source);
+    const root = manifest[0];
+    if (!root) throw new Error("无法读取本地上传项目");
+    return {
+      source, name: root.path[root.path.length - 1], isDir: root.isDir,
+      size: manifest.reduce((total, entry) => total + entry.size, 0),
+      itemCount: Math.max(1, manifest.length - 1),
+    };
+  }
+  if (source instanceof File) {
+    return { source, name: source.name, isDir: false, size: source.size, itemCount: 1 };
+  }
+  const { count, size } = await inspectDroppedEntry(source);
+  return { source, name: source.name, isDir: source.isDirectory, size, itemCount: Math.max(1, count - 1) };
 }
 
 export default function SftpPage() {
@@ -220,6 +277,11 @@ export default function SftpPage() {
   const [rightDraggingOver, setRightDraggingOver] = useState(false);
   const rightDragCounter = useRef(0);
   const [localDownloadDir, setLocalDownloadDir] = useState<string>();
+  const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
+  const [uploadPreflight, setUploadPreflight] = useState(false);
+  const uploadCheckRunning = useRef(false);
+  const attemptedRecovery = useRef<string | undefined>(undefined);
+  const conflictingUpload = useSftpTransferStore((state) => state.tasks.find((task) => task.needsOverwriteDecision));
   useEffect(() => {
     let active = true;
     void downloadDir().then((path) => {
@@ -669,27 +731,150 @@ export default function SftpPage() {
     }
   };
 
-  // 上传任务脱离 SFTP 页面生命周期，浮窗由应用外壳持续显示真实传输进度。
-  const queueUploadSources = (tab: SftpSessionTab, sources: UploadSource[]) => {
-    if (sources.length === 0) return;
-    const serverId = tab.serverId;
-    if (serverId === null) {
-      message.warning("SFTP 会话凭据已失效，请重新连接服务器");
+  const submitUploads = useCallback((batch: PendingUpload, choices: Map<number, UploadConflictAction>) => {
+    const { candidates, conflicts, existingNames, target, ignoreCase, recoveryTaskId } = batch;
+    const byIndex = new Map(conflicts.map((conflict) => [conflict.index, conflict]));
+    const nameKey = (name: string) => ignoreCase ? name.toLowerCase() : name;
+    const usedNames = new Set([...existingNames, ...candidates.map(({ name }) => nameKey(name))]);
+    const selectedSources: UploadSource[] = [];
+    const options: Array<{ name: string; overwrite: boolean }> = [];
+    for (const [index, candidate] of candidates.entries()) {
+      const conflict = byIndex.get(index);
+      const action = conflict ? choices.get(index) ?? "skip" : undefined;
+      if (action === "skip" || (action === "overwrite" && !conflict?.canOverwrite)) continue;
+      let { name } = candidate;
+      if (action === "rename") {
+        const dot = candidate.isDir ? -1 : name.lastIndexOf(".");
+        const stem = dot > 0 ? name.slice(0, dot) : name;
+        const extension = dot > 0 ? name.slice(dot) : "";
+        let suffix = 1;
+        do {
+          name = stem + " (" + suffix + ")" + extension;
+          suffix += 1;
+        } while (usedNames.has(nameKey(name)));
+      }
+      usedNames.add(nameKey(name));
+      selectedSources.push(candidate.source);
+      options.push({ name, overwrite: action === "overwrite" });
+    }
+    if (recoveryTaskId) useSftpTransferStore.getState().remove(recoveryTaskId);
+    if (selectedSources.length === 0) {
+      message.info("已跳过同名上传");
       return;
     }
-    enqueueUpload({
-      serverId,
-      serverName: tab.serverName,
-      remoteDir: tab.currentPath,
+    enqueueUpload(target, selectedSources, options);
+    message.success(selectedSources.length + " 项已加入后台上传队列");
+  }, [enqueueUpload]);
+
+  const queueUploadSourcesWithConflict = useCallback(async (
+    target: PendingUpload["target"],
+    sources: UploadSource[],
+    recovery?: { id: string; name: string },
+  ) => {
+    if (sources.length === 0 || uploadCheckRunning.current || pendingUpload) return;
+    const credentials = credentialsByServer[target.serverId] ?? { serverId: target.serverId };
+    const ignoreCase = servers.some((server) => server.id === target.serverId && server.os_type === "windows");
+    const nameKey = (name: string) => ignoreCase ? name.toLowerCase() : name;
+    uploadCheckRunning.current = true;
+    setUploadPreflight(true);
+    const stopLoading = message.loading("正在检查远程目录中的同名项目…", 0);
+    try {
+      const remoteEntries = await sftpApi.list(credentials, target.remoteDir);
+      const remoteByName = new Map(remoteEntries.map((entry) => [nameKey(entry.name), entry]));
+      const candidates: UploadCandidate[] = [];
+      for (const source of sources) {
+        const candidate = await describeUploadSource(source);
+        candidates.push(recovery ? { ...candidate, name: recovery.name } : candidate);
+      }
+      const transferKey = transferDirectoryKey(target.serverId, target.remoteDir);
+      const reserved = new Set(useSftpTransferStore.getState().tasks
+        .filter((task) => task.direction === "upload" && isTransferActive(task.status)
+          && transferDirectoryKey(task.serverId, task.remoteDir) === transferKey)
+        .map((task) => nameKey(task.name)));
+      const existingNames = new Set([...remoteByName.keys(), ...reserved]);
+      const conflicts: UploadConflict[] = [];
+      for (const [index, candidate] of candidates.entries()) {
+        const key = nameKey(candidate.name);
+        const entry = remoteByName.get(key);
+        const alreadyQueued = reserved.has(key);
+        if (entry || alreadyQueued || recovery) {
+          conflicts.push({
+            index,
+            name: candidate.name,
+            isDir: candidate.isDir,
+            localDetails: candidate.isDir
+              ? candidate.itemCount + " 项（" + formatFileSize(candidate.size) + "）"
+              : formatFileSize(candidate.size),
+            remoteDetails: alreadyQueued
+              ? "已有同名项目等待上传"
+              : entry && ("远程现有：" + formatFileSize(entry.size) + " · " + entry.modified),
+            canOverwrite: !alreadyQueued && (!entry || entry.isDir === candidate.isDir),
+          });
+        }
+        reserved.add(key);
+      }
+      const batch: PendingUpload = {
+        id: crypto.randomUUID(), target, candidates, conflicts, existingNames, ignoreCase, recoveryTaskId: recovery?.id,
+      };
+      const { sftpConflictPolicy } = useSettingsStore.getState();
+      if (conflicts.length === 0) {
+        submitUploads(batch, new Map());
+      } else if (!recovery && sftpConflictPolicy !== "ask"
+        && (sftpConflictPolicy !== "overwrite" || conflicts.every(({ canOverwrite }) => canOverwrite))) {
+        submitUploads(batch, new Map(conflicts.map(({ index }) => [index, sftpConflictPolicy])));
+      } else {
+        setPendingUpload(batch);
+      }
+    } catch (error) {
+      message.error("检查上传冲突失败：" + getErrorMessage(error));
+    } finally {
+      uploadCheckRunning.current = false;
+      setUploadPreflight(false);
+      stopLoading();
+    }
+  }, [credentialsByServer, pendingUpload, servers, submitUploads]);
+
+  useEffect(() => {
+    if (uploadPreflight || pendingUpload || !conflictingUpload || attemptedRecovery.current === conflictingUpload.id) return;
+    const source = useSftpTransferStore.getState().getConflictingUploadSource(conflictingUpload.id);
+    if (!source) return;
+    attemptedRecovery.current = conflictingUpload.id;
+    void queueUploadSourcesWithConflict(conflictingUpload, [source], conflictingUpload);
+  }, [conflictingUpload, pendingUpload, queueUploadSourcesWithConflict, uploadPreflight]);
+
+  const prepareUpload = (tab: SftpSessionTab, sources: UploadSource[]) => {
+    if (tab.serverId === null) return;
+    if (uploadCheckRunning.current || pendingUpload) {
+      message.info("请先完成当前批次的上传检查或冲突处理");
+      return;
+    }
+    void queueUploadSourcesWithConflict({
+      serverId: tab.serverId, serverName: tab.serverName, remoteDir: tab.currentPath,
     }, sources);
-    message.success(`${sources.length} 项已加入后台上传队列`);
+  };
+
+  const cancelUploadConflicts = () => {
+    if (pendingUpload?.recoveryTaskId) useSftpTransferStore.getState().remove(pendingUpload.recoveryTaskId);
+    setPendingUpload(null);
+  };
+
+  const confirmUploadConflicts = (choices: Map<number, UploadConflictAction>, remember: boolean) => {
+    if (!pendingUpload) return;
+    const policy = choices.values().next().value;
+    if (remember && policy && [...choices.values()].every((choice) => choice === policy)) {
+      void configApi.set(SETTINGS_KEYS.sftpConflictPolicy, policy)
+        .then(() => useSettingsStore.getState().setSftpConflictPolicy(policy))
+        .catch((error) => message.error("保存同名文件冲突策略失败：" + getErrorMessage(error)));
+    }
+    submitUploads(pendingUpload, choices);
+    setPendingUpload(null);
   };
 
   const selectUploadFiles = async (tab: SftpSessionTab) => {
     try {
       const selected = await openFileDialog({ multiple: true, directory: false });
       if (!selected) return;
-      queueUploadSources(tab, Array.isArray(selected) ? selected : [selected]);
+      prepareUpload(tab, Array.isArray(selected) ? selected : [selected]);
     } catch (error) {
       message.error(`打开本地文件失败：${getErrorMessage(error)}`);
     }
@@ -698,7 +883,7 @@ export default function SftpPage() {
   const selectUploadFolder = async (tab: SftpSessionTab) => {
     try {
       const selected = await openFileDialog({ directory: true, multiple: false });
-      if (typeof selected === "string") queueUploadSources(tab, [selected]);
+      if (typeof selected === "string") prepareUpload(tab, [selected]);
     } catch (error) {
       message.error(`打开本地文件夹失败：${getErrorMessage(error)}`);
     }
@@ -1382,7 +1567,7 @@ export default function SftpPage() {
         message.info("已在设置中关闭文件夹递归拖拽上传");
         return;
       }
-      queueUploadSources(tab, sources.length > 0 ? sources : Array.from(e.dataTransfer.files));
+      prepareUpload(tab, sources.length > 0 ? sources : Array.from(e.dataTransfer.files));
     };
 
     return (
@@ -2175,6 +2360,16 @@ export default function SftpPage() {
           autoFocus
         />
       </Modal>
+
+      {pendingUpload && <UploadConflictModal
+        key={pendingUpload.id}
+        serverName={pendingUpload.target.serverName}
+        remoteDir={pendingUpload.target.remoteDir}
+        conflicts={pendingUpload.conflicts}
+        otherCount={pendingUpload.candidates.length - pendingUpload.conflicts.length}
+        onCancel={cancelUploadConflicts}
+        onConfirm={confirmUploadConflicts}
+      />}
 
       <SshConnectModal
         open={sshServer !== null}

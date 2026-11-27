@@ -234,6 +234,7 @@ pub fn run() {
             commands::sftp::sftp_upload,
             commands::sftp::sftp_upload_transfer,
             commands::sftp::sftp_stage_upload_drop,
+            commands::sftp::sftp_inspect_local_upload,
             commands::sftp::sftp_download_transfer,
             commands::sftp::sftp_open_download_folder,
             commands::sftp::sftp_prepare_drag_download,

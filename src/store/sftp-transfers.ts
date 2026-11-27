@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { message } from "antd";
 import { sftpApi } from "@/lib/api/sftp";
-import { getErrorMessage } from "@/lib/api/client";
+import { getErrorMessage, parseCommandError } from "@/lib/api/client";
 import { useSettingsStore } from "@/store/settings";
 
 export type TransferStatus = "queued" | "connecting" | "transferring" | "cancelling" | "completed" | "cancelled" | "failed";
@@ -18,18 +18,21 @@ export interface SftpTransferTask {
   speed: number;
   status: TransferStatus;
   error?: string;
+  needsOverwriteDecision?: boolean;
 }
 export type UploadSource = File | FileSystemEntry | string;
-type TransferSource = { direction: "upload"; source: UploadSource } | { direction: "download"; remotePath: string; localDir: string };
+type TransferSource = { direction: "upload"; source: UploadSource; overwrite: boolean } | { direction: "download"; remotePath: string; localDir: string };
 interface UploadTarget { serverId: number; serverName: string; remoteDir: string }
+interface UploadOptions { name?: string; overwrite?: boolean }
 interface TransferStore {
   tasks: SftpTransferTask[];
   display: "expanded" | "collapsed" | "hidden";
   directoryVersions: Record<string, number>;
-  enqueue: (target: UploadTarget, sources: UploadSource[]) => void;
+  enqueue: (target: UploadTarget, sources: UploadSource[], options?: UploadOptions[]) => void;
   enqueueDownload: (target: UploadTarget, remotePath: string, localDir: string, name: string) => void;
   cancel: (id: string) => Promise<void>;
   retry: (id: string) => void;
+  getConflictingUploadSource: (id: string) => UploadSource | undefined;
   remove: (id: string) => void;
   setDisplay: (display: TransferStore["display"]) => void;
 }
@@ -45,12 +48,14 @@ export const useSftpTransferStore = create<TransferStore>((set, get) => ({
   tasks: [],
   display: "hidden",
   directoryVersions: {},
-  enqueue: (target, files) => {
-    const tasks = files.map((source): SftpTransferTask => {
+  enqueue: (target, files, options = []) => {
+    const tasks = files.map((source, index): SftpTransferTask => {
       const id = crypto.randomUUID();
-      sources.set(id, { direction: "upload", source });
+      const option = options[index];
+      sources.set(id, { direction: "upload", source, overwrite: option?.overwrite ?? false });
       return {
-        ...target, id, direction: "upload", name: typeof source === "string" ? source.split(/[\\/]/).filter(Boolean).pop() || source : source.name,
+        serverId: target.serverId, serverName: target.serverName, remoteDir: target.remoteDir,
+        id, direction: "upload", name: option?.name ?? (typeof source === "string" ? source.split(/[\\/]/).filter(Boolean).pop() || source : source.name),
         loaded: 0, total: source instanceof File ? source.size : 0, speed: 0, status: "queued",
       };
     });
@@ -86,13 +91,17 @@ export const useSftpTransferStore = create<TransferStore>((set, get) => ({
   },
   retry: (id) => {
     const task = get().tasks.find((task) => task.id === id);
-    if (!task || isTransferActive(task.status)) return;
+    if (!task || isTransferActive(task.status) || task.needsOverwriteDecision) return;
     const source = sources.get(id);
     if (!source) return;
     // 重试使用新 ID，避免上一轮延迟进度影响当前任务。
     get().remove(id);
-    if (source.direction === "upload") get().enqueue(task, [source.source]);
+    if (source.direction === "upload") get().enqueue(task, [source.source], [{ name: task.name, overwrite: source.overwrite }]);
     else get().enqueueDownload(task, source.remotePath, source.localDir, task.name);
+  },
+  getConflictingUploadSource: (id) => {
+    const source = sources.get(id);
+    return source?.direction === "upload" ? source.source : undefined;
   },
   remove: (id) => {
     if (get().tasks.some((task) => task.id === id && isTransferActive(task.status))) return;
@@ -164,7 +173,7 @@ async function run(task: SftpTransferTask) {
       }
       checkCancelled();
       const file = await sftpApi.uploadTransfer({
-        taskId: task.id, request: { serverId: task.serverId }, remoteDir: task.remoteDir, fileName: task.name, localPath, staged,
+        taskId: task.id, request: { serverId: task.serverId }, remoteDir: task.remoteDir, fileName: task.name, localPath, staged, overwrite: source.overwrite,
       }, onProgress);
       staged = false;
       patch(task.id, { loaded: file.size, total: file.size });
@@ -178,9 +187,17 @@ async function run(task: SftpTransferTask) {
       } }));
     }
   } catch (error) {
-    const reason = getErrorMessage(error);
-    const cancelled = reason === "传输已取消";
-    patch(task.id, { status: cancelled ? "cancelled" : "failed", speed: 0, error: cancelled ? undefined : reason });
+    const failure = parseCommandError(error);
+    const cancelled = failure.message === "传输已取消";
+    const source = sources.get(task.id);
+    const needsOverwriteDecision = source?.direction === "upload"
+      && !source.overwrite && failure.code === "SFTP_UPLOAD_CONFLICT";
+    patch(task.id, {
+      status: cancelled ? "cancelled" : "failed",
+      speed: 0,
+      needsOverwriteDecision,
+      error: cancelled ? undefined : needsOverwriteDecision ? "等待处理同名上传冲突" : failure.message,
+    });
   } finally {
     if (staged) await sftpApi.stageUploadDrop(task.id, { action: "release" }).catch(() => undefined);
   }

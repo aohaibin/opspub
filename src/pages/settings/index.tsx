@@ -678,6 +678,22 @@ function SftpSettings({ disabled }: { disabled: boolean }) {
     </SettingCard>
     <SettingCard id="sftp-drag" icon={<Upload size={16} />} title="拖拽与目录传输" desc="控制拖拽上传文件夹时是否递归传输。">
       <ToggleRow label="支持文件夹递归拖拽上传" desc="允许将本地文件夹拖入 SFTP 窗口并递归上传内容" checked={settings.sftpDragRecursive} disabled={busy} onChange={(value) => void persist(SETTINGS_KEYS.sftpDragRecursive, value, settings.setSftpDragRecursive, settings.sftpDragRecursive)} />
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+        <div className="text-sm font-medium text-[var(--text-primary)]">{copy("同名文件冲突策略", "File conflict strategy")}</div>
+        <div className="ops-settings-options" role="group" aria-label={copy("同名文件冲突策略", "File conflict strategy")}>
+          {([
+            ["ask", copy("每次询问", "Ask every time")],
+            ["overwrite", copy("覆盖", "Replace")],
+            ["rename", copy("重命名", "Rename")],
+            ["skip", copy("跳过", "Skip")],
+          ] as const).map(([policy, label]) => (
+            <StaticButton key={policy} active={settings.sftpConflictPolicy === policy} disabled={busy}
+              onClick={() => void persist(SETTINGS_KEYS.sftpConflictPolicy, policy, settings.setSftpConflictPolicy, settings.sftpConflictPolicy)}>
+              {label}
+            </StaticButton>
+          ))}
+        </div>
+      </div>
     </SettingCard>
     <SettingCard id="sftp-files" icon={<ShieldCheck size={16} />} title="文件显示" desc="设置远程文件列表的默认显示范围。">
       <ToggleRow label="默认显示隐藏文件" desc="在远程文件列表中显示 .ssh、.env 等点文件" checked={settings.sftpShowHidden} disabled={busy} onChange={(value) => void persist(SETTINGS_KEYS.sftpShowHidden, value, settings.setSftpShowHidden, settings.sftpShowHidden)} />

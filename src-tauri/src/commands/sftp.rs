@@ -39,6 +39,13 @@ pub async fn sftp_stage_upload_drop(
     .await
 }
 
+#[tauri::command]
+pub fn sftp_inspect_local_upload(
+    path: String,
+) -> Result<Vec<crate::models::SftpLocalUploadEntry>, CommandError> {
+    crate::services::sftp::SftpManager::inspect_local_upload(&path).map_err(CommandError::from)
+}
+
 /// Channel 随任务存活，不依赖 SFTP 页面是否仍然挂载。
 #[tauri::command]
 pub async fn sftp_upload_transfer(

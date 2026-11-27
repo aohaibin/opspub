@@ -253,8 +253,7 @@ impl SftpManager {
                 .lstat(&temporary)
                 .map_err(|e| AppError::Custom(format!("读取上传结果失败: {e}")))?;
             let entry = file_entry(&target, &stat)?;
-            sftp.rename(&temporary, &target, Some(ssh2::RenameFlags::OVERWRITE))
-                .map_err(|e| AppError::Custom(format!("提交上传文件失败: {e}")))?;
+            commit_upload_file(&sftp, &temporary, &target, input.overwrite)?;
             progress(SftpTransferProgress { loaded, total });
             Ok(entry)
         })();
@@ -364,31 +363,34 @@ fn upload_directory_transfer(
         .sftp()
         .map_err(|error| AppError::Custom(format!("初始化上传连接失败: {error}")))?;
     let target = remote_child(remote_dir, &input.file_name);
+    let merge_existing_directory = match remote_upload_target(&sftp, Path::new(&target))? {
+        Some(stat) if input.overwrite && stat.is_dir() => true,
+        Some(_) => return Err(AppError::SftpUploadConflict(target)),
+        None => false,
+    };
     let temporary = remote_child(
         remote_dir,
         &format!(".opspub-upload-{}.part", input.task_id),
     );
-    sftp.mkdir(Path::new(&temporary), 0o755)
-        .map_err(|error| AppError::Custom(format!("创建远程临时目录失败: {error}")))?;
+    if !merge_existing_directory {
+        sftp.mkdir(Path::new(&temporary), 0o755).map_err(sftp_error)?;
+    }
+    let upload_root = if merge_existing_directory { &target } else { &temporary };
     let mut transfer = TransferProgress::new(total, cancelled, &progress);
     let result = (|| {
-        upload_local_directory(&sftp, source, &temporary, &mut transfer, 0)?;
+        upload_local_directory(&sftp, source, upload_root, &mut transfer, 0, merge_existing_directory)?;
         check_cancelled(cancelled)?;
-        // 完成后提交整个目录，以保留已有的同名远程项目。
-        let stat = sftp.lstat(Path::new(&temporary)).map_err(sftp_error)?;
-        let mut entry = file_entry(Path::new(&temporary), &stat)?;
+        let stat = sftp.lstat(Path::new(upload_root)).map_err(sftp_error)?;
+        let mut entry = file_entry(Path::new(upload_root), &stat)?;
         entry.name = input.file_name;
         entry.size = transfer.loaded;
-        sftp.rename(
-            Path::new(&temporary),
-            Path::new(&target),
-            Some(ssh2::RenameFlags::empty()),
-        )
-        .map_err(|error| AppError::Custom(format!("提交上传目录失败，请检查同名项目: {error}")))?;
+        if !merge_existing_directory {
+            commit_new_upload(&sftp, Path::new(&temporary), Path::new(&target))?;
+        }
         transfer.report();
         Ok(entry)
     })();
-    if result.is_err() {
+    if result.is_err() && !merge_existing_directory {
         if let Err(cleanup) = remove_staged_remote(&sftp, &temporary, 0) {
             log::warn!("未清理远程上传临时目录 {temporary}: {cleanup}");
         }
@@ -542,6 +544,7 @@ fn upload_local_directory(
     remote: &str,
     transfer: &mut TransferProgress<'_>,
     depth: usize,
+    overwrite: bool,
 ) -> Result<(), AppError> {
     check_depth(depth)?;
     for entry in std::fs::read_dir(local)? {
@@ -556,26 +559,105 @@ fn upload_local_directory(
         validate_name(name, "文件名")?;
         let child = remote_child(remote, name);
         if metadata.is_dir() {
-            sftp.mkdir(Path::new(&child), 0o755).map_err(sftp_error)?;
-            upload_local_directory(sftp, &path, &child, transfer, depth + 1)?;
+            match sftp.mkdir(Path::new(&child), 0o755) {
+                Ok(()) => {}
+                Err(_) if overwrite && remote_upload_target(sftp, Path::new(&child))?.is_some_and(|stat| stat.is_dir()) => {}
+                Err(error) => return Err(sftp_error(error)),
+            }
+            upload_local_directory(sftp, &path, &child, transfer, depth + 1, overwrite)?;
         } else {
             let mut source = std::fs::File::open(&path)?;
+            let temporary = remote_child(
+                remote,
+                &format!(".opspub-upload-{}.part", uuid::Uuid::new_v4()),
+            );
             let mut target = sftp
                 .open_mode(
-                    Path::new(&child),
+                    Path::new(&temporary),
                     ssh2::OpenFlags::WRITE | ssh2::OpenFlags::CREATE | ssh2::OpenFlags::EXCLUSIVE,
                     0o644,
                     ssh2::OpenType::File,
                 )
                 .map_err(sftp_error)?;
-            let written = transfer.copy(&mut source, &mut target)?;
-            target.close().map_err(sftp_error)?;
+            let write_result = transfer.copy(&mut source, &mut target);
+            let close_result = target.close().map_err(sftp_error);
+            let written = match (write_result, close_result) {
+                (Ok(written), Ok(())) => written,
+                (Err(error), _) | (_, Err(error)) => {
+                    let _ = sftp.unlink(Path::new(&temporary));
+                    return Err(error);
+                }
+            };
             if written != metadata.len() {
+                let _ = sftp.unlink(Path::new(&temporary));
                 return Err(AppError::Custom(format!(
                     "文件在上传过程中发生变化: {name}"
                 )));
             }
+            let result = check_cancelled(transfer.cancelled).and_then(|()| {
+                commit_upload_file(sftp, Path::new(&temporary), Path::new(&child), overwrite)
+            });
+            if let Err(error) = result {
+                let _ = sftp.unlink(Path::new(&temporary));
+                return Err(error);
+            }
         }
+    }
+    Ok(())
+}
+
+fn remote_upload_target(sftp: &ssh2::Sftp, path: &Path) -> Result<Option<ssh2::FileStat>, AppError> {
+    match sftp.lstat(path) {
+        Ok(stat) => Ok(Some(stat)),
+        Err(error) if error.code() == ssh2::ErrorCode::SFTP(2) => Ok(None),
+        Err(error) => Err(sftp_error(error)),
+    }
+}
+
+fn commit_new_upload(sftp: &ssh2::Sftp, source: &Path, target: &Path) -> Result<(), AppError> {
+    match sftp.rename(source, target, Some(ssh2::RenameFlags::empty())) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            if remote_upload_target(sftp, target)?.is_some() {
+                return Err(AppError::SftpUploadConflict(target.display().to_string()));
+            }
+            Err(sftp_error(error))
+        }
+    }
+}
+
+fn commit_upload_file(
+    sftp: &ssh2::Sftp,
+    source: &Path,
+    target: &Path,
+    overwrite: bool,
+) -> Result<(), AppError> {
+    if !overwrite {
+        return commit_new_upload(sftp, source, target);
+    }
+    match remote_upload_target(sftp, target)? {
+        None => return commit_new_upload(sftp, source, target),
+        Some(stat) if stat.is_file() => {}
+        Some(_) => return Err(AppError::SftpUploadConflict(target.display().to_string())),
+    }
+    if sftp.rename(source, target, Some(ssh2::RenameFlags::OVERWRITE)).is_ok() {
+        return Ok(());
+    }
+
+    // OpenSSH 的 SFTP v3 不接收覆盖标志。先保留原文件，提交失败时恢复。
+    let backup = source.with_extension("backup");
+    commit_new_upload(sftp, target, &backup)?;
+    if let Err(error) = commit_new_upload(sftp, source, target) {
+        if let Err(restore) = commit_new_upload(sftp, &backup, target) {
+            return Err(AppError::Custom(format!(
+                "上传失败：{error}。恢复原文件失败：{restore}。原文件保存在 {}",
+                backup.display()
+            )));
+        }
+        return Err(error);
+    }
+    if let Err(error) = sftp.unlink(&backup) {
+        log::warn!("未清理 SFTP 覆盖备份 {}: {error}", backup.display());
     }
     Ok(())
 }

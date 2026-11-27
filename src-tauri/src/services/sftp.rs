@@ -13,7 +13,7 @@ use crate::database::Database;
 use crate::error::AppError;
 use crate::models::{
     SftpArchiveRequest, SftpChmodRequest, SftpCopyRequest, SftpFileEntry, SftpPathRequest,
-    SftpRenameRequest, SftpRequest, SftpSessionInfo, SftpUploadRequest, TerminalOpenRequest,
+    SftpLocalUploadEntry, SftpRenameRequest, SftpRequest, SftpSessionInfo, SftpUploadRequest, TerminalOpenRequest,
 };
 use crate::services::server::ServerService;
 
@@ -106,6 +106,22 @@ impl Drop for SftpManager {
 }
 
 impl SftpManager {
+    pub fn inspect_local_upload(path: &str) -> Result<Vec<SftpLocalUploadEntry>, AppError> {
+        let root = Path::new(path);
+        let metadata = std::fs::symlink_metadata(root)?;
+        if metadata.file_type().is_symlink() || (!metadata.is_file() && !metadata.is_dir()) {
+            return Err(AppError::InvalidInput("只支持普通文件和文件夹上传".into()));
+        }
+        let name = root
+            .file_name()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| AppError::InvalidInput("本地文件名不是有效 UTF-8".into()))?;
+        validate_name(name, "文件名")?;
+        let mut entries = Vec::new();
+        inspect_local_upload_tree(root, vec![name.to_owned()], &mut entries, 0)?;
+        Ok(entries)
+    }
+
     pub fn open(&self, db: &Database, request: SftpRequest) -> Result<SftpSessionInfo, AppError> {
         let _ = self.ensure(db, &request)?;
         self.session_info
@@ -330,6 +346,43 @@ impl SftpManager {
         rx.recv()
             .map_err(|_| AppError::Custom("SFTP 会话已断开".into()))?
     }
+}
+
+fn inspect_local_upload_tree(
+    path: &Path,
+    relative: Vec<String>,
+    entries: &mut Vec<SftpLocalUploadEntry>,
+    depth: usize,
+) -> Result<(), AppError> {
+    if depth > 128 {
+        return Err(AppError::InvalidInput("目录层级超过 128 层".into()));
+    }
+    let metadata = std::fs::symlink_metadata(path)?;
+    if metadata.file_type().is_symlink() {
+        return Err(AppError::InvalidInput("上传不支持符号链接".into()));
+    }
+    let is_dir = metadata.is_dir();
+    entries.push(SftpLocalUploadEntry {
+        path: relative.clone(),
+        is_dir,
+        size: if is_dir { 0 } else { metadata.len() },
+    });
+    if is_dir {
+        for child in std::fs::read_dir(path)? {
+            let child = child?;
+            let child_path = child.path();
+            let child_name = child
+                .file_name()
+                .to_str()
+                .ok_or_else(|| AppError::InvalidInput("本地文件名不是有效 UTF-8".into()))?
+                .to_owned();
+            validate_name(&child_name, "文件名")?;
+            let mut child_relative = relative.clone();
+            child_relative.push(child_name);
+            inspect_local_upload_tree(&child_path, child_relative, entries, depth + 1)?;
+        }
+    }
+    Ok(())
 }
 
 fn run_sftp_session(

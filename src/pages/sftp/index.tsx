@@ -204,6 +204,7 @@ async function describeUploadSource(source: UploadSource): Promise<UploadCandida
 export default function SftpPage() {
   const location = useLocation();
   const configuredDownloadDir = useSettingsStore((state) => state.sftpDownloadDir);
+  const sftpToolbarConfig = useSettingsStore((state) => state.windowConfig.sftp);
   const allowRecursiveDrag = useSettingsStore((state) => state.sftpDragRecursive);
   const showHiddenFiles = useSettingsStore((state) => state.sftpShowHidden);
   const routeServerId =
@@ -225,6 +226,7 @@ export default function SftpPage() {
   const enqueueUpload = useSftpTransferStore((state) => state.enqueue);
   const enqueueDownload = useSftpTransferStore((state) => state.enqueueDownload);
   const showTransfers = useSftpTransferStore((state) => state.setDisplay);
+  const visibleSftpToolbarItems = sftpToolbarConfig.filter((item) => item.enabled && item.location === "toolbar");
   const hasTransfers = useSftpTransferStore((state) => state.tasks.length > 0);
   const transferDirectoryVersions = useSftpTransferStore((state) => state.directoryVersions);
   const setSharedCredentials = useSshSessionStore((state) => state.setCredentials);
@@ -1745,105 +1747,22 @@ export default function SftpPage() {
                 <span>粘贴</span>
               </button>
             )}
-            {/* 上传文件主按钮：严格按照主题色走 */}
-            <div className="flex rounded-lg bg-[var(--accent)] text-white">
-              <button
-                type="button"
-                onClick={() => void selectUploadFiles(tab)}
-                title={`上传至 ${tab.serverName} · ${tab.currentPath}`}
-                className="flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 font-semibold hover:bg-white/15"
-              >
-                <Upload size={14} />
-                <span>上传文件</span>
-              </button>
-              <Dropdown
-                trigger={["click"]}
-                menu={{
-                  items: [
-                    { key: "upload", label: "选择本地文件…", icon: <Upload size={14} />, onClick: () => void selectUploadFiles(tab) },
-                    { key: "upload-folder", label: "选择本地文件夹…", icon: <FolderUp size={14} />, onClick: () => void selectUploadFolder(tab) },
-                    { type: "divider" },
-                    { key: "transfers", label: "打开传输任务", icon: <List size={14} />, disabled: !hasTransfers, onClick: () => showTransfers("expanded") },
-                  ],
-                }}
-              >
-                <button type="button" aria-label="上传选项" className="rounded-r-lg border-l border-white/25 px-1.5 hover:bg-white/15">
-                  <ChevronDown size={14} />
-                </button>
-              </Dropdown>
-            </div>
-
-            {/* 紧接着右侧的 4 个精巧工具图标按钮 (截图 1 / 截图 2) */}
-            <div className="flex items-center space-x-1">
-              <Tooltip title="上传本地文件夹">
-                <button type="button" aria-label="上传本地文件夹" onClick={() => void selectUploadFolder(tab)}
-                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)]">
-                  <FolderUp size={14} />
-                </button>
-              </Tooltip>
-              <Tooltip title="下载选中的文件和文件夹">
-                <button type="button" aria-label="下载选中项" disabled={selectedItems.length === 0}
-                  onClick={() => void downloadToLocalFolder(tab, selectedItems)}
-                  className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] disabled:opacity-40">
-                  <Download size={14} />
-                </button>
-              </Tooltip>
-              <Tooltip title="新建文件夹">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewFolderTargetTabId(tab.id);
-                    setNewFolderName("");
-                    setNewFolderModalOpen(true);
-                  }}
-                  className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"
-                >
-                  <FolderPlus size={14} />
-                </button>
-              </Tooltip>
-
-              <Tooltip title="新建文件">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewFileTargetTabId(tab.id);
-                    setNewFileName("untitled.txt");
-                    setNewFileModalOpen(true);
-                  }}
-                  className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"
-                >
-                  <FileCode size={14} />
-                </button>
-              </Tooltip>
-
-              <Tooltip title="在终端中打开当前目录">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const command = `cd "${tab.currentPath}"`;
-                    void navigator.clipboard.writeText(command);
-                    message.info(`已复制终端命令: ${command}`);
-                  }}
-                  className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"
-                >
-                  <Terminal size={14} />
-                </button>
-              </Tooltip>
-            </div>
-          </div>
-
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="relative w-40 sm:w-48">
-              <Input
-                value={filterInput}
-                onChange={(e) => setFilterKw(e.target.value)}
-                placeholder="过滤"
-                prefix={<Search size={12} className="text-slate-500 mr-1" />}
-                size="small"
-                allowClear
-                className="bg-surface-900 border-slate-800 text-xs rounded text-slate-200 focus:border-[var(--accent,#0d9488)]"
-              />
-            </div>
+            {visibleSftpToolbarItems.map(({ id }) => {
+              if (id === "upload") return <div key={id} className="flex rounded-lg bg-[var(--accent)] text-white">
+                <button type="button" onClick={() => void selectUploadFiles(tab)} title={`上传至 ${tab.serverName} · ${tab.currentPath}`} className="flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 font-semibold hover:bg-white/15"><Upload size={14} /><span>上传文件</span></button>
+                <Dropdown trigger={["click"]} menu={{ items: [
+                  { key: "upload", label: "选择本地文件…", icon: <Upload size={14} />, onClick: () => void selectUploadFiles(tab) },
+                  { key: "transfers", label: "打开传输任务", icon: <List size={14} />, disabled: !hasTransfers, onClick: () => showTransfers("expanded") },
+                ] }}><button type="button" aria-label="上传选项" className="rounded-r-lg border-l border-white/25 px-1.5 hover:bg-white/15"><ChevronDown size={14} /></button></Dropdown>
+              </div>;
+              if (id === "upload-folder") return <Tooltip key={id} title="上传本地文件夹"><button type="button" aria-label="上传本地文件夹" onClick={() => void selectUploadFolder(tab)} className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)]"><FolderUp size={14} /></button></Tooltip>;
+              if (id === "download") return <Tooltip key={id} title="下载选中的文件和文件夹"><button type="button" aria-label="下载选中项" disabled={selectedItems.length === 0} onClick={() => void downloadToLocalFolder(tab, selectedItems)} className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] disabled:opacity-40"><Download size={14} /></button></Tooltip>;
+              if (id === "new-folder") return <Tooltip key={id} title="新建文件夹"><button type="button" onClick={() => { setNewFolderTargetTabId(tab.id); setNewFolderName(""); setNewFolderModalOpen(true); }} className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"><FolderPlus size={14} /></button></Tooltip>;
+              if (id === "new-file") return <Tooltip key={id} title="新建文件"><button type="button" onClick={() => { setNewFileTargetTabId(tab.id); setNewFileName("untitled.txt"); setNewFileModalOpen(true); }} className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"><FileCode size={14} /></button></Tooltip>;
+              if (id === "open-terminal") return <Tooltip key={id} title="在终端中打开当前目录"><button type="button" onClick={() => { const command = `cd "${tab.currentPath}"`; void navigator.clipboard.writeText(command); message.info(`已复制终端命令: ${command}`); }} className="p-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 text-slate-300 hover:text-[var(--accent,#0d9488)] border border-slate-800 hover:border-slate-700 transition cursor-pointer"><Terminal size={14} /></button></Tooltip>;
+              if (id === "filter") return <div key={id} className="relative w-40 sm:w-48"><Input value={filterInput} onChange={(e) => setFilterKw(e.target.value)} placeholder="过滤" prefix={<Search size={12} className="text-slate-500 mr-1" />} size="small" allowClear className="bg-surface-900 border-slate-800 text-xs rounded text-slate-200 focus:border-[var(--accent,#0d9488)]" /></div>;
+              return null;
+            })}
           </div>
         </div>
 

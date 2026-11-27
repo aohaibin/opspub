@@ -1,6 +1,13 @@
 export type SettingsLanguage = "zh-CN" | "en-US";
 
 const en: Record<string, string> = {
+  "选择右上角显示的二级菜单快捷入口，调整顶栏工具的位置和显示方式。": "Choose module shortcuts for the upper-right corner and customize the title bar.",
+  "显示按钮名称": "Show button names",
+  "选择下方按钮单独显示名称，或使用开关统一切换。": "Choose which buttons show their names, or use the switch to change all at once.",
+  "图标和名称": "Icons and names", "部分显示名称": "Some names shown",
+  "仅图标": "Icons only", "全部仅图标": "Use icons only",
+  "全局搜索": "Global Search", "版本信息": "Version", "AI 操作锁定": "AI Control",
+  "主题皮肤": "Theme", "窗口控制": "Window Controls", "侧栏开关": "Toggle Sidebar",
   "字号预设": "Text size presets", "恢复默认字号": "Reset text size",
   "审计保留天数": "Audit retention days", "填写 0 可保留全部历史。变更在下次读写审计时生效。": "Enter 0 to keep all history. Changes take effect the next time audit logs are read or written.",
   "审计保留策略已保存": "Audit retention saved", "确认缩短审计保留期？": "Shorten audit retention?", "下次读写审计时，超出新保留期的日志将被删除。": "Logs older than the new retention period will be deleted the next time audit logs are read or written.",
@@ -36,6 +43,8 @@ const en: Record<string, string> = {
   "界面文字": "Interface Text", "调整应用界面基础字号与字体，设置会保存到本机。": "Adjust the base UI size and font. Settings are saved locally.", "界面字号": "Interface size", "调整应用基础文字大小，12 到 20 px。": "Adjust the base interface size from 12 to 20 px.", "减小字号": "Decrease text size", "增大字号": "Increase text size", "界面字体": "Interface font", "选择应用界面的字体族。": "Choose the interface font family.", "系统默认": "System default", "圆润字体": "Rounded", "OpsPub 界面文字预览": "OpsPub interface text preview",
   "启动行为": "Startup Behavior", "系统登录后自动启动 OpsPub，并按选择决定是否进入托盘。": "Start OpsPub when you sign in and choose whether it opens minimized to the system tray.", "开机自启": "Launch at sign-in", "随系统登录启动 OpsPub": "Launch OpsPub when you sign in", "自启后收进托盘": "Start minimized to tray", "仅在系统启动应用时隐藏主窗口": "Hide the main window when the app starts with the system",
   "窗口与托盘": "Window & Tray", "点击主窗口关闭按钮时的行为。": "Choose what happens when you close the main window.", "每次询问": "Ask every time", "最小化到托盘": "Minimize to tray", "直接退出": "Quit", "关闭后仍可保持后台服务与连接会话，双击托盘图标可以重新打开主窗口。": "Background services and sessions can remain active after closing. Double-click the tray icon to reopen the window.",
+  "窗口配置": "Window Configuration", "自定义窗口、终端、SFTP 与侧边栏中已有工具的显示、顺序和停靠位置。": "Customize the visibility, order, and location of existing window, terminal, SFTP, and sidebar tools.", "仅配置当前应用中已经存在的控件，调整会立即应用并保存到本机。": "Only existing controls are configurable. Changes apply immediately and are saved locally.", "窗口工具栏": "Window Toolbar", "顶栏中的搜索、版本、AI 锁定、皮肤和窗口控制。": "Search, version, AI lock, skin, and window controls in the title bar.", "终端工具栏": "Terminal Toolbar", "终端分屏、会话打开和辅助工具栏。": "Terminal split, session, and assistant toolbar controls.", "SFTP 工具栏": "SFTP Toolbar", "文件上传、下载、新建和目录操作。": "File upload, download, creation, and directory actions.", "侧边栏": "Sidebar", "工作区业务域入口的显示和排序。": "Visibility and order of workspace domain entries.", "全部恢复默认": "Reset all", "自定义": "Customize", "当前未显示任何控件": "No controls are visible", "恢复默认": "Reset default", "完成": "Done", "上移": "Move up", "下移": "Move down", "左侧": "Left", "中间": "Center", "右侧": "Right", "工具栏": "Toolbar", "工具栏侧栏": "Toolbar rail", "主侧栏": "Primary sidebar", "次级侧栏": "Secondary sidebar", "隐藏": "Hidden",
+  "显示顺序预览，按住图标拖动即可调整顶栏顺序。": "Drag the visible items to change their order in the title bar.", "窗口工具栏显示顺序": "Window toolbar order", "恢复默认顺序": "Reset order", "全部开启": "Enable all", "全部关闭": "Disable all",
   "外观主题": "Appearance Theme", "选择应用皮肤和明暗模式，预览会同步到整个应用。": "Choose an app skin and color mode. The preview updates across the app.", "跟随系统": "System", "暗色": "Dark", "亮色": "Light",
   "终端主题": "Terminal Theme", "终端字体、光标与配色预览。": "Preview terminal fonts, cursor, and colors.", "Connected · ready for commands": "Connected · ready for commands",
   "SFTP 传输": "SFTP Transfer", "配置下载位置、后台并发和文件浏览行为。设置会作用于后续传输。": "Configure download location, background concurrency, and file browsing behavior.", "传输完成后自动收起浮窗": "Collapse transfer widget when complete", "所有任务完成后将进度面板收起为悬浮按钮": "Collapse the progress panel after all tasks finish", "支持文件夹递归拖拽上传": "Enable recursive folder drag upload", "允许将本地文件夹拖入 SFTP 窗口并递归上传内容": "Allow folders to be dropped into SFTP and uploaded recursively", "默认显示隐藏文件": "Show hidden files by default", "在远程文件列表中显示 .ssh、.env 等点文件": "Show dot files such as .ssh and .env in remote listings",

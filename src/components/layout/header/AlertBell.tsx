@@ -96,6 +96,7 @@ export function AlertBell({ active }: { active: boolean }) {
         ref={buttonRef}
         type="button"
         className="workspace-dock-button"
+        data-domain="alerts"
         title={title}
         aria-label={totalCount > 0 ? `${title} (${totalCount})` : title}
         aria-expanded={open}

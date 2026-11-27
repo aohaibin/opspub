@@ -2,7 +2,7 @@
  * 新版工作区外壳。使用现有路由渲染页面，双轨和标题随当前路由同步。
  */
 
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
 import { ChevronRight, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
@@ -10,7 +10,7 @@ import { modulePath } from "@/navigation/modules";
 import { translateModule } from "@/navigation/translations";
 import { resolveWorkspace, WORKSPACE_DOMAINS, type WorkspaceDomain } from "@/navigation/workspace";
 import { useAppStore } from "@/store/app";
-import { useSettingsStore } from "@/store/settings";
+import { useSettingsStore, windowShortcutModule, type WindowConfigItem } from "@/store/settings";
 import TerminalPage from "@/pages/terminal";
 import {
   WorkspaceNavigation,
@@ -24,6 +24,7 @@ import { AiLockControl } from "./header/AiLockControl";
 import { McpAiUnlockModal } from "./header/McpAiUnlockModal";
 import { SkinSwitcher } from "./header/SkinSwitcher";
 import { VersionBadge } from "./header/VersionBadge";
+import { WorkspaceHeaderShortcuts } from "./header/WorkspaceHeaderShortcuts";
 import { CommandPalette } from "./CommandPalette";
 import { SftpTransferWidget } from "./SftpTransferWidget";
 
@@ -69,6 +70,9 @@ export function AppLayout() {
   const navigate = useNavigate();
   const { domain, module } = resolveWorkspace(location.pathname);
   const language = useSettingsStore((state) => state.language);
+  const windowConfig = useSettingsStore((state) => state.windowConfig.window);
+  const shortcuts = useMemo(() => windowConfig.filter(({ id, enabled, location }) =>
+    enabled && location === "right" && windowShortcutModule(id)), [windowConfig]);
   const english = language === "en-US";
   const openSearch = useAppStore((state) => state.setCommandPaletteOpen);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -122,6 +126,21 @@ export function AppLayout() {
     ? english ? "Collapse sidebar" : "收起二级栏"
     : english ? "Expand sidebar" : "展开二级栏";
   const searchLabel = english ? "Search modules" : "搜索模块";
+  const renderWindowItem = ({ id, showLabel, location }: WindowConfigItem) => {
+    const labeled = showLabel ?? location !== "right";
+    switch (id) {
+      case "sidebar-toggle": return <button key={id} ref={sidebarToggle} type="button" className="workspace-plain-button workspace-header-toggle" aria-label={toggleLabel} aria-expanded={sidebarOpen} aria-controls={WORKSPACE_SIDEBAR_ID} title={`${toggleLabel} (Ctrl+B)`} onClick={() => setSidebarOpen((open) => !open)}><SidebarIcon size={17} aria-hidden /></button>;
+      case "search": return <button key={id} type="button" className="workspace-search header-pill" title={`${searchLabel} (Ctrl+K)`} onClick={() => openSearch(true)}><Search size={15} aria-hidden /><span>{searchLabel}</span><kbd aria-hidden>Ctrl K</kbd></button>;
+      case "version": return <VersionBadge key={id} showLabel={labeled} />;
+      case "ai-lock": return <AiLockControl key={id} showLabel={labeled} />;
+      case "skin": return <SkinSwitcher key={id} showLabel={showLabel === true && location === "right"} />;
+      case "window-controls": return <div key={id} className="workspace-window-controls"><WindowControls /></div>;
+      default: return null;
+    }
+  };
+  const renderWindowZone = (location: "left" | "center" | "right") => windowConfig
+    .filter((item) => item.enabled && item.location === location && !windowShortcutModule(item.id))
+    .map(renderWindowItem);
 
   return (
     <div className="workspace-shell">
@@ -130,18 +149,7 @@ export function AppLayout() {
           <BrandLogo size={24} />
           <span>OpsPub</span>
         </div>
-        <button
-          ref={sidebarToggle}
-          type="button"
-          className="workspace-plain-button workspace-header-toggle"
-          aria-label={toggleLabel}
-          aria-expanded={sidebarOpen}
-          aria-controls={WORKSPACE_SIDEBAR_ID}
-          title={`${toggleLabel} (Ctrl+B)`}
-          onClick={() => setSidebarOpen((open) => !open)}
-        >
-          <SidebarIcon size={17} aria-hidden />
-        </button>
+        <div className="workspace-header-zone workspace-header-zone-left">{renderWindowZone("left")}</div>
         <div className="workspace-breadcrumb" aria-label={english ? "Current location" : "当前位置"}>
           <span title={domainLabel}>{domainLabel}</span>
           {moduleLabel && (
@@ -152,25 +160,10 @@ export function AppLayout() {
           )}
         </div>
         <DragRegion />
-        <button
-          type="button"
-          className="workspace-search header-pill"
-          title={`${searchLabel} (Ctrl+K)`}
-          onClick={() => openSearch(true)}
-        >
-          <Search size={15} aria-hidden />
-          <span>{searchLabel}</span>
-          <kbd aria-hidden>Ctrl K</kbd>
-        </button>
+        <div className="workspace-header-zone workspace-header-zone-center">{renderWindowZone("center")}</div>
         <DragRegion />
-        <div className="workspace-header-controls">
-          <VersionBadge />
-          <AiLockControl />
-          <SkinSwitcher />
-          <div className="workspace-window-controls">
-            <WindowControls />
-          </div>
-        </div>
+        {shortcuts.length > 0 && <WorkspaceHeaderShortcuts items={shortcuts} activeModule={module?.key} language={language} />}
+        <div className="workspace-header-controls">{renderWindowZone("right")}</div>
       </header>
 
       <div className="workspace-body">

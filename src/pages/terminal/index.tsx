@@ -188,6 +188,7 @@ export default function TerminalPage({ active }: { active: boolean }) {
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("ai");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const terminalToolbarConfig = useSettingsStore((state) => state.windowConfig.terminal);
   const fontSize = useSettingsStore((state) => state.terminalFontSize);
   const setTerminalFontSize = useSettingsStore((state) => state.setTerminalFontSize);
   const lineBuffersRef = useRef(new Map<string, string>());
@@ -665,6 +666,36 @@ export default function TerminalPage({ active }: { active: boolean }) {
     }));
   };
 
+  const terminalToolbarNodes: ReactNode[] = [];
+  let splitButtons: ReactNode[] = [];
+  const flushSplitButtons = () => {
+    if (splitButtons.length === 0) return;
+    terminalToolbarNodes.push(<div key={`split-group-${terminalToolbarNodes.length}`} className="ops-terminal-split-buttons">{splitButtons}</div>);
+    splitButtons = [];
+  };
+
+  for (const configItem of terminalToolbarConfig.filter((item) => item.enabled && item.location === "toolbar")) {
+    const splitItem = SPLIT_META.find((item) => `split-${item.id === "single" ? "single" : item.id === "dual-h" ? "horizontal" : item.id === "dual-v" ? "vertical" : "quad"}` === configItem.id);
+    if (splitItem) {
+      splitButtons.push(<button key={configItem.id} type="button" className={splitMode === splitItem.id ? "active" : ""} title={splitItem.label} aria-label={splitItem.label} aria-pressed={splitMode === splitItem.id} onClick={() => setSplitMode(splitItem.id)}>{splitItem.icon}</button>);
+      continue;
+    }
+    flushSplitButtons();
+    if (configItem.id === "sync-input") {
+      terminalToolbarNodes.push(<button key={configItem.id} type="button" className={`ops-terminal-sync ${syncInput ? "active" : ""}`} onClick={() => setSyncInput((current) => !current)} title="开启或关闭多屏实时广播输入"><Radio size={14} /><span>同步输入</span></button>);
+    } else if (configItem.id === "open-terminal") {
+      terminalToolbarNodes.push(<div key={configItem.id} className="relative">
+        <button type="button" className="ops-terminal-open-button" disabled={!sessionsRestored} onClick={() => setDropdownOpen((current) => !current)}><Plus size={14} />打开终端...<ChevronDown size={14} /></button>
+        {dropdownOpen && <div className="ops-terminal-dropdown"><div className="ops-terminal-dropdown-title">选择已有服务器连接</div>
+          {sshServers.map((server) => <button key={server.id} type="button" onClick={() => openConnection(server)}><span className="flex min-w-0 items-center gap-2"><Circle size={8} fill="var(--success)" color="var(--success)" /><span className="truncate">{server.alias}</span></span><span>{server.hostname}</span></button>)}
+          {sshServers.length === 0 && <div className="ops-terminal-empty">暂无纳管 SSH 服务器</div>}
+          <button className="create" type="button" onClick={() => { setDropdownOpen(false); setCreateServerOpen(true); }}><Plus size={14} /> 新建服务器连接...</button>
+        </div>}
+      </div>);
+    }
+  }
+  flushSplitButtons();
+
   // 会话和输出留在页面状态中，离开页面时卸载视图及其浮层，避免挡住其他模块。
   if (!active) return null;
 
@@ -684,63 +715,7 @@ export default function TerminalPage({ active }: { active: boolean }) {
       {awaitingRouteTarget && <div className="ops-terminal-route-loading" role="status">正在定位终端会话…</div>}
       <section className="ops-terminal-shell" hidden={awaitingRouteTarget}>
         <div className="ops-terminal-toolbar">
-          <div className="flex items-center gap-2">
-            <div className="ops-terminal-split-buttons">
-              {SPLIT_META.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={splitMode === item.id ? "active" : ""}
-                  title={item.label}
-                  aria-label={item.label}
-                  aria-pressed={splitMode === item.id}
-                  onClick={() => setSplitMode(item.id)}
-                >
-                  {item.icon}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className={`ops-terminal-sync ${syncInput ? "active" : ""}`}
-              onClick={() => setSyncInput((current) => !current)}
-              title="开启或关闭多屏实时广播输入"
-            >
-              <Radio size={14} />
-              <span>同步输入</span>
-            </button>
-          </div>
-
-          <div className="relative">
-            <button
-              type="button"
-              className="ops-terminal-open-button"
-              disabled={!sessionsRestored}
-              onClick={() => setDropdownOpen((current) => !current)}
-            >
-              <Plus size={14} />
-              打开终端...
-              <ChevronDown size={14} />
-            </button>
-            {dropdownOpen && (
-              <div className="ops-terminal-dropdown">
-                <div className="ops-terminal-dropdown-title">选择已有服务器连接</div>
-                {sshServers.map((server) => (
-                  <button key={server.id} type="button" onClick={() => openConnection(server)}>
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Circle size={8} fill="var(--success)" color="var(--success)" />
-                      <span className="truncate">{server.alias}</span>
-                    </span>
-                    <span>{server.hostname}</span>
-                  </button>
-                ))}
-                {sshServers.length === 0 && <div className="ops-terminal-empty">暂无纳管 SSH 服务器</div>}
-                <button className="create" type="button" onClick={() => { setDropdownOpen(false); setCreateServerOpen(true); }}>
-                  <Plus size={14} /> 新建服务器连接...
-                </button>
-              </div>
-            )}
-          </div>
+          <div className="flex flex-wrap items-center gap-2">{terminalToolbarNodes}</div>
         </div>
 
         <div className="ops-terminal-tabs">
@@ -856,6 +831,7 @@ export default function TerminalPage({ active }: { active: boolean }) {
             />
           )}
           <TerminalToolRail
+            config={terminalToolbarConfig}
             active={drawerOpen ? drawerTab : null}
             onSelect={(tab) => {
               setDrawerTab(tab);
@@ -1216,41 +1192,37 @@ function EmptyTerminalPane({
 }
 
 function TerminalToolRail({
+  config,
   active,
   onSelect,
   onToggle,
   onTransfer,
 }: {
+  config: import("@/store/settings").WindowConfigItem[];
   active: DrawerTab | null;
   onSelect: (tab: DrawerTab) => void;
   onToggle: () => void;
   onTransfer: () => void;
 }) {
-  const tools: { id: DrawerTab; label: string; icon: ReactNode }[] = [
-    { id: "monitor", label: "主机实时探针监控", icon: <Activity size={16} /> },
-    { id: "commands", label: "常用快捷命令库", icon: <TerminalIcon size={16} /> },
-    { id: "sftp", label: "SFTP 实时文件树", icon: <Folder size={16} /> },
-    { id: "ai", label: "AI 智能排障协同", icon: <Sparkles size={16} /> },
-    { id: "settings", label: "终端外观与连接配置", icon: <Settings2 size={16} /> },
-    { id: "history", label: "命令历史记录", icon: <Clock3 size={16} /> },
-    { id: "snippets", label: "常用脚本片段库", icon: <Code2 size={16} /> },
+  const tools: { id: DrawerTab; configId: string; label: string; icon: ReactNode }[] = [
+    { id: "monitor", configId: "monitor", label: "主机实时探针监控", icon: <Activity size={16} /> },
+    { id: "commands", configId: "commands", label: "常用快捷命令库", icon: <TerminalIcon size={16} /> },
+    { id: "sftp", configId: "sftp", label: "SFTP 实时文件树", icon: <Folder size={16} /> },
+    { id: "ai", configId: "ai", label: "AI 智能排障协同", icon: <Sparkles size={16} /> },
+    { id: "settings", configId: "settings", label: "终端外观与连接配置", icon: <Settings2 size={16} /> },
+    { id: "history", configId: "history", label: "命令历史记录", icon: <Clock3 size={16} /> },
+    { id: "snippets", configId: "snippets", label: "常用脚本片段库", icon: <Code2 size={16} /> },
   ];
+  const visible = (id: string) => config.find((item) => item.id === id)?.enabled && config.find((item) => item.id === id)?.location === "rail";
+  const style = (id: string) => ({ order: config.findIndex((item) => item.id === id) });
+  const renderTool = (tool: typeof tools[number]) => visible(tool.configId) ? <button key={tool.id} type="button" className={active === tool.id ? "active" : ""} title={tool.label} style={style(tool.configId)} onClick={() => onSelect(tool.id)}>{tool.icon}</button> : null;
 
   return (
     <aside className="ops-terminal-rail">
-      {tools.slice(0, 3).map((tool) => (
-        <button key={tool.id} type="button" className={active === tool.id ? "active" : ""} title={tool.label} onClick={() => onSelect(tool.id)}>
-          {tool.icon}
-        </button>
-      ))}
-      <button type="button" title="前往 SFTP 上传文件" onClick={onTransfer}><Upload size={16} /></button>
-      <button type="button" title="前往 SFTP 下载文件" onClick={onTransfer}><Download size={16} /></button>
-      {tools.slice(3).map((tool) => (
-        <button key={tool.id} type="button" className={active === tool.id ? "active" : ""} title={tool.label} onClick={() => onSelect(tool.id)}>
-          {tool.icon}
-        </button>
-      ))}
-      <button type="button" className="mt-auto" title="展开或收起辅助工具抽屉" onClick={onToggle}><PanelRight size={16} /></button>
+      {tools.map(renderTool)}
+      {visible("upload") && <button type="button" style={style("upload")} title="前往 SFTP 上传文件" onClick={onTransfer}><Upload size={16} /></button>}
+      {visible("download") && <button type="button" style={style("download")} title="前往 SFTP 下载文件" onClick={onTransfer}><Download size={16} /></button>}
+      {visible("drawer-toggle") && <button type="button" className="mt-auto" style={style("drawer-toggle")} title="展开或收起辅助工具抽屉" onClick={onToggle}><PanelRight size={16} /></button>}
     </aside>
   );
 }

@@ -8,12 +8,15 @@
 import { useNavigate } from "react-router-dom";
 import { Check, Palette } from "lucide-react";
 import { SKINS, useAppStore, type SkinDef } from "@/store/app";
+import { useSettingsStore } from "@/store/settings";
 import { HeaderDropdown, DropdownHeading } from "./HeaderDropdown";
 
-export function SkinSwitcher() {
+export function SkinSwitcher({ showLabel }: { showLabel: boolean }) {
   const skin = useAppStore((s) => s.skin);
   const setSkin = useAppStore((s) => s.setSkin);
   const navigate = useNavigate();
+  const english = useSettingsStore((state) => state.language) === "en-US";
+  const buttonLabel = english ? "Theme" : "主题";
 
   const darkSkins = SKINS.filter((s) => s.family === "dark");
   const lightSkins = SKINS.filter((s) => s.family === "light");
@@ -24,11 +27,13 @@ export function SkinSwitcher() {
       trigger={({ toggle }) => (
         <button
           type="button"
-          className="header-icon-btn"
+          className={showLabel ? "header-pill" : "header-icon-btn"}
           onClick={toggle}
-          title="切换外观主题皮肤"
+          title={english ? "Switch appearance theme" : "切换外观主题皮肤"}
+          aria-label={buttonLabel}
         >
-          <Palette size={16} style={{ color: "#34d399" }} />
+          <Palette size={16} style={{ color: "var(--nav-active-icon)" }} aria-hidden />
+          {showLabel && <span>{buttonLabel}</span>}
         </button>
       )}
     >

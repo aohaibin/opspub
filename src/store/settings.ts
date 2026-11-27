@@ -2,12 +2,148 @@ import { create } from "zustand";
 import { disable as disableAutoStart, enable as enableAutoStart, isEnabled as isAutoStartEnabled } from "@tauri-apps/plugin-autostart";
 import { configApi } from "@/lib/api/config";
 import { DEFAULT_LOGO_COLOR, parseLogoColor, type LogoColor } from "@/lib/logo";
+import { findModule } from "@/navigation/modules";
+import { WORKSPACE_DOMAINS } from "@/navigation/workspace";
 import { TERMINAL_SCROLLBACK_OPTIONS, type TerminalCursorStyle, type TerminalFontFamily, type TerminalFontSize, type TerminalLineHeight, type TerminalRightClick, type TerminalTheme } from "@/components/terminal/terminal-themes";
 
 export type CloseBehavior = "ask" | "minimize" | "exit";
 export type UiFontFamily = "system" | "rounded" | "inter";
 export type SftpConflictPolicy = "ask" | "overwrite" | "rename" | "skip";
 export type { TerminalCursorStyle, TerminalFontSize, TerminalLineHeight, TerminalTheme } from "@/components/terminal/terminal-themes";
+
+export type WindowConfigCategory = "window" | "terminal" | "sftp" | "sidebar";
+export type WindowConfigLocation = "left" | "center" | "right" | "toolbar" | "rail" | "primary" | "secondary" | "hidden";
+
+export interface WindowConfigItem {
+  id: string;
+  enabled: boolean;
+  location: WindowConfigLocation;
+  showLabel?: boolean;
+}
+
+export type WindowConfig = Record<WindowConfigCategory, WindowConfigItem[]>;
+
+const DEFAULT_HEADER_SHORTCUTS: readonly string[] = ["servers", "terminal", "sftp", "database", "batch", "deploy"];
+
+export function windowShortcutModule(id: string) {
+  return id.startsWith("nav-") ? findModule(id.slice(4)) : undefined;
+}
+
+export function supportsWindowLabel(id: string) {
+  return id === "version" || id === "ai-lock" || id === "skin" || Boolean(windowShortcutModule(id));
+}
+
+export const WINDOW_CONFIG_DEFAULTS: WindowConfig = {
+  window: [
+    { id: "sidebar-toggle", enabled: true, location: "left" },
+    { id: "search", enabled: true, location: "center" },
+    ...WORKSPACE_DOMAINS.flatMap<WindowConfigItem>((domain) => Array.from(domain.modules, (key) => ({
+      id: `nav-${key}`,
+      enabled: DEFAULT_HEADER_SHORTCUTS.includes(key),
+      location: "right",
+    }))),
+    { id: "version", enabled: true, location: "right" },
+    { id: "ai-lock", enabled: true, location: "right" },
+    { id: "skin", enabled: true, location: "right" },
+    { id: "window-controls", enabled: true, location: "right" },
+  ],
+  terminal: [
+    { id: "split-single", enabled: true, location: "toolbar" },
+    { id: "split-horizontal", enabled: true, location: "toolbar" },
+    { id: "split-vertical", enabled: true, location: "toolbar" },
+    { id: "split-quad", enabled: true, location: "toolbar" },
+    { id: "sync-input", enabled: true, location: "toolbar" },
+    { id: "open-terminal", enabled: true, location: "toolbar" },
+    { id: "monitor", enabled: true, location: "rail" },
+    { id: "commands", enabled: true, location: "rail" },
+    { id: "sftp", enabled: true, location: "rail" },
+    { id: "upload", enabled: true, location: "rail" },
+    { id: "download", enabled: true, location: "rail" },
+    { id: "ai", enabled: true, location: "rail" },
+    { id: "settings", enabled: true, location: "rail" },
+    { id: "history", enabled: true, location: "rail" },
+    { id: "snippets", enabled: true, location: "rail" },
+    { id: "drawer-toggle", enabled: true, location: "rail" },
+  ],
+  sftp: [
+    { id: "upload", enabled: true, location: "toolbar" },
+    { id: "upload-folder", enabled: true, location: "toolbar" },
+    { id: "download", enabled: true, location: "toolbar" },
+    { id: "new-folder", enabled: true, location: "toolbar" },
+    { id: "new-file", enabled: true, location: "toolbar" },
+    { id: "open-terminal", enabled: true, location: "toolbar" },
+    { id: "filter", enabled: true, location: "toolbar" },
+  ],
+  sidebar: [
+    { id: "domain-ops", enabled: true, location: "primary" },
+    { id: "domain-automation", enabled: true, location: "primary" },
+    { id: "domain-ai", enabled: true, location: "primary" },
+    { id: "domain-gov", enabled: true, location: "primary" },
+    { id: "domain-alerts", enabled: true, location: "secondary" },
+    { id: "domain-settings", enabled: true, location: "secondary" },
+    { id: "module-servers", enabled: true, location: "primary" },
+    { id: "module-terminal", enabled: true, location: "primary" },
+    { id: "module-workbench", enabled: true, location: "primary" },
+    { id: "module-sftp", enabled: true, location: "primary" },
+    { id: "module-database", enabled: true, location: "primary" },
+    { id: "module-batch", enabled: true, location: "primary" },
+    { id: "module-deploy", enabled: true, location: "primary" },
+    { id: "module-copilot", enabled: true, location: "primary" },
+    { id: "module-skills", enabled: true, location: "primary" },
+    { id: "module-mcp", enabled: true, location: "primary" },
+    { id: "module-inspector", enabled: true, location: "primary" },
+    { id: "module-credentials", enabled: true, location: "primary" },
+    { id: "module-sensitive", enabled: true, location: "primary" },
+    { id: "module-security", enabled: true, location: "primary" },
+    { id: "module-audit", enabled: true, location: "primary" },
+    { id: "module-alerts", enabled: true, location: "primary" },
+    { id: "module-settings", enabled: true, location: "primary" },
+  ],
+};
+
+const WINDOW_CONFIG_LOCATIONS: Record<WindowConfigCategory, WindowConfigLocation[]> = {
+  window: ["left", "center", "right", "hidden"],
+  terminal: ["toolbar", "rail", "hidden"],
+  sftp: ["toolbar", "hidden"],
+  sidebar: ["primary", "secondary", "hidden"],
+};
+
+export function parseWindowConfig(raw?: string): WindowConfig {
+  let parsed: Partial<Record<WindowConfigCategory, unknown>> = {};
+  try {
+    const value: unknown = raw ? JSON.parse(raw) : {};
+    parsed = typeof value === "object" && value !== null
+      ? value as Partial<Record<WindowConfigCategory, unknown>>
+      : {};
+  } catch {
+    return structuredClone(WINDOW_CONFIG_DEFAULTS);
+  }
+
+  return Object.fromEntries((Object.keys(WINDOW_CONFIG_DEFAULTS) as WindowConfigCategory[]).map((category) => {
+    const saved = Array.isArray(parsed[category]) ? parsed[category] as Partial<WindowConfigItem>[] : [];
+    const validSaved = saved.filter((item): item is Partial<WindowConfigItem> => typeof item === "object" && item !== null && typeof item.id === "string");
+    const savedById = new Map(validSaved.map((item) => [item.id!, item]));
+    const defaults = WINDOW_CONFIG_DEFAULTS[category];
+    const restored = defaults.map((item) => {
+      const value = savedById.get(item.id);
+      const location = value?.location;
+      return {
+        ...item,
+        enabled: typeof value?.enabled === "boolean" ? value.enabled : item.enabled,
+        location: typeof location === "string"
+          && (category === "window" && windowShortcutModule(item.id)
+            ? location === "right" || location === "hidden"
+            : WINDOW_CONFIG_LOCATIONS[category].includes(location as WindowConfigLocation))
+          ? location as WindowConfigLocation
+          : item.location,
+        ...(category === "window" && supportsWindowLabel(item.id) && value?.showLabel === true ? { showLabel: true } : {}),
+      };
+    });
+    const order = new Map(validSaved.map((item, index) => [item.id, index]));
+    restored.sort((a, b) => (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+    return [category, restored];
+  })) as WindowConfig;
+}
 
 type AutoStartStatus = "loading" | "ready" | "saving" | "unavailable";
 type AutoStartSaveResult = "saved" | "ignored" | unknown[];
@@ -24,6 +160,8 @@ interface SettingsStore {
   setStartMinimized: (enabled: boolean) => void;
   closeBehavior: CloseBehavior;
   setCloseBehavior: (behavior: CloseBehavior) => void;
+  windowConfig: WindowConfig;
+  setWindowConfig: (config: WindowConfig) => void;
   terminalTheme: TerminalTheme;
   setTerminalTheme: (theme: TerminalTheme) => void;
   terminalFontSize: TerminalFontSize;
@@ -76,6 +214,7 @@ export const SETTINGS_KEYS = {
   autoStart: "ui.auto_start",
   startMinimized: "ui.start_minimized",
   closeBehavior: "ui.close_behavior",
+  windowConfig: "ui.window_config",
   terminalTheme: "ui.terminal_theme",
   terminalFontSize: "ui.terminal_font_size",
   terminalLineHeight: "ui.terminal_line_height",
@@ -164,6 +303,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   setStartMinimized: (startMinimized) => set({ startMinimized }),
   closeBehavior: "ask",
   setCloseBehavior: (closeBehavior) => set({ closeBehavior }),
+  windowConfig: structuredClone(WINDOW_CONFIG_DEFAULTS),
+  setWindowConfig: (windowConfig) => set({ windowConfig }),
   terminalTheme: "monokai-pro",
   setTerminalTheme: (terminalTheme) => set({ terminalTheme }),
   terminalFontSize: 14,
@@ -216,6 +357,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     closeBehavior: values[SETTINGS_KEYS.closeBehavior] === "minimize" || values[SETTINGS_KEYS.closeBehavior] === "exit"
       ? (values[SETTINGS_KEYS.closeBehavior] as CloseBehavior)
       : "ask",
+    windowConfig: parseWindowConfig(values[SETTINGS_KEYS.windowConfig]),
     terminalTheme: values[SETTINGS_KEYS.terminalTheme] === "high-contrast"
       ? "matrix-green"
       : values[SETTINGS_KEYS.terminalTheme] === "opspub-dark"

@@ -9,11 +9,12 @@
  */
 
 import { useEffect, useState } from "react";
-import { message } from "antd";
-import { ChevronDown, Power } from "lucide-react";
+import { message, Tooltip } from "antd";
+import { Bot, Power } from "lucide-react";
 import { copilotApi } from "@/lib/api/copilot";
 import { getErrorMessage } from "@/lib/api/client";
 import { useAppStore, UNLOCK_DURATIONS, type UnlockDuration } from "@/store/app";
+import { useSettingsStore } from "@/store/settings";
 import { HeaderDropdown } from "./HeaderDropdown";
 
 /** 剩余毫秒 → 倒计时文案。超过 1 小时用 HH:MM:SS，否则 MM:SS */
@@ -26,13 +27,14 @@ function formatRemaining(ms: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
-export function AiLockControl() {
+export function AiLockControl({ showLabel }: { showLabel: boolean }) {
   const aiLocked = useAppStore((s) => s.aiLocked);
   const aiUnlockUntil = useAppStore((s) => s.aiUnlockUntil);
   const aiUnlockDuration = useAppStore((s) => s.aiUnlockDuration);
   const setAiLockState = useAppStore((s) => s.setAiLockState);
   const setAiUnlockDuration = useAppStore((s) => s.setAiUnlockDuration);
   const syncAiLock = useAppStore((s) => s.syncAiLock);
+  const english = useSettingsStore((s) => s.language) === "en-US";
 
   // 每秒重算一次剩余时间。放行到期由 syncAiLock 负责翻回锁定态。
   const [now, setNow] = useState(() => Date.now());
@@ -61,6 +63,7 @@ export function AiLockControl() {
   };
   useEffect(() => {
     if (aiLocked || aiUnlockUntil === null) return;
+    setNow(Date.now());
     const timer = window.setInterval(() => {
       setNow(Date.now());
       syncAiLock();
@@ -70,45 +73,31 @@ export function AiLockControl() {
 
   const forever = !aiLocked && aiUnlockUntil === null;
   const remainingMs = aiUnlockUntil === null ? 0 : aiUnlockUntil - now;
-
-  const headerText = aiLocked
-    ? "AI 操作: 已锁定"
-    : forever
-      ? "AI 操作: 已放行 (永久)"
-      : `AI 操作: 已放行 (${formatRemaining(remainingMs)})`;
-
-  // 锁定=玫红，放行=翠绿；两态用同一组透明度，避免切换时按钮尺寸跳动
-  const tone = aiLocked
-    ? { fg: "#fda4af", bg: "rgba(244, 63, 94, 0.2)", border: "rgba(244, 63, 94, 0.4)", dot: "#fb7185" }
-    : { fg: "#6ee7b7", bg: "rgba(16, 185, 129, 0.2)", border: "rgba(16, 185, 129, 0.4)", dot: "#34d399" };
+  const timeLabel = forever ? (english ? "∞" : "永久") : formatRemaining(remainingMs);
+  const label = aiLocked ? (english ? "AI Locked" : "AI 已锁") : (english ? "AI Ready" : "AI 放行");
+  const status = aiLocked ? label : `${label} · ${timeLabel}`;
+  const tooltip = english ? `${status} · Choose an unlock duration` : `${status} · 点击选择放行时间`;
 
   return (
     <HeaderDropdown
       width={320}
-      trigger={({ toggle }) => (
-        <button
-          type="button"
-          className="header-pill"
-          onClick={toggle}
-          style={{
-            background: tone.bg,
-            borderColor: tone.border,
-            color: tone.fg,
-            fontWeight: 500,
-          }}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 9999,
-              background: tone.dot,
-              animation: "nav-dot-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite",
-            }}
-          />
-          <span style={{ whiteSpace: "nowrap" }}>{headerText}</span>
-          <ChevronDown size={12} />
-        </button>
+      trigger={({ open, toggle }) => (
+        <Tooltip title={open ? null : tooltip} placement="bottom" mouseEnterDelay={0.15}>
+          <button
+            type="button"
+            className="workspace-header-status workspace-header-ai"
+            data-labeled={showLabel}
+            data-state={aiLocked ? "locked" : "unlocked"}
+            aria-label={status}
+            aria-expanded={open}
+            onClick={toggle}
+          >
+            <Bot size={16} aria-hidden />
+            {showLabel && <span>{label}</span>}
+            {showLabel && !aiLocked && <span className="workspace-header-ai-time">{timeLabel}</span>}
+            <span className="workspace-header-status-dot" aria-hidden />
+          </button>
+        </Tooltip>
       )}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -164,7 +153,7 @@ export function AiLockControl() {
             {!aiLocked && (
               <span
                 style={{
-                  color: forever ? "var(--text-secondary)" : "#34d399",
+                  color: forever ? "var(--text-secondary)" : "var(--success)",
                   fontFamily: "var(--font-mono)",
                   fontSize: 10,
                 }}

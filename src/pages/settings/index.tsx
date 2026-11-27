@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Alert, AutoComplete, Button, Input, InputNumber, Modal, Select, Tag as AntTag, message, Switch } from "antd";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -6,6 +6,8 @@ import { open as openFileDialog, save as saveFileDialog } from "@tauri-apps/plug
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowDown,
+  ArrowUp,
   AppWindow,
   Archive,
   AlertCircle,
@@ -48,13 +50,19 @@ import {
   Users,
   Video,
   Globe,
+  GripVertical,
+  LayoutTemplate,
+  RotateCcw,
+  SlidersHorizontal,
+  Type,
 } from "lucide-react";
 import { backupApi, configApi, getErrorMessage } from "@/lib/api";
 import { WorkspaceSidebarSlot } from "@/components/layout/WorkspaceNavigation";
 import type { BackupStorageEndpoint, BackupStorageInput } from "@/lib/api/backup";
 import { DeviceChannelSettings, MobilePairingSettings } from "./DeviceSettings";
 import { LogoColorSettings } from "./LogoColorSettings";
-import { loadSettings, SETTINGS_KEYS, useSettingsStore, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme, type UiFontFamily } from "@/store/settings";
+import { loadSettings, SETTINGS_KEYS, supportsWindowLabel, WINDOW_CONFIG_DEFAULTS, useSettingsStore, windowShortcutModule, type CloseBehavior, type TerminalCursorStyle, type TerminalFontSize, type TerminalLineHeight, type TerminalTheme, type UiFontFamily, type WindowConfig, type WindowConfigCategory, type WindowConfigItem, type WindowConfigLocation } from "@/store/settings";
+import { translateModule } from "@/navigation/translations";
 import { TERMINAL_CURSOR_OPTIONS, TERMINAL_FONT_FAMILY_OPTIONS, TERMINAL_FONT_SIZE_OPTIONS, TERMINAL_LINE_HEIGHT_OPTIONS, TERMINAL_SCROLLBACK_OPTIONS, TERMINAL_THEME_OPTIONS, type TerminalFontFamily, type TerminalRightClick } from "@/components/terminal/terminal-themes";
 import { SKINS, useAppStore, type SkinId, type ThemeMode } from "@/store/app";
 import { modelServiceApi } from "@/lib/api/model-service";
@@ -67,6 +75,7 @@ type SettingsSection =
   | "language"
   | "startup"
   | "window"
+  | "window-config"
   | "appearance"
   | "ui-typography"
   | "sftp-transfer"
@@ -381,6 +390,10 @@ export default function SettingsPage() {
           <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">{t("关闭后仍可保持后台服务与连接会话，双击托盘图标可以重新打开主窗口。")}</p>
         </SettingCard>
 
+        <SettingCard id="window-config" icon={<LayoutTemplate size={15} />} title="窗口配置" desc="自定义窗口、终端、SFTP 与侧边栏中已有工具的显示、顺序和停靠位置。">
+          <WindowConfigurationSettings disabled={settingsLoading} />
+        </SettingCard>
+
         <SettingCard id="appearance" icon={<Palette size={15} />} title="外观主题" desc="选择应用皮肤和明暗模式，预览会同步到整个应用。">
           <div className="ops-settings-options" role="group" aria-label={t("明暗模式")}>
             {([ ["system", "跟随系统"], ["dark", "暗色"], ["light", "亮色"] ] as const).map(([mode, label]) => (
@@ -556,6 +569,341 @@ function SettingCard({ id, icon, title, desc, children, hideHeader = false }: { 
       </header>}
       {children}
     </section>
+  );
+}
+
+const WINDOW_CONFIG_META: Record<WindowConfigCategory, { title: string; description: string }> = {
+  window: { title: "窗口工具栏", description: "选择右上角显示的二级菜单快捷入口，调整顶栏工具的位置和显示方式。" },
+  terminal: { title: "终端工具栏", description: "终端分屏、会话打开和辅助工具栏。" },
+  sftp: { title: "SFTP 工具栏", description: "文件上传、下载、新建和目录操作。" },
+  sidebar: { title: "侧边栏", description: "工作区业务域入口的显示和排序。" },
+};
+
+const WINDOW_CONFIG_LABELS: Record<string, string> = {
+  "sidebar-toggle": "侧栏开关",
+  search: "全局搜索",
+  version: "版本信息",
+  "ai-lock": "AI 操作锁定",
+  skin: "主题皮肤",
+  "window-controls": "窗口控制",
+  "split-single": "单屏",
+  "split-horizontal": "左右分屏",
+  "split-vertical": "上下分屏",
+  "split-quad": "四分屏",
+  "sync-input": "同步输入",
+  "open-terminal": "打开终端",
+  monitor: "主机监控",
+  commands: "快捷命令",
+  sftp: "SFTP 工具",
+  upload: "上传",
+  download: "下载",
+  ai: "AI 排障",
+  settings: "终端设置",
+  history: "命令历史",
+  snippets: "脚本片段",
+  "drawer-toggle": "辅助抽屉",
+  "upload-folder": "上传文件夹",
+  "new-folder": "新建文件夹",
+  "new-file": "新建文件",
+  filter: "文件过滤",
+  "domain-ops": "主机运维",
+  "domain-automation": "自动化中心",
+  "domain-ai": "AI 智维中枢",
+  "domain-gov": "安全与治理",
+  "domain-alerts": "告警通知中心",
+  "domain-settings": "系统设置",
+  "module-servers": "服务器资产",
+  "module-terminal": "远程终端",
+  "module-workbench": "主机工作台",
+  "module-sftp": "SFTP 文件传输",
+  "module-database": "数据库工作台",
+  "module-batch": "批量执行与下发",
+  "module-deploy": "CI/CD 部署发布",
+  "module-copilot": "智维助理",
+  "module-mcp": "MCP",
+  "module-skills": "技能",
+  "module-inspector": "巡检",
+  "module-credentials": "服务凭据",
+  "module-sensitive": "敏感库",
+  "module-security": "安全闸门与审批",
+  "module-audit": "审计",
+  "module-alerts": "告警",
+  "module-settings": "系统设置",
+  "仅配置当前应用中已经存在的控件，调整会立即应用并保存到本机。": "仅配置当前应用中已经存在的控件，调整会立即应用并保存到本机。",
+  "全部恢复默认": "全部恢复默认",
+  "自定义": "自定义",
+  "当前未显示任何控件": "当前未显示任何控件",
+  "恢复默认": "恢复默认",
+  "完成": "完成",
+  "上移": "上移",
+  "下移": "下移",
+  "左侧": "左侧",
+  "中间": "中间",
+  "右侧": "右侧",
+  "工具栏": "工具栏",
+  "工具栏侧栏": "工具栏侧栏",
+  "主侧栏": "主侧栏",
+  "次级侧栏": "次级侧栏",
+  "隐藏": "隐藏",
+};
+
+const WINDOW_CONFIG_LOCATION_LABELS: Record<WindowConfigLocation, string> = {
+  left: "左侧",
+  center: "中间",
+  right: "右侧",
+  toolbar: "工具栏",
+  rail: "工具栏侧栏",
+  primary: "主侧栏",
+  secondary: "次级侧栏",
+  hidden: "隐藏",
+};
+
+function cloneWindowConfig(config: WindowConfig): WindowConfig {
+  return Object.fromEntries((Object.keys(config) as WindowConfigCategory[]).map((category) => [
+    category,
+    config[category].map((item) => ({ ...item })),
+  ])) as WindowConfig;
+}
+
+function WindowConfigurationSettings({ disabled }: { disabled: boolean }) {
+  const language = useSettingsStore((state) => state.language);
+  const config = useSettingsStore((state) => state.windowConfig);
+  const setConfig = useSettingsStore((state) => state.setWindowConfig);
+  const [activeCategory, setActiveCategory] = useState<WindowConfigCategory | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [draggingItem, setDraggingItem] = useState<{ category: WindowConfigCategory; id: string } | null>(null);
+  const savingRef = useRef(false);
+  const t = (text: string) => translateSettings(text, language);
+  const labelFor = (item: WindowConfigItem) => {
+    const module = windowShortcutModule(item.id);
+    return module ? translateModule(module, language).title : t(WINDOW_CONFIG_LABELS[item.id] ?? item.id);
+  };
+  const visibleLabelItems = config.window.filter(({ id, enabled, location }) =>
+    enabled && location === "right" && supportsWindowLabel(id));
+  const anyLabels = visibleLabelItems.some((item) => item.showLabel);
+  const allLabels = visibleLabelItems.length > 0 && visibleLabelItems.every((item) => item.showLabel);
+
+  async function commit(next: WindowConfig, previous: WindowConfig) {
+    if (disabled || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setConfig(next);
+    try {
+      await configApi.set(SETTINGS_KEYS.windowConfig, JSON.stringify(next));
+    } catch (error) {
+      setConfig(previous);
+      message.error(getErrorMessage(error));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  function updateItem(category: WindowConfigCategory, id: string, patch: Partial<WindowConfigItem>) {
+    const previous = cloneWindowConfig(config);
+    const next = cloneWindowConfig(config);
+    next[category] = next[category].map((item) => item.id === id ? { ...item, ...patch } : item);
+    void commit(next, previous);
+  }
+
+  function setAllWindowLabels(showLabel: boolean) {
+    const next = {
+      ...config,
+      window: config.window.map((item) => supportsWindowLabel(item.id) ? { ...item, showLabel } : item),
+    };
+    void commit(next, config);
+  }
+
+  function moveItem(category: WindowConfigCategory, index: number, direction: -1 | 1) {
+    const current = config[category];
+    const target = index + direction;
+    if (target < 0 || target >= current.length) return;
+    const previous = cloneWindowConfig(config);
+    const next = cloneWindowConfig(config);
+    const items = next[category];
+    [items[index], items[target]] = [items[target], items[index]];
+    void commit(next, previous);
+  }
+
+  function reorderItem(category: WindowConfigCategory, sourceId: string, targetId: string, insertAfter: boolean) {
+    if (sourceId === targetId || savingRef.current) return;
+    const previous = cloneWindowConfig(config);
+    const next = cloneWindowConfig(config);
+    const items = next[category];
+    const sourceIndex = items.findIndex((item) => item.id === sourceId);
+    if (sourceIndex < 0) return;
+    const [source] = items.splice(sourceIndex, 1);
+    const targetIndex = items.findIndex((item) => item.id === targetId);
+    if (targetIndex < 0) return;
+    items.splice(targetIndex + Number(insertAfter), 0, source);
+    void commit(next, previous);
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>, category: WindowConfigCategory, targetId: string) {
+    event.preventDefault();
+    if (draggingItem?.category !== category) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const insertAfter = category === "window"
+      ? event.clientX > bounds.left + bounds.width / 2
+      : event.clientY > bounds.top + bounds.height / 2;
+    reorderItem(category, draggingItem.id, targetId, insertAfter);
+    setDraggingItem(null);
+  }
+
+  function handleOrderKeyDown(event: KeyboardEvent<HTMLDivElement>, category: WindowConfigCategory, index: number) {
+    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+      event.preventDefault();
+      moveItem(category, index, event.key === "ArrowUp" ? -1 : 1);
+    }
+  }
+
+  function setAllItems(category: WindowConfigCategory, enabled: boolean) {
+    const previous = cloneWindowConfig(config);
+    const next = cloneWindowConfig(config);
+    next[category] = next[category].map((item) => {
+      const defaultLocation = WINDOW_CONFIG_DEFAULTS[category].find((entry) => entry.id === item.id)?.location ?? item.location;
+      return { ...item, enabled, location: enabled ? defaultLocation : "hidden" };
+    });
+    void commit(next, previous);
+  }
+
+  function resetWindowOrder() {
+    const previous = cloneWindowConfig(config);
+    const next = cloneWindowConfig(config);
+    const currentById = new Map(next.window.map((item) => [item.id, item]));
+    next.window = WINDOW_CONFIG_DEFAULTS.window.map((item) => ({ ...item, ...currentById.get(item.id) }));
+    void commit(next, previous);
+  }
+
+  function resetCategory(category: WindowConfigCategory) {
+    const previous = cloneWindowConfig(config);
+    const next = cloneWindowConfig(config);
+    next[category] = WINDOW_CONFIG_DEFAULTS[category].map((item) => ({ ...item }));
+    void commit(next, previous);
+  }
+
+  const categories = Object.keys(WINDOW_CONFIG_META) as WindowConfigCategory[];
+  return (
+    <div className="ops-window-config">
+      <div className="ops-window-config-intro">
+        <span>{t("仅配置当前应用中已经存在的控件，调整会立即应用并保存到本机。")}</span>
+        <Button type="text" icon={<RotateCcw size={14} />} disabled={disabled || saving} onClick={() => {
+          const previous = cloneWindowConfig(config);
+          void commit(cloneWindowConfig(WINDOW_CONFIG_DEFAULTS), previous);
+        }}>{t("全部恢复默认")}</Button>
+      </div>
+      <div className="ops-window-config-groups">
+        {categories.map((category) => {
+          const items = config[category];
+          const enabledCount = items.filter((item) => item.enabled && item.location !== "hidden").length;
+          return (
+            <section key={category} className="ops-window-config-group" aria-label={t(WINDOW_CONFIG_META[category].title)}>
+              <div className="ops-window-config-group-head">
+                <div><h3>{t(WINDOW_CONFIG_META[category].title)}</h3><p>{t(WINDOW_CONFIG_META[category].description)}</p></div>
+                <div className="ops-window-config-group-actions"><span>{enabledCount} / {items.length}</span>{category === "window" && enabledCount > 0 && <Button size="small" type="text" disabled={disabled || saving} onClick={resetWindowOrder}>{t("恢复默认顺序")}</Button>}<Button size="small" icon={<SlidersHorizontal size={13} />} disabled={disabled || saving} onClick={() => setActiveCategory(category)}>{t("自定义")}</Button></div>
+              </div>
+              {category === "window" ? <div className="ops-window-config-preview-wrap">
+                <div className="ops-window-config-preview-help">{t("显示顺序预览，按住图标拖动即可调整顶栏顺序。")}</div>
+                <div className="ops-window-config-preview" aria-label={t("窗口工具栏显示顺序")}>
+                  {items.filter((item) => item.enabled && item.location !== "hidden").map((item, index) => <span
+                    key={item.id}
+                    className={`ops-window-config-chip ${draggingItem?.id === item.id ? "is-dragging" : ""}`}
+                    draggable={!disabled && !saving}
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", item.id);
+                      setDraggingItem({ category, id: item.id });
+                    }}
+                    onDragOver={(event) => { if (draggingItem?.category === category) event.preventDefault(); }}
+                    onDrop={(event) => handleDrop(event, category, item.id)}
+                    onDragEnd={() => setDraggingItem(null)}
+                    title={`#${index + 1} ${labelFor(item)} · ${t(WINDOW_CONFIG_LOCATION_LABELS[item.location])}`}
+                  >
+                    <GripVertical size={12} aria-hidden />
+                    <span className="ops-window-config-chip-index">{index + 1}</span>
+                    <span>{labelFor(item)}</span>
+                    <span className="ops-window-config-chip-location">{t(WINDOW_CONFIG_LOCATION_LABELS[item.location])}</span>
+                  </span>)}
+                  {enabledCount === 0 && <span className="ops-window-config-empty">{t("当前未显示任何控件")}</span>}
+                </div>
+              </div> : <div className="ops-window-config-preview">
+                {items.filter((item) => item.enabled && item.location !== "hidden").map((item) => <span key={item.id} className="ops-window-config-chip">{t(WINDOW_CONFIG_LABELS[item.id] ?? item.id)}</span>)}
+                {enabledCount === 0 && <span className="ops-window-config-empty">{t("当前未显示任何控件")}</span>}
+              </div>}
+              {category === "window" && (
+                <div className="ops-window-config-preview-wrap">
+                  <div className="ops-window-config-group-head">
+                    <div>
+                      <h3>{t("显示按钮名称")}</h3>
+                      <p>{t("选择下方按钮单独显示名称，或使用开关统一切换。")}</p>
+                    </div>
+                    <div className="ops-window-config-group-actions">
+                      <span>{t(allLabels ? "图标和名称" : anyLabels ? "部分显示名称" : "仅图标")}</span>
+                      <Switch
+                        aria-label={t("显示按钮名称")}
+                        checked={anyLabels}
+                        disabled={disabled || saving || visibleLabelItems.length === 0}
+                        onChange={setAllWindowLabels}
+                      />
+                      {anyLabels && <Button size="small" disabled={disabled || saving} onClick={() => setAllWindowLabels(false)}>{t("全部仅图标")}</Button>}
+                    </div>
+                  </div>
+                  <div className="ops-window-config-preview">
+                    {visibleLabelItems.map((item) => {
+                      const Icon = windowShortcutModule(item.id)?.icon ?? Type;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className="ops-window-config-chip ops-window-label-chip"
+                          aria-pressed={item.showLabel === true}
+                          disabled={disabled || saving}
+                          onClick={() => updateItem("window", item.id, { showLabel: !item.showLabel })}
+                        >
+                          <Icon size={13} aria-hidden />
+                          {labelFor(item)}
+                        </button>
+                      );
+                    })}
+                    {visibleLabelItems.length === 0 && <span className="ops-window-config-empty">{t("当前未显示任何控件")}</span>}
+                  </div>
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+      <Modal
+        open={activeCategory !== null}
+        title={activeCategory ? t(WINDOW_CONFIG_META[activeCategory].title) : ""}
+        width={560}
+        mask={{ closable: false }}
+        onCancel={() => setActiveCategory(null)}
+        footer={<div className="ops-window-config-modal-footer"><Button onClick={() => activeCategory && resetCategory(activeCategory)} disabled={disabled || saving} icon={<RotateCcw size={14} />}>{t("恢复默认")}</Button><Button type="primary" onClick={() => setActiveCategory(null)}>{t("完成")}</Button></div>}
+        destroyOnClose
+      >
+        {activeCategory && <div className="ops-window-config-list">
+          {config[activeCategory].map((item, index) => (
+            <div key={item.id} tabIndex={0} onKeyDown={(event) => handleOrderKeyDown(event, activeCategory, index)} className={`ops-window-config-row ${item.enabled && item.location !== "hidden" ? "is-enabled" : "is-disabled"} ${draggingItem?.id === item.id ? "is-dragging" : ""}`} draggable={!disabled && !saving} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", item.id); setDraggingItem({ category: activeCategory, id: item.id }); }} onDragOver={(event) => { if (draggingItem?.category === activeCategory) event.preventDefault(); }} onDrop={(event) => handleDrop(event, activeCategory, item.id)} onDragEnd={() => setDraggingItem(null)}>
+              <GripVertical size={14} className="ops-window-config-grip" aria-hidden />
+              <span className="ops-window-config-index">{index + 1}</span>
+              <span className="ops-window-config-name" title={labelFor(item)}>{labelFor(item)}</span>
+              <Select size="small" aria-label={labelFor(item)} value={item.location} disabled={disabled || saving} options={(() => {
+                const options = activeCategory === "window"
+                  ? windowShortcutModule(item.id) ? ["right", "hidden"] : ["left", "center", "right", "hidden"]
+                  : activeCategory === "sidebar"
+                    ? ["primary", "secondary", "hidden"]
+                    : [WINDOW_CONFIG_DEFAULTS[activeCategory].find((entry) => entry.id === item.id)?.location ?? item.location, "hidden"];
+                return Array.from(new Set(options)).map((value) => ({ value, label: t(WINDOW_CONFIG_LOCATION_LABELS[value as WindowConfigLocation]) }));
+              })()} onChange={(value: WindowConfigLocation) => updateItem(activeCategory, item.id, { location: value, enabled: value !== "hidden" })} />
+              <Switch size="small" aria-label={labelFor(item)} checked={item.enabled && item.location !== "hidden"} disabled={disabled || saving} onChange={(checked) => updateItem(activeCategory, item.id, { enabled: checked, location: checked && item.location === "hidden" ? WINDOW_CONFIG_DEFAULTS[activeCategory].find((entry) => entry.id === item.id)?.location ?? "toolbar" : item.location })} />
+              <div className="ops-window-config-reorder"><Button type="text" size="small" aria-label={t("上移")} disabled={disabled || saving || index === 0} icon={<ArrowUp size={13} />} onClick={() => moveItem(activeCategory, index, -1)} /><Button type="text" size="small" aria-label={t("下移")} disabled={disabled || saving || index === config[activeCategory].length - 1} icon={<ArrowDown size={13} />} onClick={() => moveItem(activeCategory, index, 1)} /></div>
+            </div>
+          ))}
+        </div>}
+        {activeCategory && <div className="ops-window-config-modal-actions"><Button size="small" disabled={disabled || saving} onClick={() => setAllItems(activeCategory, true)}>{t("全部开启")}</Button><Button size="small" disabled={disabled || saving} onClick={() => setAllItems(activeCategory, false)}>{t("全部关闭")}</Button></div>}
+      </Modal>
+    </div>
   );
 }
 

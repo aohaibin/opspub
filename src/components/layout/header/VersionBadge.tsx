@@ -1,15 +1,18 @@
 /** 顶栏版本徽标：自动检查官网更新源，并按原型展示下载与重启状态。 */
 
 import { useEffect, useRef, useState } from "react";
-import { RotateCw } from "lucide-react";
+import { Tooltip } from "antd";
+import { CircleArrowDown, RotateCw } from "lucide-react";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { systemApi, updaterApi } from "@/lib/api";
 import { UpdateModal } from "@/components/ui/UpdateModal";
+import { useSettingsStore } from "@/store/settings";
 import { HeaderDropdown } from "./HeaderDropdown";
 
 type CheckState = "idle" | "checking" | "latest" | "available" | "downloading" | "ready" | "error";
 
-export function VersionBadge() {
+export function VersionBadge({ showLabel }: { showLabel: boolean }) {
+  const english = useSettingsStore((s) => s.language) === "en-US";
   const [version, setVersion] = useState("0.1.0");
   const [state, setState] = useState<CheckState>("idle");
   const [message, setMessage] = useState("");
@@ -70,34 +73,36 @@ export function VersionBadge() {
     }
   }
 
-  const capsuleText = state === "downloading" && update
-    ? `v${update.version} · ${progress}%`
-    : state === "ready" && update
-      ? `v${update.version} · 就绪`
-      : `v${version}`;
+  const updateStatus = state === "downloading" ? `${progress}%`
+    : state === "ready" ? (english ? "Ready" : "已就绪")
+    : (english ? "Update available" : "待更新");
+  const label = update ? updateStatus : `v${version}`;
+  const tooltip = update
+    ? `v${version} → v${update.version} · ${updateStatus}`
+    : `v${version} · ${english
+      ? (state === "checking" ? "Checking for updates…" : "Version and updates")
+      : (state === "checking" ? "正在检查更新…" : "版本与更新")}`;
 
   return (
     <>
       <HeaderDropdown
         width={320}
-        trigger={({ toggle }) => (
-          <button
-            type="button"
-            className={`header-pill ${state === "ready" ? "header-pill-ready" : ""}`}
-            onClick={toggle}
-            title={update ? `发现 v${update.version} 更新，点击查看` : `当前版本 v${version} · 自动检查更新`}
-            aria-label={update ? `发现版本 ${update.version} 更新` : `当前版本 ${version}`}
-            style={{ fontFamily: "var(--font-mono)", flexShrink: 0, whiteSpace: "nowrap" }}
-          >
-            <span>{capsuleText}</span>
-            <RotateCw
-              size={12}
-              style={{
-                color: state === "checking" || state === "downloading" ? "var(--brand-400)" : state === "ready" ? "var(--success)" : "var(--text-muted)",
-                animation: state === "checking" || state === "downloading" ? "nav-dot-pulse 1.2s linear infinite" : undefined,
-              }}
-            />
-          </button>
+        trigger={({ open, toggle }) => (
+          <Tooltip title={open ? null : tooltip} placement="bottom" mouseEnterDelay={0.15}>
+            <button
+              type="button"
+              className="workspace-header-status workspace-header-update"
+              data-labeled={showLabel}
+              data-state={update && state !== "downloading" && state !== "ready" ? "available" : state}
+              aria-label={tooltip}
+              aria-expanded={open}
+              onClick={toggle}
+            >
+              <CircleArrowDown size={16} aria-hidden />
+              {showLabel && <span>{label}</span>}
+              {update && <span className="workspace-header-status-dot" aria-hidden />}
+            </button>
+          </Tooltip>
         )}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -142,8 +147,10 @@ export function VersionBadge() {
         update={update}
         currentVersion={version}
         autoDownload={autoDownload}
-        onProgress={(value) => { setProgress(value); setState(value >= 100 ? "ready" : "downloading"); }}
-        onStatusChange={(next) => { if (next === "downloaded") setState("ready"); }}
+        onProgress={setProgress}
+        onStatusChange={(next) => {
+          setState(next === "downloaded" ? "ready" : next === "downloading" ? "downloading" : "available");
+        }}
       />
     </>
   );

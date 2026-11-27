@@ -6,6 +6,7 @@ import { modulePath, requireModule } from "@/navigation/modules";
 import { translateModule } from "@/navigation/translations";
 import { WORKSPACE_DOMAINS, WORKSPACE_MODULE_LABELS, type WorkspaceDomain } from "@/navigation/workspace";
 import type { SettingsLanguage } from "@/pages/settings/translations";
+import { useSettingsStore } from "@/store/settings";
 import { AlertBell } from "./header/AlertBell";
 
 export const WorkspaceSidebarTarget = createContext<HTMLElement | null>(null);
@@ -42,8 +43,18 @@ export function WorkspaceNavigation({
   sidebarRef,
 }: WorkspaceNavigationProps) {
   const english = language === "en-US";
-  const settings = WORKSPACE_DOMAINS.find((domain) => domain.key === "settings");
+  const sidebarConfig = useSettingsStore((state) => state.windowConfig.sidebar);
   const DomainIcon = activeDomain.icon;
+  const configuredDomains = WORKSPACE_DOMAINS.map((domain) => ({
+    domain,
+    item: sidebarConfig.find((entry) => entry.id === `domain-${domain.key}`),
+  })).filter(({ item }) => item?.enabled && item.location !== "hidden");
+  const primaryDomains = configuredDomains.filter(({ item }) => item?.location === "primary").sort((a, b) => sidebarConfig.findIndex((entry) => entry.id === `domain-${a.domain.key}`) - sidebarConfig.findIndex((entry) => entry.id === `domain-${b.domain.key}`)).map(({ domain }) => domain);
+  const secondaryDomains = configuredDomains.filter(({ item }) => item?.location === "secondary").sort((a, b) => sidebarConfig.findIndex((entry) => entry.id === `domain-${a.domain.key}`) - sidebarConfig.findIndex((entry) => entry.id === `domain-${b.domain.key}`)).map(({ domain }) => domain);
+  const visibleModules = activeDomain.modules
+    .map((key) => ({ key, item: sidebarConfig.find((entry) => entry.id === `module-${key}`) }))
+    .filter(({ item }) => item?.enabled && item.location !== "hidden")
+    .sort((a, b) => Number(a.item?.location === "secondary") - Number(b.item?.location === "secondary") || sidebarConfig.findIndex((entry) => entry.id === `module-${a.key}`) - sidebarConfig.findIndex((entry) => entry.id === `module-${b.key}`));
 
   function domainButton(domain: WorkspaceDomain) {
     const Icon = domain.icon;
@@ -54,6 +65,7 @@ export function WorkspaceNavigation({
         key={domain.key}
         type="button"
         className="workspace-dock-button"
+        data-domain={domain.key}
         aria-label={label}
         aria-pressed={active}
         data-active={active}
@@ -61,6 +73,7 @@ export function WorkspaceNavigation({
         onClick={() => onActivate(domain)}
       >
         <Icon size={20} aria-hidden />
+        {domain.key === "ai" && <span className="workspace-dock-status-pulse" aria-hidden />}
       </button>
     );
   }
@@ -69,11 +82,10 @@ export function WorkspaceNavigation({
     <>
       <aside className="workspace-dock" aria-label={english ? "Workspace domains" : "工作区业务域"}>
         <div className="workspace-dock-group">
-          {WORKSPACE_DOMAINS.filter((domain) => domain.shortcut).map(domainButton)}
+          {primaryDomains.map(domainButton)}
         </div>
         <div className="workspace-dock-group workspace-dock-footer">
-          <AlertBell active={activeDomain.key === "alerts"} />
-          {settings && domainButton(settings)}
+          {secondaryDomains.map((domain) => domain.key === "alerts" ? <AlertBell key={domain.key} active={activeDomain.key === "alerts"} /> : domainButton(domain))}
         </div>
       </aside>
 
@@ -102,7 +114,7 @@ export function WorkspaceNavigation({
           </div>
           <div className="workspace-subnav-scroll custom-scrollbar">
             <nav className="workspace-subnav-links" aria-label={english ? "Modules" : "模块"}>
-              {activeDomain.modules.map((key) => {
+              {visibleModules.map(({ key }) => {
                 const module = requireModule(key);
                 const Icon = module.icon;
                 const { title } = translateModule(module, language);

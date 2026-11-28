@@ -1,6 +1,6 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { ChevronsLeft } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { modulePath, requireModule } from "@/navigation/modules";
 import { translateModule } from "@/navigation/translations";
@@ -29,7 +29,8 @@ interface WorkspaceNavigationProps {
   language: SettingsLanguage;
   sidebarOpen: boolean;
   onActivate: (domain: WorkspaceDomain) => void;
-  onCollapse: () => void;
+  onToggle: () => void;
+  sidebarToggleRef: RefObject<HTMLButtonElement | null>;
   sidebarRef: (element: HTMLDivElement | null) => void;
 }
 
@@ -39,7 +40,8 @@ export function WorkspaceNavigation({
   language,
   sidebarOpen,
   onActivate,
-  onCollapse,
+  onToggle,
+  sidebarToggleRef,
   sidebarRef,
 }: WorkspaceNavigationProps) {
   const english = language === "en-US";
@@ -93,23 +95,27 @@ export function WorkspaceNavigation({
         id={WORKSPACE_SIDEBAR_ID}
         className="workspace-subnav"
         data-open={sidebarOpen}
-        inert={!sidebarOpen}
         aria-label={english ? "Workspace navigation" : "二级工作区导航"}
       >
-        <div className="workspace-subnav-inner">
+        <div className="workspace-subnav-inner" inert={!sidebarOpen}>
           <div className="workspace-subnav-heading">
-            <DomainIcon size={15} aria-hidden />
-            <span title={workspaceDomainLabel(activeDomain, language)}>
-              {workspaceDomainLabel(activeDomain, language)}
-            </span>
+            <div className="workspace-subnav-heading-label">
+              <DomainIcon size={15} aria-hidden />
+              <span title={workspaceDomainLabel(activeDomain, language)}>
+                {workspaceDomainLabel(activeDomain, language)}
+              </span>
+            </div>
             <button
+              ref={sidebarOpen ? sidebarToggleRef : undefined}
               type="button"
-              className="workspace-plain-button"
-              onClick={onCollapse}
+              className="workspace-plain-button workspace-sidebar-toggle"
+              onClick={onToggle}
               title={english ? "Collapse sidebar (Ctrl+B)" : "收起二级栏 (Ctrl+B)"}
               aria-label={english ? "Collapse sidebar" : "收起二级栏"}
+              aria-expanded={sidebarOpen}
+              aria-controls={WORKSPACE_SIDEBAR_ID}
             >
-              <ChevronsLeft size={16} aria-hidden />
+              <PanelLeftClose size={16} aria-hidden />
             </button>
           </div>
           <div className="workspace-subnav-scroll custom-scrollbar">
@@ -140,6 +146,41 @@ export function WorkspaceNavigation({
             </nav>
             <div ref={sidebarRef} className="workspace-subnav-slot" />
           </div>
+        </div>
+        <div className="workspace-subnav-collapsed-rail" aria-label={english ? "Quick navigation" : "快捷导航"}>
+          <button
+            ref={!sidebarOpen ? sidebarToggleRef : undefined}
+            type="button"
+            className="workspace-plain-button workspace-sidebar-toggle"
+            onClick={onToggle}
+            title={english ? "Expand sidebar (Ctrl+B)" : "展开二级栏 (Ctrl+B)"}
+            aria-label={english ? "Expand sidebar" : "展开二级栏"}
+            aria-expanded={sidebarOpen}
+            aria-controls={WORKSPACE_SIDEBAR_ID}
+          >
+            <PanelLeftOpen size={16} aria-hidden />
+          </button>
+          <div className="workspace-subnav-rail-divider" />
+          <nav className="workspace-subnav-rail-links" aria-label={english ? "Modules" : "模块快捷入口"}>
+            {visibleModules.map(({ key }) => {
+              const module = requireModule(key);
+              const Icon = module.icon;
+              const { title } = translateModule(module, language);
+              const active = activeModuleKey === key;
+              return (
+                <Link
+                  key={key}
+                  to={modulePath(key)}
+                  className="workspace-subnav-rail-link"
+                  aria-current={active ? "page" : undefined}
+                  title={title}
+                  aria-label={title}
+                >
+                  <Icon size={16} aria-hidden />
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </aside>
     </>

@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
-import { ChevronRight, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { modulePath } from "@/navigation/modules";
 import { translateModule } from "@/navigation/translations";
 import { resolveWorkspace, WORKSPACE_DOMAINS, type WorkspaceDomain } from "@/navigation/workspace";
@@ -78,13 +78,19 @@ export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarTarget, setSidebarTarget] = useState<HTMLDivElement | null>(null);
   const sidebarToggle = useRef<HTMLButtonElement>(null);
-  const SidebarIcon = sidebarOpen ? PanelLeftClose : PanelLeftOpen;
+  const restoreSidebarToggleFocus = useRef(false);
 
   const activateDomain = useCallback((next: WorkspaceDomain) => {
     setSidebarOpen(true);
     if (module && next.key === domain.key) return;
     void navigate(modulePath(next.modules[0]));
   }, [domain.key, module, navigate]);
+
+  useEffect(() => {
+    if (!restoreSidebarToggleFocus.current) return;
+    restoreSidebarToggleFocus.current = false;
+    sidebarToggle.current?.focus();
+  }, [sidebarOpen]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -98,7 +104,7 @@ export function AppLayout() {
       if (isToggle) {
         event.preventDefault();
         if (document.getElementById(WORKSPACE_SIDEBAR_ID)?.contains(document.activeElement)) {
-          sidebarToggle.current?.focus();
+          restoreSidebarToggleFocus.current = true;
         }
         setSidebarOpen((open) => !open);
         return;
@@ -122,14 +128,11 @@ export function AppLayout() {
 
   const domainLabel = workspaceDomainLabel(domain, language);
   const moduleLabel = module ? translateModule(module, language).title : undefined;
-  const toggleLabel = sidebarOpen
-    ? english ? "Collapse sidebar" : "收起二级栏"
-    : english ? "Expand sidebar" : "展开二级栏";
   const searchLabel = english ? "Search modules" : "搜索模块";
   const renderWindowItem = ({ id, showLabel, location }: WindowConfigItem) => {
     const labeled = showLabel ?? location !== "right";
     switch (id) {
-      case "sidebar-toggle": return <button key={id} ref={sidebarToggle} type="button" className="workspace-plain-button workspace-header-toggle" aria-label={toggleLabel} aria-expanded={sidebarOpen} aria-controls={WORKSPACE_SIDEBAR_ID} title={`${toggleLabel} (Ctrl+B)`} onClick={() => setSidebarOpen((open) => !open)}><SidebarIcon size={17} aria-hidden /></button>;
+      case "sidebar-toggle": return null;
       case "search": return <button key={id} type="button" className="workspace-search header-pill" title={`${searchLabel} (Ctrl+K)`} onClick={() => openSearch(true)}><Search size={15} aria-hidden /><span>{searchLabel}</span><kbd aria-hidden>Ctrl K</kbd></button>;
       case "version": return <VersionBadge key={id} showLabel={labeled} />;
       case "ai-lock": return <AiLockControl key={id} showLabel={labeled} />;
@@ -173,10 +176,8 @@ export function AppLayout() {
           language={language}
           sidebarOpen={sidebarOpen}
           onActivate={activateDomain}
-          onCollapse={() => {
-            setSidebarOpen(false);
-            sidebarToggle.current?.focus();
-          }}
+          onToggle={() => setSidebarOpen((open) => !open)}
+          sidebarToggleRef={sidebarToggle}
           sidebarRef={setSidebarTarget}
         />
         <main className="workspace-content custom-scrollbar" data-full-bleed={terminalActive || module?.key === "workbench" || module?.key === "settings"}>

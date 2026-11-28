@@ -77,12 +77,70 @@ function App() {
 
   useLayoutEffect(() => {
     const root = document.documentElement;
+    const scale = uiFontSize / 14;
+    const font = (value: number) => `${Math.max(10, Math.round(value * scale))}px`;
     root.style.setProperty("--font-size", `${uiFontSize}px`);
+    root.style.setProperty("--font-size-sm", font(12));
+    root.style.setProperty("--font-size-lg", font(14));
+    root.style.setProperty("--ui-base-font-size", `${uiFontSize}px`);
+    root.style.setProperty("--ui-font-scale", scale.toFixed(3));
     root.style.setProperty("--font-ui", uiFontFamily === "rounded"
       ? 'var(--font-rounded-ui)'
       : uiFontFamily === "inter"
         ? 'Inter, "Microsoft YaHei UI", sans-serif'
         : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif');
+
+    // 页面中仍有少量 Tailwind 固定字号，按原型的整数像素阶梯同步覆盖，
+    // 终端输出区域继续由终端专属字号设置控制。
+    let styleTag = document.getElementById("dynamic-ui-font-scale-style");
+    if (!styleTag) {
+      styleTag = document.createElement("style");
+      styleTag.id = "dynamic-ui-font-scale-style";
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = `
+      #root {
+        font-size: ${uiFontSize}px;
+      }
+      #root .ops-settings-page {
+        font-size: ${uiFontSize}px !important;
+      }
+      #root .text-\\[8px\\],
+      #root .text-\\[9px\\] {
+        font-size: ${font(10)} !important;
+      }
+      #root .text-\\[10px\\] {
+        font-size: ${font(11)} !important;
+      }
+      #root .text-\\[11px\\],
+      #root .header-tool-tooltip {
+        font-size: ${font(12)} !important;
+      }
+      #root .text-xs {
+        font-size: ${font(13)} !important;
+      }
+      #root .text-sm {
+        font-size: ${font(14)} !important;
+      }
+      #root .text-base {
+        font-size: ${font(16)} !important;
+      }
+      #root .text-lg {
+        font-size: ${font(18)} !important;
+      }
+      #root .text-xl {
+        font-size: ${font(20)} !important;
+      }
+      #root input:not([type="checkbox"]):not([type="radio"]),
+      #root select,
+      #root textarea {
+        font-size: ${font(13)} !important;
+      }
+    `;
+
+    return () => {
+      styleTag?.remove();
+    };
   }, [uiFontSize, uiFontFamily]);
 
   const antdTheme = useMemo(

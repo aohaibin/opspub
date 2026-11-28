@@ -542,6 +542,10 @@
   background: var(--surface-950);
 }
 
+.ops-window-config-row.has-label-option {
+  grid-template-columns: 16px 22px minmax(100px, 1fr) 116px 132px 38px 64px;
+}
+
 .ops-window-config-row.is-disabled .ops-window-config-name {
   color: var(--text-muted);
 }
@@ -566,8 +570,20 @@
   white-space: nowrap;
 }
 
-.ops-window-config-row > .ant-select {
+.ops-window-config-location-select {
   width: 116px;
+}
+
+.ops-window-config-label-select {
+  width: 132px;
+}
+
+.ops-window-config-label-select .ant-select-selector {
+  padding-inline-end: 24px !important;
+}
+
+.ops-window-config-label-select .ant-select-arrow {
+  inset-inline-end: 7px;
 }
 
 .ops-window-config-reorder {
@@ -608,8 +624,16 @@
     gap: 5px;
   }
 
-  .ops-window-config-row > .ant-select {
+  .ops-window-config-row.has-label-option {
+    grid-template-columns: 14px 18px minmax(70px, 1fr) 92px 110px 34px;
+  }
+
+  .ops-window-config-location-select {
     width: 104px;
+  }
+
+  .ops-window-config-label-select {
+    width: 110px;
   }
 
   .ops-window-config-reorder {

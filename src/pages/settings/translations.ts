@@ -2,7 +2,7 @@ export type SettingsLanguage = "zh-CN" | "en-US";
 
 const en: Record<string, string> = {
   "选择右上角显示的二级菜单快捷入口，调整顶栏工具的位置和显示方式。": "Choose module shortcuts for the upper-right corner and customize the title bar.",
-  "显示按钮名称": "Show button names",
+  "显示按钮名称": "Show button names", "名称显示方式": "Name display",
   "选择下方按钮单独显示名称，或使用开关统一切换。": "Choose which buttons show their names, or use the switch to change all at once.",
   "图标和名称": "Icons and names", "部分显示名称": "Some names shown",
   "仅图标": "Icons only", "全部仅图标": "Use icons only",

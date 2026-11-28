@@ -32,6 +32,9 @@
               700: 'var(--surface-700, #334155)',
             }
           },
+          fontFamily: {
+            sans: ['"Segoe UI Variable Text"', '"Segoe UI"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"HarmonyOS Sans SC"', '"MiSans"', '"Alibaba PuHuiTi 3.0"', '"Noto Sans SC"', '"Microsoft YaHei UI"', '"Microsoft YaHei"', 'sans-serif']
+          },
           animation: {
             'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             'radar-spin': 'spin 4s linear infinite',
@@ -1954,13 +1957,47 @@
       --desktop-scale: 1.0;
     }
 
-    /* 全局高质感圆润现代字体栈 (彻底告别机械方正切割的卡尺感) */
-    body, button, input, select, textarea {
-      font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI Variable Text", "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "HarmonyOS Sans", "MiSans", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: geometricPrecision;
-      letter-spacing: -0.012em;
+    /* 全局高清晰防锯齿字体栈（启用系统 DirectWrite / ClearType 像素网格对齐，消除小字号中英文锯齿） */
+    body, body.font-sans, button, input, select, textarea {
+      font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "HarmonyOS Sans", "MiSans", "Alibaba PuHuiTi 3.0", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: subpixel-antialiased;
+      -moz-osx-font-smoothing: auto;
+      text-rendering: auto;
+      letter-spacing: 0;
+    }
+
+    /* 抗锯齿渲染模式切换：crisp(ClearType清晰微调·默认) / antialiased(柔和灰度) / system(系统原生) */
+    html[data-font-render="crisp"] body,
+    html[data-font-render="crisp"] button,
+    html[data-font-render="crisp"] input,
+    html[data-font-render="crisp"] select,
+    html[data-font-render="crisp"] textarea,
+    html[data-font-render="crisp"] #desktopAppWindow * {
+      text-rendering: auto !important;
+      -webkit-font-smoothing: subpixel-antialiased !important;
+      -moz-osx-font-smoothing: auto !important;
+    }
+
+    html[data-font-render="antialiased"] body,
+    html[data-font-render="antialiased"] button,
+    html[data-font-render="antialiased"] input,
+    html[data-font-render="antialiased"] select,
+    html[data-font-render="antialiased"] textarea,
+    html[data-font-render="antialiased"] #desktopAppWindow * {
+      text-rendering: optimizeLegibility !important;
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+    }
+
+    html[data-font-render="system"] body,
+    html[data-font-render="system"] button,
+    html[data-font-render="system"] input,
+    html[data-font-render="system"] select,
+    html[data-font-render="system"] textarea,
+    html[data-font-render="system"] #desktopAppWindow * {
+      text-rendering: auto !important;
+      -webkit-font-smoothing: initial !important;
+      -moz-osx-font-smoothing: auto !important;
     }
 
     /* 极致柔和温润圆体风格 (当启用 data-font="rounded" 时) */
@@ -1969,8 +2006,8 @@
     html[data-font="rounded"] input,
     html[data-font="rounded"] select,
     html[data-font="rounded"] textarea {
-      font-family: "Plus Jakarta Sans", "PingFang SC", "HarmonyOS Sans SC", "MiSans", "YouYuan", "STYuanti-SC-Regular", "Microsoft YaHei UI", sans-serif !important;
-      letter-spacing: 0.01em;
+      font-family: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "YouYuan", "STYuanti-SC-Regular", "Microsoft YaHei UI", sans-serif !important;
+      letter-spacing: 0.005em;
     }
 
     /* 桌面客户端应用视窗主体 */
@@ -2052,25 +2089,25 @@
       line-height: 1.4 !important;
     }
 
-    /* 3. 核心正文基准阶梯提升：原 text-xs (12px) 提升到 13.5px~14px，圆润饱满 */
+    /* 3. 核心正文基准阶梯：采用整数像素避免 .5px 栅格化锯齿 */
     #desktopAppWindow .text-xs {
-      font-size: 13.5px !important;
+      font-size: 13px !important;
       line-height: 1.48 !important;
     }
 
-    /* 4. 小标题与操作按钮提升：原 text-sm (14px) 提升到 15px */
+    /* 4. 小标题与操作按钮 */
     #desktopAppWindow .text-sm {
-      font-size: 15px !important;
+      font-size: 14px !important;
       line-height: 1.5 !important;
     }
 
-    /* 5. 主标题层级提升 */
+    /* 5. 主标题层级 */
     #desktopAppWindow .text-base {
-      font-size: 16.5px !important;
+      font-size: 16px !important;
       line-height: 1.55 !important;
     }
     #desktopAppWindow .text-lg {
-      font-size: 18.5px !important;
+      font-size: 18px !important;
       line-height: 1.45 !important;
     }
     #desktopAppWindow .text-xl {
@@ -2321,6 +2358,46 @@
       background-color: #f1f5f9 !important;
       color: #0f172a !important;
     }
+
+    /* 关于与软件更新卡片亮色适配 */
+    html:not(.dark) #setting-card-about-overview .bg-\[\#141a22\],
+    html:not(.dark) #setting-card-update .bg-\[\#141a22\],
+    html:not(.dark) #setting-card-apps .bg-\[\#141a22\] {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: #1e293b !important;
+    }
+    html:not(.dark) #setting-card-about-overview .text-slate-200,
+    html:not(.dark) #setting-card-update .text-slate-200,
+    html:not(.dark) #setting-card-apps .text-slate-200 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #setting-card-update .update-seg-btn {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) #setting-card-update .update-seg-btn:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #setting-card-update .update-seg-btn.is-active {
+      background-color: #ccfbf1 !important;
+      border-color: #5eead4 !important;
+      color: #0f766e !important;
+    }
+    html:not(.dark) #setting-card-update #settingUpdateProgressTrack {
+      background-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #aboutSubnavUpdateDot {
+      background-color: #ccfbf1 !important;
+      border-color: #5eead4 !important;
+      color: #0f766e !important;
+    }
+    html:not(.dark) #subWorkspaceSidebar .domain-sub-panel > div:first-child {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+    }
     html:not(.dark) #modalToolbarConfigCard {
       background-color: #ffffff !important;
       border-color: #cbd5e1 !important;
@@ -2438,6 +2515,89 @@
     html:not(.dark) #modalLegalAgreementCard .legal-close-btn:hover {
       background-color: #e2e8f0 !important;
       color: #0f172a !important;
+    }
+
+    /* 界面字体选择器弹窗与设置卡片快选区亮色适配 */
+    html:not(.dark) #modalFontPickerCard {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) #modalFontPickerCard .text-white {
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalFontPickerCard .text-slate-200,
+    html:not(.dark) #modalFontPickerCard .text-slate-300 {
+      color: #334155 !important;
+    }
+    html:not(.dark) #modalFontPickerCard .text-slate-400,
+    html:not(.dark) #modalFontPickerCard .text-slate-500 {
+      color: #64748b !important;
+    }
+    html:not(.dark) #modalFontPickerCard .border-slate-800\/80,
+    html:not(.dark) #modalFontPickerCard .border-slate-800\/90 {
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #modalFontPickerCard #fontSearchInput {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalFontPickerCard #btnLoadSystemFonts,
+    html:not(.dark) #modalFontPickerCard .font-cat-pill,
+    html:not(.dark) #modalFontPickerCard .font-modal-render-btn,
+    html:not(.dark) #modalFontPickerCard .font-picker-cancel-btn {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) #modalFontPickerCard .font-cat-pill.is-active,
+    html:not(.dark) #modalFontPickerCard .font-modal-render-btn.is-active {
+      background-color: #ccfbf1 !important;
+      border-color: #5eead4 !important;
+      color: #0f766e !important;
+    }
+    html:not(.dark) #modalFontPickerCard #fontItemsContainer .font-option-row {
+      color: #334155 !important;
+    }
+    html:not(.dark) #modalFontPickerCard #fontItemsContainer .font-option-row:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalFontPickerCard #fontItemsContainer .font-option-row.is-draft {
+      background-color: #f0fdfa !important;
+      border-color: #5eead4 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #modalFontPickerCard .font-row-tag {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    html:not(.dark) #modalFontPickerCard .font-row-tag.is-rec {
+      background-color: #ccfbf1 !important;
+      border-color: #99f6e4 !important;
+      color: #0f766e !important;
+    }
+    html:not(.dark) #modalFontPickerCard #fontPreviewBox {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #modalFontPickerCard .font-picker-confirm-btn {
+      background-color: #0f172a !important;
+      color: #ffffff !important;
+    }
+    html:not(.dark) #setting-card-fontfamily .font-quick-chip,
+    html:not(.dark) #setting-card-fontfamily .font-render-chip {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html:not(.dark) #setting-card-fontfamily .font-quick-chip.is-active,
+    html:not(.dark) #setting-card-fontfamily .font-render-chip.is-active {
+      background-color: #ccfbf1 !important;
+      border-color: #5eead4 !important;
+      color: #0f766e !important;
     }
 
     /* ==========================================================================
@@ -2599,9 +2759,9 @@
       top: calc(100% + 9px);
       left: 50%;
       transform: translateX(-50%) translateY(-4px);
-      padding: calc(4.5px * var(--ui-font-scale, 1)) calc(10px * var(--ui-font-scale, 1));
+      padding: calc(4px * var(--ui-font-scale, 1)) calc(10px * var(--ui-font-scale, 1));
       border-radius: 7px;
-      font-size: calc(11.5px * var(--ui-font-scale, 1));
+      font-size: calc(12px * var(--ui-font-scale, 1));
       font-weight: 500;
       line-height: 1.35;
       white-space: nowrap;
@@ -2757,7 +2917,7 @@
     #appHeader .header-tool-btn.header-btn-with-label:not(#headerToolbarMoreBtn) .header-tool-label {
       display: inline-block;
       order: 2;
-      font-size: calc(11.5px * var(--ui-font-scale, 1));
+      font-size: calc(12px * var(--ui-font-scale, 1));
       font-weight: 500;
       line-height: 1;
       letter-spacing: 0.01em;
@@ -2945,6 +3105,126 @@
     html:not(.dark) #subWorkspaceSidebar .nav-btn.bg-brand-500\/15 i,
     html:not(.dark) #subWorkspaceSidebar .nav-btn.bg-emerald-500\/15 i {
       color: var(--brand-600) !important;
+    }
+
+    /* 二级侧栏折叠后极简窄轨样式 (44px 固定工具条：顶部展开按钮 + 上下文快捷操作 + 高频视图直达) */
+    #subWorkspaceSidebar.is-collapsed {
+      width: 44px !important;
+      overflow: visible !important;
+      z-index: 30 !important;
+    }
+    #subSidebarCollapsedRail .sub-rail-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 0.55rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      color: #94a3b8;
+      border: 1px solid transparent;
+      background-color: transparent;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    #subSidebarCollapsedRail .sub-rail-btn:hover {
+      background-color: rgba(30, 41, 59, 0.88);
+      color: #f8fafc;
+      border-color: rgba(71, 85, 105, 0.55);
+    }
+    #subSidebarCollapsedRail .sub-rail-btn.is-active {
+      background-color: rgb(var(--brand-500-rgb) / 0.16);
+      color: var(--brand-300);
+      border-color: rgb(var(--brand-500-rgb) / 0.4);
+      box-shadow: 0 0 10px rgb(var(--brand-500-rgb) / 0.14);
+    }
+    #subSidebarCollapsedRail .sub-rail-primary-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 0.55rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    #subSidebarCollapsedRail .sub-rail-tooltip {
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-4px);
+      padding: 4px 10px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.35;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 90;
+      background-color: #111827;
+      color: #f8fafc;
+      border: 1px solid rgba(71, 85, 105, 0.7);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      transition: opacity 0.13s ease, transform 0.13s ease, visibility 0.13s ease;
+    }
+    #subSidebarCollapsedRail .sub-rail-tooltip::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      background-color: #111827;
+      border-left: 1px solid rgba(71, 85, 105, 0.7);
+      border-bottom: 1px solid rgba(71, 85, 105, 0.7);
+      transform: translateY(-50%) rotate(45deg);
+    }
+    #subSidebarCollapsedRail .group:hover .sub-rail-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(-50%) translateX(0);
+    }
+    html:not(.dark) #subWorkspaceSidebar.is-collapsed {
+      background-color: #f8fafc !important;
+      border-right-color: #e2e8f0 !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-btn {
+      color: #64748b !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-btn:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-btn.is-active {
+      background-color: rgb(var(--brand-500-rgb) / 0.14) !important;
+      color: var(--brand-700) !important;
+      border-color: rgb(var(--brand-500-rgb) / 0.38) !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-primary-btn {
+      background-color: rgb(var(--brand-500-rgb) / 0.12) !important;
+      color: var(--brand-700) !important;
+      border-color: rgb(var(--brand-500-rgb) / 0.3) !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-primary-btn:hover {
+      background-color: rgb(var(--brand-500-rgb) / 0.2) !important;
+      color: var(--brand-700) !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-divider {
+      background-color: #cbd5e1 !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-tooltip {
+      background-color: #0f172a !important;
+      color: #f8fafc !important;
+      border-color: #334155 !important;
+    }
+    html:not(.dark) #subSidebarCollapsedRail .sub-rail-tooltip::before {
+      background-color: #0f172a !important;
+      border-color: #334155 !important;
     }
 
     /* 3. SFTP 拖拽下载区、上传遮罩与传输浮窗亮色适配 */
@@ -3529,19 +3809,11 @@
 
       <!-- 顶部状态栏 -->
       <header id="appHeader" class="h-13 shrink-0 glass-nav px-4 flex items-center justify-between sticky top-0 z-40 select-none border-b border-slate-800/80 bg-surface-950/80 backdrop-blur-md">
-    <!-- 左侧区域：Logo、抽屉折叠把手与左停靠工具槽 -->
+    <!-- 左侧区域：纯品牌 Logo 与左停靠工具槽（展开/收起入口已回归工作区窄轨） -->
     <div id="headerZoneLeft" class="flex items-center space-x-1.5 shrink-0">
       <div id="headerBrandLogo" class="flex items-center space-x-2 mr-1.5 shrink-0">
         <span data-opspub-logo-slot="header" data-logo-mode="inapp" data-logo-size="w-6 h-6" class="inline-flex items-center justify-center w-6 h-6 shrink-0 filter drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"></span>
         <span class="font-bold text-sm text-white tracking-wide">OpsPub</span>
-      </div>
-
-      <!-- 工作区抽屉折叠把手 (受窗口配置控制) -->
-      <div id="headerItemSidebar" data-window-id="sidebar" class="header-tool-wrapper">
-        <button onclick="toggleSubSidebar()" id="btnHeaderToggleSidebar" class="header-tool-btn" aria-label="展开/收起二级工作区">
-          <i data-lucide="panel-left-close" class="w-4 h-4"></i>
-        </button>
-        <div class="header-tool-tooltip">折叠/展开侧栏 (Ctrl+B)</div>
       </div>
     </div>
 
@@ -3920,9 +4192,31 @@
         </div>
       </aside>
 
-      <!-- 轨道二：二级工作区分组面板 (Sub Workspace Sidebar, 220px 宽，支持一键折叠) -->
+      <!-- 轨道二：二级工作区分组面板 (Sub Workspace Sidebar, 展开 220px / 收起 44px 极简窄轨) -->
       <aside id="subWorkspaceSidebar" class="w-[220px] h-full bg-surface-900/90 border-r border-slate-800/80 flex flex-col justify-between shrink-0 select-none overflow-hidden transition-all duration-200 ease-in-out relative z-10">
         
+        <!-- 折叠态极简窄轨视图 (44px 宽，对齐截图二设计：展开手柄 + 上下文新建 + 核心页面快切) -->
+        <div id="subSidebarCollapsedRail" class="hidden flex-1 flex flex-col items-center py-2 px-1 h-full w-full">
+          <div class="flex flex-col items-center space-y-1.5 w-full">
+            <!-- 1. 展开侧栏开关 -->
+            <button type="button" id="btnSubRailExpand" onclick="toggleSubSidebar(true)" class="sub-rail-btn group" aria-label="展开工作区侧栏">
+              <i data-lucide="panel-left-open" class="w-4 h-4"></i>
+              <span class="sub-rail-tooltip">展开侧栏 (Ctrl+B)</span>
+            </button>
+
+            <!-- 2. 上下文主快捷操作 (+) -->
+            <button type="button" id="btnSubRailPrimaryAction" onclick="triggerSubRailPrimaryAction()" class="sub-rail-primary-btn bg-brand-500/12 hover:bg-brand-500/20 text-brand-400 hover:text-brand-300 border-brand-500/25 group" aria-label="快捷新建">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span id="subRailPrimaryTooltip" class="sub-rail-tooltip">添加新服务器</span>
+            </button>
+
+            <div class="sub-rail-divider w-5 h-px bg-slate-800/90 my-1"></div>
+
+            <!-- 3. 当前业务域常用子视图直达图标 -->
+            <div id="subRailNavItems" class="flex flex-col items-center space-y-1 w-full"></div>
+          </div>
+        </div>
+
         <!-- 业务域面板 1: 主机运维工作区 -->
         <div id="domain-panel-ops" class="domain-sub-panel flex-1 flex flex-col h-full overflow-hidden">
           <!-- 标题与折叠按钮 -->
@@ -3934,8 +4228,8 @@
               </span>
               <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-brand-500/15 text-brand-300 font-mono border border-brand-500/30">4台在线</span>
             </div>
-            <button onclick="toggleSubSidebar()" title="折叠工作区分组 (Ctrl+B)" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
-              <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+            <button onclick="toggleSubSidebar(false)" title="收起工作区为窄轨 (Ctrl+B)" class="sub-sidebar-collapse-btn p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
+              <i data-lucide="panel-left-close" class="w-4 h-4"></i>
             </button>
           </div>
 
@@ -4277,8 +4571,8 @@
             <div class="flex items-center space-x-2">
               <span class="text-xs font-bold text-slate-200 tracking-wide">⚡ 自动化中心</span>
             </div>
-            <button onclick="toggleSubSidebar()" title="折叠工作区 (Ctrl+B)" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
-              <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+            <button onclick="toggleSubSidebar(false)" title="收起工作区为窄轨 (Ctrl+B)" class="sub-sidebar-collapse-btn p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
+              <i data-lucide="panel-left-close" class="w-4 h-4"></i>
             </button>
           </div>
 
@@ -4344,8 +4638,8 @@
               </span>
               <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-brand-500/15 text-brand-300 font-mono border border-brand-500/30">智维协同</span>
             </div>
-            <button onclick="toggleSubSidebar()" title="折叠工作区分组 (Ctrl+B)" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
-              <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+            <button onclick="toggleSubSidebar(false)" title="收起工作区为窄轨 (Ctrl+B)" class="sub-sidebar-collapse-btn p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
+              <i data-lucide="panel-left-close" class="w-4 h-4"></i>
             </button>
           </div>
 
@@ -4462,8 +4756,8 @@
             <div class="flex items-center space-x-2">
               <span class="text-xs font-bold text-slate-200 tracking-wide">🛡️ 安全与审计</span>
             </div>
-            <button onclick="toggleSubSidebar()" title="折叠工作区 (Ctrl+B)" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
-              <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+            <button onclick="toggleSubSidebar(false)" title="收起工作区为窄轨 (Ctrl+B)" class="sub-sidebar-collapse-btn p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
+              <i data-lucide="panel-left-close" class="w-4 h-4"></i>
             </button>
           </div>
 
@@ -4521,8 +4815,8 @@
               </span>
               <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-brand-500/15 text-brand-300 font-mono border border-brand-500/30 whitespace-nowrap shrink-0">偏好配置</span>
             </div>
-            <button onclick="toggleSubSidebar()" title="折叠工作区分组 (Ctrl+B)" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
-              <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+            <button onclick="toggleSubSidebar(false)" title="收起工作区为窄轨 (Ctrl+B)" class="sub-sidebar-collapse-btn p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
+              <i data-lucide="panel-left-close" class="w-4 h-4"></i>
             </button>
           </div>
 
@@ -4559,10 +4853,17 @@
               <span class="truncate">安全与控制</span>
             </button>
 
-            <!-- 模块 6: 数据与关于 -->
+            <!-- 模块 6: 数据与同步 -->
             <button type="button" onclick="switchSettingsSection('data')" id="set-subnav-data" data-settings-section="data" class="set-subnav-btn w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-xs font-medium transition text-slate-400 hover:text-slate-200 hover:bg-surface-800/80 border border-transparent cursor-pointer">
               <i data-lucide="database" class="w-4 h-4 shrink-0 text-slate-400"></i>
-              <span class="truncate">数据与关于</span>
+              <span class="truncate">数据与同步</span>
+            </button>
+
+            <!-- 模块 7: 关于与更新 -->
+            <button type="button" onclick="switchSettingsSection('about')" id="set-subnav-about" data-settings-section="about" class="set-subnav-btn w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-xs font-medium transition text-slate-400 hover:text-slate-200 hover:bg-surface-800/80 border border-transparent cursor-pointer">
+              <i data-lucide="info" class="w-4 h-4 shrink-0 text-slate-400"></i>
+              <span class="truncate flex-1">关于</span>
+              <em id="aboutSubnavUpdateDot" class="not-italic px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono shrink-0 ml-auto">NEW</em>
             </button>
           </div>
         </div>
@@ -13752,24 +14053,52 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
             </div>
           </div>
 
-          <!-- 卡片: 界面字体 (1:1 严格对齐用户需求截图 1: 标题、当前字体标签与[选择]按钮) -->
+          <!-- 卡片: 界面字体与清晰度优化 -->
           <div id="setting-card-fontfamily" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-3.5 scroll-mt-6">
             <div class="flex items-center justify-between gap-4">
               <div class="space-y-1">
                 <div class="font-medium text-sm text-white flex items-center space-x-2">
                   <i data-lucide="case-sensitive" class="w-4 h-4 text-teal-400"></i>
                   <span>界面字体</span>
+                  <span id="fontLibraryCountHint" class="text-[10px] px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-400 border border-teal-500/30 font-normal">45+ 款高清字体</span>
                 </div>
-                <p class="text-slate-400 text-xs">设置应用主界面窗口的西文与中文字体；终端等独立模块可单设。</p>
+                <p class="text-slate-400 text-xs">启用整数像素字号与 DirectWrite 网格对齐，消除小字号中英文边缘锯齿；终端字体可单独设置。</p>
               </div>
 
-              <!-- 右侧：当前字体名称与选择按钮 (1:1 还原截图 1) -->
+              <!-- 右侧：当前字体名称与选择按钮 -->
               <div class="flex items-center space-x-3 shrink-0">
                 <span id="currentFontNameLabel" class="text-sm text-slate-300 font-medium select-none">默认</span>
                 <button type="button" onclick="openFontPickerModal()" class="px-3.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 active:bg-surface-700 border border-slate-700/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer flex items-center space-x-1.5 shadow-sm hover:border-slate-600" title="打开字体选择弹窗">
                   <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-400"></i>
                   <span>选择</span>
                 </button>
+              </div>
+            </div>
+
+            <!-- 常用平滑防锯齿字体一键切换 -->
+            <div class="pt-3 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-2.5">
+              <span class="text-slate-400 text-xs shrink-0">平滑字体快选:</span>
+              <div id="quickFontChipContainer" class="flex flex-wrap items-center gap-1.5">
+                <button type="button" data-quick-font="默认" onclick="quickSelectUiFont('默认')" class="font-quick-chip is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer">默认 (ClearType 推荐)</button>
+                <button type="button" data-quick-font="Microsoft YaHei UI (微软雅黑 UI)" onclick="quickSelectUiFont('Microsoft YaHei UI (微软雅黑 UI)')" class="font-quick-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">微软雅黑 UI</button>
+                <button type="button" data-quick-font="DengXian (等线 · 现代平滑)" onclick="quickSelectUiFont('DengXian (等线 · 现代平滑)')" class="font-quick-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">等线 DengXian</button>
+                <button type="button" data-quick-font="HarmonyOS Sans SC (鸿蒙黑体)" onclick="quickSelectUiFont('HarmonyOS Sans SC (鸿蒙黑体)')" class="font-quick-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">鸿蒙黑体</button>
+                <button type="button" data-quick-font="MiSans (小米黑体)" onclick="quickSelectUiFont('MiSans (小米黑体)')" class="font-quick-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">MiSans</button>
+                <button type="button" data-quick-font="Source Han Sans CN (思源黑体)" onclick="quickSelectUiFont('Source Han Sans CN (思源黑体)')" class="font-quick-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">思源黑体</button>
+                <button type="button" onclick="openFontPickerModal()" class="px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-dashed border-slate-600/80 text-teal-400 hover:text-teal-300 text-[11px] transition cursor-pointer">+ 全部字体…</button>
+              </div>
+            </div>
+
+            <!-- 抗锯齿渲染微调 -->
+            <div class="pt-3 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-2.5">
+              <div class="space-y-0.5">
+                <div class="text-slate-300 text-xs font-medium">抗锯齿渲染微调</div>
+                <div class="text-slate-500 text-[11px]">Windows 低分屏建议保持「清晰微调」，避免几何平滑导致的汉字发虚或锯齿</div>
+              </div>
+              <div id="fontRenderModeButtons" class="flex items-center space-x-1.5 shrink-0">
+                <button type="button" data-render-mode="crisp" onclick="setUiFontRenderMode('crisp')" class="font-render-chip is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer">清晰微调 (ClearType)</button>
+                <button type="button" data-render-mode="antialiased" onclick="setUiFontRenderMode('antialiased')" class="font-render-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">柔和灰度平滑</button>
+                <button type="button" data-render-mode="system" onclick="setUiFontRenderMode('system')" class="font-render-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">原生标准</button>
               </div>
             </div>
           </div>
@@ -14830,7 +15159,7 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
           </div>
           </div>
 
-          <!-- 面板 4: 数据与关于 (独立滚动) -->
+          <!-- 面板 6: 数据与同步 (独立滚动) -->
           <div id="settings-panel-data" class="settings-tab-panel hidden flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar p-6 space-y-4">
             <!-- 卡片 13: 备份与还原 (严格对齐截图) -->
           <div id="setting-card-backup" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
@@ -15200,6 +15529,137 @@ For more help on how to use Docker, head to https://docs.docker.com/go/guides/</
               </button>
             </div>
           </div>
+          </div>
+
+          <!-- 面板 7: 关于与软件更新 (独立滚动) -->
+          <div id="settings-panel-about" class="settings-tab-panel hidden flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar p-6 space-y-4">
+            <!-- 关于头部：产品与版本信息概览卡片 -->
+            <div id="setting-card-about-overview" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-center space-x-3.5 min-w-0">
+                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <span data-opspub-logo-slot="about" data-logo-mode="inapp" data-logo-size="w-7 h-7" class="inline-flex items-center justify-center w-7 h-7"></span>
+                  </div>
+                  <div class="min-w-0 space-y-1">
+                    <div class="flex items-center space-x-2">
+                      <span class="font-bold text-base text-white tracking-wide">OpsPub</span>
+                      <span id="aboutHeaderVerBadge" class="px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30 font-mono text-[10px] font-semibold">v1.2.0</span>
+                    </div>
+                    <p class="text-slate-400 text-xs truncate">SSH 终端、SFTP 传输、自动化发布与 AI 受控智维，都在一个原生桌面窗口里。</p>
+                  </div>
+                </div>
+                <button type="button" onclick="copyAboutDiagnosticInfo()" class="px-3 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 border border-slate-700/80 text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer flex items-center space-x-1.5 shrink-0" title="复制版本号、平台与检测诊断信息">
+                  <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>复制版本信息</span>
+                </button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800/90 space-y-1">
+                  <div class="text-[11px] text-slate-400 flex items-center space-x-1.5"><i data-lucide="tag" class="w-3.5 h-3.5 text-teal-400"></i><span>当前版本</span></div>
+                  <div id="aboutInfoCurrentVer" class="font-mono font-semibold text-sm text-slate-200">v1.2.0 (Stable)</div>
+                </div>
+                <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800/90 space-y-1">
+                  <div class="text-[11px] text-slate-400 flex items-center space-x-1.5"><i data-lucide="monitor" class="w-3.5 h-3.5 text-indigo-400"></i><span>运行平台</span></div>
+                  <div class="font-mono font-semibold text-sm text-slate-200">Windows · x86_64</div>
+                </div>
+                <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800/90 space-y-1">
+                  <div class="text-[11px] text-slate-400 flex items-center space-x-1.5"><i data-lucide="hammer" class="w-3.5 h-3.5 text-amber-400"></i><span>构建标识</span></div>
+                  <div class="font-mono font-semibold text-sm text-slate-200">20261128 · Tauri v2</div>
+                </div>
+                <div class="p-3 rounded-xl bg-[#141a22] border border-slate-800/90 space-y-1">
+                  <div class="text-[11px] text-slate-400 flex items-center space-x-1.5"><i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i><span>桌面内核</span></div>
+                  <div class="font-mono font-semibold text-sm text-slate-200">Rust Core + WebView2</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 核心卡片: 更新策略与自动下载管理 -->
+            <div id="setting-card-update" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
+              <div class="flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                  <div class="font-medium text-sm text-white flex items-center space-x-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-400"></i>
+                    <span>软件更新与自动下载</span>
+                  </div>
+                  <p class="text-slate-400 text-xs">控制后台检测频率、发现新版本后是否自动下载更新包（下载时校验 Ed25519 .sig 公钥签名）。</p>
+                </div>
+                <span id="settingUpdateStatusPill" class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono text-[11px] shrink-0">检测中…</span>
+              </div>
+              <div class="pt-3 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-3">
+                <div class="space-y-0.5 min-w-0">
+                  <div class="text-slate-200 text-xs font-medium">自动检查更新频率</div>
+                  <div class="text-slate-500 text-[11px]">
+                    <span id="settingUpdateLastCheckText">上次检测: 2026-11-28 14:20</span>
+                    <span class="mx-1.5">·</span>
+                    <span id="settingUpdateNextCheckText">下次检测: 24 小时后</span>
+                  </div>
+                </div>
+                <div id="updateIntervalButtons" class="flex flex-wrap items-center gap-1.5 shrink-0">
+                  <button type="button" data-upd-interval="startup" onclick="setUpdaterCheckInterval('startup')" class="update-seg-btn px-2.5 py-1 rounded-lg bg-[#141a22] border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">每次启动</button>
+                  <button type="button" data-upd-interval="daily" onclick="setUpdaterCheckInterval('daily')" class="update-seg-btn is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer">每天一次</button>
+                  <button type="button" data-upd-interval="weekly" onclick="setUpdaterCheckInterval('weekly')" class="update-seg-btn px-2.5 py-1 rounded-lg bg-[#141a22] border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">每周一次</button>
+                  <button type="button" data-upd-interval="hourly" onclick="setUpdaterCheckInterval('hourly')" class="update-seg-btn px-2.5 py-1 rounded-lg bg-[#141a22] border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">每小时</button>
+                  <button type="button" data-upd-interval="manual" onclick="setUpdaterCheckInterval('manual')" class="update-seg-btn px-2.5 py-1 rounded-lg bg-[#141a22] border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">仅手动检测</button>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/70 space-y-2">
+                <div class="space-y-0.5">
+                  <div class="text-slate-200 text-xs font-medium">发现新版本后的处理方式（是否自动下载）</div>
+                  <div class="text-slate-500 text-[11px]">按流量或生产作业期间建议选「仅提醒」，防止后台自动拉取安装包占用带宽</div>
+                </div>
+                <div id="updateDownloadModeButtons" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button type="button" data-upd-dlmode="auto_silent" onclick="setUpdaterDownloadMode('auto_silent')" class="update-seg-btn is-active px-3 py-2 rounded-xl bg-teal-500/15 border border-teal-500/40 text-teal-300 text-left transition cursor-pointer">
+                    <div class="text-xs font-semibold">自动后台下载（推荐）</div>
+                    <div class="text-[10px] opacity-80 mt-0.5">下载完毕后温和提示重启安装</div>
+                  </button>
+                  <button type="button" data-upd-dlmode="notify_only" onclick="setUpdaterDownloadMode('notify_only')" class="update-seg-btn px-3 py-2 rounded-xl bg-[#141a22] border border-slate-700/70 text-slate-300 text-left transition cursor-pointer">
+                    <div class="text-xs font-semibold">仅提醒新版，手动下载</div>
+                    <div class="text-[10px] opacity-80 mt-0.5">发现更新仅通知，确认后再下载</div>
+                  </button>
+                  <button type="button" data-upd-dlmode="auto_quiet" onclick="setUpdaterDownloadMode('auto_quiet')" class="update-seg-btn px-3 py-2 rounded-xl bg-[#141a22] border border-slate-700/70 text-slate-300 text-left transition cursor-pointer">
+                    <div class="text-xs font-semibold">自动下载并空闲静默更新</div>
+                    <div class="text-[10px] opacity-80 mt-0.5">退出应用时自动完成新版覆盖</div>
+                  </button>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-2">
+                  <span class="text-slate-400 text-xs">更新源:</span>
+                  <div id="updateMirrorButtons" class="flex items-center space-x-1.5">
+                    <button type="button" data-upd-mirror="official" onclick="setUpdaterMirror('official')" class="update-seg-btn is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer">官方源 (GitHub)</button>
+                    <button type="button" data-upd-mirror="mirror_cn" onclick="setUpdaterMirror('mirror_cn')" class="update-seg-btn px-2.5 py-1 rounded-lg bg-[#141a22] border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">国内 CDN 镜像</button>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-slate-400 text-xs">通道:</span>
+                  <div id="updateChannelButtons" class="flex items-center space-x-1.5">
+                    <button type="button" data-upd-channel="stable" onclick="setUpdaterChannel('stable')" class="update-seg-btn is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer">稳定版 (Stable)</button>
+                    <button type="button" data-upd-channel="beta" onclick="setUpdaterChannel('beta')" class="update-seg-btn px-2.5 py-1 rounded-lg bg-[#141a22] border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer">预览版 (Beta)</button>
+                  </div>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex-1 min-w-[220px] space-y-1.5">
+                  <div id="settingUpdateSummaryTitle" class="text-xs font-medium text-slate-200">发现新版本 OpsPub v1.2.1 可更新 (48.2 MB)</div>
+                  <div id="settingUpdateInlineProgressWrap" class="hidden space-y-1">
+                    <div id="settingUpdateProgressTrack" class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div id="settingUpdateInlineBar" class="h-full rounded-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                      <span id="settingUpdateInlineSize">0 MB / 48.2 MB</span>
+                      <span id="settingUpdateInlinePercent">0%</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 shrink-0">
+                  <button type="button" id="btnSettingCheckUpdateNow" onclick="checkAppUpdateNow()" class="px-3.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 border border-slate-700/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer flex items-center space-x-1.5">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>立即检查</span>
+                  </button>
+                  <button type="button" id="btnSettingUpdatePrimary" onclick="triggerUpdatePrimaryAction()" class="px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer">查看更新并安装</button>
+                </div>
+              </div>
+            </div>
 
           <!-- 卡片 15: 授权管理 -->
           <div id="setting-card-license" class="p-5 rounded-2xl bg-[#0f141c] border border-slate-800/80 shadow-lg text-xs space-y-4 scroll-mt-6">
@@ -20330,6 +20790,10 @@ REDIS_AUTH="${****@}" [已拦截脱敏]</div>
       }
       const savedFontSize = parseInt(localStorage.getItem('opspub_ui_font_size')) || 14;
       setUiFontSize(savedFontSize, true);
+      const savedFontRender = localStorage.getItem('opspub_ui_font_render') || 'crisp';
+      if (typeof setUiFontRenderMode === 'function') setUiFontRenderMode(savedFontRender, true);
+      const savedFontFamily = localStorage.getItem('opspub_ui_font_family') || '默认';
+      if (typeof setUiFontFamily === 'function') setUiFontFamily(savedFontFamily);
       const savedSkin = localStorage.getItem('opspub_skin') || 'obsidian';
       const savedAccent = localStorage.getItem('opspub_accent') || 'auto';
       selectThemeSkin(savedSkin, true);
@@ -31681,6 +32145,7 @@ ${resultText}
       });
 
       if (window.lucide) lucide.createIcons();
+      if (typeof syncSubSidebarCollapsedRailActive === 'function') syncSubSidebarCollapsedRailActive();
     }
 
     function scrollSettingsTo(target) {
@@ -31690,7 +32155,8 @@ ${resultText}
       const terminalTargets = ['terminal', 'terminal-theme', 'terminal-behavior'];
       const aiTargets = ['ai', 'models', 'proxy', 'whitelist'];
       const securityTargets = ['security', 'ssh-keys', 'lock', 'blacklist', 'audit', 'audit-retention'];
-      const dataTargets = ['data', 'backup', 'reset', 'about', 'mobile-pairing', 'device-channel', 'license', 'legal', 'community', 'apps'];
+      const dataTargets = ['data', 'backup', 'reset', 'mobile-pairing', 'device-channel'];
+      const aboutTargets = ['about', 'about-overview', 'update', 'license', 'legal', 'community', 'apps'];
 
       let section = 'general';
       if (sftpTargets.includes(target)) section = 'sftp';
@@ -31698,6 +32164,7 @@ ${resultText}
       else if (aiTargets.includes(target)) section = 'ai';
       else if (securityTargets.includes(target)) section = 'security';
       else if (dataTargets.includes(target)) section = 'data';
+      else if (aboutTargets.includes(target)) section = 'about';
 
       switchSettingsSection(section);
 
@@ -32075,7 +32542,6 @@ ${resultText}
           { id: 'theme', group: '系统与窗口工具', name: '外观主题快速换肤', icon: 'palette', pos: '顶部右侧', enabled: true },
           { id: 'notif', group: '系统与窗口工具', name: '顶栏快捷通知消息', icon: 'bell', pos: '顶部右侧', enabled: false },
           { id: 'search', group: '系统与窗口工具', name: '全局搜索 (Ctrl+K)', icon: 'search', pos: '顶部居中', enabled: true },
-          { id: 'sidebar', group: '系统与窗口工具', name: '工作区折叠手柄', icon: 'panel-left-close', pos: '顶部左侧', enabled: true },
           { id: 'transfer', group: '系统与窗口工具', name: '任务传输中心浮动挂件', icon: 'arrow-up-down', pos: '浮动挂件', enabled: true }
         ]
       },
@@ -32778,7 +33244,6 @@ ${resultText}
       const rightSlot = document.getElementById('headerRightToolsSlot');
       const elMap = {
         search: document.getElementById('headerItemSearch'),
-        sidebar: document.getElementById('headerItemSidebar'),
         nav_servers: document.getElementById('headerItemNavServers'),
         nav_terminal: document.getElementById('headerItemNavTerminal'),
         nav_workbench: document.getElementById('headerItemNavWorkbench'),
@@ -32853,7 +33318,6 @@ ${resultText}
     const WINDOW_SHOW_LABELS_KEY = 'opspub_window_show_labels';
     let isWindowButtonLabelsVisible = false;
     const WINDOW_TOOL_SHORT_LABELS = {
-      sidebar: { zh: '侧栏', en: 'Sidebar' },
       nav_servers: { zh: '服务器', en: 'Servers' },
       nav_terminal: { zh: '终端', en: 'Terminal' },
       nav_workbench: { zh: '工作台', en: 'Workbench' },
@@ -32918,7 +33382,6 @@ ${resultText}
     function syncWindowButtonLabelsDOM(skipLayout) {
       const isEn = typeof settingLanguage !== 'undefined' && settingLanguage === 'en';
       const wrapperIdByTool = {
-        sidebar: 'headerItemSidebar',
         nav_servers: 'headerItemNavServers',
         nav_terminal: 'headerItemNavTerminal',
         nav_workbench: 'headerItemNavWorkbench',
@@ -33113,6 +33576,9 @@ ${resultText}
           if (mainQf) mainQf.style.display = (item.enabled && item.pos !== '隐藏') ? '' : 'none';
         }
       });
+      if (typeof renderSubSidebarCollapsedRail === 'function' && typeof isSubSidebarOpen !== 'undefined' && !isSubSidebarOpen) {
+        renderSubSidebarCollapsedRail();
+      }
     }
 
     function applyToolbarVisibilityToUI(category, item) {
@@ -33250,35 +33716,136 @@ ${resultText}
     // 界面字体配置体系 (1:1 对齐用户需求截图 1 & 2: 字体弹窗、搜索过滤、单选高亮、双行预览、即时生效)
     // =========================================================================
     const FONT_OPTIONS = [
-      { name: '默认', en: 'System Default', css: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif' },
-      { name: 'Agency FB', en: 'Agency FB', css: '"Agency FB", sans-serif' },
-      { name: 'Algerian', en: 'Algerian', css: 'Algerian, serif' },
-      { name: 'Arial', en: 'Arial', css: 'Arial, Helvetica, sans-serif' },
-      { name: 'Arial Rounded MT', en: 'Arial Rounded MT Bold', css: '"Arial Rounded MT Bold", "Arial Rounded MT", Arial, sans-serif' },
-      { name: 'Bahnschrift', en: 'Bahnschrift', css: 'Bahnschrift, sans-serif' },
-      { name: 'Baskerville Old Face', en: 'Baskerville Old Face', css: '"Baskerville Old Face", Baskerville, serif' },
-      { name: 'Bauhaus 93', en: 'Bauhaus 93', css: '"Bauhaus 93", sans-serif' },
-      { name: 'Calibri', en: 'Calibri', css: 'Calibri, sans-serif' },
-      { name: 'Cascadia Code', en: 'Cascadia Code', css: '"Cascadia Code", Consolas, monospace' },
-      { name: 'Consolas', en: 'Consolas', css: 'Consolas, monospace' },
-      { name: 'Fira Code', en: 'Fira Code', css: '"Fira Code", monospace' },
-      { name: 'Franklin Gothic Medium', en: 'Franklin Gothic Medium', css: '"Franklin Gothic Medium", sans-serif' },
-      { name: 'Georgia', en: 'Georgia', css: 'Georgia, serif' },
-      { name: 'Inter', en: 'Inter', css: 'Inter, -apple-system, sans-serif' },
-      { name: 'JetBrains Mono', en: 'JetBrains Mono', css: '"JetBrains Mono", monospace' },
-      { name: 'Microsoft YaHei (微软雅黑)', en: 'Microsoft YaHei', css: '"Microsoft YaHei", "PingFang SC", sans-serif' },
-      { name: 'PingFang SC (苹方)', en: 'PingFang SC', css: '"PingFang SC", "Microsoft YaHei", sans-serif' },
-      { name: 'Roboto', en: 'Roboto', css: 'Roboto, sans-serif' },
-      { name: 'Segoe UI', en: 'Segoe UI', css: '"Segoe UI", sans-serif' },
-      { name: 'SimHei (黑体)', en: 'SimHei', css: 'SimHei, "Microsoft YaHei", sans-serif' },
-      { name: 'Source Han Sans CN (思源黑体)', en: 'Source Han Sans CN', css: '"Source Han Sans CN", "PingFang SC", "Microsoft YaHei", sans-serif' },
-      { name: 'Tahoma', en: 'Tahoma', css: 'Tahoma, sans-serif' },
-      { name: 'Times New Roman', en: 'Times New Roman', css: '"Times New Roman", Times, serif' },
-      { name: 'Verdana', en: 'Verdana', css: 'Verdana, sans-serif' }
+      { name: '默认', en: 'System ClearType Default', category: 'recommended', recommended: true, tag: '清晰防锯齿推荐', css: '"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "HarmonyOS Sans", "MiSans", "Alibaba PuHuiTi 3.0", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif' },
+      { name: 'Microsoft YaHei UI (微软雅黑 UI)', en: 'Microsoft YaHei UI', category: 'cjk', recommended: true, tag: 'Win 锐利首选', css: '"Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif' },
+      { name: 'DengXian (等线 · 现代平滑)', en: 'DengXian Light Regular', category: 'cjk', recommended: true, tag: 'Win10/11 无锯齿', css: '"Segoe UI", "DengXian", "Microsoft YaHei UI", sans-serif' },
+      { name: 'HarmonyOS Sans SC (鸿蒙黑体)', en: 'HarmonyOS Sans SC', category: 'cjk', recommended: true, tag: '圆润护眼', css: '"HarmonyOS Sans SC", "HarmonyOS Sans", "Segoe UI Variable Text", "Microsoft YaHei UI", sans-serif' },
+      { name: 'MiSans (小米黑体)', en: 'MiSans', category: 'cjk', recommended: true, tag: '现代均衡', css: '"MiSans", "Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Alibaba PuHuiTi (阿里巴巴普惠体)', en: 'Alibaba PuHuiTi 3.0', category: 'cjk', recommended: true, tag: '商务清晰', css: '"Alibaba PuHuiTi 3.0", "Alibaba PuHuiTi 2.0", "Alibaba PuHuiTi", "Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Noto Sans SC (谷歌思源黑体)', en: 'Noto Sans SC', category: 'cjk', recommended: true, tag: '跨平台统一', css: '"Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "Microsoft YaHei UI", sans-serif' },
+      { name: 'OPPOSans (OPPO 清晰黑体)', en: 'OPPOSans', category: 'cjk', recommended: true, tag: '柔和可读', css: '"OPPOSans", "Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Source Han Sans CN (思源黑体)', en: 'Source Han Sans CN', category: 'cjk', recommended: true, tag: '开源优雅', css: '"Source Han Sans CN", "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", sans-serif' },
+      { name: 'PingFang SC (苹方)', en: 'PingFang SC', category: 'cjk', recommended: true, tag: 'macOS 平滑', css: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Hiragino Sans GB (冬青黑体)', en: 'Hiragino Sans GB', category: 'cjk', recommended: true, tag: '经典雅黑', css: '"Hiragino Sans GB", "PingFang SC", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Microsoft YaHei (微软雅黑)', en: 'Microsoft YaHei', category: 'cjk', tag: '经典系统', css: '"Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif' },
+      { name: 'LXGW WenKai (霞鹜文楷)', en: 'LXGW WenKai', category: 'cjk', recommended: true, tag: '温润护眼', css: '"LXGW WenKai", "LXGW WenKai Screen", "KaiTi", "STKaiti", serif' },
+      { name: 'YouYuan (幼圆 · 圆润中文)', en: 'YouYuan Rounded', category: 'cjk', tag: '圆角柔和', css: '"YouYuan", "STYuanti-SC-Regular", "PingFang SC", "Microsoft YaHei UI", sans-serif' },
+      { name: 'STXihei (华文细黑)', en: 'STXihei', category: 'cjk', tag: '纤细清爽', css: '"STXihei", "PingFang SC", "Microsoft YaHei UI", sans-serif' },
+      { name: 'KaiTi (楷体 · 舒缓阅读)', en: 'KaiTi', category: 'cjk', tag: '楷书护眼', css: '"KaiTi", "STKaiti", "BiauKai", serif' },
+      { name: 'SimHei (黑体)', en: 'SimHei', category: 'cjk', tag: '稳重粗黑', css: 'SimHei, "Microsoft YaHei UI", sans-serif' },
+      { name: 'FangSong (仿宋)', en: 'FangSong', category: 'mono', tag: '公文衬线', css: '"FangSong", "STFangsong", serif' },
+      { name: 'SimSun (宋体 · 点阵锐利)', en: 'SimSun', category: 'mono', tag: '高锐点阵', css: '"SimSun", "NSimSun", "Songti SC", serif' },
+      { name: 'Source Han Serif CN (思源宋体)', en: 'Source Han Serif CN', category: 'mono', tag: '长文衬线', css: '"Source Han Serif CN", "Noto Serif SC", "SimSun", serif' },
+      { name: 'Segoe UI Variable (Win11 现代体)', en: 'Segoe UI Variable Text', category: 'sans', recommended: true, tag: 'Win11 原生', css: '"Segoe UI Variable Text", "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Segoe UI', en: 'Segoe UI', category: 'sans', recommended: true, tag: 'Windows UI', css: '"Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'SF Pro Display (Apple 现代体)', en: 'SF Pro Display', category: 'sans', recommended: true, tag: 'macOS 原生', css: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Inter', en: 'Inter', category: 'sans', recommended: true, tag: '流行几何 UI', css: 'Inter, "Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Plus Jakarta Sans', en: 'Plus Jakarta Sans', category: 'sans', tag: '现代圆润西文', css: '"Plus Jakarta Sans", "Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Roboto', en: 'Roboto', category: 'sans', tag: 'Material UI', css: 'Roboto, "Segoe UI", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Arial Rounded MT', en: 'Arial Rounded MT Bold', category: 'sans', tag: '圆体数字', css: '"Arial Rounded MT Bold", "Arial Rounded MT", Arial, "Microsoft YaHei UI", sans-serif' },
+      { name: 'Bahnschrift', en: 'Bahnschrift', category: 'sans', tag: '工程紧凑', css: 'Bahnschrift, "Microsoft YaHei UI", sans-serif' },
+      { name: 'Calibri', en: 'Calibri', category: 'sans', tag: '柔和圆角', css: 'Calibri, "Microsoft YaHei UI", sans-serif' },
+      { name: 'Trebuchet MS', en: 'Trebuchet MS', category: 'sans', tag: '清爽人文', css: '"Trebuchet MS", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Tahoma', en: 'Tahoma', category: 'sans', tag: '像素对齐经典', css: 'Tahoma, "Microsoft YaHei UI", sans-serif' },
+      { name: 'Verdana', en: 'Verdana', category: 'sans', tag: '宽字距易读', css: 'Verdana, "Microsoft YaHei UI", sans-serif' },
+      { name: 'Arial', en: 'Arial', category: 'sans', tag: '通用西文', css: 'Arial, Helvetica, "Microsoft YaHei UI", sans-serif' },
+      { name: 'Franklin Gothic Medium', en: 'Franklin Gothic Medium', category: 'sans', tag: '厚重标题', css: '"Franklin Gothic Medium", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Agency FB', en: 'Agency FB', category: 'sans', tag: '窄高数据', css: '"Agency FB", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Bauhaus 93', en: 'Bauhaus 93', category: 'sans', tag: '艺术几何', css: '"Bauhaus 93", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Sarasa Gothic SC (更纱黑体)', en: 'Sarasa UI SC', category: 'mono', recommended: true, tag: '代码中文等宽', css: '"Sarasa UI SC", "Sarasa Gothic SC", "Microsoft YaHei UI", sans-serif' },
+      { name: 'Cascadia Code', en: 'Cascadia Code', category: 'mono', recommended: true, tag: 'Win 终端等宽', css: '"Cascadia Code", Consolas, "Microsoft YaHei UI", monospace' },
+      { name: 'JetBrains Mono', en: 'JetBrains Mono', category: 'mono', recommended: true, tag: '高清代码体', css: '"JetBrains Mono", Consolas, monospace' },
+      { name: 'Fira Code', en: 'Fira Code', category: 'mono', tag: '连字等宽', css: '"Fira Code", Consolas, monospace' },
+      { name: 'Consolas', en: 'Consolas', category: 'mono', tag: 'ClearType 等宽', css: 'Consolas, "Microsoft YaHei UI", monospace' },
+      { name: 'Georgia', en: 'Georgia', category: 'mono', tag: '屏幕优化衬线', css: 'Georgia, "SimSun", serif' },
+      { name: 'Times New Roman', en: 'Times New Roman', category: 'mono', tag: '经典英文衬线', css: '"Times New Roman", Times, serif' },
+      { name: 'Baskerville Old Face', en: 'Baskerville Old Face', category: 'mono', tag: '出版衬线', css: '"Baskerville Old Face", Baskerville, serif' },
+      { name: 'Algerian', en: 'Algerian', category: 'mono', tag: '装饰标题', css: 'Algerian, serif' }
     ];
 
     let currentUiFont = localStorage.getItem('opspub_ui_font_family') || '默认';
     let draftSelectedFont = currentUiFont;
+    let currentFontPickerCategory = 'all';
+    let currentUiFontRenderMode = localStorage.getItem('opspub_ui_font_render') || 'crisp';
+
+    function setFontPickerCategory(cat) {
+      currentFontPickerCategory = cat || 'all';
+      document.querySelectorAll('#fontCategoryTabs .font-cat-pill').forEach(btn => {
+        const active = btn.getAttribute('data-font-cat') === currentFontPickerCategory;
+        btn.classList.toggle('is-active', active);
+        if (active) {
+          btn.className = 'font-cat-pill is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer';
+        } else {
+          btn.className = 'font-cat-pill px-2.5 py-1 rounded-lg bg-[#0b0e14] border border-slate-700/80 text-slate-300 hover:text-white text-[11px] transition cursor-pointer';
+        }
+      });
+      filterFontList();
+    }
+
+    function setUiFontRenderMode(mode, quiet = false) {
+      const valid = ['crisp', 'antialiased', 'system'];
+      if (!valid.includes(mode)) mode = 'crisp';
+      currentUiFontRenderMode = mode;
+      document.documentElement.setAttribute('data-font-render', mode);
+      localStorage.setItem('opspub_ui_font_render', mode);
+
+      const modeLabels = {
+        crisp: 'ClearType 清晰微调',
+        antialiased: '柔和灰度平滑',
+        system: '系统原生标准'
+      };
+      const previewRenderLabel = document.getElementById('fontPreviewRenderLabel');
+      if (previewRenderLabel) previewRenderLabel.textContent = modeLabels[mode] || mode;
+
+      document.querySelectorAll('#fontRenderModeButtons .font-render-chip').forEach(btn => {
+        const active = btn.getAttribute('data-render-mode') === mode;
+        btn.classList.toggle('is-active', active);
+        if (active) {
+          btn.className = 'font-render-chip is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer';
+        } else {
+          btn.className = 'font-render-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer';
+        }
+      });
+
+      document.querySelectorAll('#modalFontPicker .font-modal-render-btn').forEach(btn => {
+        const active = btn.getAttribute('data-modal-render') === mode;
+        btn.classList.toggle('is-active', active);
+        if (active) {
+          btn.className = 'font-modal-render-btn is-active px-2 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer';
+        } else {
+          btn.className = 'font-modal-render-btn px-2 py-1 rounded-lg bg-surface-900 border border-slate-700/80 text-slate-300 hover:text-white text-[11px] transition cursor-pointer';
+        }
+      });
+
+      if (!quiet && typeof showActionToast === 'function') {
+        showActionToast('字体抗锯齿模式已切换为: ' + (modeLabels[mode] || mode));
+      }
+    }
+
+    function syncQuickFontChips() {
+      const chips = document.querySelectorAll('#quickFontChipContainer .font-quick-chip');
+      chips.forEach(btn => {
+        const active = btn.getAttribute('data-quick-font') === currentUiFont;
+        btn.classList.toggle('is-active', active);
+        if (active) {
+          btn.className = 'font-quick-chip is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer';
+        } else {
+          btn.className = 'font-quick-chip px-2.5 py-1 rounded-lg bg-[#141a22] hover:bg-surface-800 border border-slate-700/70 text-slate-300 text-[11px] transition cursor-pointer';
+        }
+      });
+    }
+
+    function quickSelectUiFont(fontName) {
+      currentUiFont = fontName;
+      draftSelectedFont = fontName;
+      const label = document.getElementById('currentFontNameLabel');
+      if (label) label.textContent = currentUiFont;
+      setUiFontFamily(currentUiFont);
+      localStorage.setItem('opspub_ui_font_family', currentUiFont);
+      if (typeof showActionToast === 'function') {
+        showActionToast('界面字体已快速切换为: ' + currentUiFont);
+      }
+    }
 
     function renderFontItems(filterText = '') {
       const container = document.getElementById('fontItemsContainer');
@@ -33286,28 +33853,43 @@ ${resultText}
 
       const q = filterText.trim().toLowerCase();
       let html = '';
+      let visibleCount = 0;
 
       FONT_OPTIONS.forEach((item) => {
-        const match = !q || item.name.toLowerCase().includes(q) || item.en.toLowerCase().includes(q);
+        const catMatch = (currentFontPickerCategory === 'all')
+          || (currentFontPickerCategory === 'recommended' && item.recommended)
+          || (item.category === currentFontPickerCategory);
+        if (!catMatch) return;
+
+        const match = !q
+          || item.name.toLowerCase().includes(q)
+          || item.en.toLowerCase().includes(q)
+          || (item.tag && item.tag.toLowerCase().includes(q));
         if (!match) return;
 
+        visibleCount++;
         const isCurrent = (item.name === currentUiFont);
         const isDraft = (item.name === draftSelectedFont);
 
-        // 样式严格对齐截图 2：选中的条目有深色微高亮背景
-        let itemClass = 'px-3 py-2 rounded-xl flex items-center justify-between cursor-pointer transition text-xs select-none ';
+        let itemClass = 'font-option-row px-3 py-2 rounded-xl flex items-center justify-between gap-2 cursor-pointer transition text-xs select-none ';
         if (isDraft) {
-          itemClass += 'bg-[#212734] text-white border border-slate-700/80 font-medium shadow-sm';
+          itemClass += 'is-draft bg-[#212734] text-white border border-teal-500/50 font-medium shadow-sm';
         } else {
           itemClass += 'text-slate-300 hover:bg-surface-800/80 hover:text-white border border-transparent';
         }
 
-        const checkIcon = isCurrent ? '<i data-lucide="check" class="w-4 h-4 text-slate-200 shrink-0"></i>' : '';
+        const checkIcon = isCurrent ? '<i data-lucide="check" class="w-4 h-4 text-teal-400 shrink-0"></i>' : '';
+        const tagBadge = item.tag
+          ? `<span class="font-row-tag ${item.recommended ? 'is-rec bg-teal-500/15 text-teal-300 border-teal-500/30' : 'bg-surface-900 text-slate-400 border-slate-700/70'} px-1.5 py-0.5 rounded border text-[10px] font-sans shrink-0">${escapeHtml(item.tag)}</span>`
+          : '';
 
         html += `
-          <div class="${itemClass}" onclick="selectFontDraft('${item.name}')" data-font-name="${item.name}">
-            <span class="truncate font-sans">${item.name}</span>
-            <div class="flex items-center space-x-1 shrink-0">
+          <div class="${itemClass}" onclick="selectFontDraft(this.getAttribute('data-font-name'))" data-font-name="${escapeHtml(item.name)}">
+            <div class="flex items-center space-x-2 min-w-0">
+              <span class="truncate text-[13px]" style="font-family: ${escapeHtml(item.css)} !important;">${escapeHtml(item.name)}</span>
+            </div>
+            <div class="flex items-center space-x-1.5 shrink-0">
+              ${tagBadge}
               ${checkIcon}
             </div>
           </div>
@@ -33315,10 +33897,20 @@ ${resultText}
       });
 
       if (!html) {
-        html = '<div class="py-6 text-center text-slate-500 text-xs">未找到匹配的字体</div>';
+        html = '<div class="py-6 text-center text-slate-500 text-xs">未找到匹配的字体，可尝试清空搜索或切换分类</div>';
       }
 
       container.innerHTML = html;
+      const countBadge = document.getElementById('fontCountBadge');
+      if (countBadge) {
+        countBadge.textContent = (q || currentFontPickerCategory !== 'all')
+          ? `${visibleCount} / ${FONT_OPTIONS.length} 种`
+          : `${FONT_OPTIONS.length} 种`;
+      }
+      const cardHint = document.getElementById('fontLibraryCountHint');
+      if (cardHint) {
+        cardHint.textContent = `${FONT_OPTIONS.length} 款可选字体`;
+      }
       if (typeof lucide !== 'undefined' && lucide.createIcons) {
         lucide.createIcons();
       }
@@ -33339,6 +33931,7 @@ ${resultText}
         searchInput.value = '';
         setTimeout(() => searchInput.focus(), 50);
       }
+      setUiFontRenderMode(currentUiFontRenderMode, true);
       renderFontItems('');
       updateFontPreview(draftSelectedFont);
     }
@@ -33361,7 +33954,9 @@ ${resultText}
       const previewBox = document.getElementById('fontPreviewBox');
       if (!previewBox) return;
       const fontObj = FONT_OPTIONS.find(f => f.name === fontName) || FONT_OPTIONS[0];
-      previewBox.style.fontFamily = fontObj.css;
+      previewBox.style.setProperty('font-family', fontObj.css, 'important');
+      const nameEl = document.getElementById('fontPreviewNameLabel');
+      if (nameEl) nameEl.textContent = fontObj.name;
     }
 
     function applySelectedFont() {
@@ -33380,8 +33975,92 @@ ${resultText}
       }
     }
 
+    async function loadSystemInstalledFonts() {
+      const tipEl = document.getElementById('fontSystemTipText');
+      let addedCount = 0;
+
+      try {
+        if (typeof window.queryLocalFonts === 'function') {
+          const fonts = await window.queryLocalFonts();
+          const seen = new Set(FONT_OPTIONS.map(f => f.name.toLowerCase()));
+          const families = new Set();
+          fonts.forEach(fd => {
+            if (fd && fd.family) families.add(fd.family);
+          });
+          families.forEach(fam => {
+            if (!seen.has(fam.toLowerCase()) && !FONT_OPTIONS.some(f => f.en.toLowerCase() === fam.toLowerCase())) {
+              seen.add(fam.toLowerCase());
+              const isCjk = /[\u4e00-\u9fa5]|yahei|pingfang|simhei|simsun|dengxian|kaiti|fangsong|harmony|misans|source han|noto sans sc/i.test(fam);
+              FONT_OPTIONS.push({
+                name: fam,
+                en: fam,
+                category: isCjk ? 'cjk' : 'sans',
+                tag: '本机已安装',
+                css: `"${fam}", "Microsoft YaHei UI", sans-serif`
+              });
+              addedCount++;
+            }
+          });
+          if (tipEl) {
+            tipEl.textContent = `已从本机读取 ${families.size} 个本地字体家族（新增 ${addedCount} 种可选字体）`;
+          }
+        } else {
+          // 降级探测本地常见系统字体是否真实安装于本机（无需额外授权）
+          const probeFonts = [
+            { name: 'Microsoft JhengHei UI (微软正黑 UI)', en: 'Microsoft JhengHei UI', cat: 'cjk', tag: '本机繁中清晰体' },
+            { name: 'DengXian Light (等线细体)', en: 'DengXian Light', cat: 'cjk', tag: '轻量等线' },
+            { name: 'Microsoft YaHei Light (微软雅黑细体)', en: 'Microsoft YaHei Light', cat: 'cjk', tag: '轻盈雅黑' },
+            { name: 'NSimSun (新宋体)', en: 'NSimSun', cat: 'mono', tag: '点阵等宽宋体' },
+            { name: 'Cascadia Mono', en: 'Cascadia Mono', cat: 'mono', tag: '本机终端等宽' },
+            { name: 'Malgun Gothic', en: 'Malgun Gothic', cat: 'sans', tag: '东亚系统无衬线' },
+            { name: 'Meiryo UI', en: 'Meiryo UI', cat: 'sans', tag: '日系高清晰' },
+            { name: 'Yu Gothic UI', en: 'Yu Gothic UI', cat: 'sans', tag: 'Windows 系统 UI' },
+            { name: 'Lucida Sans Unicode', en: 'Lucida Sans Unicode', cat: 'sans', tag: '系统自带西文' },
+            { name: 'Palatino Linotype', en: 'Palatino Linotype', cat: 'mono', tag: '古典可读衬线' }
+          ];
+          probeFonts.forEach(pf => {
+            const existsInList = FONT_OPTIONS.some(f => f.en.toLowerCase() === pf.en.toLowerCase() || f.name.toLowerCase() === pf.name.toLowerCase());
+            if (!existsInList) {
+              const available = document.fonts && typeof document.fonts.check === 'function'
+                ? document.fonts.check(`14px "${pf.en}"`)
+                : true;
+              if (available) {
+                FONT_OPTIONS.push({
+                  name: pf.name,
+                  en: pf.en,
+                  category: pf.cat,
+                  tag: pf.tag,
+                  css: `"${pf.en}", "Microsoft YaHei UI", sans-serif`
+                });
+                addedCount++;
+              }
+            }
+          });
+          if (tipEl) {
+            tipEl.textContent = `已自动探测并导入本机可用扩展字体（共 ${FONT_OPTIONS.length} 种，Tauri 端支持直读全量注册表字体）`;
+          }
+        }
+      } catch (err) {
+        if (tipEl) {
+          tipEl.textContent = '已载入精选内置平滑字体库；浏览器限制全量枚举，Tauri 桌面版由 Rust 原生读取';
+        }
+      }
+
+      filterFontList();
+      if (typeof showActionToast === 'function') {
+        showActionToast(addedCount > 0
+          ? `已加载本机扩展字体，新增 ${addedCount} 种可选字体（共 ${FONT_OPTIONS.length} 种）`
+          : `当前已展示全部 ${FONT_OPTIONS.length} 种本机与精选字体`);
+      }
+    }
+
     function setUiFontFamily(fontName) {
       const fontObj = FONT_OPTIONS.find(f => f.name === fontName) || FONT_OPTIONS[0];
+      currentUiFont = fontObj.name;
+      const label = document.getElementById('currentFontNameLabel');
+      if (label) label.textContent = fontObj.name;
+      syncQuickFontChips();
+
       let styleTag = document.getElementById('dynamic-ui-font-family-style');
       if (!styleTag) {
         styleTag = document.createElement('style');
@@ -33389,14 +34068,14 @@ ${resultText}
         document.head.appendChild(styleTag);
       }
 
-      if (fontName === '默认') {
+      if (fontObj.name === '默认') {
         styleTag.textContent = `
-          /* 界面字体恢复系统默认规范 */
+          /* 界面字体恢复系统默认 ClearType 高清优化规范 */
           :root {
-            --ui-active-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            --ui-active-font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "HarmonyOS Sans", "MiSans", "Alibaba PuHuiTi 3.0", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
           }
           #desktopAppWindow,
-          #desktopAppWindow *:not(#tab-terminal *):not(.terminal-output):not(.xterm):not(.xterm *):not(pre):not(code),
+          #desktopAppWindow *:not(#tab-terminal *):not(.terminal-output):not(.xterm):not(.xterm *):not(pre):not(code):not(.font-mono):not(.header-ai-time):not(kbd),
           #desktopAppWindow .font-sans,
           #desktopAppWindow button,
           #desktopAppWindow input,
@@ -33405,13 +34084,15 @@ ${resultText}
           #desktopAppWindow table,
           #desktopAppWindow th,
           #desktopAppWindow td {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif !important;
+            font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "HarmonyOS Sans", "MiSans", "Alibaba PuHuiTi 3.0", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif !important;
           }
-          /* 终端区域保持等宽字形标准 */
+          /* 终端与等宽数字倒计时保持等宽字形标准 */
           #tab-terminal,
           #tab-terminal *,
           #desktopAppWindow pre,
           #desktopAppWindow code,
+          #desktopAppWindow .font-mono,
+          #desktopAppWindow .header-ai-time,
           #desktopAppWindow .terminal-output,
           #desktopAppWindow .xterm {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
@@ -33419,12 +34100,12 @@ ${resultText}
         `;
       } else {
         styleTag.textContent = `
-          /* 全界面强制采用所选字体: ${fontName} (彻底覆盖所有标题、正文、菜单、表格、卡片、按钮与输入框) */
+          /* 全界面强制采用所选字体: ${fontObj.name} */
           :root {
             --ui-active-font-family: ${fontObj.css};
           }
           #desktopAppWindow,
-          #desktopAppWindow *:not(#tab-terminal *):not(.terminal-output):not(.xterm):not(.xterm *):not(pre):not(code),
+          #desktopAppWindow *:not(#tab-terminal *):not(.terminal-output):not(.xterm):not(.xterm *):not(pre):not(code):not(.font-mono):not(.header-ai-time):not(kbd),
           #desktopAppWindow .font-sans,
           #desktopAppWindow button,
           #desktopAppWindow input,
@@ -33433,7 +34114,7 @@ ${resultText}
           #desktopAppWindow table,
           #desktopAppWindow th,
           #desktopAppWindow td,
-          #desktopAppWindow span,
+          #desktopAppWindow span:not(.font-mono):not(.header-ai-time),
           #desktopAppWindow div,
           #desktopAppWindow p,
           #desktopAppWindow a {
@@ -33444,6 +34125,8 @@ ${resultText}
           #tab-terminal *,
           #desktopAppWindow pre,
           #desktopAppWindow code,
+          #desktopAppWindow .font-mono,
+          #desktopAppWindow .header-ai-time,
           #desktopAppWindow .terminal-output,
           #desktopAppWindow .xterm {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
@@ -33451,7 +34134,7 @@ ${resultText}
         `;
       }
 
-      console.log('✓ UI Font family successfully applied across ALL interface elements:', fontName);
+      console.log('✓ UI Font family successfully applied across ALL interface elements:', fontObj.name);
     }
 
     function filterFontList() {
@@ -33485,7 +34168,7 @@ ${resultText}
         btnInc.disabled = (px >= MAX_UI_FONT_SIZE);
       }
 
-      // 核心：动态生成并注入全局自适应字阶样式表，保证正文、标题与说明按比例实时跟随缩放！
+      // 核心：使用整像素字号阶梯避免 Windows 下 .5px 半像素栅格化引起的笔画发虚与锯齿
       let styleTag = document.getElementById('dynamic-ui-font-scale-style');
       if (!styleTag) {
         styleTag = document.createElement('style');
@@ -33494,10 +34177,10 @@ ${resultText}
       }
 
       const scale = px / 14;
-      const f = (val) => (val * scale).toFixed(1) + 'px';
+      const f = (val) => Math.max(10, Math.round(val * scale)) + 'px';
 
       styleTag.textContent = `
-        /* 动态界面文字大小配置: 基准 ${px}px (比例 ${Math.round(scale * 100)}%)，标题与说明按比例跟随；终端字号单独设置 */
+        /* 动态界面文字大小配置: 基准 ${px}px (比例 ${Math.round(scale * 100)}%)，全整数像素对齐防锯齿；终端字号单独设置 */
         :root {
           --ui-base-font-size: ${px}px;
           --ui-font-scale: ${scale.toFixed(3)};
@@ -33507,26 +34190,26 @@ ${resultText}
         }
         #desktopAppWindow .text-\\[8px\\],
         #desktopAppWindow .text-\\[9px\\] {
-          font-size: ${f(9)} !important;
+          font-size: ${f(10)} !important;
         }
         #desktopAppWindow .text-\\[10px\\] {
-          font-size: ${f(10.5)} !important;
+          font-size: ${f(11)} !important;
         }
         #desktopAppWindow .text-\\[11px\\],
         #desktopAppWindow .header-tool-tooltip {
-          font-size: ${f(11.5)} !important;
+          font-size: ${f(12)} !important;
         }
         #desktopAppWindow .text-xs {
-          font-size: ${f(12.5)} !important;
+          font-size: ${f(13)} !important;
         }
         #desktopAppWindow .text-sm {
           font-size: ${f(14)} !important;
         }
         #desktopAppWindow .text-base {
-          font-size: ${f(15.5)} !important;
+          font-size: ${f(16)} !important;
         }
         #desktopAppWindow .text-lg {
-          font-size: ${f(17.5)} !important;
+          font-size: ${f(18)} !important;
         }
         #desktopAppWindow .text-xl {
           font-size: ${f(20)} !important;
@@ -33631,7 +34314,8 @@ ${resultText}
         'set-subnav-general': { zh: '通用', en: 'General' },
         'set-subnav-ai': { zh: 'AI 与网络', en: 'AI & Network' },
         'set-subnav-security': { zh: '安全', en: 'Security' },
-        'set-subnav-data': { zh: '数据与关于', en: 'Data & About' }
+        'set-subnav-data': { zh: '数据与同步', en: 'Data & Sync' },
+        'set-subnav-about': { zh: '关于', en: 'About' }
       },
 
       // 设置右侧各卡片头部及描述
@@ -33724,6 +34408,14 @@ ${resultText}
         'setting-card-community': {
           title: { zh: '作者 & 开源社区', en: 'Author & Open Source Community' },
           desc: { zh: '参与 OpsPub 社区交流、提交 Bug 反馈、贡献代码或查看最新路线图。', en: 'Join the OpsPub developer community, report issues, contribute plugins or view the roadmap.' }
+        },
+        'setting-card-about-overview': {
+          title: { zh: 'OpsPub', en: 'OpsPub' },
+          desc: { zh: 'SSH 终端、SFTP 传输、自动化发布与 AI 受控智维，都在一个原生桌面窗口里。', en: 'SSH terminal, SFTP transfer, CI/CD deploy and controlled AI ops in one native desktop window.' }
+        },
+        'setting-card-update': {
+          title: { zh: '软件更新与自动下载', en: 'Software Update & Auto-Download' },
+          desc: { zh: '控制后台检测频率、发现新版本后是否自动下载更新包（下载时校验 Ed25519 .sig 公钥签名）。', en: 'Configure update check frequency and automatic background download (verified with Ed25519 .sig).' }
         },
         'setting-card-apps': {
           title: { zh: '生态推荐应用 (MCP 生态)', en: 'Recommended Ecosystem Apps (MCP)' },
@@ -43084,18 +43776,251 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     // =========================================================================
     // 软件版本更新管理与升级交互逻辑 (默认刷新页面动态下载 -> 完成后填充样式颜色 -> 右下角通知)
     // =========================================================================
+    const UPDATER_PREFS_KEY = 'opspub_updater_prefs_v1';
+    let updaterPrefs = {
+      checkInterval: 'daily',       // startup | daily | weekly | hourly | manual
+      downloadMode: 'auto_silent',  // auto_silent | notify_only | auto_quiet
+      channel: 'stable',            // stable | beta
+      mirror: 'official',           // official | mirror_cn
+      lastCheckedAt: '2026-11-28 14:20',
+      installedVersion: '1.2.0'
+    };
+    try {
+      const savedUpd = JSON.parse(localStorage.getItem(UPDATER_PREFS_KEY) || 'null');
+      if (savedUpd && typeof savedUpd === 'object') {
+        updaterPrefs = Object.assign({}, updaterPrefs, savedUpd);
+      }
+    } catch (e) {}
+
     let updateDownloadPercent = 12;
     let updateDownloadTimer = null;
     let isUpdateReady = false;
+    let updaterStatus = 'checking'; // idle | checking | available | downloading | ready | uptodate
+
+    function saveUpdaterPrefs() {
+      try { localStorage.setItem(UPDATER_PREFS_KEY, JSON.stringify(updaterPrefs)); } catch (e) {}
+    }
+
+    function getTargetReleaseMeta() {
+      return updaterPrefs.channel === 'beta'
+        ? { version: '1.3.0-beta.2', sizeMb: 49.6 }
+        : { version: '1.2.1', sizeMb: 48.2 };
+    }
+
+    function formatNowTimestamp() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function syncUpdaterSettingsUI() {
+      const target = getTargetReleaseMeta();
+      const intervalHints = {
+        startup: '下次启动客户端时',
+        daily: '每 24 小时后台检测',
+        weekly: '每 7 天后台检测',
+        hourly: '每 60 分钟自动检测',
+        manual: '已关闭自动检测 (仅手动)'
+      };
+
+      const activeBtnCls = 'update-seg-btn is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer';
+      const idleBtnCls = 'update-seg-btn px-2.5 py-1 rounded-lg bg-[#141a22] border border-slate-700/70 text-slate-300 hover:text-white text-[11px] transition cursor-pointer';
+
+      document.querySelectorAll('#updateIntervalButtons [data-upd-interval]').forEach(btn => {
+        const active = btn.getAttribute('data-upd-interval') === updaterPrefs.checkInterval;
+        btn.className = active ? activeBtnCls : idleBtnCls;
+      });
+      document.querySelectorAll('#updateMirrorButtons [data-upd-mirror]').forEach(btn => {
+        const active = btn.getAttribute('data-upd-mirror') === updaterPrefs.mirror;
+        btn.className = active ? activeBtnCls : idleBtnCls;
+      });
+      document.querySelectorAll('#updateChannelButtons [data-upd-channel]').forEach(btn => {
+        const active = btn.getAttribute('data-upd-channel') === updaterPrefs.channel;
+        btn.className = active ? activeBtnCls : idleBtnCls;
+      });
+
+      const activeCardCls = 'update-seg-btn is-active px-3 py-2 rounded-xl bg-teal-500/15 border border-teal-500/40 text-teal-300 text-left transition cursor-pointer';
+      const idleCardCls = 'update-seg-btn px-3 py-2 rounded-xl bg-[#141a22] border border-slate-700/70 text-slate-300 hover:text-white text-left transition cursor-pointer';
+      document.querySelectorAll('#updateDownloadModeButtons [data-upd-dlmode]').forEach(btn => {
+        const active = btn.getAttribute('data-upd-dlmode') === updaterPrefs.downloadMode;
+        btn.className = active ? activeCardCls : idleCardCls;
+      });
+
+      const lastEl = document.getElementById('settingUpdateLastCheckText');
+      const nextEl = document.getElementById('settingUpdateNextCheckText');
+      if (lastEl) lastEl.textContent = '上次检测: ' + (updaterPrefs.lastCheckedAt || '尚未检测');
+      if (nextEl) nextEl.textContent = '计划策略: ' + (intervalHints[updaterPrefs.checkInterval] || '每天一次');
+
+      const pill = document.getElementById('settingUpdateStatusPill');
+      const sumTitle = document.getElementById('settingUpdateSummaryTitle');
+      const progWrap = document.getElementById('settingUpdateInlineProgressWrap');
+      const progBar = document.getElementById('settingUpdateInlineBar');
+      const progSize = document.getElementById('settingUpdateInlineSize');
+      const progPct = document.getElementById('settingUpdateInlinePercent');
+      const primaryBtn = document.getElementById('btnSettingUpdatePrimary');
+      const subnavDot = document.getElementById('aboutSubnavUpdateDot');
+      const verBadge = document.getElementById('aboutHeaderVerBadge');
+      const curVerEl = document.getElementById('aboutInfoCurrentVer');
+
+      if (verBadge) verBadge.textContent = 'v' + updaterPrefs.installedVersion;
+      if (curVerEl) curVerEl.textContent = `v${updaterPrefs.installedVersion} (${updaterPrefs.channel === 'beta' ? 'Beta' : 'Stable'})`;
+
+      const mbLoaded = ((target.sizeMb * updateDownloadPercent) / 100).toFixed(1);
+      if (updaterStatus === 'checking') {
+        if (pill) {
+          pill.textContent = '检查更新中…';
+          pill.className = 'px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-mono text-[11px] shrink-0';
+        }
+        if (sumTitle) sumTitle.textContent = '正在向 ' + (updaterPrefs.mirror === 'mirror_cn' ? '国内 CDN 镜像节点' : 'GitHub Releases 官方节点') + ' 请求 update.json…';
+        if (progWrap) progWrap.classList.add('hidden');
+        if (primaryBtn) primaryBtn.textContent = '查看详情';
+      } else if (updaterStatus === 'downloading') {
+        if (pill) {
+          pill.textContent = `下载中 ${updateDownloadPercent}%`;
+          pill.className = 'px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono text-[11px] shrink-0';
+        }
+        if (sumTitle) sumTitle.textContent = `正在下载 v${target.version} 更新包 (${updaterPrefs.mirror === 'mirror_cn' ? '国内加速源' : '官方源'})…`;
+        if (progWrap) progWrap.classList.remove('hidden');
+        if (progBar) progBar.style.width = updateDownloadPercent + '%';
+        if (progSize) progSize.textContent = `${mbLoaded} MB / ${target.sizeMb} MB`;
+        if (progPct) progPct.textContent = updateDownloadPercent + '%';
+        if (primaryBtn) primaryBtn.textContent = '查看下载进度';
+        if (subnavDot) { subnavDot.classList.remove('hidden'); subnavDot.textContent = updateDownloadPercent + '%'; }
+      } else if (updaterStatus === 'ready') {
+        if (pill) {
+          pill.textContent = `v${target.version} 已就绪`;
+          pill.className = 'px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono text-[11px] shrink-0';
+        }
+        if (sumTitle) sumTitle.textContent = `v${target.version} 安装包已下载并校验 .sig 签名，随时可重启安装`;
+        if (progWrap) progWrap.classList.remove('hidden');
+        if (progBar) progBar.style.width = '100%';
+        if (progSize) progSize.textContent = `${target.sizeMb} MB / ${target.sizeMb} MB (已校验)`;
+        if (progPct) progPct.textContent = '100%';
+        if (primaryBtn) primaryBtn.textContent = '立即安装并重启';
+        if (subnavDot) { subnavDot.classList.remove('hidden'); subnavDot.textContent = 'NEW'; }
+      } else if (updaterStatus === 'available') {
+        if (pill) {
+          pill.textContent = `发现 v${target.version}`;
+          pill.className = 'px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono text-[11px] shrink-0';
+        }
+        if (sumTitle) sumTitle.textContent = `发现新版本 v${target.version} (${target.sizeMb} MB)，当前设置为「手动确认后再下载」`;
+        if (progWrap) progWrap.classList.add('hidden');
+        if (primaryBtn) primaryBtn.textContent = `立即下载 v${target.version}`;
+        if (subnavDot) { subnavDot.classList.remove('hidden'); subnavDot.textContent = 'NEW'; }
+      } else if (updaterStatus === 'uptodate') {
+        if (pill) {
+          pill.textContent = '已是最新';
+          pill.className = 'px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono text-[11px] shrink-0';
+        }
+        if (sumTitle) sumTitle.textContent = `当前运行 v${updaterPrefs.installedVersion} 已是当前通道最新版本`;
+        if (progWrap) progWrap.classList.add('hidden');
+        if (primaryBtn) primaryBtn.textContent = '查看更新日志';
+        if (subnavDot) subnavDot.classList.add('hidden');
+      } else {
+        if (pill) {
+          pill.textContent = '仅手动检测';
+          pill.className = 'px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono text-[11px] shrink-0';
+        }
+        if (sumTitle) sumTitle.textContent = '已开启零后台请求模式，点击右侧「立即检查」可主动查询新版';
+        if (progWrap) progWrap.classList.add('hidden');
+        if (primaryBtn) primaryBtn.textContent = '查看更新日志';
+        if (subnavDot) subnavDot.classList.add('hidden');
+      }
+    }
+
+    function setUpdaterCheckInterval(val) {
+      updaterPrefs.checkInterval = val;
+      saveUpdaterPrefs();
+      syncUpdaterSettingsUI();
+      const map = { startup: '每次启动时', daily: '每天一次', weekly: '每周一次', hourly: '每小时一次', manual: '仅手动检测' };
+      if (typeof showToast === 'function') showToast('更新检测周期已设为: ' + (map[val] || val));
+    }
+
+    function setUpdaterDownloadMode(mode) {
+      updaterPrefs.downloadMode = mode;
+      saveUpdaterPrefs();
+      if (mode === 'notify_only' && updaterStatus === 'downloading') {
+        if (updateDownloadTimer) { clearInterval(updateDownloadTimer); updateDownloadTimer = null; }
+        updaterStatus = 'available';
+      } else if ((mode === 'auto_silent' || mode === 'auto_quiet') && updaterStatus === 'available') {
+        startDefaultVersionDownloadSimulation();
+        return;
+      }
+      syncUpdaterSettingsUI();
+      const map = { auto_silent: '自动后台下载（就绪后提示安装）', notify_only: '仅提醒发现新版，手动下载', auto_quiet: '自动下载并在空闲退出时静默更新' };
+      if (typeof showToast === 'function') showToast('新版本下载策略已设为: ' + (map[mode] || mode));
+    }
+
+    function setUpdaterChannel(ch) {
+      updaterPrefs.channel = ch;
+      saveUpdaterPrefs();
+      syncUpdaterSettingsUI();
+      if (typeof showToast === 'function') showToast('更新通道已切换为: ' + (ch === 'beta' ? '预览版 (Beta)' : '稳定版 (Stable)'));
+    }
+
+    function setUpdaterMirror(m) {
+      updaterPrefs.mirror = m;
+      saveUpdaterPrefs();
+      syncUpdaterSettingsUI();
+      if (typeof showToast === 'function') showToast('更新源已切换为: ' + (m === 'mirror_cn' ? '国内 CDN 镜像 (异常时自动回退官方源)' : '官方源 (GitHub Releases)'));
+    }
+
+    function checkAppUpdateNow() {
+      if (updateDownloadTimer) { clearInterval(updateDownloadTimer); updateDownloadTimer = null; }
+      updaterStatus = 'checking';
+      syncUpdaterSettingsUI();
+      setTimeout(() => {
+        updaterPrefs.lastCheckedAt = formatNowTimestamp();
+        saveUpdaterPrefs();
+        const target = getTargetReleaseMeta();
+        if (updaterPrefs.installedVersion === target.version) {
+          updaterStatus = 'uptodate';
+          syncUpdaterSettingsUI();
+          if (typeof showToast === 'function') showToast('当前已是最新版本 v' + target.version);
+          return;
+        }
+        if (updaterPrefs.downloadMode === 'notify_only') {
+          updaterStatus = 'available';
+          const tipEl = document.querySelector('#headerItemUpdate .header-tool-tooltip');
+          if (tipEl) tipEl.textContent = `发现新版本 v${target.version} (待手动下载)`;
+          syncUpdaterSettingsUI();
+          if (typeof showToast === 'function') showToast(`发现新版本 v${target.version}，已按策略等待确认下载`);
+        } else {
+          startDefaultVersionDownloadSimulation();
+        }
+      }, 420);
+    }
+
+    function triggerUpdatePrimaryAction() {
+      if (updaterStatus === 'available') {
+        startDefaultVersionDownloadSimulation();
+        if (typeof showToast === 'function') showToast('开始下载 OpsPub 新版本安装包…');
+      } else if (updaterStatus === 'ready') {
+        openAppUpdateModal();
+      } else if (updaterStatus === 'idle') {
+        checkAppUpdateNow();
+      } else {
+        openAppUpdateModal();
+      }
+    }
+
+    function copyAboutDiagnosticInfo() {
+      const info = `OpsPub v${updaterPrefs.installedVersion} | Windows x86_64 | Tauri v2 (WebView2) | Channel: ${updaterPrefs.channel} | Interval: ${updaterPrefs.checkInterval} | Download: ${updaterPrefs.downloadMode} | LastCheck: ${updaterPrefs.lastCheckedAt}`;
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(info).catch(() => {});
+      }
+      if (typeof showToast === 'function') showToast('已复制 OpsPub 版本与更新诊断信息');
+    }
 
     // 1. 应用下载中进度态 (未填充实心背景，细边框，动态百分比)
     function applyUpdateDownloadingState(percent) {
       isUpdateReady = false;
+      updaterStatus = 'downloading';
+      const target = getTargetReleaseMeta();
       const tipEl = document.querySelector('#headerItemUpdate .header-tool-tooltip');
       const floatCard = document.getElementById('floatUpdateNotification');
-      if (tipEl) tipEl.textContent = `1.2.0-1.2.1 下载中 (${percent}%)`;
+      if (tipEl) tipEl.textContent = `${updaterPrefs.installedVersion}-${target.version} 下载中 (${percent}%)`;
 
-      // 同步弹窗内部进度
       const statusTitle = document.getElementById('modalDownloadStatusTitle');
       const statusPercent = document.getElementById('modalDownloadStatusPercent');
       const progBar = document.getElementById('modalDownloadProgressBar');
@@ -43105,12 +44030,12 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       if (statusPercent) statusPercent.innerText = `${percent}%`;
       if (progBar) progBar.style.width = `${percent}%`;
       if (sizeText) {
-        const mb = (48.2 * percent / 100).toFixed(1);
-        sizeText.innerText = `已下载 ${mb} MB / 48.2 MB`;
+        const mb = (target.sizeMb * percent / 100).toFixed(1);
+        sizeText.innerText = `已下载 ${mb} MB / ${target.sizeMb} MB`;
       }
 
-      // 下载未完成时隐藏右下角通知并归位右下角浮窗栈
       if (floatCard) floatCard.classList.add('hidden');
+      syncUpdaterSettingsUI();
       if (typeof relayoutBottomRightFloatingStack === 'function') relayoutBottomRightFloatingStack();
       if (window.lucide) lucide.createIcons();
     }
@@ -43118,11 +44043,12 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     // 2. 应用下载完成就绪态 (填充样式颜色，纯白饱满文字，右下角弹出直接升级)
     function applyUpdateReadyState() {
       isUpdateReady = true;
+      updaterStatus = 'ready';
+      const target = getTargetReleaseMeta();
       const tipEl = document.querySelector('#headerItemUpdate .header-tool-tooltip');
       const floatCard = document.getElementById('floatUpdateNotification');
-      if (tipEl) tipEl.textContent = '1.2.0-1.2.1 已就绪 (点击重启升级)';
+      if (tipEl) tipEl.textContent = `${updaterPrefs.installedVersion}-${target.version} 已就绪 (点击重启升级)`;
 
-      // 同步弹窗内部为已下载完毕
       const statusTitle = document.getElementById('modalDownloadStatusTitle');
       const statusPercent = document.getElementById('modalDownloadStatusPercent');
       const progBar = document.getElementById('modalDownloadProgressBar');
@@ -43131,19 +44057,21 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       if (statusTitle) statusTitle.innerText = '更新包已下载完毕，随时可安装';
       if (statusPercent) statusPercent.innerText = '100%';
       if (progBar) progBar.style.width = '100%';
-      if (sizeText) sizeText.innerText = '已下载 48.2 MB / 48.2 MB';
+      if (sizeText) sizeText.innerText = `已下载 ${target.sizeMb} MB / ${target.sizeMb} MB`;
 
-      // 右下角平滑滑出直接升级通知卡片并自动协调浮窗纵向栈
-      if (floatCard) {
-        floatCard.classList.remove('hidden');
-      }
+      if (floatCard) floatCard.classList.remove('hidden');
+      syncUpdaterSettingsUI();
       if (typeof relayoutBottomRightFloatingStack === 'function') relayoutBottomRightFloatingStack();
       if (window.lucide) lucide.createIcons();
 
-      showToast('🎉 新版本安装包已自动下载完毕，随时可点击重启升级！');
+      if (updaterPrefs.downloadMode === 'auto_quiet') {
+        showToast(`✓ v${target.version} 已后台下载完毕，将在退出应用空闲时自动静默完成升级`);
+      } else {
+        showToast('🎉 新版本安装包已自动下载完毕，随时可点击重启升级！');
+      }
     }
 
-    // 3. 默认启动下载进度平滑递增模拟 (打开软件/刷新页面时自动触发)
+    // 3. 启动下载进度平滑递增模拟
     function startDefaultVersionDownloadSimulation() {
       if (updateDownloadTimer) clearInterval(updateDownloadTimer);
       updateDownloadPercent = 12;
@@ -43151,7 +44079,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
 
       updateDownloadTimer = setInterval(() => {
         if (updateDownloadPercent < 100) {
-          const step = Math.floor(Math.random() * 14) + 12; // 随机步进 12% ~ 25%
+          const step = Math.floor(Math.random() * 14) + 12;
           updateDownloadPercent = Math.min(100, updateDownloadPercent + step);
           applyUpdateDownloadingState(updateDownloadPercent);
 
@@ -43166,7 +44094,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       }, 700);
     }
 
-    // 打开版本升级弹窗 (截图 3)
+    // 打开版本升级弹窗
     function openAppUpdateModal() {
       const modal = document.getElementById('modalAppUpdateInfo');
       if (modal) modal.classList.remove('hidden');
@@ -43178,40 +44106,61 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       if (modal) modal.classList.add('hidden');
     }
 
-    // 从右下角悬浮通知打开详情弹窗
     function openUpdateModalFromFloat() {
       closeFloatUpdateNotification();
       openAppUpdateModal();
     }
 
-    // 关闭右下角悬浮通知
     function closeFloatUpdateNotification() {
       const floatCard = document.getElementById('floatUpdateNotification');
       if (floatCard) floatCard.classList.add('hidden');
       if (typeof relayoutBottomRightFloatingStack === 'function') relayoutBottomRightFloatingStack();
     }
 
-    // 执行立即安装并重启升级
     function executeAppRestartUpdate() {
       closeAppUpdateModal();
       closeFloatUpdateNotification();
 
+      const target = getTargetReleaseMeta();
       const overlay = document.getElementById('restartingUpdateOverlay');
       if (overlay) overlay.classList.remove('hidden');
 
       setTimeout(() => {
         if (overlay) overlay.classList.add('hidden');
+        updaterPrefs.installedVersion = target.version;
+        updaterPrefs.lastCheckedAt = formatNowTimestamp();
+        updaterStatus = 'uptodate';
+        isUpdateReady = false;
+        saveUpdaterPrefs();
         const headerUpd = document.getElementById('headerItemUpdate');
         const tipEl = headerUpd ? headerUpd.querySelector('.header-tool-tooltip') : null;
-        if (tipEl) tipEl.textContent = 'OpsPub v1.2.1 已是最新';
+        if (tipEl) tipEl.textContent = `OpsPub v${target.version} 已是最新`;
+        syncUpdaterSettingsUI();
 
-        showToast('🚀 OpsPub 升级完成！已成功重载至最新版 v1.2.1');
+        showToast(`🚀 OpsPub 升级完成！已成功重载至最新版 v${target.version}`);
       }, 1800);
     }
 
+    function initAppUpdaterPolicyStartup() {
+      syncUpdaterSettingsUI();
+      if (updaterPrefs.checkInterval === 'manual') {
+        updaterStatus = 'idle';
+        const tipEl = document.querySelector('#headerItemUpdate .header-tool-tooltip');
+        if (tipEl) tipEl.textContent = `OpsPub v${updaterPrefs.installedVersion} (手动更新模式)`;
+        syncUpdaterSettingsUI();
+      } else if (updaterPrefs.downloadMode === 'notify_only') {
+        updaterStatus = 'available';
+        const target = getTargetReleaseMeta();
+        const tipEl = document.querySelector('#headerItemUpdate .header-tool-tooltip');
+        if (tipEl) tipEl.textContent = `发现新版本 v${target.version} (待手动下载)`;
+        syncUpdaterSettingsUI();
+      } else {
+        startDefaultVersionDownloadSimulation();
+      }
+    }
 
-    // 默认刷新页面启动版本下载模拟 (完成后填充样式颜色并弹出右下角直接升级)
-    setTimeout(startDefaultVersionDownloadSimulation, 300);
+    // 根据更新策略启动版本检测与自动下载流程
+    setTimeout(initAppUpdaterPolicyStartup, 300);
 
     // =========================================================================
     // 备份与还原 (Backup & Restore) 4 个子 Tab 与存储端管理核心交互
@@ -44298,8 +45247,155 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
     let currentDomain = 'ops';
     let isSubSidebarOpen = true;
 
-    // 切换一级大业务域 (ops / automation / ai / gov)
-    function switchDomain(domainKey, autoExpand = true) {
+    const SUB_RAIL_DOMAIN_META = {
+      ops: {
+        primary: {
+          label: '添加新服务器',
+          icon: 'plus',
+          cls: 'sub-rail-primary-btn bg-brand-500/15 hover:bg-brand-500/25 text-brand-400 hover:text-brand-300 border-brand-500/30',
+          action: () => { if (typeof openAddServerModal === 'function') openAddServerModal(); }
+        },
+        items: [
+          { type: 'tab', target: 'tab-servers', icon: 'server', label: '服务器资产', sbId: 'sb_servers' },
+          { type: 'tab', target: 'tab-terminal', icon: 'terminal', label: '远程终端', sbId: 'sb_terminal' },
+          { type: 'tab', target: 'tab-workbench', icon: 'layout-grid', label: '主机工作台', sbId: 'sb_workbench' },
+          { type: 'tab', target: 'tab-sftp', icon: 'folder-sync', label: 'SFTP 文件传输', sbId: 'sb_sftp' },
+          { type: 'tab', target: 'tab-database', icon: 'database', label: '数据库工作台', sbId: 'sb_database' }
+        ]
+      },
+      automation: {
+        primary: {
+          label: '新建自动化流水线',
+          icon: 'plus',
+          cls: 'sub-rail-primary-btn bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-400 hover:text-cyan-300 border-cyan-500/30',
+          action: () => { if (typeof openDeployWizardModal === 'function') openDeployWizardModal(); }
+        },
+        items: [
+          { type: 'tab', target: 'tab-batch', icon: 'layers', label: '批量执行与下发' },
+          { type: 'tab', target: 'tab-deploy', icon: 'rocket', label: 'CI/CD 部署发布' }
+        ]
+      },
+      ai: {
+        primary: {
+          label: '开启新会话 / 排障任务',
+          icon: 'plus',
+          cls: 'sub-rail-primary-btn bg-brand-500/15 hover:bg-brand-500/25 text-brand-400 hover:text-brand-300 border-brand-500/30',
+          action: () => { if (typeof createNewAiTask === 'function') createNewAiTask(); }
+        },
+        items: [
+          { type: 'tab', target: 'tab-copilot', icon: 'message-square-code', label: '智维助理 (Copilot)' },
+          { type: 'tab', target: 'tab-skills', icon: 'sparkles', label: '专家技能库' },
+          { type: 'tab', target: 'tab-mcp', icon: 'cpu', label: 'MCP 协议工具' },
+          { type: 'tab', target: 'tab-inspector', icon: 'shield-alert', label: '深度巡检诊断' }
+        ]
+      },
+      gov: {
+        primary: {
+          label: '签发安全凭据',
+          icon: 'plus',
+          cls: 'sub-rail-primary-btn bg-purple-500/15 hover:bg-purple-500/25 text-purple-400 hover:text-purple-300 border-purple-500/30',
+          action: () => { if (typeof openNewCredentialModal === 'function') openNewCredentialModal(); }
+        },
+        items: [
+          { type: 'tab', target: 'tab-credentials', icon: 'key', label: '服务凭据' },
+          { type: 'tab', target: 'tab-sensitive', icon: 'shield', label: '敏感库 (脱敏)' },
+          { type: 'tab', target: 'tab-security', icon: 'check-square', label: '安全闸门与审批' },
+          { type: 'tab', target: 'tab-audit', icon: 'file-text', label: '审计存证日志' }
+        ]
+      },
+      settings: {
+        primary: null,
+        items: [
+          { type: 'settings', target: 'general', icon: 'sliders', label: '通用偏好设置' },
+          { type: 'settings', target: 'sftp', icon: 'folder-sync', label: 'SFTP 传输' },
+          { type: 'settings', target: 'terminal', icon: 'terminal', label: '终端渲染与主题' },
+          { type: 'settings', target: 'ai', icon: 'bot', label: 'AI 模型与代理' },
+          { type: 'settings', target: 'security', icon: 'shield', label: '安全与审批控制' },
+          { type: 'settings', target: 'data', icon: 'database', label: '数据与同步' },
+          { type: 'settings', target: 'about', icon: 'info', label: '关于与更新' }
+        ]
+      }
+    };
+
+    function triggerSubRailPrimaryAction() {
+      const meta = SUB_RAIL_DOMAIN_META[currentDomain] || SUB_RAIL_DOMAIN_META.ops;
+      if (meta && meta.primary && typeof meta.primary.action === 'function') {
+        meta.primary.action();
+      }
+    }
+
+    function renderSubSidebarCollapsedRail() {
+      const rail = document.getElementById('subSidebarCollapsedRail');
+      const primaryBtn = document.getElementById('btnSubRailPrimaryAction');
+      const primaryTip = document.getElementById('subRailPrimaryTooltip');
+      const divider = rail ? rail.querySelector('.sub-rail-divider') : null;
+      const itemsWrap = document.getElementById('subRailNavItems');
+      if (!rail || !itemsWrap) return;
+
+      const meta = SUB_RAIL_DOMAIN_META[currentDomain] || SUB_RAIL_DOMAIN_META.ops;
+      if (primaryBtn) {
+        if (meta.primary) {
+          primaryBtn.className = meta.primary.cls + ' group';
+          primaryBtn.setAttribute('aria-label', meta.primary.label);
+          primaryBtn.classList.remove('hidden');
+          const iconEl = primaryBtn.querySelector('i, svg');
+          if (iconEl) {
+            const fresh = document.createElement('i');
+            fresh.setAttribute('data-lucide', meta.primary.icon || 'plus');
+            fresh.className = 'w-4 h-4';
+            iconEl.replaceWith(fresh);
+          }
+          if (primaryTip) primaryTip.textContent = meta.primary.label;
+          if (divider) divider.classList.remove('hidden');
+        } else {
+          primaryBtn.classList.add('hidden');
+          if (divider) divider.classList.remove('hidden');
+        }
+      }
+
+      const sbCfg = (typeof TOOLBAR_CONFIG_DATA !== 'undefined' && TOOLBAR_CONFIG_DATA.sidebar?.items) ? TOOLBAR_CONFIG_DATA.sidebar.items : [];
+      const sbHiddenSet = new Set(sbCfg.filter(i => !i.enabled || i.pos === '隐藏').map(i => i.id));
+      const activeTabEl = document.querySelector('.tab-content:not(.hidden)');
+      const activeTabId = activeTabEl ? activeTabEl.id : '';
+
+      let html = '';
+      (meta.items || []).forEach(it => {
+        if (it.sbId && sbHiddenSet.has(it.sbId)) return;
+        const isActive = it.type === 'settings'
+          ? (typeof currentSettingsSection !== 'undefined' && currentSettingsSection === it.target && activeTabId === 'tab-settings')
+          : (activeTabId === it.target);
+        const clickExpr = it.type === 'settings'
+          ? `switchSettingsSection('${it.target}')`
+          : `switchTab('${it.target}')`;
+        const dataAttr = it.type === 'settings'
+          ? `data-rail-settings-section="${it.target}"`
+          : `data-rail-tab="${it.target}"`;
+        html += `<button type="button" onclick="${clickExpr}" ${dataAttr} class="sub-rail-btn ${isActive ? 'is-active' : ''} group" aria-label="${it.label}"><i data-lucide="${it.icon}" class="w-4 h-4"></i><span class="sub-rail-tooltip">${it.label}</span></button>`;
+      });
+
+      itemsWrap.innerHTML = html;
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+      }
+    }
+
+    function syncSubSidebarCollapsedRailActive() {
+      const itemsWrap = document.getElementById('subRailNavItems');
+      if (!itemsWrap) return;
+      const activeTabEl = document.querySelector('.tab-content:not(.hidden)');
+      const activeTabId = activeTabEl ? activeTabEl.id : '';
+      itemsWrap.querySelectorAll('.sub-rail-btn').forEach(btn => {
+        const t = btn.getAttribute('data-rail-tab');
+        const s = btn.getAttribute('data-rail-settings-section');
+        const active = s
+          ? (typeof currentSettingsSection !== 'undefined' && currentSettingsSection === s && activeTabId === 'tab-settings')
+          : (t === activeTabId);
+        btn.classList.toggle('is-active', !!active);
+      });
+    }
+
+    // 切换一级大业务域 (ops / automation / ai / gov / settings)
+    function switchDomain(domainKey, autoExpand = false) {
       currentDomain = domainKey;
 
       // 1. 更新一级轨按钮样式
@@ -44318,23 +45414,21 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         if (indicator) indicator.classList.remove('hidden');
       }
 
-      // 2. 切换二级面板显示
+      // 2. 根据展开/折叠状态同步二级面板或极简窄轨
       document.querySelectorAll('.domain-sub-panel').forEach(panel => {
         panel.classList.add('hidden');
       });
-      const targetPanel = document.getElementById('domain-panel-' + domainKey);
-      if (targetPanel) {
-        targetPanel.classList.remove('hidden');
+      if (isSubSidebarOpen || autoExpand) {
+        const targetPanel = document.getElementById('domain-panel-' + domainKey);
+        if (targetPanel) targetPanel.classList.remove('hidden');
       }
 
-
-
-      // 4. 自动滑出二级栏
+      // 3. 如需强制展开则复位为 220px
       if (!isSubSidebarOpen && autoExpand) {
         toggleSubSidebar(true);
       }
 
-      // 5. 自动切到该领域的首要页面
+      // 4. 自动切到该领域的首要页面
       const activeTabEl = document.querySelector('.tab-content:not(.hidden)');
       const activeTabId = activeTabEl ? activeTabEl.id : '';
       if (domainKey === 'ops') {
@@ -44353,14 +45447,17 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         if (activeTabId !== 'tab-settings') switchTab('tab-settings');
       }
 
-      if (window.lucide && typeof lucide.createIcons === 'function') {
+      if (!isSubSidebarOpen) {
+        renderSubSidebarCollapsedRail();
+      } else if (window.lucide && typeof lucide.createIcons === 'function') {
         lucide.createIcons();
       }
     }
 
-    // 展开/收起二级抽屉面板
+    // 展开/收起二级工作区面板 (展开 220px <-> 折叠 44px 极简窄轨)
     function toggleSubSidebar(forceState) {
       const sidebar = document.getElementById('subWorkspaceSidebar');
+      const collapsedRail = document.getElementById('subSidebarCollapsedRail');
       if (!sidebar) return;
 
       if (typeof forceState === 'boolean') {
@@ -44369,21 +45466,27 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         isSubSidebarOpen = !isSubSidebarOpen;
       }
 
-      const toggleBtnIcon = document.querySelector('#btnHeaderToggleSidebar i');
-
       if (isSubSidebarOpen) {
         sidebar.style.width = '220px';
         sidebar.style.opacity = '1';
         sidebar.style.pointerEvents = 'auto';
-        sidebar.classList.remove('border-r-0');
-        if (toggleBtnIcon) toggleBtnIcon.setAttribute('data-lucide', 'panel-left-close');
+        sidebar.classList.remove('border-r-0', 'is-collapsed');
+        if (collapsedRail) collapsedRail.classList.add('hidden');
+        document.querySelectorAll('.domain-sub-panel').forEach(p => p.classList.add('hidden'));
+        const curPanel = document.getElementById('domain-panel-' + currentDomain);
+        if (curPanel) curPanel.classList.remove('hidden');
       } else {
-        sidebar.style.width = '0px';
-        sidebar.style.opacity = '0';
-        sidebar.style.pointerEvents = 'none';
-        sidebar.classList.add('border-r-0');
-        if (toggleBtnIcon) toggleBtnIcon.setAttribute('data-lucide', 'panel-left');
+        sidebar.style.width = '44px';
+        sidebar.style.opacity = '1';
+        sidebar.style.pointerEvents = 'auto';
+        sidebar.classList.remove('border-r-0');
+        sidebar.classList.add('is-collapsed');
+        document.querySelectorAll('.domain-sub-panel').forEach(p => p.classList.add('hidden'));
+        if (collapsedRail) collapsedRail.classList.remove('hidden');
+        renderSubSidebarCollapsedRail();
       }
+
+      try { localStorage.setItem('opspub_subsidebar_open', isSubSidebarOpen ? '1' : '0'); } catch (e) {}
 
       if (window.lucide && typeof lucide.createIcons === 'function') {
         lucide.createIcons();
@@ -44403,10 +45506,11 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         if (['ops', 'automation', 'ai', 'gov'].includes(mappedDomain)) {
           if (currentDomain !== mappedDomain) {
             currentDomain = mappedDomain;
-            // 切换二级面板
             document.querySelectorAll('.domain-sub-panel').forEach(p => p.classList.add('hidden'));
-            const pTarget = document.getElementById('domain-panel-' + mappedDomain);
-            if (pTarget) pTarget.classList.remove('hidden');
+            if (isSubSidebarOpen) {
+              const pTarget = document.getElementById('domain-panel-' + mappedDomain);
+              if (pTarget) pTarget.classList.remove('hidden');
+            }
 
             // 切换一级指示
             document.querySelectorAll('.primary-dock-btn').forEach(btn => {
@@ -44422,8 +45526,17 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
               const indicator = dBtn.querySelector('.dock-indicator');
               if (indicator) indicator.classList.remove('hidden');
             }
+            if (!isSubSidebarOpen) renderSubSidebarCollapsedRail();
           }
         } else if (mappedDomain === 'alerts' || mappedDomain === 'settings') {
+          if (mappedDomain === 'settings') {
+            currentDomain = 'settings';
+            if (isSubSidebarOpen) {
+              document.querySelectorAll('.domain-sub-panel').forEach(p => p.classList.add('hidden'));
+              const sp = document.getElementById('domain-panel-settings');
+              if (sp) sp.classList.remove('hidden');
+            }
+          }
           // 底栏固钉高亮
           document.querySelectorAll('.primary-dock-btn').forEach(btn => {
             btn.classList.remove('bg-brand-500/20', 'text-white', 'shadow-md');
@@ -44431,7 +45544,7 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
             const indicator = btn.querySelector('.dock-indicator');
             if (indicator) indicator.classList.add('hidden');
           });
-          const targetDockBtn = document.getElementById('dock-tab-' + mappedDomain) || document.getElementById('nav-tab-' + mappedDomain);
+          const targetDockBtn = document.getElementById('dock-domain-' + mappedDomain) || document.getElementById('dock-tab-' + mappedDomain) || document.getElementById('nav-tab-' + mappedDomain);
           if (targetDockBtn) {
             targetDockBtn.classList.remove('text-slate-400');
             targetDockBtn.classList.add('bg-brand-500/20', 'text-white', 'shadow-md');
@@ -44456,6 +45569,9 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
         if (ic) ic.classList.add('text-emerald-400');
       }
 
+      if (!isSubSidebarOpen && typeof renderSubSidebarCollapsedRail === 'function') {
+        renderSubSidebarCollapsedRail();
+      }
       if (window.lucide && typeof lucide.createIcons === 'function') {
         lucide.createIcons();
       }
@@ -44652,6 +45768,11 @@ Sep 23 01:22:16 C20241128197544 systemd-logind[672]: New session 3365 of user ro
       if (typeof restoreLogoColorPreset === 'function') restoreLogoColorPreset();
       if (typeof restoreWindowShowLabels === 'function') restoreWindowShowLabels();
       ['window', 'terminal', 'sftp', 'sidebar'].forEach(c => applyAllToolbarVisibility(c));
+      try {
+        if (localStorage.getItem('opspub_subsidebar_open') === '0') {
+          toggleSubSidebar(false);
+        }
+      } catch (e) {}
 
       syncFeaturePrefsToSettingsUI();
       applySftpPrefsLive();
@@ -45852,50 +46973,72 @@ triggers: <span id="rfmTriggers" class="text-slate-300">关键词1, 关键词2</
   <!-- 模态弹窗: 界面字体选择器 (1:1 严格对齐用户需求截图 2: 搜索、字体列表勾选与高亮、实时字形预览框、取消/确定) -->
   <!-- =================================================================================== -->
   <div id="modalFontPicker" onclick="if(event.target===this)closeFontPickerModal()" class="hidden fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 font-sans select-none animate-in fade-in duration-150">
-    <div id="modalFontPickerCard" class="w-full max-w-[460px] bg-[#141820] border border-slate-700/80 rounded-2xl shadow-2xl p-5 flex flex-col text-slate-200 transition-all duration-200">
+    <div id="modalFontPickerCard" class="w-full max-w-[520px] bg-[#141820] border border-slate-700/80 rounded-2xl shadow-2xl p-5 flex flex-col text-slate-200 transition-all duration-200">
       
       <!-- 弹窗顶栏 (标题 + 关闭按钮) -->
       <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800/80">
         <div class="font-bold text-sm text-white flex items-center space-x-2">
           <i data-lucide="case-sensitive" class="w-4 h-4 text-teal-400"></i>
-          <span class="tracking-wide">界面字体</span>
+          <span class="tracking-wide">界面字体与平滑度设置</span>
         </div>
         <button type="button" onclick="closeFontPickerModal()" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-800 transition cursor-pointer" title="关闭 (Esc)">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <!-- 搜索输入框 (带搜索图标，1:1 对齐截图 2) -->
-      <div class="flex items-center space-x-2 mb-2.5">
+      <!-- 搜索输入框 + 读取本机字体 -->
+      <div class="flex items-center space-x-2 mb-2">
         <div class="relative flex-1">
           <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-500 pointer-events-none"></i>
-          <input type="text" id="fontSearchInput" placeholder="搜索字体 (如 Arial, 黑体, 等)" oninput="filterFontList()" class="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0b0e14] border border-slate-700/80 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-teal-500/80 focus:ring-1 focus:ring-teal-500/30 transition font-sans" />
+          <input type="text" id="fontSearchInput" placeholder="搜索字体 (如 雅黑 UI, 等线, 鸿蒙, MiSans, Inter...)" oninput="filterFontList()" class="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0b0e14] border border-slate-700/80 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-teal-500/80 focus:ring-1 focus:ring-teal-500/30 transition font-sans" />
         </div>
-        <button type="button" onclick="loadSystemInstalledFonts()" id="btnLoadSystemFonts" class="px-2.5 py-2 rounded-xl bg-surface-900 hover:bg-surface-800 active:bg-surface-700 border border-slate-700/80 text-slate-300 hover:text-white text-xs transition cursor-pointer flex items-center space-x-1 shrink-0" title="从操作系统实时枚举当前电脑安装的全部本地字体">
+        <button type="button" onclick="loadSystemInstalledFonts()" id="btnLoadSystemFonts" class="px-2.5 py-2 rounded-xl bg-surface-900 hover:bg-surface-800 active:bg-surface-700 border border-slate-700/80 text-slate-300 hover:text-white text-xs transition cursor-pointer flex items-center space-x-1 shrink-0" title="从当前系统检测并导入本地已安装字体">
           <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-teal-400"></i>
           <span class="text-[11px]">读取本机字体</span>
         </button>
       </div>
-      <div id="fontSystemTip" class="text-[10px] text-slate-500 px-1 mb-2 flex items-center justify-between">
-        <span class="truncate">当前显示系统精选自带字体；Tauri 桌面端将由 Rust 直接枚举全部系统字体</span>
-        <span id="fontCountBadge" class="font-mono text-slate-400 shrink-0 ml-2">25 种</span>
+
+      <!-- 分类筛选标签 -->
+      <div id="fontCategoryTabs" class="flex flex-wrap items-center gap-1.5 mb-2">
+        <button type="button" data-font-cat="all" onclick="setFontPickerCategory('all')" class="font-cat-pill is-active px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer">全部</button>
+        <button type="button" data-font-cat="recommended" onclick="setFontPickerCategory('recommended')" class="font-cat-pill px-2.5 py-1 rounded-lg bg-[#0b0e14] border border-slate-700/80 text-slate-300 hover:text-white text-[11px] transition cursor-pointer">清晰防锯齿推荐</button>
+        <button type="button" data-font-cat="cjk" onclick="setFontPickerCategory('cjk')" class="font-cat-pill px-2.5 py-1 rounded-lg bg-[#0b0e14] border border-slate-700/80 text-slate-300 hover:text-white text-[11px] transition cursor-pointer">平滑中文</button>
+        <button type="button" data-font-cat="sans" onclick="setFontPickerCategory('sans')" class="font-cat-pill px-2.5 py-1 rounded-lg bg-[#0b0e14] border border-slate-700/80 text-slate-300 hover:text-white text-[11px] transition cursor-pointer">现代西文</button>
+        <button type="button" data-font-cat="mono" onclick="setFontPickerCategory('mono')" class="font-cat-pill px-2.5 py-1 rounded-lg bg-[#0b0e14] border border-slate-700/80 text-slate-300 hover:text-white text-[11px] transition cursor-pointer">等宽与衬线</button>
       </div>
 
-      <!-- 字体列表滚动区域 (1:1 对齐截图 2 中的字体列表) -->
-      <div id="fontItemsContainer" class="max-h-56 overflow-y-auto space-y-0.5 pr-1 py-1 custom-scrollbar">
+      <div id="fontSystemTip" class="text-[11px] text-slate-500 px-1 mb-2 flex items-center justify-between">
+        <span id="fontSystemTipText" class="truncate">列表按真实字形即时渲染；推荐优先使用「微软雅黑 UI / 等线 / 鸿蒙 / MiSans」消除锯齿</span>
+        <span id="fontCountBadge" class="font-mono text-slate-400 shrink-0 ml-2">45 种</span>
+      </div>
+
+      <!-- 字体列表滚动区域 -->
+      <div id="fontItemsContainer" class="max-h-56 overflow-y-auto space-y-1 pr-1 py-1 custom-scrollbar">
         <!-- 列表由 JS 动态生成 -->
       </div>
 
-      <!-- 字体预览框 (1:1 严格对齐截图 2 中的双行预览文案与深色黑底背景) -->
-      <div id="fontPreviewBox" class="mt-3 p-3.5 rounded-xl bg-[#0b0e14] border border-slate-800/90 text-xs leading-relaxed space-y-1 transition-all select-none">
-        <div class="preview-line-1 text-slate-200 tracking-wide font-medium truncate">The quick brown fox 敏捷的棕色狐狸 0123456789</div>
-        <div class="preview-line-2 text-slate-300 truncate">Aa Bb Cc 你好，世界！ (1) [2] {3} @ # % &amp;</div>
+      <!-- 多字号清晰度实时预览框 -->
+      <div id="fontPreviewBox" class="mt-3 p-3.5 rounded-xl bg-[#0b0e14] border border-slate-800/90 text-xs leading-relaxed space-y-1.5 transition-all select-none">
+        <div class="flex items-center justify-between text-[11px] text-slate-400 preview-meta font-sans">
+          <span>效果预览 · <strong id="fontPreviewNameLabel" class="text-teal-400 font-medium">默认</strong></span>
+          <span id="fontPreviewRenderLabel" class="font-mono">ClearType 清晰微调</span>
+        </div>
+        <div class="preview-line-1 text-[16px] text-white font-medium truncate">OpsPub 服务器资产清单 · 运行中 99.98%</div>
+        <div class="preview-line-2 text-[14px] text-slate-200 truncate">The quick brown fox 敏捷的棕色狐狸 0123456789</div>
+        <div class="preview-line-3 text-[12px] text-slate-300 truncate">Aa Bb Cc 你好，世界！ root@192.168.1.10 (1) [2] {3} @ # % &amp;</div>
       </div>
 
-      <!-- 底部操作按钮栏 (对齐截图 2: 右下角 [取消] [确定]) -->
-      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-end space-x-2.5">
-        <button type="button" onclick="closeFontPickerModal()" class="px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 active:bg-surface-600 text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer">取消</button>
-        <button type="button" onclick="applySelectedFont()" class="px-5 py-1.5 rounded-lg bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 text-xs font-semibold shadow-md transition cursor-pointer">确定</button>
+      <!-- 底部操作按钮栏 -->
+      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+        <div class="flex items-center space-x-1.5">
+          <span class="text-[11px] text-slate-400">渲染平滑:</span>
+          <button type="button" data-modal-render="crisp" onclick="setUiFontRenderMode('crisp')" class="font-modal-render-btn is-active px-2 py-1 rounded-lg bg-teal-500/15 border border-teal-500/40 text-teal-300 text-[11px] font-medium transition cursor-pointer">清晰微调</button>
+          <button type="button" data-modal-render="antialiased" onclick="setUiFontRenderMode('antialiased')" class="font-modal-render-btn px-2 py-1 rounded-lg bg-surface-900 border border-slate-700/80 text-slate-300 hover:text-white text-[11px] transition cursor-pointer">柔和灰度</button>
+        </div>
+        <div class="flex items-center space-x-2.5 shrink-0">
+          <button type="button" onclick="closeFontPickerModal()" class="font-picker-cancel-btn px-4 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 active:bg-surface-600 text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer">取消</button>
+          <button type="button" onclick="applySelectedFont()" class="font-picker-confirm-btn px-5 py-1.5 rounded-lg bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 text-xs font-semibold shadow-md transition cursor-pointer">确定</button>
+        </div>
       </div>
 
     </div>

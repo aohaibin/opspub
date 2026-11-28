@@ -358,7 +358,7 @@ export default function SettingsPage() {
         </nav>
       </WorkspaceSidebarSlot>
 
-      <div key={activePanel.id} id={`settings-panel-${activePanel.id}`} className="ops-settings-scroll custom-scrollbar" role="region" aria-labelledby="settings-title" tabIndex={0}>
+      <div key={activePanel.id} id={`settings-panel-${activePanel.id}`} className="ops-settings-page ops-settings-scroll custom-scrollbar" role="region" aria-labelledby="settings-title" tabIndex={0}>
         <div className="ops-settings-flow">
         <h1 id="settings-title" className="sr-only">{t(activePanel.label)}</h1>
 
@@ -876,7 +876,7 @@ function WindowConfigurationSettings({ disabled }: { disabled: boolean }) {
       <Modal
         open={activeCategory !== null}
         title={activeCategory ? t(WINDOW_CONFIG_META[activeCategory].title) : ""}
-        width={560}
+        width={activeCategory === "window" ? 680 : 560}
         mask={{ closable: false }}
         onCancel={() => setActiveCategory(null)}
         footer={<div className="ops-window-config-modal-footer"><Button onClick={() => activeCategory && resetCategory(activeCategory)} disabled={disabled || saving} icon={<RotateCcw size={14} />}>{t("恢复默认")}</Button><Button type="primary" onClick={() => setActiveCategory(null)}>{t("完成")}</Button></div>}
@@ -884,11 +884,11 @@ function WindowConfigurationSettings({ disabled }: { disabled: boolean }) {
       >
         {activeCategory && <div className="ops-window-config-list">
           {config[activeCategory].map((item, index) => (
-            <div key={item.id} tabIndex={0} onKeyDown={(event) => handleOrderKeyDown(event, activeCategory, index)} className={`ops-window-config-row ${item.enabled && item.location !== "hidden" ? "is-enabled" : "is-disabled"} ${draggingItem?.id === item.id ? "is-dragging" : ""}`} draggable={!disabled && !saving} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", item.id); setDraggingItem({ category: activeCategory, id: item.id }); }} onDragOver={(event) => { if (draggingItem?.category === activeCategory) event.preventDefault(); }} onDrop={(event) => handleDrop(event, activeCategory, item.id)} onDragEnd={() => setDraggingItem(null)}>
+            <div key={item.id} tabIndex={0} onKeyDown={(event) => handleOrderKeyDown(event, activeCategory, index)} className={`ops-window-config-row ${supportsWindowLabel(item.id) ? "has-label-option" : ""} ${item.enabled && item.location !== "hidden" ? "is-enabled" : "is-disabled"} ${draggingItem?.id === item.id ? "is-dragging" : ""}`} draggable={!disabled && !saving} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", item.id); setDraggingItem({ category: activeCategory, id: item.id }); }} onDragOver={(event) => { if (draggingItem?.category === activeCategory) event.preventDefault(); }} onDrop={(event) => handleDrop(event, activeCategory, item.id)} onDragEnd={() => setDraggingItem(null)}>
               <GripVertical size={14} className="ops-window-config-grip" aria-hidden />
               <span className="ops-window-config-index">{index + 1}</span>
               <span className="ops-window-config-name" title={labelFor(item)}>{labelFor(item)}</span>
-              <Select size="small" aria-label={labelFor(item)} value={item.location} disabled={disabled || saving} options={(() => {
+              <Select className="ops-window-config-location-select" size="small" aria-label={labelFor(item)} value={item.location} disabled={disabled || saving} options={(() => {
                 const options = activeCategory === "window"
                   ? windowShortcutModule(item.id) ? ["right", "hidden"] : ["left", "center", "right", "hidden"]
                   : activeCategory === "sidebar"
@@ -896,6 +896,17 @@ function WindowConfigurationSettings({ disabled }: { disabled: boolean }) {
                     : [WINDOW_CONFIG_DEFAULTS[activeCategory].find((entry) => entry.id === item.id)?.location ?? item.location, "hidden"];
                 return Array.from(new Set(options)).map((value) => ({ value, label: t(WINDOW_CONFIG_LOCATION_LABELS[value as WindowConfigLocation]) }));
               })()} onChange={(value: WindowConfigLocation) => updateItem(activeCategory, item.id, { location: value, enabled: value !== "hidden" })} />
+              {activeCategory === "window" && supportsWindowLabel(item.id) && <Select
+                className="ops-window-config-label-select"
+                size="small"
+                aria-label={`${labelFor(item)} ${t("名称显示方式")}`}
+                value={item.showLabel === true ? "label" : "icon"}
+                disabled={disabled || saving}
+                options={[{ value: "icon", label: t("仅图标") }, { value: "label", label: t("图标和名称") }]}
+                onChange={(value: "icon" | "label") => updateItem("window", item.id, { showLabel: value === "label" })}
+                popupMatchSelectWidth={false}
+                suffixIcon={<Type size={13} />}
+              />}
               <Switch size="small" aria-label={labelFor(item)} checked={item.enabled && item.location !== "hidden"} disabled={disabled || saving} onChange={(checked) => updateItem(activeCategory, item.id, { enabled: checked, location: checked && item.location === "hidden" ? WINDOW_CONFIG_DEFAULTS[activeCategory].find((entry) => entry.id === item.id)?.location ?? "toolbar" : item.location })} />
               <div className="ops-window-config-reorder"><Button type="text" size="small" aria-label={t("上移")} disabled={disabled || saving || index === 0} icon={<ArrowUp size={13} />} onClick={() => moveItem(activeCategory, index, -1)} /><Button type="text" size="small" aria-label={t("下移")} disabled={disabled || saving || index === config[activeCategory].length - 1} icon={<ArrowDown size={13} />} onClick={() => moveItem(activeCategory, index, 1)} /></div>
             </div>
